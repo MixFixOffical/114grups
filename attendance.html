@@ -1,0 +1,2933 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="theme-color" content="#2563eb">
+
+    <title>Отметка посещаемости</title>
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background:
+                radial-gradient(
+                    circle at top left,
+                    rgba(37, 99, 235, 0.10),
+                    transparent 30%
+                ),
+                #f3f6fb;
+
+            color: #111827;
+        }
+
+        button,
+        input,
+        textarea {
+            font-family: inherit;
+        }
+
+        /* =====================================================
+           HEADER
+        ===================================================== */
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+
+            min-height: 74px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 12px 25px;
+
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #1d4ed8
+                );
+
+            box-shadow:
+                0 5px 25px rgba(37, 99, 235, 0.20);
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 13px;
+        }
+
+        .back-button {
+            width: 43px;
+            height: 43px;
+
+            border: none;
+            border-radius: 13px;
+
+            color: white;
+            background: rgba(255,255,255,0.14);
+
+            font-size: 20px;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+        .back-button:hover {
+            background: rgba(255,255,255,0.22);
+            transform: translateX(-2px);
+        }
+
+        .header-title {
+            font-size: 21px;
+            font-weight: 800;
+        }
+
+        .header-subtitle {
+            margin-top: 3px;
+
+            font-size: 12px;
+
+            color: rgba(255,255,255,0.72);
+        }
+
+        .clock {
+            text-align: right;
+        }
+
+        .clock-time {
+            font-size: 20px;
+            font-weight: 800;
+        }
+
+        .clock-date {
+            margin-top: 3px;
+            font-size: 11px;
+            opacity: 0.75;
+        }
+
+        /* =====================================================
+           CONTAINER
+        ===================================================== */
+
+        .container {
+            width: min(1200px, calc(100% - 30px));
+
+            margin: 0 auto;
+
+            padding: 25px 0 40px;
+        }
+
+        /* =====================================================
+           TOP PANEL
+        ===================================================== */
+
+        .top-panel {
+            display: grid;
+
+            grid-template-columns:
+                1fr
+                220px
+                180px;
+
+            gap: 15px;
+
+            margin-bottom: 20px;
+        }
+
+        .info-card {
+            background: white;
+
+            border: 1px solid #e5e7eb;
+
+            border-radius: 18px;
+
+            padding: 17px 20px;
+
+            box-shadow:
+                0 5px 20px rgba(15,23,42,0.05);
+        }
+
+        .info-label {
+            color: #6b7280;
+
+            font-size: 12px;
+
+            margin-bottom: 7px;
+        }
+
+        .info-value {
+            font-size: 17px;
+            font-weight: 800;
+        }
+
+        /* =====================================================
+           DATE PANEL
+        ===================================================== */
+
+        .date-card {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .date-input {
+            width: 100%;
+
+            padding: 10px 12px;
+
+            border: 1px solid #dbe1ea;
+            border-radius: 11px;
+
+            font-size: 14px;
+
+            outline: none;
+
+            background: #f8fafc;
+
+            cursor: pointer;
+        }
+
+        .date-input:focus {
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px rgba(37,99,235,0.10);
+        }
+
+        /* =====================================================
+           TOOLBAR
+        ===================================================== */
+
+        .toolbar {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: center;
+
+            gap: 15px;
+
+            margin-bottom: 18px;
+        }
+
+        .toolbar-left {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toolbar-title {
+            font-size: 21px;
+            font-weight: 800;
+        }
+
+        .day-badge {
+            padding: 7px 11px;
+
+            border-radius: 999px;
+
+            color: #1d4ed8;
+
+            background: #eff6ff;
+
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .refresh-button {
+            border: none;
+
+            padding: 10px 15px;
+
+            border-radius: 11px;
+
+            background: white;
+
+            border: 1px solid #e5e7eb;
+
+            cursor: pointer;
+
+            font-weight: 700;
+
+            color: #374151;
+
+            transition: 0.2s;
+        }
+
+        .refresh-button:hover {
+            border-color: #2563eb;
+            color: #2563eb;
+        }
+
+        /* =====================================================
+           TABLE
+        ===================================================== */
+
+        .table-wrapper {
+            width: 100%;
+
+            overflow-x: auto;
+
+            background: white;
+
+            border-radius: 20px;
+
+            border: 1px solid #e5e7eb;
+
+            box-shadow:
+                0 8px 30px rgba(15,23,42,0.06);
+        }
+
+        table {
+            width: 100%;
+
+            border-collapse: separate;
+            border-spacing: 0;
+
+            min-width: 700px;
+        }
+
+        th {
+            position: sticky;
+            top: 0;
+            z-index: 5;
+
+            padding: 14px 10px;
+
+            background: #f8fafc;
+
+            border-bottom: 1px solid #e5e7eb;
+
+            color: #4b5563;
+
+            font-size: 12px;
+        }
+
+        th:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 10;
+
+            width: 270px;
+
+            text-align: left;
+
+            padding-left: 20px;
+
+            background: #f8fafc;
+        }
+
+        td {
+            padding: 10px;
+
+            border-bottom: 1px solid #eef0f4;
+
+            text-align: center;
+
+            background: white;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        td:first-child {
+            position: sticky;
+            left: 0;
+            z-index: 4;
+
+            text-align: left;
+
+            padding-left: 20px;
+
+            background: white;
+        }
+
+        .student-name {
+            font-weight: 700;
+
+            color: #111827;
+
+            white-space: nowrap;
+        }
+
+        .student-number {
+            display: inline-flex;
+
+            width: 28px;
+            height: 28px;
+
+            align-items: center;
+            justify-content: center;
+
+            margin-right: 8px;
+
+            border-radius: 9px;
+
+            background: #eff6ff;
+
+            color: #2563eb;
+
+            font-size: 11px;
+
+            font-weight: 800;
+        }
+
+        /* =====================================================
+           ATTENDANCE CELL
+        ===================================================== */
+
+        .attendance-cell {
+            width: 58px;
+            height: 48px;
+
+            padding: 0;
+
+            cursor: pointer;
+
+            user-select: none;
+
+            transition: 0.15s;
+        }
+
+        .attendance-cell:hover {
+            background: #f8fafc;
+        }
+
+        .status {
+            width: 40px;
+            height: 40px;
+
+            margin: auto;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 12px;
+
+            font-size: 15px;
+            font-weight: 900;
+
+            transition: 0.18s;
+        }
+
+        .status-empty {
+            background: #f3f4f6;
+
+            color: #9ca3af;
+        }
+
+        .status-present {
+            background: #dcfce7;
+
+            color: #15803d;
+        }
+
+        .status-absent {
+            background: #fee2e2;
+
+            color: #dc2626;
+        }
+
+        .attendance-cell:hover .status {
+            transform: scale(1.08);
+        }
+
+        /* =====================================================
+           LOADING
+        ===================================================== */
+
+        .loading {
+            padding: 50px 20px;
+
+            text-align: center;
+
+            color: #6b7280;
+        }
+
+        .spinner {
+            width: 35px;
+            height: 35px;
+
+            margin: 0 auto 12px;
+
+            border-radius: 50%;
+
+            border: 4px solid #e5e7eb;
+            border-top-color: #2563eb;
+
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+
+            to {
+                transform: rotate(360deg);
+            }
+
+        }
+
+        /* =====================================================
+           EMPTY
+        ===================================================== */
+
+        .empty {
+            padding: 60px 20px;
+
+            text-align: center;
+
+            color: #6b7280;
+        }
+
+        .empty-icon {
+            font-size: 45px;
+
+            margin-bottom: 10px;
+        }
+
+        .empty-title {
+            font-size: 18px;
+
+            font-weight: 800;
+
+            color: #374151;
+
+            margin-bottom: 5px;
+        }
+
+        /* =====================================================
+           POPUP MENU
+        ===================================================== */
+
+        .menu-overlay {
+            position: fixed;
+
+            inset: 0;
+
+            z-index: 500;
+
+            display: none;
+
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+
+            background: rgba(15,23,42,0.45);
+
+            backdrop-filter: blur(5px);
+        }
+
+        .menu-overlay.active {
+            display: flex;
+        }
+
+        .choice-menu {
+            width: min(390px, 100%);
+
+            background: white;
+
+            border-radius: 23px;
+
+            padding: 22px;
+
+            box-shadow:
+                0 25px 70px rgba(15,23,42,0.25);
+
+            animation: popupIn 0.2s ease;
+        }
+
+        @keyframes popupIn {
+
+            from {
+                opacity: 0;
+                transform: scale(0.94) translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+
+        }
+
+        .menu-title {
+            font-size: 20px;
+
+            font-weight: 800;
+
+            margin-bottom: 5px;
+        }
+
+        .menu-student {
+            color: #6b7280;
+
+            font-size: 13px;
+
+            margin-bottom: 18px;
+        }
+
+        .choice-button {
+            width: 100%;
+
+            display: flex;
+            align-items: center;
+
+            gap: 13px;
+
+            padding: 14px;
+
+            margin-bottom: 10px;
+
+            border: 1px solid #e5e7eb;
+
+            border-radius: 15px;
+
+            background: white;
+
+            cursor: pointer;
+
+            text-align: left;
+
+            transition: 0.2s;
+        }
+
+        .choice-button:hover {
+            transform: translateY(-2px);
+
+            border-color: #2563eb;
+
+            background: #f8fbff;
+        }
+
+        .choice-icon {
+            width: 42px;
+            height: 42px;
+
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 12px;
+
+            font-size: 20px;
+        }
+
+        .present-icon {
+            background: #dcfce7;
+        }
+
+        .absent-icon {
+            background: #fee2e2;
+        }
+
+        .whole-day-icon {
+            background: #fff7ed;
+        }
+
+        .choice-text strong {
+            display: block;
+
+            font-size: 14px;
+
+            margin-bottom: 3px;
+        }
+
+        .choice-text span {
+            color: #6b7280;
+
+            font-size: 11px;
+        }
+
+        .cancel-button {
+            width: 100%;
+
+            margin-top: 4px;
+
+            padding: 12px;
+
+            border: none;
+
+            border-radius: 13px;
+
+            background: #f3f4f6;
+
+            color: #4b5563;
+
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+        .cancel-button:hover {
+            background: #e5e7eb;
+        }
+
+        /* =====================================================
+           REASON MODAL
+        ===================================================== */
+
+        .modal-overlay {
+            position: fixed;
+
+            inset: 0;
+
+            z-index: 600;
+
+            display: none;
+
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+
+            background: rgba(15,23,42,0.48);
+
+            backdrop-filter: blur(6px);
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            width: min(480px, 100%);
+
+            background: white;
+
+            border-radius: 24px;
+
+            padding: 25px;
+
+            box-shadow:
+                0 25px 70px rgba(15,23,42,0.25);
+
+            animation: popupIn 0.2s ease;
+        }
+
+        .modal-header {
+            display: flex;
+
+            justify-content: space-between;
+            align-items: flex-start;
+
+            margin-bottom: 18px;
+        }
+
+        .modal-title {
+            font-size: 21px;
+
+            font-weight: 800;
+        }
+
+        .close-button {
+            width: 34px;
+            height: 34px;
+
+            border: none;
+
+            border-radius: 10px;
+
+            background: #f3f4f6;
+
+            cursor: pointer;
+
+            font-size: 17px;
+        }
+
+        .modal-info {
+            padding: 14px;
+
+            margin-bottom: 17px;
+
+            border-radius: 14px;
+
+            background: #f8fafc;
+        }
+
+        .modal-info-row {
+            display: flex;
+
+            justify-content: space-between;
+
+            gap: 10px;
+
+            padding: 5px 0;
+
+            font-size: 13px;
+        }
+
+        .modal-info-row span:first-child {
+            color: #6b7280;
+        }
+
+        .modal-info-row span:last-child {
+            font-weight: 700;
+
+            text-align: right;
+        }
+
+        .reason-label {
+            display: block;
+
+            margin-bottom: 8px;
+
+            font-size: 13px;
+
+            font-weight: 700;
+        }
+
+        .reason-input {
+            width: 100%;
+
+            min-height: 100px;
+
+            resize: vertical;
+
+            padding: 12px;
+
+            border: 1px solid #dbe1ea;
+
+            border-radius: 13px;
+
+            outline: none;
+
+            font-size: 14px;
+        }
+
+        .reason-input:focus {
+            border-color: #2563eb;
+
+            box-shadow:
+                0 0 0 3px rgba(37,99,235,0.10);
+        }
+
+        .modal-actions {
+            display: flex;
+
+            gap: 10px;
+
+            margin-top: 18px;
+        }
+
+        .modal-actions button {
+            flex: 1;
+
+            padding: 13px;
+
+            border: none;
+
+            border-radius: 13px;
+
+            cursor: pointer;
+
+            font-weight: 800;
+        }
+
+        .save-button {
+            background: #2563eb;
+
+            color: white;
+        }
+
+        .save-button:hover {
+            background: #1d4ed8;
+        }
+
+        .modal-cancel {
+            background: #f3f4f6;
+
+            color: #4b5563;
+        }
+
+        /* =====================================================
+           TOAST
+        ===================================================== */
+
+        .toast {
+            position: fixed;
+
+            left: 50%;
+            bottom: 25px;
+
+            z-index: 1000;
+
+            transform:
+                translate(-50%, 100px);
+
+            padding: 13px 18px;
+
+            border-radius: 13px;
+
+            color: white;
+
+            background: #111827;
+
+            font-size: 13px;
+
+            font-weight: 700;
+
+            box-shadow:
+                0 10px 30px rgba(0,0,0,0.18);
+
+            opacity: 0;
+
+            pointer-events: none;
+
+            transition: 0.3s;
+        }
+
+        .toast.show {
+            opacity: 1;
+
+            transform:
+                translate(-50%, 0);
+        }
+
+        .toast.success {
+            background: #15803d;
+        }
+
+        .toast.error {
+            background: #dc2626;
+        }
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media (max-width: 850px) {
+
+            .top-panel {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .top-panel .info-card:first-child {
+                grid-column: 1 / -1;
+            }
+
+        }
+
+        @media (max-width: 600px) {
+
+            header {
+                padding: 10px 15px;
+            }
+
+            .header-subtitle {
+                display: none;
+            }
+
+            .clock {
+                display: none;
+            }
+
+            .container {
+                width: calc(100% - 20px);
+
+                padding-top: 15px;
+            }
+
+            .top-panel {
+                grid-template-columns: 1fr;
+            }
+
+            .top-panel .info-card:first-child {
+                grid-column: auto;
+            }
+
+            .toolbar {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .toolbar-left {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .refresh-button {
+                width: 100%;
+            }
+
+            .table-wrapper {
+                border-radius: 15px;
+            }
+
+            th:first-child,
+            td:first-child {
+                width: 210px;
+            }
+
+        }
+
+    </style>
+</head>
+
+<body>
+
+
+<!-- =========================================================
+     HEADER
+========================================================= -->
+
+<header>
+
+    <div class="header-left">
+
+        <button
+            class="back-button"
+            onclick="goBack()">
+            ←
+        </button>
+
+        <div>
+
+            <div class="header-title">
+                Отметка посещаемости
+            </div>
+
+            <div class="header-subtitle">
+                Управление посещаемостью студентов
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <div class="clock">
+
+        <div
+            class="clock-time"
+            id="clock">
+            00:00:00
+        </div>
+
+        <div
+            class="clock-date"
+            id="clockDate">
+            Загрузка...
+        </div>
+
+    </div>
+
+</header>
+
+
+<!-- =========================================================
+     MAIN
+========================================================= -->
+
+<main class="container">
+
+
+    <!-- TOP INFO -->
+
+    <section class="top-panel">
+
+
+        <div class="info-card">
+
+            <div class="info-label">
+                📅 Выбранная дата
+            </div>
+
+            <input
+                type="date"
+                id="datePicker"
+                class="date-input">
+
+        </div>
+
+
+        <div class="info-card">
+
+            <div class="info-label">
+                📚 День недели
+            </div>
+
+            <div
+                class="info-value"
+                id="dayName">
+                —
+            </div>
+
+        </div>
+
+
+        <div class="info-card">
+
+            <div class="info-label">
+                📝 Учебный период
+            </div>
+
+            <div
+                class="info-value"
+                id="periodInfo">
+                —
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+    <!-- TOOLBAR -->
+
+    <div class="toolbar">
+
+        <div class="toolbar-left">
+
+            <div class="toolbar-title">
+                Студенты
+            </div>
+
+            <div
+                class="day-badge"
+                id="lessonCountBadge">
+                0 пар
+            </div>
+
+        </div>
+
+
+        <button
+            class="refresh-button"
+            onclick="reloadData()">
+
+            🔄 Обновить
+
+        </button>
+
+    </div>
+
+
+    <!-- TABLE -->
+
+    <div class="table-wrapper">
+
+        <div
+            id="tableContainer"
+            class="loading">
+
+            <div class="spinner"></div>
+
+            Загрузка данных...
+
+        </div>
+
+    </div>
+
+
+</main>
+
+
+<!-- =========================================================
+     CHOICE MENU
+========================================================= -->
+
+<div
+    class="menu-overlay"
+    id="choiceOverlay"
+    onclick="closeChoiceOutside(event)">
+
+    <div class="choice-menu">
+
+        <div class="menu-title">
+            Отметить посещаемость
+        </div>
+
+        <div
+            class="menu-student"
+            id="choiceStudent">
+            —
+        </div>
+
+
+        <!-- PRESENT -->
+
+        <button
+            class="choice-button"
+            onclick="choosePresent()">
+
+            <div class="choice-icon present-icon">
+                ✓
+            </div>
+
+            <div class="choice-text">
+
+                <strong>
+                    Присутствовал
+                </strong>
+
+                <span>
+                    Студент присутствовал на паре
+                </span>
+
+            </div>
+
+        </button>
+
+
+        <!-- ABSENT -->
+
+        <button
+            class="choice-button"
+            onclick="chooseAbsent()">
+
+            <div class="choice-icon absent-icon">
+                Н
+            </div>
+
+            <div class="choice-text">
+
+                <strong>
+                    Отсутствовал
+                </strong>
+
+                <span>
+                    Указать причину отсутствия
+                </span>
+
+            </div>
+
+        </button>
+
+
+        <!-- WHOLE DAY -->
+
+        <button
+            class="choice-button"
+            onclick="chooseWholeDay()">
+
+            <div class="choice-icon whole-day-icon">
+                📅
+            </div>
+
+            <div class="choice-text">
+
+                <strong>
+                    Весь день
+                </strong>
+
+                <span>
+                    Отметить Н на всех парах этого дня
+                </span>
+
+            </div>
+
+        </button>
+
+
+        <button
+            class="cancel-button"
+            onclick="closeChoice()">
+
+            Отмена
+
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     REASON MODAL
+========================================================= -->
+
+<div
+    class="modal-overlay"
+    id="reasonOverlay">
+
+    <div class="modal">
+
+        <div class="modal-header">
+
+            <div class="modal-title">
+                Причина отсутствия
+            </div>
+
+            <button
+                class="close-button"
+                onclick="closeReason()">
+                ✕
+            </button>
+
+        </div>
+
+
+        <div class="modal-info">
+
+            <div class="modal-info-row">
+
+                <span>
+                    Студент
+                </span>
+
+                <span id="modalStudent">
+                    —
+                </span>
+
+            </div>
+
+
+            <div class="modal-info-row">
+
+                <span>
+                    Дата
+                </span>
+
+                <span id="modalDate">
+                    —
+                </span>
+
+            </div>
+
+
+            <div class="modal-info-row">
+
+                <span>
+                    Пара
+                </span>
+
+                <span id="modalLesson">
+                    —
+                </span>
+
+            </div>
+
+        </div>
+
+
+        <label
+            class="reason-label"
+            for="reasonInput">
+
+            Отсутствовал по причине:
+
+        </label>
+
+
+        <textarea
+            id="reasonInput"
+            class="reason-input"
+            placeholder="Например: болезнь, семейные обстоятельства..."></textarea>
+
+
+        <div class="modal-actions">
+
+            <button
+                class="modal-cancel"
+                onclick="closeReason()">
+
+                Отмена
+
+            </button>
+
+            <button
+                class="save-button"
+                onclick="saveAbsent()">
+
+                💾 Сохранить
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     TOAST
+========================================================= -->
+
+<div
+    class="toast"
+    id="toast">
+</div>
+
+
+<!-- =========================================================
+     FIREBASE
+========================================================= -->
+
+<script type="module">
+
+    import {
+        initializeApp
+    } from
+    "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
+
+    import {
+        getFirestore,
+        collection,
+        getDocs,
+        doc,
+        getDoc,
+        setDoc
+    } from
+    "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+
+    /* =========================================================
+       FIREBASE CONFIG
+    ========================================================= */
+
+    const firebaseConfig = {
+
+        apiKey:
+            "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+
+        authDomain:
+            "othets-1aa03.firebaseapp.com",
+
+        projectId:
+            "othets-1aa03",
+
+        storageBucket:
+            "othets-1aa03.firebasestorage.app",
+
+        messagingSenderId:
+            "528392191591",
+
+        appId:
+            "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+
+        measurementId:
+            "G-F50WVZRXZJ"
+
+    };
+
+
+    const app =
+        initializeApp(firebaseConfig);
+
+
+    const db =
+        getFirestore(app);
+
+
+    /* =========================================================
+       STATE
+    ========================================================= */
+
+    let students = [];
+
+    let settings = {};
+
+    let attendance = {};
+
+    let selectedDate = "";
+
+    let selectedStudent = null;
+
+    let selectedLesson = null;
+
+    let selectedAction = null;
+
+
+    const days = [
+        "Понедельник",
+        "Вторник",
+        "Среда",
+        "Четверг",
+        "Пятница",
+        "Суббота"
+    ];
+
+
+    const dayNames = [
+        "Воскресенье",
+        "Понедельник",
+        "Вторник",
+        "Среда",
+        "Четверг",
+        "Пятница",
+        "Суббота"
+    ];
+
+
+    /* =========================================================
+       ELEMENTS
+    ========================================================= */
+
+    const datePicker =
+        document.getElementById("datePicker");
+
+    const tableContainer =
+        document.getElementById("tableContainer");
+
+
+    /* =========================================================
+       DATE HELPERS
+    ========================================================= */
+
+    function formatDate(date) {
+
+        const year =
+            date.getFullYear();
+
+        const month =
+            String(date.getMonth() + 1)
+                .padStart(2, "0");
+
+        const day =
+            String(date.getDate())
+                .padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+
+    }
+
+
+    function formatDateRu(dateString) {
+
+        if (!dateString) {
+            return "—";
+        }
+
+        const parts =
+            dateString.split("-");
+
+        if (parts.length !== 3) {
+            return dateString;
+        }
+
+        return `${parts[2]}.${parts[1]}.${parts[0]}`;
+
+    }
+
+
+    function parseDate(dateString) {
+
+        const parts =
+            dateString.split("-");
+
+        return new Date(
+            Number(parts[0]),
+            Number(parts[1]) - 1,
+            Number(parts[2])
+        );
+
+    }
+
+
+    /* =========================================================
+       GET DAY
+    ========================================================= */
+
+    function getDayIndex(dateString) {
+
+        const date =
+            parseDate(dateString);
+
+        return date.getDay();
+
+    }
+
+
+    function getDayName(dateString) {
+
+        const index =
+            getDayIndex(dateString);
+
+        return dayNames[index];
+
+    }
+
+
+    /* =========================================================
+       LESSON COUNT
+    ========================================================= */
+
+    function getLessonCount(dayIndex) {
+
+        if (dayIndex < 1 || dayIndex > 6) {
+            return 0;
+        }
+
+        const day =
+            days[dayIndex - 1];
+
+        return Number(
+            settings.schedule?.[day] ?? 0
+        );
+
+    }
+
+
+    /* =========================================================
+       SEMESTER / ATTESTATION
+    ========================================================= */
+
+    function getAttestationInfo(dateString) {
+
+        const date =
+            parseDate(dateString);
+
+
+        function inside(period) {
+
+            if (!period?.start || !period?.end) {
+                return false;
+            }
+
+            const start =
+                parseDate(period.start);
+
+            const end =
+                parseDate(period.end);
+
+
+            return date >= start && date <= end;
+
+        }
+
+
+        if (inside(settings.semester1?.attestation1)) {
+
+            return {
+                semester: "1 семестр",
+                attestation: "Аттестация 1"
+            };
+
+        }
+
+
+        if (inside(settings.semester1?.attestation2)) {
+
+            return {
+                semester: "1 семестр",
+                attestation: "Аттестация 2"
+            };
+
+        }
+
+
+        if (inside(settings.semester2?.attestation1)) {
+
+            return {
+                semester: "2 семестр",
+                attestation: "Аттестация 1"
+            };
+
+        }
+
+
+        if (inside(settings.semester2?.attestation2)) {
+
+            return {
+                semester: "2 семестр",
+                attestation: "Аттестация 2"
+            };
+
+        }
+
+
+        const month =
+            date.getMonth();
+
+
+        const semester =
+            month >= 8 || month <= 0
+                ? "1 семестр"
+                : "2 семестр";
+
+
+        return {
+            semester,
+            attestation: "—"
+        };
+
+    }
+
+
+    /* =========================================================
+       LOAD SETTINGS
+    ========================================================= */
+
+    async function loadSettings() {
+
+        const settingsRef =
+            doc(db, "settings", "main");
+
+        const snapshot =
+            await getDoc(settingsRef);
+
+
+        if (snapshot.exists()) {
+
+            settings =
+                snapshot.data();
+
+        } else {
+
+            settings = {
+
+                schedule: {
+
+                    Понедельник: 5,
+                    Вторник: 5,
+                    Среда: 5,
+                    Четверг: 5,
+                    Пятница: 5,
+                    Суббота: 5
+
+                }
+
+            };
+
+        }
+
+    }
+
+
+    /* =========================================================
+       LOAD STUDENTS
+    ========================================================= */
+
+    async function loadStudents() {
+
+        const snapshot =
+            await getDocs(
+                collection(db, "students")
+            );
+
+
+        students =
+            snapshot.docs.map(item => ({
+
+                id: item.id,
+
+                ...item.data()
+
+            }));
+
+
+        students.sort(
+            (a, b) =>
+                String(a.name || "")
+                    .localeCompare(
+                        String(b.name || ""),
+                        "ru"
+                    )
+        );
+
+    }
+
+
+    /* =========================================================
+       LOAD ATTENDANCE
+       
+       НОВАЯ СТРУКТУРА:
+
+       attendance/
+          DATE_STUDENTID
+
+       {
+           studentId,
+           studentName,
+           date,
+           lessons: {
+               "1": {
+                   status: "absent",
+                   reason: "..."
+               },
+               "2": {
+                   status: "present",
+                   reason: ""
+               }
+           }
+       }
+
+    ========================================================= */
+
+    async function loadAttendance() {
+
+        attendance = {};
+
+
+        const snapshot =
+            await getDocs(
+                collection(db, "attendance")
+            );
+
+
+        snapshot.forEach(item => {
+
+            const data =
+                item.data();
+
+
+            if (!data.date || !data.studentId) {
+                return;
+            }
+
+
+            const key =
+                `${data.date}_${data.studentId}`;
+
+
+            attendance[key] = data;
+
+        });
+
+    }
+
+
+    /* =========================================================
+       GET ATTENDANCE
+    ========================================================= */
+
+    function getStudentDay(studentId) {
+
+        const key =
+            `${selectedDate}_${studentId}`;
+
+
+        return attendance[key] || {
+
+            studentId,
+
+            date: selectedDate,
+
+            lessons: {}
+
+        };
+
+    }
+
+
+    function getLessonData(studentId, lesson) {
+
+        const dayData =
+            getStudentDay(studentId);
+
+
+        return dayData.lessons?.[String(lesson)] || {
+
+            status: "",
+
+            reason: ""
+
+        };
+
+    }
+
+
+    /* =========================================================
+       DOCUMENT ID
+    ========================================================= */
+
+    function getAttendanceDocumentId(studentId) {
+
+        return `${selectedDate}_${studentId}`;
+
+    }
+
+
+    /* =========================================================
+       SAVE DOCUMENT
+    ========================================================= */
+
+    async function saveStudentDay(
+        student,
+        lessons
+    ) {
+
+        const period =
+            getAttestationInfo(selectedDate);
+
+
+        const documentId =
+            getAttendanceDocumentId(
+                student.id
+            );
+
+
+        const data = {
+
+            studentId:
+                student.id,
+
+            studentName:
+                student.name || "",
+
+            date:
+                selectedDate,
+
+            lessons,
+
+            semester:
+                period.semester,
+
+            attestation:
+                period.attestation,
+
+            updatedAt:
+                new Date().toISOString()
+
+        };
+
+
+        await setDoc(
+            doc(
+                db,
+                "attendance",
+                documentId
+            ),
+            data,
+            {
+                merge: false
+            }
+        );
+
+
+        attendance[documentId] =
+            data;
+
+    }
+
+
+    /* =========================================================
+       RENDER
+    ========================================================= */
+
+    function render() {
+
+        const dayIndex =
+            getDayIndex(selectedDate);
+
+
+        const lessonCount =
+            getLessonCount(dayIndex);
+
+
+        document.getElementById("dayName")
+            .textContent =
+                getDayName(selectedDate);
+
+
+        document.getElementById("lessonCountBadge")
+            .textContent =
+                `${lessonCount} ${
+                    lessonCount === 1
+                        ? "пара"
+                        : lessonCount >= 2 &&
+                          lessonCount <= 4
+                            ? "пары"
+                            : "пар"
+                }`;
+
+
+        const period =
+            getAttestationInfo(selectedDate);
+
+
+        document.getElementById("periodInfo")
+            .textContent =
+                `${period.semester} • ${period.attestation}`;
+
+
+        if (dayIndex === 0) {
+
+            tableContainer.innerHTML = `
+
+                <div class="empty">
+
+                    <div class="empty-icon">
+                        🌴
+                    </div>
+
+                    <div class="empty-title">
+                        Воскресенье
+                    </div>
+
+                    <div>
+                        В воскресенье занятий нет.
+                    </div>
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        if (lessonCount <= 0) {
+
+            tableContainer.innerHTML = `
+
+                <div class="empty">
+
+                    <div class="empty-icon">
+                        📚
+                    </div>
+
+                    <div class="empty-title">
+                        Нет занятий
+                    </div>
+
+                    <div>
+                        Для этого дня не настроено расписание.
+                    </div>
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        if (students.length === 0) {
+
+            tableContainer.innerHTML = `
+
+                <div class="empty">
+
+                    <div class="empty-icon">
+                        👨‍🎓
+                    </div>
+
+                    <div class="empty-title">
+                        Студентов пока нет
+                    </div>
+
+                    <div>
+                        Сначала добавьте студентов.
+                    </div>
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        let html = `
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Студент
+                        </th>
+
+        `;
+
+
+        for (
+            let lesson = 1;
+            lesson <= lessonCount;
+            lesson++
+        ) {
+
+            html += `
+
+                <th>
+                    ${lesson} пара
+                </th>
+
+            `;
+
+        }
+
+
+        html += `
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+        `;
+
+
+        students.forEach(
+            (student, studentIndex) => {
+
+                html += `
+
+                    <tr>
+
+                        <td>
+
+                            <span class="student-number">
+                                ${studentIndex + 1}
+                            </span>
+
+                            <span class="student-name">
+                                ${escapeHtml(
+                                    student.name || "Без имени"
+                                )}
+                            </span>
+
+                        </td>
+
+                `;
+
+
+                for (
+                    let lesson = 1;
+                    lesson <= lessonCount;
+                    lesson++
+                ) {
+
+                    const data =
+                        getLessonData(
+                            student.id,
+                            lesson
+                        );
+
+
+                    let statusClass =
+                        "status-empty";
+
+                    let statusText =
+                        "—";
+
+
+                    if (
+                        data.status ===
+                        "present"
+                    ) {
+
+                        statusClass =
+                            "status-present";
+
+                        statusText =
+                            "✓";
+
+                    }
+
+
+                    if (
+                        data.status ===
+                        "absent"
+                    ) {
+
+                        statusClass =
+                            "status-absent";
+
+                        statusText =
+                            "Н";
+
+                    }
+
+
+                    html += `
+
+                        <td
+                            class="attendance-cell"
+                            onclick="window.openCell(
+                                '${escapeJs(student.id)}',
+                                ${lesson}
+                            )">
+
+                            <div
+                                class="status ${statusClass}">
+
+                                ${statusText}
+
+                            </div>
+
+                        </td>
+
+                    `;
+
+                }
+
+
+                html += `
+
+                    </tr>
+
+                `;
+
+            }
+        );
+
+
+        html += `
+
+                </tbody>
+
+            </table>
+
+        `;
+
+
+        tableContainer.innerHTML =
+            html;
+
+    }
+
+
+    /* =========================================================
+       OPEN CELL
+    ========================================================= */
+
+    window.openCell =
+        function(studentId, lesson) {
+
+            const student =
+                students.find(
+                    item =>
+                        item.id === studentId
+                );
+
+
+            if (!student) {
+                return;
+            }
+
+
+            selectedStudent =
+                student;
+
+            selectedLesson =
+                lesson;
+
+
+            document.getElementById(
+                "choiceStudent"
+            ).textContent =
+                `${student.name} • ${lesson} пара`;
+
+
+            document.getElementById(
+                "choiceOverlay"
+            ).classList.add("active");
+
+        };
+
+
+    /* =========================================================
+       CLOSE CHOICE
+    ========================================================= */
+
+    function closeChoice() {
+
+        document.getElementById(
+            "choiceOverlay"
+        ).classList.remove("active");
+
+    }
+
+
+    window.closeChoice =
+        closeChoice;
+
+
+    function closeChoiceOutside(event) {
+
+        if (
+            event.target ===
+            document.getElementById(
+                "choiceOverlay"
+            )
+        ) {
+
+            closeChoice();
+
+        }
+
+    }
+
+
+    window.closeChoiceOutside =
+        closeChoiceOutside;
+
+
+    /* =========================================================
+       PRESENT
+    ========================================================= */
+
+    async function choosePresent() {
+
+        if (!selectedStudent) {
+            return;
+        }
+
+
+        closeChoice();
+
+
+        try {
+
+            showToast(
+                "Сохранение...",
+                ""
+            );
+
+
+            const dayData =
+                getStudentDay(
+                    selectedStudent.id
+                );
+
+
+            const lessons = {
+
+                ...(dayData.lessons || {})
+
+            };
+
+
+            lessons[
+                String(selectedLesson)
+            ] = {
+
+                status:
+                    "present",
+
+                reason:
+                    ""
+
+            };
+
+
+            await saveStudentDay(
+                selectedStudent,
+                lessons
+            );
+
+
+            render();
+
+
+            showToast(
+                "✓ Присутствие сохранено",
+                "success"
+            );
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            showToast(
+                "Ошибка сохранения",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    window.choosePresent =
+        choosePresent;
+
+
+    /* =========================================================
+       ABSENT
+    ========================================================= */
+
+    function chooseAbsent() {
+
+        if (!selectedStudent) {
+            return;
+        }
+
+
+        closeChoice();
+
+
+        const data =
+            getLessonData(
+                selectedStudent.id,
+                selectedLesson
+            );
+
+
+        document.getElementById(
+            "modalStudent"
+        ).textContent =
+            selectedStudent.name;
+
+
+        document.getElementById(
+            "modalDate"
+        ).textContent =
+            formatDateRu(selectedDate);
+
+
+        document.getElementById(
+            "modalLesson"
+        ).textContent =
+            `${selectedLesson} пара`;
+
+
+        document.getElementById(
+            "reasonInput"
+        ).value =
+            data.reason || "";
+
+
+        selectedAction =
+            "single";
+
+
+        document.getElementById(
+            "reasonOverlay"
+        ).classList.add("active");
+
+
+        setTimeout(
+            () => {
+
+                document.getElementById(
+                    "reasonInput"
+                ).focus();
+
+            },
+            100
+        );
+
+    }
+
+
+    window.chooseAbsent =
+        chooseAbsent;
+
+
+    /* =========================================================
+       WHOLE DAY
+       
+       Открываем окно причины.
+       После сохранения причина применяется
+       ко всем парам этого студента за день.
+    ========================================================= */
+
+    function chooseWholeDay() {
+
+        if (!selectedStudent) {
+            return;
+        }
+
+
+        closeChoice();
+
+
+        document.getElementById(
+            "modalStudent"
+        ).textContent =
+            selectedStudent.name;
+
+
+        document.getElementById(
+            "modalDate"
+        ).textContent =
+            formatDateRu(selectedDate);
+
+
+        document.getElementById(
+            "modalLesson"
+        ).textContent =
+            "📅 Весь день";
+
+
+        document.getElementById(
+            "reasonInput"
+        ).value = "";
+
+
+        selectedAction =
+            "wholeDay";
+
+
+        document.getElementById(
+            "reasonOverlay"
+        ).classList.add("active");
+
+
+        setTimeout(
+            () => {
+
+                document.getElementById(
+                    "reasonInput"
+                ).focus();
+
+            },
+            100
+        );
+
+    }
+
+
+    window.chooseWholeDay =
+        chooseWholeDay;
+
+
+    /* =========================================================
+       SAVE ABSENT
+    ========================================================= */
+
+    async function saveAbsent() {
+
+        if (
+            !selectedStudent ||
+            !selectedAction
+        ) {
+
+            return;
+
+        }
+
+
+        const reason =
+            document.getElementById(
+                "reasonInput"
+            ).value.trim();
+
+
+        try {
+
+            showToast(
+                "Сохранение...",
+                ""
+            );
+
+
+            const dayData =
+                getStudentDay(
+                    selectedStudent.id
+                );
+
+
+            const lessons = {
+
+                ...(dayData.lessons || {})
+
+            };
+
+
+            const dayIndex =
+                getDayIndex(selectedDate);
+
+
+            const lessonCount =
+                getLessonCount(dayIndex);
+
+
+            /* =================================================
+               ОДНА ПАРА
+            ================================================= */
+
+            if (
+                selectedAction ===
+                "single"
+            ) {
+
+                lessons[
+                    String(selectedLesson)
+                ] = {
+
+                    status:
+                        "absent",
+
+                    reason:
+                        reason
+
+                };
+
+            }
+
+
+            /* =================================================
+               ВЕСЬ ДЕНЬ
+            ================================================= */
+
+            if (
+                selectedAction ===
+                "wholeDay"
+            ) {
+
+                for (
+                    let lesson = 1;
+                    lesson <= lessonCount;
+                    lesson++
+                ) {
+
+                    lessons[
+                        String(lesson)
+                    ] = {
+
+                        status:
+                            "absent",
+
+                        reason:
+                            reason
+
+                    };
+
+                }
+
+            }
+
+
+            await saveStudentDay(
+                selectedStudent,
+                lessons
+            );
+
+
+            closeReason();
+
+
+            render();
+
+
+            showToast(
+                selectedAction === "wholeDay"
+                    ? "✓ Н сохранено на весь день"
+                    : "✓ Отсутствие сохранено",
+                "success"
+            );
+
+
+        } catch (error) {
+
+            console.error(error);
+
+            showToast(
+                "Ошибка сохранения",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    window.saveAbsent =
+        saveAbsent;
+
+
+    /* =========================================================
+       CLOSE REASON
+    ========================================================= */
+
+    function closeReason() {
+
+        document.getElementById(
+            "reasonOverlay"
+        ).classList.remove("active");
+
+
+        selectedAction =
+            null;
+
+    }
+
+
+    window.closeReason =
+        closeReason;
+
+
+    /* =========================================================
+       ESC
+    ========================================================= */
+
+    document.addEventListener(
+        "keydown",
+        event => {
+
+            if (
+                event.key ===
+                "Escape"
+            ) {
+
+                closeChoice();
+
+                closeReason();
+
+            }
+
+        }
+    );
+
+
+    /* =========================================================
+       DATE CHANGE
+    ========================================================= */
+
+    datePicker.addEventListener(
+        "change",
+        async function() {
+
+            selectedDate =
+                this.value;
+
+
+            await reloadData();
+
+        }
+    );
+
+
+    /* =========================================================
+       RELOAD
+    ========================================================= */
+
+    async function reloadData() {
+
+        tableContainer.innerHTML = `
+
+            <div class="loading">
+
+                <div class="spinner"></div>
+
+                Загрузка данных...
+
+            </div>
+
+        `;
+
+
+        try {
+
+            await loadSettings();
+
+            await loadStudents();
+
+            await loadAttendance();
+
+
+            render();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+
+            tableContainer.innerHTML = `
+
+                <div class="empty">
+
+                    <div class="empty-icon">
+                        ⚠️
+                    </div>
+
+                    <div class="empty-title">
+                        Ошибка загрузки
+                    </div>
+
+                    <div>
+                        Не удалось получить данные из Firebase.
+                    </div>
+
+                </div>
+
+            `;
+
+
+            showToast(
+                "Ошибка подключения к Firebase",
+                "error"
+            );
+
+        }
+
+    }
+
+
+    window.reloadData =
+        reloadData;
+
+
+    /* =========================================================
+       CLOCK
+    ========================================================= */
+
+    function updateClock() {
+
+        const now =
+            new Date();
+
+
+        document.getElementById(
+            "clock"
+        ).textContent =
+            now.toLocaleTimeString(
+                "ru-RU"
+            );
+
+
+        document.getElementById(
+            "clockDate"
+        ).textContent =
+            now.toLocaleDateString(
+                "ru-RU",
+                {
+                    weekday: "long",
+                    day: "numeric",
+                    month: "long"
+                }
+            );
+
+    }
+
+
+    /* =========================================================
+       TOAST
+    ========================================================= */
+
+    let toastTimer;
+
+
+    function showToast(
+        message,
+        type = ""
+    ) {
+
+        const toast =
+            document.getElementById(
+                "toast"
+            );
+
+
+        toast.textContent =
+            message;
+
+
+        toast.className =
+            `toast show ${type}`;
+
+
+        clearTimeout(
+            toastTimer
+        );
+
+
+        toastTimer =
+            setTimeout(
+                () => {
+
+                    toast.className =
+                        "toast";
+
+                },
+                2500
+            );
+
+    }
+
+
+    /* =========================================================
+       ESCAPE HTML
+    ========================================================= */
+
+    function escapeHtml(value) {
+
+        return String(value ?? "")
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+
+    }
+
+
+    function escapeJs(value) {
+
+        return String(value ?? "")
+            .replaceAll("\\", "\\\\")
+            .replaceAll("'", "\\'");
+
+    }
+
+
+    /* =========================================================
+       BACK
+    ========================================================= */
+
+    function goBack() {
+
+        window.location.href =
+            "index.html";
+
+    }
+
+
+    window.goBack =
+        goBack;
+
+
+    /* =========================================================
+       START
+    ========================================================= */
+
+    async function start() {
+
+        const today =
+            new Date();
+
+
+        selectedDate =
+            formatDate(today);
+
+
+        datePicker.value =
+            selectedDate;
+
+
+        updateClock();
+
+
+        setInterval(
+            updateClock,
+            1000
+        );
+
+
+        await reloadData();
+
+    }
+
+
+    start();
+
+</script>
+
+</body>
+</html>

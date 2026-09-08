@@ -1,0 +1,2584 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Посещаемость</title>
+
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+
+        body {
+            margin: 0;
+
+            font-family: Arial, sans-serif;
+
+            background: #f4f6f8;
+
+            color: #222;
+        }
+
+
+        /* =====================================
+           HEADER
+        ===================================== */
+
+        header {
+
+            background: #1976d2;
+
+            color: white;
+
+            padding: 16px 25px;
+
+            display: flex;
+
+            justify-content: space-between;
+
+            align-items: center;
+
+            box-shadow:
+                0 2px 8px rgba(0,0,0,0.15);
+
+        }
+
+
+        .title {
+
+            font-size: 25px;
+
+            font-weight: bold;
+
+        }
+
+
+        .subtitle {
+
+            margin-top: 5px;
+
+            font-size: 14px;
+
+            opacity: 0.9;
+
+        }
+
+
+        .clock {
+
+            text-align: right;
+
+        }
+
+
+        .time {
+
+            font-size: 22px;
+
+            font-weight: bold;
+
+        }
+
+
+        .date {
+
+            font-size: 14px;
+
+            margin-top: 3px;
+
+        }
+
+
+        /* =====================================
+           CONTAINER
+        ===================================== */
+
+        .container {
+
+            max-width: 1500px;
+
+            margin: 25px auto;
+
+            padding: 0 20px;
+
+        }
+
+
+        /* =====================================
+           WEEK PANEL
+        ===================================== */
+
+        .week-panel {
+
+            background: white;
+
+            border-radius: 14px;
+
+            padding: 18px;
+
+            box-shadow:
+                0 3px 12px rgba(0,0,0,0.08);
+
+            margin-bottom: 20px;
+
+        }
+
+
+        .week-title {
+
+            font-size: 21px;
+
+            font-weight: bold;
+
+            margin-bottom: 15px;
+
+        }
+
+
+        .week-controls {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            flex-wrap: wrap;
+
+        }
+
+
+        .week-controls button {
+
+            border: none;
+
+            padding: 11px 17px;
+
+            border-radius: 9px;
+
+            cursor: pointer;
+
+            font-size: 15px;
+
+            transition: 0.15s;
+
+        }
+
+
+        .previous {
+
+            background: #eeeeee;
+
+        }
+
+
+        .previous:hover {
+
+            background: #dddddd;
+
+        }
+
+
+        .current {
+
+            background: #1976d2;
+
+            color: white;
+
+        }
+
+
+        .current:hover {
+
+            background: #125ca5;
+
+        }
+
+
+        .next {
+
+            background: #eeeeee;
+
+        }
+
+
+        .next:hover {
+
+            background: #dddddd;
+
+        }
+
+
+        .list-button {
+
+            background: #673ab7;
+
+            color: white;
+
+        }
+
+
+        .list-button:hover {
+
+            background: #512da8;
+
+        }
+
+
+        .back {
+
+            margin-left: auto;
+
+            background: #757575;
+
+            color: white;
+
+        }
+
+
+        .back:hover {
+
+            background: #555;
+
+        }
+
+
+        /* =====================================
+           WEEK LIST
+        ===================================== */
+
+        .week-list {
+
+            display: none;
+
+            margin-top: 15px;
+
+            background: #f7f8fa;
+
+            border: 1px solid #ddd;
+
+            border-radius: 10px;
+
+            padding: 8px;
+
+            max-height: 320px;
+
+            overflow-y: auto;
+
+        }
+
+
+        .week-list.show {
+
+            display: block;
+
+        }
+
+
+        .week-option {
+
+            width: 100%;
+
+            border: none;
+
+            background: white;
+
+            padding: 12px 14px;
+
+            margin-bottom: 5px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            text-align: left;
+
+            font-size: 15px;
+
+            transition: 0.15s;
+
+        }
+
+
+        .week-option:hover {
+
+            background: #e3f2fd;
+
+        }
+
+
+        .week-option.selected {
+
+            background: #1976d2;
+
+            color: white;
+
+        }
+
+
+        .week-option.current-week {
+
+            border-left: 4px solid #2e7d32;
+
+        }
+
+
+        .week-range {
+
+            margin-top: 13px;
+
+            color: #666;
+
+            font-size: 15px;
+
+        }
+
+
+        /* =====================================
+           TABLE
+        ===================================== */
+
+        .table-container {
+
+            background: white;
+
+            border-radius: 14px;
+
+            box-shadow:
+                0 3px 12px rgba(0,0,0,0.08);
+
+            overflow: auto;
+
+        }
+
+
+        table {
+
+            border-collapse: collapse;
+
+            width: 100%;
+
+            min-width: 1000px;
+
+        }
+
+
+        th {
+
+            background: #1976d2;
+
+            color: white;
+
+            padding: 12px 10px;
+
+            border: 1px solid #1565c0;
+
+            text-align: center;
+
+            white-space: nowrap;
+
+        }
+
+
+        th.student-column {
+
+            text-align: left;
+
+            min-width: 270px;
+
+            position: sticky;
+
+            left: 0;
+
+            z-index: 10;
+
+        }
+
+
+        td {
+
+            border: 1px solid #ddd;
+
+            text-align: center;
+
+            padding: 7px;
+
+        }
+
+
+        td.student-cell {
+
+            background: white;
+
+            text-align: left;
+
+            position: sticky;
+
+            left: 0;
+
+            z-index: 5;
+
+            min-width: 270px;
+
+        }
+
+
+        .student-wrapper {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+        }
+
+
+        .student-number {
+
+            width: 32px;
+
+            height: 32px;
+
+            border-radius: 50%;
+
+            background: #1976d2;
+
+            color: white;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            font-weight: bold;
+
+            flex-shrink: 0;
+
+        }
+
+
+        .student-name {
+
+            font-size: 15px;
+
+        }
+
+
+        /* =====================================
+           DAYS
+        ===================================== */
+
+        .day-header {
+
+            min-width: 100px;
+
+        }
+
+
+        .day-name {
+
+            font-weight: bold;
+
+        }
+
+
+        .day-date {
+
+            font-size: 12px;
+
+            margin-top: 3px;
+
+            opacity: 0.85;
+
+        }
+
+
+        /* =====================================
+           LESSON CELLS
+        ===================================== */
+
+        .lesson-cell {
+
+            min-width: 55px;
+
+            height: 45px;
+
+            cursor: pointer;
+
+            transition: 0.15s;
+
+        }
+
+
+        .lesson-cell:hover {
+
+            background: #e3f2fd;
+
+        }
+
+
+        .present {
+
+            color: #2e7d32;
+
+            background: #e8f5e9;
+
+            font-size: 20px;
+
+            font-weight: bold;
+
+        }
+
+
+        .absent {
+
+            color: #c62828;
+
+            background: #ffebee;
+
+            font-size: 19px;
+
+            font-weight: bold;
+
+        }
+
+
+        .empty-mark {
+
+            color: #999;
+
+        }
+
+
+        /* =====================================
+           POPUP
+        ===================================== */
+
+        .info-popup {
+
+            position: fixed;
+
+            display: none;
+
+            background: white;
+
+            padding: 16px;
+
+            border-radius: 11px;
+
+            box-shadow:
+                0 5px 25px rgba(0,0,0,0.25);
+
+            width: 290px;
+
+            z-index: 1000;
+
+        }
+
+
+        .popup-title {
+
+            font-weight: bold;
+
+            font-size: 17px;
+
+            margin-bottom: 10px;
+
+        }
+
+
+        .popup-row {
+
+            margin-bottom: 7px;
+
+            font-size: 14px;
+
+        }
+
+
+        .popup-reason {
+
+            background: #f5f5f5;
+
+            padding: 9px;
+
+            border-radius: 7px;
+
+            margin-top: 10px;
+
+            line-height: 1.4;
+
+        }
+
+
+        /* =====================================
+           EMPTY
+        ===================================== */
+
+        .empty {
+
+            text-align: center;
+
+            padding: 50px;
+
+            color: #777;
+
+            font-size: 17px;
+
+        }
+
+
+        /* =====================================
+           STATUS
+        ===================================== */
+
+        .status {
+
+            position: fixed;
+
+            right: 20px;
+
+            bottom: 20px;
+
+            background: #323232;
+
+            color: white;
+
+            padding: 12px 18px;
+
+            border-radius: 9px;
+
+            display: none;
+
+            z-index: 3000;
+
+        }
+
+
+        .status.show {
+
+            display: block;
+
+        }
+
+
+        /* =====================================
+           MOBILE
+        ===================================== */
+
+        @media (max-width: 700px) {
+
+            header {
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 10px;
+
+            }
+
+
+            .clock {
+
+                text-align: left;
+
+            }
+
+
+            .back {
+
+                margin-left: 0;
+
+            }
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- =====================================
+     HEADER
+===================================== -->
+
+<header>
+
+    <div>
+
+        <div class="title">
+            📊 Посещаемость
+        </div>
+
+        <div
+            class="subtitle"
+            id="semesterInfo"
+        >
+            Загрузка...
+        </div>
+
+    </div>
+
+
+    <div class="clock">
+
+        <div
+            class="time"
+            id="currentTime"
+        >
+            --:--:--
+        </div>
+
+        <div
+            class="date"
+            id="currentDate"
+        >
+            --.--.----
+        </div>
+
+    </div>
+
+</header>
+
+
+
+<div class="container">
+
+
+    <!-- =====================================
+         WEEK PANEL
+    ===================================== -->
+
+    <div class="week-panel">
+
+        <div class="week-title">
+            📅 Посещаемость за неделю
+        </div>
+
+
+        <div class="week-controls">
+
+
+            <button
+                class="previous"
+                onclick="previousWeek()"
+            >
+                ◀ Предыдущая неделя
+            </button>
+
+
+            <button
+                class="current"
+                onclick="currentWeek()"
+            >
+                📍 Текущая неделя
+            </button>
+
+
+            <button
+                class="next"
+                onclick="nextWeek()"
+            >
+                Следующая неделя ▶
+            </button>
+
+
+            <button
+                class="list-button"
+                onclick="toggleWeekList()"
+            >
+                📋 Список
+            </button>
+
+
+            <button
+                class="back"
+                onclick="goBack()"
+            >
+                ← Главное меню
+            </button>
+
+
+        </div>
+
+
+        <!-- СПИСОК НЕДЕЛЬ -->
+
+        <div
+            id="weekList"
+            class="week-list"
+        ></div>
+
+
+        <div
+            class="week-range"
+            id="weekRange"
+        >
+            —
+        </div>
+
+    </div>
+
+
+
+    <!-- =====================================
+         TABLE
+    ===================================== -->
+
+    <div class="table-container">
+
+        <div id="tableWrapper">
+
+            <div class="empty">
+                Загрузка посещаемости...
+            </div>
+
+        </div>
+
+    </div>
+
+
+</div>
+
+
+
+<!-- =====================================
+     POPUP
+===================================== -->
+
+<div
+    id="infoPopup"
+    class="info-popup"
+>
+
+    <div
+        class="popup-title"
+        id="popupTitle"
+    >
+        —
+    </div>
+
+
+    <div
+        class="popup-row"
+        id="popupStudent"
+    >
+        —
+    </div>
+
+
+    <div
+        class="popup-row"
+        id="popupDate"
+    >
+        —
+    </div>
+
+
+    <div
+        class="popup-row"
+        id="popupLesson"
+    >
+        —
+    </div>
+
+
+    <div class="popup-reason">
+
+        <strong>
+            Причина:
+        </strong>
+
+        <div id="popupReason">
+            —
+        </div>
+
+    </div>
+
+</div>
+
+
+
+<div
+    id="status"
+    class="status"
+></div>
+
+
+
+<script type="module">
+
+
+    // =========================================
+    // FIREBASE
+    // =========================================
+
+    import {
+        initializeApp
+    }
+    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
+
+    import {
+        getFirestore,
+        collection,
+        getDocs,
+        doc,
+        getDoc
+    }
+    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+
+    const firebaseConfig = {
+
+        apiKey:
+            "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+
+        authDomain:
+            "othets-1aa03.firebaseapp.com",
+
+        projectId:
+            "othets-1aa03",
+
+        storageBucket:
+            "othets-1aa03.firebasestorage.app",
+
+        messagingSenderId:
+            "528392191591",
+
+        appId:
+            "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+
+        measurementId:
+            "G-F50WVZRXZJ"
+
+    };
+
+
+    const app =
+        initializeApp(firebaseConfig);
+
+
+    const db =
+        getFirestore(app);
+
+
+
+    // =========================================
+    // VARIABLES
+    // =========================================
+
+    let students = [];
+
+    let settings = {};
+
+    let attendance = {};
+
+    let weekStart;
+
+
+    const days = [
+
+        "Понедельник",
+        "Вторник",
+        "Среда",
+        "Четверг",
+        "Пятница",
+        "Суббота"
+
+    ];
+
+
+
+    // =========================================
+    // CLOCK
+    // =========================================
+
+    function updateClock() {
+
+        const now =
+            new Date();
+
+
+        document.getElementById(
+            "currentTime"
+        ).textContent =
+            now.toLocaleTimeString(
+                "ru-RU",
+                {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                }
+            );
+
+
+        document.getElementById(
+            "currentDate"
+        ).textContent =
+            now.toLocaleDateString(
+                "ru-RU",
+                {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric"
+                }
+            );
+
+    }
+
+
+    updateClock();
+
+    setInterval(
+        updateClock,
+        1000
+    );
+
+
+
+    // =========================================
+    // DATE FORMAT
+    // =========================================
+
+    function formatDate(date) {
+
+        const year =
+            date.getFullYear();
+
+
+        const month =
+            String(
+                date.getMonth() + 1
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        const day =
+            String(
+                date.getDate()
+            ).padStart(
+                2,
+                "0"
+            );
+
+
+        return `${year}-${month}-${day}`;
+
+    }
+
+
+
+    function formatDateRu(
+        dateString
+    ) {
+
+        const date =
+            new Date(
+                dateString +
+                "T00:00:00"
+            );
+
+
+        return date.toLocaleDateString(
+            "ru-RU",
+            {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+            }
+        );
+
+    }
+
+
+
+    function getMonday(date) {
+
+        const result =
+            new Date(date);
+
+
+        result.setHours(
+            0,
+            0,
+            0,
+            0
+        );
+
+
+        let day =
+            result.getDay();
+
+
+        if (day === 0) {
+            day = 7;
+        }
+
+
+        result.setDate(
+            result.getDate() -
+            day +
+            1
+        );
+
+
+        return result;
+
+    }
+
+
+
+    // =========================================
+    // LOAD SETTINGS
+    // =========================================
+
+    async function loadSettings() {
+
+        try {
+
+            const snapshot =
+                await getDoc(
+                    doc(
+                        db,
+                        "settings",
+                        "main"
+                    )
+                );
+
+
+            if (
+                snapshot.exists()
+            ) {
+
+                settings =
+                    snapshot.data();
+
+            }
+            else {
+
+                settings = {
+
+                    schedule: {
+
+                        "Понедельник": 5,
+                        "Вторник": 5,
+                        "Среда": 5,
+                        "Четверг": 5,
+                        "Пятница": 5,
+                        "Суббота": 5
+
+                    }
+
+                };
+
+            }
+
+        }
+        catch (error) {
+
+            console.error(
+                "Ошибка загрузки настроек:",
+                error
+            );
+
+
+            settings = {
+
+                schedule: {
+
+                    "Понедельник": 5,
+                    "Вторник": 5,
+                    "Среда": 5,
+                    "Четверг": 5,
+                    "Пятница": 5,
+                    "Суббота": 5
+
+                }
+
+            };
+
+        }
+
+    }
+
+
+
+    // =========================================
+    // LOAD STUDENTS
+    // =========================================
+
+    async function loadStudents() {
+
+        try {
+
+            const snapshot =
+                await getDocs(
+                    collection(
+                        db,
+                        "students"
+                    )
+                );
+
+
+            students = [];
+
+
+            snapshot.forEach(
+                studentDoc => {
+
+                    students.push({
+
+                        id:
+                            studentDoc.id,
+
+                        ...studentDoc.data()
+
+                    });
+
+                }
+            );
+
+
+            students.sort(
+                (a, b) =>
+
+                    (a.name || "")
+                        .localeCompare(
+                            b.name || "",
+                            "ru"
+                        )
+
+            );
+
+        }
+        catch (error) {
+
+            console.error(
+                error
+            );
+
+
+            showStatus(
+                "Ошибка загрузки студентов"
+            );
+
+        }
+
+    }
+
+
+
+    // =========================================
+    // LOAD ATTENDANCE
+    // =========================================
+
+    async function loadAttendance() {
+
+        try {
+
+            const snapshot =
+                await getDocs(
+                    collection(
+                        db,
+                        "attendance"
+                    )
+                );
+
+
+            attendance = {};
+
+
+            snapshot.forEach(
+                attendanceDoc => {
+
+                    const data =
+                        attendanceDoc.data();
+
+
+                    if (
+                        data.date &&
+                        data.studentId &&
+                        data.lesson
+                    ) {
+
+                        const key =
+
+                            `${data.date}_${data.studentId}_${data.lesson}`;
+
+
+                        attendance[key] = {
+
+                            ...data,
+
+                            id:
+                                attendanceDoc.id
+
+                        };
+
+                    }
+
+                }
+            );
+
+        }
+        catch (error) {
+
+            console.error(
+                error
+            );
+
+
+            showStatus(
+                "Ошибка загрузки посещаемости"
+            );
+
+        }
+
+    }
+
+
+
+    // =========================================
+    // GET LESSON COUNT
+    // =========================================
+
+    function getLessonCount(
+        dayIndex
+    ) {
+
+        const schedule =
+            settings.schedule || {};
+
+
+        const day =
+            days[dayIndex];
+
+
+        return Number(
+            schedule[day] || 0
+        );
+
+    }
+
+
+
+    // =========================================
+    // GET WEEK DATES
+    // =========================================
+
+    function getWeekDates() {
+
+        const result = [];
+
+
+        for (
+            let i = 0;
+            i < 6;
+            i++
+        ) {
+
+            const date =
+                new Date(
+                    weekStart
+                );
+
+
+            date.setDate(
+                date.getDate() + i
+            );
+
+
+            result.push(
+                date
+            );
+
+        }
+
+
+        return result;
+
+    }
+
+
+
+    // =========================================
+    // WEEK RANGE
+    // =========================================
+
+    function updateWeekRange() {
+
+        const dates =
+            getWeekDates();
+
+
+        const first =
+            formatDateRu(
+                formatDate(
+                    dates[0]
+                )
+            );
+
+
+        const last =
+            formatDateRu(
+                formatDate(
+                    dates[5]
+                )
+            );
+
+
+        document.getElementById(
+            "weekRange"
+        ).textContent =
+
+            `Период: ${first} — ${last}`;
+
+    }
+
+
+
+    // =========================================
+    // RENDER TABLE
+    // =========================================
+
+    function renderTable() {
+
+        const wrapper =
+            document.getElementById(
+                "tableWrapper"
+            );
+
+
+        if (
+            students.length === 0
+        ) {
+
+            wrapper.innerHTML = `
+
+                <div class="empty">
+
+                    👨‍🎓 Студентов пока нет.
+
+                    <br><br>
+
+                    Добавьте студентов
+                    в разделе «Студенты».
+
+                </div>
+
+            `;
+
+            return;
+
+        }
+
+
+        const weekDates =
+            getWeekDates();
+
+
+        let html = `
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th
+                            class="student-column"
+                            rowspan="2"
+                        >
+                            Список обучающихся
+                        </th>
+
+        `;
+
+
+        // =====================================
+        // ДНИ
+        // =====================================
+
+        weekDates.forEach(
+            (date, index) => {
+
+                const count =
+                    getLessonCount(
+                        index
+                    );
+
+
+                html += `
+
+                    <th
+                        class="day-header"
+                        colspan="${Math.max(count, 1)}"
+                    >
+
+                        <div class="day-name">
+
+                            ${days[index]}
+
+                        </div>
+
+                        <div class="day-date">
+
+                            ${formatDateRu(
+                                formatDate(date)
+                            )}
+
+                        </div>
+
+                    </th>
+
+                `;
+
+            }
+        );
+
+
+        html += `
+
+                    </tr>
+
+                    <tr>
+
+        `;
+
+
+        // =====================================
+        // НОМЕРА ПАР
+        // =====================================
+
+        weekDates.forEach(
+            (date, dayIndex) => {
+
+                const count =
+                    getLessonCount(
+                        dayIndex
+                    );
+
+
+                if (count === 0) {
+
+                    html += `
+
+                        <th>
+                            —
+                        </th>
+
+                    `;
+
+                    return;
+
+                }
+
+
+                for (
+                    let lesson = 1;
+                    lesson <= count;
+                    lesson++
+                ) {
+
+                    html += `
+
+                        <th>
+                            ${lesson}
+                        </th>
+
+                    `;
+
+                }
+
+            }
+        );
+
+
+        html += `
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+        `;
+
+
+        // =====================================
+        // СТУДЕНТЫ
+        // =====================================
+
+        students.forEach(
+            (student, studentIndex) => {
+
+                html += `
+
+                    <tr>
+
+                        <td class="student-cell">
+
+                            <div
+                                class="student-wrapper"
+                            >
+
+                                <div
+                                    class="student-number"
+                                >
+                                    ${studentIndex + 1}
+                                </div>
+
+                                <div
+                                    class="student-name"
+                                >
+                                    ${escapeHtml(
+                                        student.name ||
+                                        "Без имени"
+                                    )}
+                                </div>
+
+                            </div>
+
+                        </td>
+
+                `;
+
+
+                // =================================
+                // ДНИ
+                // =================================
+
+                weekDates.forEach(
+                    (date, dayIndex) => {
+
+                        const dateString =
+                            formatDate(
+                                date
+                            );
+
+
+                        const lessonCount =
+                            getLessonCount(
+                                dayIndex
+                            );
+
+
+                        // Если пар нет
+
+                        if (
+                            lessonCount === 0
+                        ) {
+
+                            html += `
+
+                                <td
+                                    class="lesson-cell empty-mark"
+                                >
+                                    —
+                                </td>
+
+                            `;
+
+                            return;
+
+                        }
+
+
+                        // =================================
+                        // ПАРЫ
+                        // =================================
+
+                        for (
+                            let lesson = 1;
+                            lesson <= lessonCount;
+                            lesson++
+                        ) {
+
+                            const key =
+
+                                `${dateString}_${student.id}_${lesson}`;
+
+
+                            const record =
+                                attendance[key];
+
+
+                            let mark = "—";
+
+                            let className =
+                                "empty-mark";
+
+
+                            if (
+                                record?.status ===
+                                "present"
+                            ) {
+
+                                mark = "✓";
+
+                                className =
+                                    "present";
+
+                            }
+
+
+                            if (
+                                record?.status ===
+                                "absent"
+                            ) {
+
+                                mark = "Н";
+
+                                className =
+                                    "absent";
+
+                            }
+
+
+                            html += `
+
+                                <td
+
+                                    class="
+                                        lesson-cell
+                                        ${className}
+                                    "
+
+                                    data-record-key="
+                                        ${key}
+                                    "
+
+                                >
+
+                                    ${mark}
+
+                                </td>
+
+                            `;
+
+                        }
+
+                    }
+                );
+
+
+                html += `
+
+                    </tr>
+
+                `;
+
+            }
+        );
+
+
+        html += `
+
+                </tbody>
+
+            </table>
+
+        `;
+
+
+        wrapper.innerHTML =
+            html;
+
+
+        // =====================================
+        // CLICK CELLS
+        // =====================================
+
+        wrapper
+            .querySelectorAll(
+                ".lesson-cell"
+            )
+            .forEach(
+                cell => {
+
+                    cell.addEventListener(
+                        "click",
+                        event => {
+
+                            showRecordInfo(
+                                event,
+                                cell
+                            );
+
+                        }
+                    );
+
+                }
+            );
+
+    }
+
+
+
+    // =========================================
+    // SHOW RECORD
+    // =========================================
+
+    function showRecordInfo(
+        event,
+        cell
+    ) {
+
+        const key =
+            cell.dataset.recordKey;
+
+
+        const record =
+            attendance[key];
+
+
+        if (!record) {
+
+            hidePopup();
+
+            return;
+
+        }
+
+
+        const popup =
+            document.getElementById(
+                "infoPopup"
+            );
+
+
+        if (
+            record.status ===
+            "absent"
+        ) {
+
+            document.getElementById(
+                "popupTitle"
+            ).textContent =
+                "⚠️ Отсутствие";
+
+        }
+        else {
+
+            document.getElementById(
+                "popupTitle"
+            ).textContent =
+                "✓ Присутствие";
+
+        }
+
+
+        document.getElementById(
+            "popupStudent"
+        ).textContent =
+            "ФИО: " +
+            record.studentName;
+
+
+        document.getElementById(
+            "popupDate"
+        ).textContent =
+            "Дата: " +
+            formatDateRu(
+                record.date
+            );
+
+
+        document.getElementById(
+            "popupLesson"
+        ).textContent =
+            "Пара: " +
+            record.lesson;
+
+
+        document.getElementById(
+            "popupReason"
+        ).textContent =
+
+            record.reason ||
+
+            (
+                record.status === "absent"
+
+                    ? "Причина не указана"
+
+                    : "Студент присутствовал"
+            );
+
+
+        popup.style.display =
+            "block";
+
+
+        const rect =
+            cell.getBoundingClientRect();
+
+
+        let left =
+            rect.left;
+
+
+        let top =
+            rect.bottom + 5;
+
+
+        if (
+            left + 290 >
+            window.innerWidth
+        ) {
+
+            left =
+                window.innerWidth - 300;
+
+        }
+
+
+        if (
+            top + 190 >
+            window.innerHeight
+        ) {
+
+            top =
+                rect.top - 195;
+
+        }
+
+
+        if (left < 5) {
+            left = 5;
+        }
+
+
+        if (top < 5) {
+            top = 5;
+        }
+
+
+        popup.style.left =
+            left + "px";
+
+
+        popup.style.top =
+            top + "px";
+
+
+        event.stopPropagation();
+
+    }
+
+
+
+    // =========================================
+    // HIDE POPUP
+    // =========================================
+
+    function hidePopup() {
+
+        document.getElementById(
+            "infoPopup"
+        ).style.display =
+            "none";
+
+    }
+
+
+    document.addEventListener(
+        "click",
+        event => {
+
+            const popup =
+                document.getElementById(
+                    "infoPopup"
+                );
+
+
+            if (
+                !popup.contains(
+                    event.target
+                )
+            ) {
+
+                hidePopup();
+
+            }
+
+        }
+    );
+
+
+
+    // =========================================
+    // PREVIOUS WEEK
+    // =========================================
+
+    window.previousWeek =
+        function() {
+
+            weekStart.setDate(
+                weekStart.getDate() - 7
+            );
+
+
+            updateWeekRange();
+
+            renderTable();
+
+            renderWeekList();
+
+        };
+
+
+
+    // =========================================
+    // NEXT WEEK
+    // =========================================
+
+    window.nextWeek =
+        function() {
+
+            weekStart.setDate(
+                weekStart.getDate() + 7
+            );
+
+
+            updateWeekRange();
+
+            renderTable();
+
+            renderWeekList();
+
+        };
+
+
+
+    // =========================================
+    // CURRENT WEEK
+    // =========================================
+
+    window.currentWeek =
+        function() {
+
+            weekStart =
+                getMonday(
+                    new Date()
+                );
+
+
+            updateWeekRange();
+
+            renderTable();
+
+            renderWeekList();
+
+        };
+
+
+
+    // =========================================
+    // OPEN/CLOSE WEEK LIST
+    // =========================================
+
+    window.toggleWeekList =
+        function() {
+
+            const list =
+                document.getElementById(
+                    "weekList"
+                );
+
+
+            list.classList.toggle(
+                "show"
+            );
+
+
+            if (
+                list.classList.contains(
+                    "show"
+                )
+            ) {
+
+                renderWeekList();
+
+            }
+
+        };
+
+
+
+    // =========================================
+    // RENDER WEEK LIST
+    // =========================================
+
+    function renderWeekList() {
+
+        const list =
+            document.getElementById(
+                "weekList"
+            );
+
+
+        list.innerHTML = "";
+
+
+        const currentMonday =
+            getMonday(
+                new Date()
+            );
+
+
+        /*
+            Показываем:
+
+            20 недель назад
+            +
+            текущую
+            +
+            20 недель вперёд
+        */
+
+        for (
+            let i = -20;
+            i <= 20;
+            i++
+        ) {
+
+            const monday =
+                new Date(
+                    currentMonday
+                );
+
+
+            monday.setDate(
+                monday.getDate() +
+                i * 7
+            );
+
+
+            const saturday =
+                new Date(
+                    monday
+                );
+
+
+            saturday.setDate(
+                saturday.getDate() +
+                5
+            );
+
+
+            const mondayText =
+                formatDateRu(
+                    formatDate(
+                        monday
+                    )
+                );
+
+
+            const saturdayText =
+                formatDateRu(
+                    formatDate(
+                        saturday
+                    )
+                );
+
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+
+            button.className =
+                "week-option";
+
+
+            // Выбранная неделя
+
+            if (
+                formatDate(monday) ===
+                formatDate(weekStart)
+            ) {
+
+                button.classList.add(
+                    "selected"
+                );
+
+            }
+
+
+            // Текущая неделя
+
+            if (i === 0) {
+
+                button.classList.add(
+                    "current-week"
+                );
+
+            }
+
+
+            if (i === 0) {
+
+                button.textContent =
+
+                    `⭐ Текущая неделя — ${mondayText} — ${saturdayText}`;
+
+            }
+            else {
+
+                button.textContent =
+
+                    `${mondayText} — ${saturdayText}`;
+
+            }
+
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    selectWeek(
+                        monday
+                    );
+
+                }
+            );
+
+
+            list.appendChild(
+                button
+            );
+
+        }
+
+    }
+
+
+
+    // =========================================
+    // SELECT WEEK
+    // =========================================
+
+    function selectWeek(
+        date
+    ) {
+
+        weekStart =
+            getMonday(
+                date
+            );
+
+
+        updateWeekRange();
+
+        renderTable();
+
+
+        document
+            .getElementById(
+                "weekList"
+            )
+            .classList.remove(
+                "show"
+            );
+
+
+        renderWeekList();
+
+    }
+
+
+
+    // =========================================
+    // MAIN MENU
+    // =========================================
+
+    window.goBack =
+        function() {
+
+            window.location.href =
+                "index.html";
+
+        };
+
+
+
+    // =========================================
+    // ESCAPE HTML
+    // =========================================
+
+    function escapeHtml(text) {
+
+        const div =
+            document.createElement(
+                "div"
+            );
+
+
+        div.textContent =
+            text;
+
+
+        return div.innerHTML;
+
+    }
+
+
+
+    // =========================================
+    // STATUS
+    // =========================================
+
+    function showStatus(
+        message
+    ) {
+
+        const status =
+            document.getElementById(
+                "status"
+            );
+
+
+        status.textContent =
+            message;
+
+
+        status.classList.add(
+            "show"
+        );
+
+
+        setTimeout(
+            () => {
+
+                status.classList.remove(
+                    "show"
+                );
+
+            },
+            2500
+        );
+
+    }
+
+
+
+    // =========================================
+    // START
+    // =========================================
+
+    async function start() {
+
+        // Текущая неделя
+
+        weekStart =
+            getMonday(
+                new Date()
+            );
+
+
+        // Загружаем Firebase данные
+
+        await loadSettings();
+
+        await loadStudents();
+
+        await loadAttendance();
+
+
+        // Показываем неделю
+
+        updateWeekRange();
+
+
+        // Таблица
+
+        renderTable();
+
+
+        // Список недель
+
+        renderWeekList();
+
+
+        // Информация об аттестации
+
+        const today =
+            formatDate(
+                new Date()
+            );
+
+
+        const info =
+            getAttestationInfo(
+                today
+            );
+
+
+        if (info) {
+
+            document.getElementById(
+                "semesterInfo"
+            ).textContent =
+
+                `${info.semester} семестр • Аттестация №${info.attestation}`;
+
+        }
+        else {
+
+            document.getElementById(
+                "semesterInfo"
+            ).textContent =
+
+                "Семестр / аттестация не определены";
+
+        }
+
+    }
+
+
+
+    // =========================================
+    // ATTESTATION
+    // =========================================
+
+    function getAttestationInfo(
+        dateString
+    ) {
+
+        const date =
+            new Date(
+                dateString +
+                "T00:00:00"
+            );
+
+
+        const periods = [
+
+            {
+                semester: 1,
+                attestation: 1,
+
+                period:
+                    settings
+                        .semester1
+                        ?.attestation1
+
+            },
+
+            {
+                semester: 1,
+                attestation: 2,
+
+                period:
+                    settings
+                        .semester1
+                        ?.attestation2
+
+            },
+
+            {
+                semester: 2,
+                attestation: 1,
+
+                period:
+                    settings
+                        .semester2
+                        ?.attestation1
+
+            },
+
+            {
+                semester: 2,
+                attestation: 2,
+
+                period:
+                    settings
+                        .semester2
+                        ?.attestation2
+
+            }
+
+        ];
+
+
+        for (
+            const item of periods
+        ) {
+
+            if (
+                !item.period?.start ||
+                !item.period?.end
+            ) {
+
+                continue;
+
+            }
+
+
+            const start =
+                new Date(
+                    item.period.start +
+                    "T00:00:00"
+                );
+
+
+            const end =
+                new Date(
+                    item.period.end +
+                    "T23:59:59"
+                );
+
+
+            if (
+                date >= start &&
+                date <= end
+            ) {
+
+                return item;
+
+            }
+
+        }
+
+
+        return null;
+
+    }
+
+
+
+    // =========================================
+    // START APPLICATION
+    // =========================================
+
+    start();
+
+</script>
+
+</body>
+
+</html>
+```

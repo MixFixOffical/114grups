@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Студенты</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #1976d2;
+            color: white;
+            padding: 18px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .date-time {
+            text-align: right;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .top-panel {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+
+        .top-panel h1 {
+            margin: 0 0 15px;
+            font-size: 28px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: none;
+            border-radius: 10px;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .add-btn {
+            background: #2e7d32;
+            color: white;
+        }
+
+        .add-btn:hover {
+            background: #1b5e20;
+        }
+
+        .back-btn {
+            background: #757575;
+            color: white;
+        }
+
+        .back-btn:hover {
+            background: #555;
+        }
+
+        .students-panel {
+            background: white;
+            border-radius: 14px;
+            padding: 20px;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+        }
+
+        .students-panel h2 {
+            margin-top: 0;
+        }
+
+        .student {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            background: #f5f7fa;
+            border-radius: 10px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .student-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .number {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: #1976d2;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .student-name {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .delete-btn {
+            background: #d32f2f;
+            color: white;
+            padding: 8px 14px;
+            font-size: 14px;
+        }
+
+        .delete-btn:hover {
+            background: #b71c1c;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 40px 10px;
+            color: #777;
+            font-size: 17px;
+        }
+
+        /* Модальное окно */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 450px;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+        }
+
+        .modal-content h2 {
+            margin-top: 0;
+        }
+
+        .modal-content input {
+            width: 100%;
+            padding: 13px;
+            border: 1px solid #ccc;
+            border-radius: 9px;
+            font-size: 16px;
+            margin: 10px 0 18px;
+            outline: none;
+        }
+
+        .modal-content input:focus {
+            border-color: #1976d2;
+        }
+
+        .modal-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .save-btn {
+            background: #1976d2;
+            color: white;
+        }
+
+        .cancel-btn {
+            background: #e0e0e0;
+            color: #222;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .success {
+            display: block;
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .error {
+            display: block;
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        @media (max-width: 600px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 8px;
+            }
+
+            .date-time {
+                text-align: left;
+            }
+
+            .student-name {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <div class="header-title">
+        👨‍🎓 Студенты
+    </div>
+
+    <div class="date-time">
+        <div id="currentDate">Дата: --</div>
+        <div id="currentTime">Время: --:--:--</div>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="top-panel">
+        <h1>Список студентов</h1>
+
+        <div class="buttons">
+            <button class="add-btn" onclick="openAddModal()">
+                ➕ Добавить студента
+            </button>
+
+            <button class="back-btn" onclick="goBack()">
+                ← Главное меню
+            </button>
+        </div>
+
+        <div id="status" class="status"></div>
+    </div>
+
+    <div class="students-panel">
+
+        <h2>Список обучающихся</h2>
+
+        <div id="studentsList">
+            <div class="empty">
+                Загрузка студентов...
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- Модальное окно добавления -->
+
+<div id="addModal" class="modal">
+
+    <div class="modal-content">
+
+        <h2>➕ Добавить студента</h2>
+
+        <label for="studentName">
+            ФИО студента
+        </label>
+
+        <input
+            type="text"
+            id="studentName"
+            placeholder="Например: Иванов Иван Иванович"
+            autocomplete="off"
+        >
+
+        <div class="modal-buttons">
+
+            <button class="cancel-btn" onclick="closeAddModal()">
+                Отмена
+            </button>
+
+            <button class="save-btn" onclick="addStudent()">
+                Сохранить
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script type="module">
+
+    import { initializeApp }
+        from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
+    import {
+        getFirestore,
+        collection,
+        addDoc,
+        getDocs,
+        deleteDoc,
+        doc
+    }
+    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+
+    // =========================
+    // FIREBASE
+    // =========================
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+        authDomain: "othets-1aa03.firebaseapp.com",
+        projectId: "othets-1aa03",
+        storageBucket: "othets-1aa03.firebasestorage.app",
+        messagingSenderId: "528392191591",
+        appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+        measurementId: "G-F50WVZRXZJ"
+    };
+
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+
+    // =========================
+    // ТЕКУЩАЯ ДАТА И ВРЕМЯ
+    // =========================
+
+    function updateDateTime() {
+
+        const now = new Date();
+
+        const date = now.toLocaleDateString("ru-RU", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
+
+        const time = now.toLocaleTimeString("ru-RU", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit"
+        });
+
+        document.getElementById("currentDate").textContent =
+            "Дата: " + date;
+
+        document.getElementById("currentTime").textContent =
+            "Время: " + time;
+    }
+
+    updateDateTime();
+
+    setInterval(updateDateTime, 1000);
+
+
+    // =========================
+    // МОДАЛЬНОЕ ОКНО
+    // =========================
+
+    window.openAddModal = function () {
+
+        document.getElementById("studentName").value = "";
+
+        document.getElementById("addModal").style.display = "flex";
+
+        setTimeout(() => {
+            document.getElementById("studentName").focus();
+        }, 100);
+    };
+
+
+    window.closeAddModal = function () {
+
+        document.getElementById("addModal").style.display = "none";
+    };
+
+
+    // Закрытие по клику вне окна
+
+    document.getElementById("addModal").addEventListener("click", function(event) {
+
+        if (event.target === this) {
+            closeAddModal();
+        }
+
+    });
+
+
+    // =========================
+    // ДОБАВЛЕНИЕ СТУДЕНТА
+    // =========================
+
+    window.addStudent = async function () {
+
+        const input =
+            document.getElementById("studentName");
+
+        const name = input.value.trim();
+
+
+        if (!name) {
+
+            showStatus(
+                "Введите ФИО студента.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            // Сохраняем студента в Firestore
+            await addDoc(
+                collection(db, "students"),
+                {
+                    name: name,
+                    createdAt: new Date().toISOString()
+                }
+            );
+
+
+            closeAddModal();
+
+            showStatus(
+                "Студент успешно добавлен.",
+                "success"
+            );
+
+
+            // Обновляем список
+            await loadStudents();
+
+        }
+
+        catch (error) {
+
+            console.error(error);
+
+            showStatus(
+                "Ошибка при сохранении студента: " +
+                error.message,
+                "error"
+            );
+        }
+
+    };
+
+
+    // =========================
+    // ЗАГРУЗКА СТУДЕНТОВ
+    // =========================
+
+    async function loadStudents() {
+
+        const list =
+            document.getElementById("studentsList");
+
+        list.innerHTML = `
+            <div class="empty">
+                Загрузка студентов...
+            </div>
+        `;
+
+
+        try {
+
+            const snapshot =
+                await getDocs(
+                    collection(db, "students")
+                );
+
+
+            const students = [];
+
+
+            snapshot.forEach((studentDoc) => {
+
+                students.push({
+                    id: studentDoc.id,
+                    ...studentDoc.data()
+                });
+
+            });
+
+
+            // Сортируем по ФИО
+            students.sort((a, b) =>
+                a.name.localeCompare(
+                    b.name,
+                    "ru"
+                )
+            );
+
+
+            if (students.length === 0) {
+
+                list.innerHTML = `
+                    <div class="empty">
+                        👨‍🎓 Студентов пока нет.<br>
+                        Нажмите «Добавить студента».
+                    </div>
+                `;
+
+                return;
+            }
+
+
+            list.innerHTML = "";
+
+
+            students.forEach((student, index) => {
+
+                const row =
+                    document.createElement("div");
+
+                row.className = "student";
+
+
+                row.innerHTML = `
+                    <div class="student-info">
+
+                        <div class="number">
+                            ${index + 1}
+                        </div>
+
+                        <div class="student-name">
+                            ${escapeHtml(student.name)}
+                        </div>
+
+                    </div>
+
+                    <button
+                        class="delete-btn"
+                        data-id="${student.id}"
+                    >
+                        🗑️ Удалить
+                    </button>
+                `;
+
+
+                row.querySelector(".delete-btn")
+                    .addEventListener(
+                        "click",
+                        () => deleteStudent(
+                            student.id,
+                            student.name
+                        )
+                    );
+
+
+                list.appendChild(row);
+
+            });
+
+        }
+
+        catch (error) {
+
+            console.error(error);
+
+            list.innerHTML = `
+                <div class="empty">
+                    ❌ Не удалось загрузить студентов.<br><br>
+                    ${escapeHtml(error.message)}
+                </div>
+            `;
+        }
+
+    }
+
+
+    // =========================
+    // УДАЛЕНИЕ СТУДЕНТА
+    // =========================
+
+    async function deleteStudent(id, name) {
+
+        const confirmed =
+            confirm(
+                `Удалить студента «${name}»?`
+            );
+
+
+        if (!confirmed) {
+            return;
+        }
+
+
+        try {
+
+            await deleteDoc(
+                doc(
+                    db,
+                    "students",
+                    id
+                )
+            );
+
+
+            showStatus(
+                "Студент удалён.",
+                "success"
+            );
+
+
+            await loadStudents();
+
+        }
+
+        catch (error) {
+
+            console.error(error);
+
+            showStatus(
+                "Ошибка удаления: " +
+                error.message,
+                "error"
+            );
+        }
+
+    }
+
+
+    // =========================
+    // СООБЩЕНИЕ
+    // =========================
+
+    function showStatus(message, type) {
+
+        const status =
+            document.getElementById("status");
+
+        status.textContent = message;
+
+        status.className =
+            "status " + type;
+
+
+        setTimeout(() => {
+
+            status.className = "status";
+
+        }, 3000);
+
+    }
+
+
+    // =========================
+    // ЗАЩИТА HTML
+    // =========================
+
+    function escapeHtml(text) {
+
+        const div =
+            document.createElement("div");
+
+        div.textContent = text;
+
+        return div.innerHTML;
+    }
+
+
+    // =========================
+    // ГЛАВНОЕ МЕНЮ
+    // =========================
+
+    window.goBack = function () {
+
+        window.location.href =
+            "index.html";
+
+    };
+
+
+    // =========================
+    // ENTER = СОХРАНИТЬ
+    // =========================
+
+    document.getElementById("studentName")
+        .addEventListener(
+            "keydown",
+            function(event) {
+
+                if (event.key === "Enter") {
+                    addStudent();
+                }
+
+                if (event.key === "Escape") {
+                    closeAddModal();
+                }
+
+            }
+        );
+
+
+    // =========================
+    // ЗАПУСК
+    // =========================
+
+    loadStudents();
+
+</script>
+
+</body>
+</html>
+

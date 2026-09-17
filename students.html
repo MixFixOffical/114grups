@@ -226,20 +226,20 @@
             color: #c62828;
         }
 
-        @media (max-width: 600px) {
-            header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 8px;
-            }
+        .edit-btn {
+            background: #f9a825;
+            color: white;
+            padding: 8px 14px;
+            font-size: 14px;
+        }
 
-            .date-time {
-                text-align: left;
-            }
+        .edit-btn:hover {
+            background: #c17900;
+        }
 
-            .student-name {
-                font-size: 16px;
-            }
+        .student-actions {
+            display: flex;
+            gap: 8px;
         }
     </style>
 </head>
@@ -326,6 +326,42 @@
 </div>
 
 
+<!-- Модальное окно редактирования -->
+
+<div id="editModal" class="modal">
+
+    <div class="modal-content">
+
+        <h2>✏️ Изменить данные студента</h2>
+
+        <label for="editStudentName">
+            ФИО студента
+        </label>
+
+        <input
+            type="text"
+            id="editStudentName"
+            placeholder="Например: Иванов Иван Иванович"
+            autocomplete="off"
+        >
+
+        <div class="modal-buttons">
+
+            <button class="cancel-btn" onclick="closeEditModal()">
+                Отмена
+            </button>
+
+            <button class="save-btn" onclick="saveStudentEdit()">
+                Сохранить
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
 <script type="module">
 
     import { initializeApp }
@@ -337,6 +373,7 @@
         addDoc,
         getDocs,
         deleteDoc,
+        updateDoc,
         doc
     }
     from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
@@ -424,6 +461,118 @@
         }
 
     });
+
+
+    // =========================
+    // РЕДАКТИРОВАНИЕ СТУДЕНТА
+    // =========================
+
+    let editingStudentId = null;
+
+
+    window.openEditModal = function (id, name) {
+
+        editingStudentId = id;
+
+        document.getElementById("editStudentName").value = name;
+
+        document.getElementById("editModal").style.display = "flex";
+
+        setTimeout(() => {
+            document.getElementById("editStudentName").focus();
+        }, 100);
+    };
+
+
+    window.closeEditModal = function () {
+
+        editingStudentId = null;
+
+        document.getElementById("editModal").style.display = "none";
+    };
+
+
+    // Закрытие по клику вне окна
+
+    document.getElementById("editModal").addEventListener("click", function(event) {
+
+        if (event.target === this) {
+            closeEditModal();
+        }
+
+    });
+
+
+    window.saveStudentEdit = async function () {
+
+        const input =
+            document.getElementById("editStudentName");
+
+        const name = input.value.trim();
+
+
+        if (!name) {
+
+            showStatus(
+                "Введите ФИО студента.",
+                "error"
+            );
+
+            return;
+        }
+
+
+        try {
+
+            await updateDoc(
+                doc(db, "students", editingStudentId),
+                { name: name }
+            );
+
+
+            closeEditModal();
+
+            showStatus(
+                "Данные студента обновлены.",
+                "success"
+            );
+
+
+            await loadStudents();
+
+        }
+
+        catch (error) {
+
+            console.error(error);
+
+            showStatus(
+                "Ошибка при обновлении студента: " +
+                error.message,
+                "error"
+            );
+        }
+
+    };
+
+
+    // Enter/Escape в окне редактирования
+
+    document.getElementById("editStudentName")
+        .addEventListener(
+            "keydown",
+            function(event) {
+
+                if (event.key === "Enter") {
+                    saveStudentEdit();
+                }
+
+                if (event.key === "Escape") {
+                    closeEditModal();
+                }
+
+            }
+        );
 
 
     // =========================
@@ -571,13 +720,34 @@
 
                     </div>
 
-                    <button
-                        class="delete-btn"
-                        data-id="${student.id}"
-                    >
-                        🗑️ Удалить
-                    </button>
+                    <div class="student-actions">
+
+                        <button
+                            class="edit-btn"
+                            data-id="${student.id}"
+                        >
+                            ✏️ Изменить
+                        </button>
+
+                        <button
+                            class="delete-btn"
+                            data-id="${student.id}"
+                        >
+                            🗑️ Удалить
+                        </button>
+
+                    </div>
                 `;
+
+
+                row.querySelector(".edit-btn")
+                    .addEventListener(
+                        "click",
+                        () => openEditModal(
+                            student.id,
+                            student.name
+                        )
+                    );
 
 
                 row.querySelector(".delete-btn")

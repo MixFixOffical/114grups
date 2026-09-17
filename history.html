@@ -726,6 +726,31 @@
             color: var(--text-secondary);
         }
 
+        .print-footer {
+            margin-top: 26px;
+            align-items: flex-end;
+            gap: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #000;
+        }
+
+        .print-footer-label {
+            white-space: nowrap;
+        }
+
+        .print-footer-line {
+            width: 110px;
+            height: 1px;
+            margin-bottom: -4px;
+            border-bottom: 1px solid #000;
+        }
+
+        .print-footer-name {
+            white-space: nowrap;
+            text-decoration: underline;
+        }
+
         @media print {
 
             @page {
@@ -782,6 +807,7 @@
             th, td {
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+                padding: 6px 6px;
             }
 
             th.student-column,
@@ -792,6 +818,27 @@
 
             tr {
                 break-inside: avoid;
+            }
+
+            .print-footer {
+                display: flex !important;
+            }
+
+            .lesson-cell {
+                min-width: 34px;
+                height: 60px;
+            }
+
+            .present,
+            .empty-mark {
+                color: transparent !important;
+                background: white !important;
+                box-shadow: none !important;
+            }
+
+            .absent {
+                background: white !important;
+                color: #000 !important;
             }
 
         }
@@ -943,14 +990,7 @@
     >
 
         <div class="print-header-title">
-            Отчёт о посещаемости
-        </div>
-
-        <div
-            class="print-header-sub"
-            id="printHeaderGroup"
-        >
-            —
+            Информация о ежедневной посещаемости занятий 214 группы
         </div>
 
         <div
@@ -971,6 +1011,21 @@
                 Загрузка посещаемости...
             </div>
 
+        </div>
+
+    </div>
+
+
+    <div class="print-footer print-only">
+
+        <div class="print-footer-label">
+            Классный руководитель
+        </div>
+
+        <div class="print-footer-line"></div>
+
+        <div class="print-footer-name">
+            Ковба Е.А.
         </div>
 
     </div>
@@ -2305,7 +2360,11 @@
                             ${studentNeuv}
                         </td>
 
-                        <td class="report-col report-note-col">
+                        <td class="report-col report-note-col ${
+                            studentReasons.length
+                                ? ""
+                                : "empty-mark"
+                        }">
                             ${
                                 studentReasons.length
                                     ? escapeHtml(
@@ -2387,7 +2446,7 @@
                             ${groupNeuv}
                         </td>
 
-                        <td class="report-col report-note-col">—</td>
+                        <td class="report-col report-note-col empty-mark">—</td>
 
                     </tr>
 
@@ -2966,22 +3025,10 @@
             ).textContent;
 
 
-        const groupText =
-            document.getElementById(
-                "semesterInfo"
-            ).textContent;
-
-
         document.getElementById(
             "printHeaderRange"
         ).textContent =
             rangeText;
-
-
-        document.getElementById(
-            "printHeaderGroup"
-        ).textContent =
-            groupText;
 
 
         fitTableToPrintPage();

@@ -8,11 +8,4 @@ const firebaseConfig = {
     measurementId: "G-F50WVZRXZJ"
 };
 
-// Инициализация Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-
-// Подключение сервисов Firebase
-const auth = firebase.auth();
-const db = firebase.firestore();
+firebase.initializeApp(firebaseConfig);

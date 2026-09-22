@@ -744,7 +744,7 @@
             display: grid;
 
             grid-template-columns:
-                1fr 1fr 1fr;
+                1fr 1fr 1fr 1fr;
 
             gap: 16px;
 
@@ -842,6 +842,29 @@
             box-shadow:
                 0 0 0 3px
                 rgba(37,99,235,0.10);
+
+        }
+
+
+        .date-input:disabled {
+
+            cursor: default;
+
+            opacity: 0.75;
+
+            background: #eef1f5;
+
+        }
+
+
+        .group-hint {
+
+            margin-top: 7px;
+
+            font-size: 11px;
+
+            color:
+                var(--text-light);
 
         }
 
@@ -2664,6 +2687,33 @@
             <div class="info-card">
 
                 <div class="info-label">
+                    👥 Группа
+                </div>
+
+                <select
+                    id="groupSelect"
+                    class="date-input">
+
+                    <option value="">
+                        Загрузка...
+                    </option>
+
+                </select>
+
+                <div
+                    class="group-hint"
+                    id="groupHint">
+
+                    Загрузка данных о доступе...
+
+                </div>
+
+            </div>
+
+
+            <div class="info-card">
+
+                <div class="info-label">
                     📅 Выбранная дата
                 </div>
 
@@ -3432,9 +3482,26 @@
         }
 
 
+        let currentUser = null;
+
+        let authResolved = false;
+
+        let resolveAuthReady;
+
+        const authReady =
+            new Promise(
+                resolve => {
+                    resolveAuthReady = resolve;
+                }
+            );
+
+
         onAuthStateChanged(
             auth,
             async user => {
+
+                currentUser =
+                    user;
 
                 if (user) {
 
@@ -3450,6 +3517,14 @@
 
                 }
 
+                if (!authResolved) {
+
+                    authResolved = true;
+
+                    resolveAuthReady();
+
+                }
+
             }
         );
 
@@ -3459,6 +3534,16 @@
         ===================================================== */
 
         let students = [];
+
+        let allStudents = [];
+
+        let allGroupsData = [];
+
+        let userGroups = [];
+
+        let userRole = null;
+
+        let selectedGroupId = "";
 
         let settings = {};
 
@@ -4288,6 +4373,303 @@
 
 
         /* =====================================================
+           GROUPS & ACCESS
+
+           Логика доступа:
+
+           - role === "admin"       -> видит и может
+                                        выбрать любую группу
+
+           - куратор/староста
+             привязан к 1 группе    -> группа подставляется
+                                        автоматически, выбор
+                                        заблокирован
+
+           - куратор/староста
+             привязан к 2+ группам  -> может выбрать одну
+                                        из своих групп
+
+           - группа не назначена    -> список пуст,
+                                        отметка недоступна
+
+           Привязка определяется полями группы
+           curatorId / starostaId (или leaderId)
+           в коллекции "groups".
+        ===================================================== */
+
+        async function loadGroupsAndRole() {
+
+            userRole = null;
+
+            allGroupsData = [];
+
+            userGroups = [];
+
+
+            if (!currentUser) {
+
+                return;
+
+            }
+
+
+            try {
+
+                const userSnap =
+                    await getDoc(
+                        doc(
+                            db,
+                            "users",
+                            currentUser.uid
+                        )
+                    );
+
+
+                userRole =
+                    userSnap.exists()
+                        ? (userSnap.data().role || null)
+                        : null;
+
+            } catch (error) {
+
+                console.error(
+                    "Ошибка чтения роли пользователя:",
+                    error
+                );
+
+                userRole = null;
+
+            }
+
+
+            try {
+
+                const groupsSnap =
+                    await getDocs(
+                        collection(
+                            db,
+                            "groups"
+                        )
+                    );
+
+
+                allGroupsData =
+                    groupsSnap.docs.map(
+                        item => ({
+
+                            id: item.id,
+
+                            ...item.data()
+
+                        })
+                    );
+
+
+                allGroupsData.sort(
+
+                    (a, b) =>
+
+                        String(a.name || "")
+                            .localeCompare(
+                                String(b.name || ""),
+                                "ru"
+                            )
+
+                );
+
+            } catch (error) {
+
+                console.error(
+                    "Ошибка загрузки групп:",
+                    error
+                );
+
+                allGroupsData = [];
+
+            }
+
+
+            if (userRole === "admin") {
+
+                userGroups =
+                    allGroupsData;
+
+            } else {
+
+                userGroups =
+                    allGroupsData.filter(
+                        group =>
+                            group.curatorId === currentUser.uid ||
+                            group.starostaId === currentUser.uid ||
+                            group.leaderId === currentUser.uid
+                    );
+
+            }
+
+        }
+
+
+        /* =====================================================
+           GROUP SELECT UI
+        ===================================================== */
+
+        const groupSelect =
+            document.getElementById(
+                "groupSelect"
+            );
+
+        const groupHint =
+            document.getElementById(
+                "groupHint"
+            );
+
+
+        function populateGroupSelect() {
+
+            const previousValue =
+                selectedGroupId;
+
+
+            if (!userGroups.length) {
+
+                groupSelect.innerHTML =
+                    `<option value="">Нет доступных групп</option>`;
+
+                groupSelect.disabled = true;
+
+                selectedGroupId = "";
+
+
+                groupHint.textContent =
+                    userRole === "admin"
+                        ? "В системе пока нет ни одной группы"
+                        : "Вам не назначена ни одна группа. Обратитесь к администратору.";
+
+                return;
+
+            }
+
+
+            groupSelect.innerHTML =
+                userGroups
+                    .map(
+                        group =>
+
+                            `<option value="${escapeHtml(group.id)}">` +
+                            `${escapeHtml(group.name || "Без названия")}` +
+                            `${group.active === false ? " (архив)" : ""}` +
+                            `</option>`
+
+                    )
+                    .join("");
+
+
+            const stillValid =
+                userGroups.some(
+                    group => group.id === previousValue
+                );
+
+
+            selectedGroupId =
+                stillValid
+                    ? previousValue
+                    : userGroups[0].id;
+
+
+            groupSelect.value =
+                selectedGroupId;
+
+
+            if (userRole !== "admin" && userGroups.length === 1) {
+
+                groupSelect.disabled = true;
+
+                groupHint.textContent =
+                    "Группа закреплена за вами";
+
+            } else {
+
+                groupSelect.disabled = false;
+
+                groupHint.textContent =
+                    userRole === "admin"
+                        ? "Доступны все группы в системе"
+                        : "Выберите одну из закреплённых за вами групп";
+
+            }
+
+        }
+
+
+        groupSelect.addEventListener(
+            "change",
+            function() {
+
+                selectedGroupId =
+                    this.value;
+
+                applyGroupFilter();
+
+                render();
+
+            }
+        );
+
+
+        /* =====================================================
+           GROUP FILTER
+        ===================================================== */
+
+        function applyGroupFilter() {
+
+            if (!selectedGroupId) {
+
+                students = [];
+
+                return;
+
+            }
+
+
+            const group =
+                allGroupsData.find(
+                    item => item.id === selectedGroupId
+                );
+
+
+            const explicitIds =
+                group && Array.isArray(group.studentIds)
+                    ? group.studentIds
+                    : [];
+
+            const explicitSet =
+                new Set(explicitIds);
+
+
+            students =
+                allStudents.filter(
+                    student =>
+                        student.groupId === selectedGroupId ||
+                        explicitSet.has(student.id)
+                );
+
+
+            students.sort(
+
+                (a, b) =>
+
+                    String(a.name || a.fullName || a.fio || "")
+                        .localeCompare(
+                            String(b.name || b.fullName || b.fio || ""),
+                            "ru"
+                        )
+
+            );
+
+        }
+
+
+        /* =====================================================
            LOAD SETTINGS
         ===================================================== */
 
@@ -4349,7 +4731,7 @@
                 );
 
 
-            students =
+            allStudents =
                 snapshot.docs.map(
                     item => ({
 
@@ -4361,17 +4743,7 @@
                 );
 
 
-            students.sort(
-
-                (a, b) =>
-
-                    String(a.name || "")
-                        .localeCompare(
-                            String(b.name || ""),
-                            "ru"
-                        )
-
-            );
+            applyGroupFilter();
 
         }
 
@@ -5012,6 +5384,37 @@
             }
 
 
+            if (!selectedGroupId) {
+
+                tableContainer.innerHTML = `
+
+                    <div class="empty">
+
+                        <div class="empty-icon">
+                            🔒
+                        </div>
+
+                        <div class="empty-title">
+                            Группа недоступна
+                        </div>
+
+                        <div>
+                            ${
+                                userRole === "admin"
+                                    ? "В системе пока нет ни одной группы."
+                                    : "Вам не назначена ни одна группа. Обратитесь к администратору."
+                            }
+                        </div>
+
+                    </div>
+
+                `;
+
+                return;
+
+            }
+
+
             if (students.length === 0) {
 
                 tableContainer.innerHTML = `
@@ -5027,7 +5430,7 @@
                         </div>
 
                         <div>
-                            Сначала добавьте студентов.
+                            В этой группе пока нет ни одного студента.
                         </div>
 
                     </div>
@@ -6019,6 +6422,12 @@
 
 
             try {
+
+                await authReady;
+
+                await loadGroupsAndRole();
+
+                populateGroupSelect();
 
                 await loadSettings();
 

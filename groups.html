@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1100">
+<meta name="theme-color" content="#1e3a8a">
+<meta name="description" content="Управление учебными группами">
+<title>Группы — Админ-панель</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+ --primary:#2454e8;--primary-dark:#17348f;--primary-light:#eef2ff;
+ --green:#059669;--green-light:#ecfdf5;--amber:#d97706;--amber-light:#fff7ed;
+ --red:#dc2626;--red-light:#fef2f2;--violet:#7c3aed;--violet-light:#f5f3ff;
+ --text:#0f1729;--text-secondary:#5b6478;--text-light:#9aa3b5;
+ --surface:rgba(255,255,255,.92);--border:rgba(220,226,238,.88);
+ --shadow-sm:0 1px 2px rgba(15,23,42,.05),0 1px 1px rgba(15,23,42,.03);
+ --shadow-md:0 10px 24px -8px rgba(15,23,42,.10),0 2px 6px rgba(15,23,42,.05);
+ --shadow-lg:0 26px 50px -16px rgba(15,23,42,.16),0 8px 18px -10px rgba(15,23,42,.08);
+ --radius-lg:28px;--radius-md:20px;--radius-sm:13px;--ease:cubic-bezier(.22,1,.36,1)
+}
+html{scroll-behavior:smooth;min-width:1100px}
+body{min-width:1100px;min-height:100vh;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:var(--text);background:radial-gradient(circle at 8% 0%,rgba(36,84,232,.07),transparent 42%),radial-gradient(circle at 96% 12%,rgba(124,58,237,.05),transparent 40%),linear-gradient(160deg,#f9fafc 0%,#f4f6fb 45%,#eef1f9 100%);background-attachment:fixed;overflow-x:auto}
+h1,h2,h3,.brand-title,.section-title,.stat-value,.modal-title{font-family:"Plus Jakarta Sans",Inter,sans-serif}
+button,input,select{font:inherit}button{cursor:pointer;border:0;background:none;color:inherit}
+:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:8px}
+.grid-texture{position:fixed;inset:0;z-index:-1;pointer-events:none;background-image:radial-gradient(rgba(36,84,232,.10) 1px,transparent 1px);background-size:26px 26px;-webkit-mask-image:radial-gradient(ellipse 70% 55% at 50% 0%,#000 0%,transparent 70%);mask-image:radial-gradient(ellipse 70% 55% at 50% 0%,#000 0%,transparent 70%)}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pulse{50%{opacity:.55}}
+
+/* HEADER */
+header{height:78px;width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:0 30px;background:rgba(255,255,255,.76);border-bottom:1px solid rgba(220,226,238,.7);backdrop-filter:blur(18px);position:sticky;top:0;z-index:50}
+.header-left{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;background:linear-gradient(145deg,#2454e8,#17348f);color:white;box-shadow:0 8px 20px rgba(36,84,232,.22)}.logo svg{width:23px;height:23px}
+.brand-title{font-size:16px;font-weight:800;letter-spacing:-.3px}.brand-subtitle{font-size:11px;color:var(--text-light);font-weight:600;margin-top:2px}
+.main-nav{display:flex;align-items:center;gap:7px;margin-left:auto;margin-right:24px}.nav-link{height:38px;padding:0 12px;display:flex;align-items:center;gap:7px;border-radius:11px;color:var(--text-secondary);font-size:12px;font-weight:700;transition:.25s var(--ease)}.nav-link svg{width:17px;height:17px}.nav-link:hover{background:#fff;color:var(--primary);box-shadow:var(--shadow-sm)}
+.nav-active{background:var(--primary-light);color:var(--primary)}
+.header-right{display:flex;align-items:center}.user-menu{position:relative}.user-menu-button{display:flex;align-items:center;gap:8px;padding:6px 9px 6px 6px;border:1px solid var(--border);border-radius:13px;background:rgba(255,255,255,.8);font-size:12px;font-weight:700;transition:.25s var(--ease)}.user-menu-button:hover{box-shadow:var(--shadow-sm);transform:translateY(-1px)}.user-avatar{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:var(--primary-light);color:var(--primary);font-size:11px;font-weight:800}.user-chevron{width:14px;color:var(--text-light);transition:.25s}.user-menu.open .user-chevron{transform:rotate(180deg)}.user-dropdown{display:none;position:absolute;right:0;top:45px;width:190px;padding:7px;background:white;border:1px solid var(--border);border-radius:15px;box-shadow:var(--shadow-lg);animation:pop .2s var(--ease)}.user-menu.open .user-dropdown{display:block}.user-dropdown button{width:100%;text-align:left;padding:10px 11px;border-radius:9px;font-size:12px;font-weight:700;color:var(--text-secondary)}.user-dropdown button:hover{background:#f6f8fc;color:var(--primary)}
+
+/* PAGE */
+.page{width:1100px;margin:0 auto;padding:34px 30px 60px}.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;animation:rise .6s var(--ease) both}.eyebrow{display:flex;align-items:center;gap:7px;color:var(--primary);font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.11em;margin-bottom:7px}.eyebrow-dot{width:7px;height:7px;border-radius:50%;background:var(--primary);box-shadow:0 0 0 5px rgba(36,84,232,.09)}.page-title{font-size:31px;letter-spacing:-1.1px;font-weight:800}.page-description{margin-top:7px;color:var(--text-secondary);font-size:13px;line-height:1.6}.create-btn{height:46px;padding:0 18px;border-radius:14px;background:linear-gradient(135deg,#2454e8,#1c43c2);color:#fff;font-size:12px;font-weight:800;display:flex;align-items:center;gap:9px;box-shadow:0 10px 24px rgba(36,84,232,.2);transition:.3s var(--ease);white-space:nowrap}.create-btn:hover{transform:translateY(-2px);box-shadow:0 15px 28px rgba(36,84,232,.25)}.create-btn svg{width:18px;height:18px}
+
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-top:25px}.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:16px 17px;box-shadow:var(--shadow-sm);animation:rise .6s var(--ease) both}.stat-card:nth-child(1){animation-delay:.08s}.stat-card:nth-child(2){animation-delay:.13s}.stat-card:nth-child(3){animation-delay:.18s}.stat-card:nth-child(4){animation-delay:.23s}.stat-top{display:flex;justify-content:space-between;align-items:center}.stat-label{font-size:11px;font-weight:700;color:var(--text-secondary)}.stat-icon{width:31px;height:31px;border-radius:10px;display:grid;place-items:center;background:var(--primary-light);color:var(--primary)}.stat-icon svg{width:16px;height:16px}.stat-value{font-size:25px;font-weight:800;letter-spacing:-.8px;margin-top:10px}.stat-hint{font-size:10px;color:var(--text-light);margin-top:2px}
+
+/* TOOLBAR */
+.toolbar{margin-top:24px;padding:12px;background:rgba(255,255,255,.78);border:1px solid var(--border);border-radius:18px;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-sm);animation:rise .6s .25s var(--ease) both}.search{height:42px;flex:1;position:relative}.search svg{position:absolute;left:13px;top:12px;width:18px;color:var(--text-light)}.search input{width:100%;height:42px;border:1px solid transparent;background:#f6f8fc;border-radius:12px;padding:0 14px 0 39px;color:var(--text);font-size:12px;outline:none;transition:.25s}.search input:focus{border-color:rgba(36,84,232,.25);background:#fff;box-shadow:0 0 0 4px rgba(36,84,232,.06)}.filter-select{height:42px;min-width:145px;border:1px solid transparent;background:#f6f8fc;border-radius:12px;padding:0 12px;color:var(--text-secondary);font-size:12px;font-weight:600;outline:none}.filter-select:focus{border-color:rgba(36,84,232,.25);background:#fff}.refresh-btn{height:42px;width:42px;border-radius:12px;background:#f6f8fc;color:var(--text-secondary);display:grid;place-items:center;transition:.25s}.refresh-btn:hover{background:var(--primary-light);color:var(--primary)}.refresh-btn svg{width:17px;height:17px}
+
+/* GROUP GRID */
+.groups-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-top:18px}.group-card{background:rgba(255,255,255,.92);border:1px solid var(--border);border-radius:22px;padding:20px;box-shadow:var(--shadow-sm);cursor:pointer;position:relative;overflow:hidden;transition:.35s var(--ease);animation:rise .55s var(--ease) both}.group-card:hover{transform:translateY(-4px);box-shadow:var(--shadow-md);border-color:rgba(36,84,232,.18)}.group-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(#2454e8,#7c3aed);opacity:.85}.group-card.archived{filter:saturate(.65);opacity:.78}.group-card-head{display:flex;justify-content:space-between;gap:15px}.group-title-wrap{min-width:0}.group-title{font-size:18px;font-weight:800;letter-spacing:-.45px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.group-id{font-size:10px;color:var(--text-light);margin-top:4px}.status{display:inline-flex;align-items:center;gap:6px;height:27px;padding:0 9px;border-radius:999px;font-size:10px;font-weight:800;white-space:nowrap}.status-dot{width:6px;height:6px;border-radius:50%}.status.active{color:var(--green);background:var(--green-light)}.status.active .status-dot{background:var(--green)}.status.archive{color:var(--text-secondary);background:#f1f3f7}.status.archive .status-dot{background:#9aa3b5}.group-info{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:19px}.info-item{min-width:0;padding:10px 11px;border-radius:13px;background:#f7f8fb}.info-label{font-size:9px;color:var(--text-light);font-weight:700;text-transform:uppercase;letter-spacing:.06em}.info-value{display:flex;align-items:center;gap:7px;margin-top:5px;font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.mini-avatar{width:24px;height:24px;border-radius:8px;display:grid;place-items:center;flex:0 0 auto;background:var(--primary-light);color:var(--primary);font-size:8px;font-weight:800}.group-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:15px;padding-top:13px;border-top:1px solid #edf0f5}.students-count{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:700;color:var(--text-secondary)}.students-count svg{width:16px;color:var(--primary)}.edit-hint{font-size:10px;color:var(--text-light);display:flex;align-items:center;gap:5px}.edit-hint svg{width:13px}.empty{grid-column:1/-1;padding:60px 20px;text-align:center;border:1px dashed #cfd6e4;border-radius:22px;background:rgba(255,255,255,.6);animation:rise .5s var(--ease)}.empty-icon{width:56px;height:56px;margin:0 auto 13px;border-radius:17px;display:grid;place-items:center;background:var(--primary-light);color:var(--primary)}.empty-icon svg{width:25px}.empty-title{font-size:15px;font-weight:800}.empty-text{font-size:11px;color:var(--text-secondary);margin-top:5px}
+
+/* LOADING */
+.loading{grid-column:1/-1;display:flex;align-items:center;justify-content:center;gap:10px;padding:65px;color:var(--text-secondary);font-size:12px}.spinner{width:20px;height:20px;border:2px solid #dbe3f4;border-top-color:var(--primary);border-radius:50%;animation:spin .7s linear infinite}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.42);backdrop-filter:blur(8px);z-index:100;display:none;align-items:center;justify-content:center;padding:30px}.modal-overlay.show{display:flex}.modal{width:700px;max-height:calc(100vh - 60px);background:#fff;border:1px solid rgba(255,255,255,.8);border-radius:26px;box-shadow:0 35px 80px rgba(15,23,42,.24);overflow:hidden;animation:pop .28s var(--ease);display:flex;flex-direction:column}.modal-head{padding:22px 24px 17px;border-bottom:1px solid #edf0f5;display:flex;justify-content:space-between;align-items:flex-start}.modal-kicker{font-size:10px;color:var(--primary);font-weight:800;text-transform:uppercase;letter-spacing:.1em}.modal-title{font-size:21px;font-weight:800;letter-spacing:-.5px;margin-top:4px}.modal-subtitle{font-size:11px;color:var(--text-secondary);margin-top:4px}.close-btn{width:34px;height:34px;border-radius:10px;background:#f5f7fb;color:var(--text-secondary);display:grid;place-items:center;transition:.2s}.close-btn:hover{background:var(--red-light);color:var(--red)}.close-btn svg{width:17px}.modal-body{padding:20px 24px;overflow:auto}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.field.full{grid-column:1/-1}.field-label{display:block;font-size:10px;font-weight:800;color:var(--text-secondary);margin:0 0 7px 2px}.field-label span{color:var(--red)}.field-input,.field-select{width:100%;height:43px;border:1px solid #dfe4ee;border-radius:12px;background:#fbfcfe;padding:0 12px;color:var(--text);font-size:12px;outline:none;transition:.2s}.field-input:focus,.field-select:focus{border-color:rgba(36,84,232,.45);background:#fff;box-shadow:0 0 0 4px rgba(36,84,232,.06)}.field-help{font-size:9px;color:var(--text-light);margin:5px 2px 0}.section-divider{height:1px;background:#edf0f5;margin:20px 0}.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}.section-head-title{font-size:12px;font-weight:800}.section-head-note{font-size:10px;color:var(--text-light)}
+
+/* MULTI SELECT */
+.student-picker{position:relative}.student-search-wrap{position:relative}.student-search-wrap svg{position:absolute;left:12px;top:12px;width:17px;color:var(--text-light)}.student-search{width:100%;height:40px;border:1px solid #dfe4ee;border-radius:11px;background:#fbfcfe;padding:0 12px 0 36px;font-size:11px;outline:none}.student-search:focus{border-color:rgba(36,84,232,.4);background:#fff}.student-options{position:absolute;left:0;right:0;top:46px;max-height:190px;overflow:auto;background:#fff;border:1px solid var(--border);border-radius:13px;box-shadow:var(--shadow-lg);z-index:10;display:none;padding:5px}.student-options.show{display:block}.student-option{display:flex;align-items:center;gap:9px;padding:8px;border-radius:9px;cursor:pointer}.student-option:hover{background:#f5f7fb}.student-option.selected{background:var(--primary-light)}.student-option .option-name{font-size:11px;font-weight:700}.student-option .option-meta{font-size:9px;color:var(--text-light);margin-top:2px}.check{margin-left:auto;width:18px;height:18px;border-radius:6px;border:1px solid #d6dce8;display:grid;place-items:center;color:white}.student-option.selected .check{background:var(--primary);border-color:var(--primary)}.check svg{width:11px}.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;min-height:28px}.chip{display:flex;align-items:center;gap:6px;padding:5px 7px 5px 5px;border-radius:9px;background:var(--primary-light);color:var(--primary);font-size:9px;font-weight:800}.chip-avatar{width:20px;height:20px;border-radius:6px;background:#dce5ff;display:grid;place-items:center;font-size:7px}.chip-remove{width:17px;height:17px;border-radius:5px;display:grid;place-items:center}.chip-remove:hover{background:#cfdcff}.chip-remove svg{width:11px}.no-students{padding:12px;text-align:center;color:var(--text-light);font-size:10px}
+
+/* EDIT STUDENTS */
+.student-list{border:1px solid #e5e9f1;border-radius:14px;overflow:hidden}.student-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid #edf0f5}.student-row:last-child{border-bottom:0}.student-row-avatar{width:30px;height:30px;border-radius:9px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;font-size:9px;font-weight:800;flex:0 0 auto}.student-row-name{font-size:11px;font-weight:700;flex:1}.student-row-meta{font-size:9px;color:var(--text-light);margin-top:2px}.remove-student{height:29px;padding:0 9px;border-radius:8px;background:var(--red-light);color:var(--red);font-size:9px;font-weight:800}.remove-student:hover{background:#fee2e2}.add-student-btn{height:35px;padding:0 11px;border-radius:10px;background:var(--primary-light);color:var(--primary);font-size:10px;font-weight:800;display:flex;align-items:center;gap:6px}.add-student-btn:hover{background:#e1e8ff}.add-student-btn svg{width:14px}.edit-add-box{margin-top:10px;padding:10px;border:1px dashed #cfd7e7;border-radius:12px;background:#fafbfe;display:none}.edit-add-box.show{display:block}.edit-add-search{width:100%;height:36px;border:1px solid #dfe4ee;border-radius:9px;padding:0 10px;font-size:10px;outline:none;background:#fff}.edit-add-options{max-height:125px;overflow:auto;margin-top:6px}.edit-add-option{padding:7px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer}.edit-add-option:hover{background:var(--primary-light);color:var(--primary)}
+
+/* MODAL FOOTER */
+.modal-footer{padding:15px 24px;border-top:1px solid #edf0f5;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#fcfdff}.footer-left,.footer-right{display:flex;gap:8px}.btn{height:39px;padding:0 14px;border-radius:11px;font-size:10px;font-weight:800;transition:.25s var(--ease);display:flex;align-items:center;gap:6px}.btn svg{width:15px}.btn-primary{background:var(--primary);color:#fff;box-shadow:0 7px 15px rgba(36,84,232,.18)}.btn-primary:hover{background:#1f49d1;transform:translateY(-1px)}.btn-secondary{background:#f3f5f9;color:var(--text-secondary)}.btn-secondary:hover{background:#e9edf5}.btn-danger{background:var(--red-light);color:var(--red)}.btn-danger:hover{background:#fee2e2}.btn:disabled{opacity:.55;cursor:not-allowed;transform:none}.save-spinner{width:13px;height:13px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite}
+
+/* TOAST */
+.toast-container{position:fixed;right:24px;bottom:24px;z-index:200;display:flex;flex-direction:column;gap:8px}.toast{min-width:280px;max-width:400px;padding:13px 15px;border-radius:14px;background:#fff;border:1px solid var(--border);box-shadow:var(--shadow-lg);display:flex;align-items:flex-start;gap:10px;animation:pop .3s var(--ease)}.toast-icon{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;flex:0 0 auto}.toast.success .toast-icon{background:var(--green-light);color:var(--green)}.toast.error .toast-icon{background:var(--red-light);color:var(--red)}.toast-title{font-size:11px;font-weight:800}.toast-text{font-size:10px;color:var(--text-secondary);margin-top:2px;line-height:1.4}
+
+/* RESPONSIVE FIX FOR SMALL WINDOWS */
+@media(max-width:1120px){header,.page{margin-left:0;margin-right:0}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}}
+</style>
+</head>
+
+<body>
+<div class="grid-texture"></div>
+
+<header>
+    <div class="header-left">
+        <button class="logo" onclick="openAdminHome()" aria-label="На главную">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3 2 8l10 5 10-5-10-5Z"/><path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/><path d="M22 8v6"/>
+            </svg>
+        </button>
+        <div class="brand"><div class="brand-title">Посещаемость</div><div class="brand-subtitle">Админ-панель</div></div>
+    </div>
+
+    <nav class="main-nav">
+        <a class="nav-link nav-active" onclick="openGroups()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            Группы
+        </a>
+        <a class="nav-link" onclick="openStudents()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M16 11h6M19 8v6"/>
+            </svg>
+            Студенты
+        </a>
+        <a class="nav-link" onclick="openUsers()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/><circle cx="11.5" cy="7.2" r="3"/><path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/><path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+            </svg>
+            Пользователи
+        </a>
+    </nav>
+
+    <div class="header-right">
+        <div class="user-menu" id="userMenu">
+            <button class="user-menu-button" id="userMenuButton" onclick="toggleUserMenu()">
+                <span class="user-avatar" id="userAvatar">?</span><span id="userFio">Загрузка...</span>
+                <svg class="user-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="user-dropdown">
+                <button onclick="openAdminHome()">Админ-панель</button>
+                <button onclick="logout()">Выйти из аккаунта</button>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="page">
+    <section class="page-head">
+        <div>
+            <div class="eyebrow"><span class="eyebrow-dot"></span> Управление учебными группами</div>
+            <h1 class="page-title">Группы</h1>
+            <p class="page-description">Создавайте группы, назначайте куратора и старосту и управляйте составом студентов.</p>
+        </div>
+        <button class="create-btn" onclick="openCreateModal()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+            Создать новую группу
+        </button>
+    </section>
+
+    <section class="stats">
+        <div class="stat-card"><div class="stat-top"><span class="stat-label">Всего групп</span><span class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg></span></div><div class="stat-value" id="statGroups">0</div><div class="stat-hint">создано в системе</div></div>
+        <div class="stat-card"><div class="stat-top"><span class="stat-label">Активные</span><span class="stat-icon" style="background:var(--green-light);color:var(--green)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m5 12 4 4L19 6"/></svg></span></div><div class="stat-value" id="statActive">0</div><div class="stat-hint">доступны для работы</div></div>
+        <div class="stat-card"><div class="stat-top"><span class="stat-label">Студентов</span><span class="stat-icon" style="background:var(--violet-light);color:var(--violet)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M16 11h6"/></svg></span></div><div class="stat-value" id="statStudents">0</div><div class="stat-hint">во всех группах</div></div>
+        <div class="stat-card"><div class="stat-top"><span class="stat-label">Без куратора</span><span class="stat-icon" style="background:var(--amber-light);color:var(--amber)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span></div><div class="stat-value" id="statNoCurator">0</div><div class="stat-hint">требуют назначения</div></div>
+    </section>
+
+    <section class="toolbar">
+        <div class="search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+            <input id="groupSearch" type="search" placeholder="Поиск по названию группы, куратору или старосте..." oninput="renderGroups()">
+        </div>
+        <select id="statusFilter" class="filter-select" onchange="renderGroups()">
+            <option value="active">Активные</option>
+            <option value="all">Все группы</option>
+            <option value="archive">Архив</option>
+        </select>
+        <button class="refresh-btn" onclick="loadData()" title="Обновить">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20 11a8.1 8.1 0 0 0-15.5-3M4 5v3h3"/><path d="M4 13a8.1 8.1 0 0 0 15.5 3M20 19v-3h-3"/></svg>
+        </button>
+    </section>
+
+    <section class="groups-grid" id="groupsGrid">
+        <div class="loading"><span class="spinner"></span>Загрузка групп...</div>
+    </section>
+</main>
+
+<!-- CREATE / EDIT MODAL -->
+<div class="modal-overlay" id="groupModal" onclick="overlayClose(event)">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-head">
+            <div>
+                <div class="modal-kicker" id="modalKicker">Новая группа</div>
+                <div class="modal-title" id="modalTitle">Создание группы</div>
+                <div class="modal-subtitle" id="modalSubtitle">Заполните основные данные и добавьте студентов.</div>
+            </div>
+            <button class="close-btn" onclick="closeModal()" aria-label="Закрыть"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg></button>
+        </div>
+
+        <div class="modal-body">
+            <div class="form-grid">
+                <div class="field full">
+                    <label class="field-label">Название группы <span>*</span></label>
+                    <input class="field-input" id="groupName" maxlength="80" placeholder="Например: Группа 114">
+                </div>
+                <div class="field">
+                    <label class="field-label">Куратор</label>
+                    <select class="field-select" id="curatorSelect"><option value="">Не назначен</option></select>
+                </div>
+                <div class="field">
+                    <label class="field-label">Староста</label>
+                    <select class="field-select" id="leaderSelect"><option value="">Не назначен</option></select>
+                </div>
+            </div>
+
+            <div class="section-divider"></div>
+            <div class="section-head"><div class="section-head-title">Студенты группы</div><div class="section-head-note" id="selectedCount">Выбрано: 0</div></div>
+            <div class="student-picker">
+                <div class="student-search-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+                    <input class="student-search" id="studentSearch" placeholder="Найти студента и добавить..." autocomplete="off">
+                </div>
+                <div class="student-options" id="studentOptions"></div>
+                <div class="chips" id="selectedChips"></div>
+            </div>
+            <div class="field-help">Студента можно выбрать несколько раз в поиске. Нажмите × на чипе, чтобы убрать его.</div>
+        </div>
+
+        <div class="modal-footer">
+            <div class="footer-left"><button class="btn btn-danger" id="deleteBtn" style="display:none" onclick="archiveCurrentGroup()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Удалить группу</button></div>
+            <div class="footer-right"><button class="btn btn-secondary" onclick="closeModal()">Отмена</button><button class="btn btn-primary" id="saveBtn" onclick="saveGroup()">Сохранить группу</button></div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+/* =========================================================
+   STATE
+========================================================= */
+let db = null;
+let groups = [];
+let users = [];
+let students = [];
+let selectedStudentIds = [];
+let editingGroupId = null;
+let saving = false;
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+function openAdminHome(){ window.location.href = 'adminhome.html'; }
+function openGroups(){ window.location.href = 'groups.html'; }
+function openStudents(){ window.location.href = 'students.html'; }
+function openUsers(){ window.location.href = 'users.html'; }
+function openPermissions(){ window.location.href = 'permissions.html'; }
+
+function toggleUserMenu(){ document.getElementById('userMenu').classList.toggle('open'); }
+document.addEventListener('click', e => {
+    const menu = document.getElementById('userMenu');
+    if(menu && !menu.contains(e.target)) menu.classList.remove('open');
+    const picker = document.querySelector('.student-picker');
+    const options = document.getElementById('studentOptions');
+    if(picker && !picker.contains(e.target) && options) options.classList.remove('show');
+});
+
+/* =========================================================
+   FIREBASE
+========================================================= */
+function ensureFirebase(){
+    if(!window.firebase){ throw new Error('Firebase не загружен.'); }
+    if(!firebase.apps.length){ throw new Error('Firebase не инициализирован. Проверьте firebase-config.js.'); }
+    db = firebase.firestore();
+}
+
+async function loadCurrentUser(){
+    try{
+        const current = firebase.auth().currentUser;
+        if(!current) return;
+        const snap = await db.collection('users').doc(current.uid).get();
+        const data = snap.exists ? snap.data() : {};
+        const name = data.fullName || data.fio || current.displayName || current.email || 'Пользователь';
+        document.getElementById('userFio').textContent = name;
+        document.getElementById('userAvatar').textContent = initials(name);
+    }catch(e){
+        document.getElementById('userFio').textContent = 'Администратор';
+        document.getElementById('userAvatar').textContent = 'А';
+    }
+}
+
+async function loadData(){
+    const grid = document.getElementById('groupsGrid');
+    grid.innerHTML = '<div class="loading"><span class="spinner"></span>Загрузка данных...</div>';
+    try{
+        ensureFirebase();
+        await Promise.all([loadGroups(), loadUsers(), loadStudents()]);
+        populateSelects();
+        renderGroups();
+        updateStats();
+        await loadCurrentUser();
+    }catch(error){
+        console.error(error);
+        grid.innerHTML = '<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/></svg></div><div class="empty-title">Не удалось загрузить группы</div><div class="empty-text">'+escapeHtml(error.message || 'Проверьте Firebase и права доступа Firestore.')+'</div></div>';
+        toast('Ошибка загрузки', error.message || 'Проверьте Firebase.', 'error');
+    }
+}
+
+async function loadGroups(){
+    const snap = await db.collection('groups').get();
+    groups = snap.docs.map(doc => ({id:doc.id,...doc.data()}));
+    groups.sort((a,b)=>(a.name||'').localeCompare(b.name||'', 'ru'));
+}
+async function loadUsers(){
+    const snap = await db.collection('users').get();
+    users = snap.docs.map(doc => ({id:doc.id,...doc.data()}));
+    users.sort((a,b)=>getUserName(a).localeCompare(getUserName(b),'ru'));
+}
+async function loadStudents(){
+    const snap = await db.collection('students').get();
+    students = snap.docs.map(doc => ({id:doc.id,...doc.data()}));
+    students.sort((a,b)=>getStudentName(a).localeCompare(getStudentName(b),'ru'));
+}
+
+/* =========================================================
+   HELPERS
+========================================================= */
+function getUserName(u){ return u.fullName || u.fio || u.name || u.displayName || u.email || 'Без имени'; }
+function getStudentName(s){ return s.fullName || s.fio || s.name || 'Без имени'; }
+function getGroupStudentIds(group){
+    const explicit = Array.isArray(group.studentIds) ? group.studentIds : [];
+    const byGroup = students.filter(s => s.groupId === group.id).map(s => s.id);
+    return [...new Set([...explicit,...byGroup])].filter(id => students.some(s => s.id === id));
+}
+function findUser(id){ return users.find(u=>u.id===id); }
+function findStudent(id){ return students.find(s=>s.id===id); }
+function initials(name){
+    return String(name||'?').trim().split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase() || '?';
+}
+function escapeHtml(value){
+    return String(value ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+}
+function formatDate(value){
+    if(!value) return '—';
+    try{
+        const date = value.toDate ? value.toDate() : new Date(value);
+        return new Intl.DateTimeFormat('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric'}).format(date);
+    }catch{return '—';}
+}
+function userNameById(id){ return id ? getUserName(findUser(id)||{}) : 'Не назначен'; }
+function studentNameById(id){ return id ? getStudentName(findStudent(id)||{}) : 'Не назначен'; }
+
+/* =========================================================
+   STATS + CARDS
+========================================================= */
+function updateStats(){
+    const active = groups.filter(g=>g.active !== false);
+    const totalStudents = active.reduce((sum,g)=>sum + getGroupStudentIds(g).length,0);
+    const noCurator = active.filter(g=>!g.curatorId).length;
+    document.getElementById('statGroups').textContent = groups.length;
+    document.getElementById('statActive').textContent = active.length;
+    document.getElementById('statStudents').textContent = totalStudents;
+    document.getElementById('statNoCurator').textContent = noCurator;
+}
+
+function renderGroups(){
+    const grid = document.getElementById('groupsGrid');
+    const q = document.getElementById('groupSearch').value.trim().toLowerCase();
+    const filter = document.getElementById('statusFilter').value;
+    let list = groups.filter(g=>{
+        const active = g.active !== false;
+        if(filter==='active' && !active) return false;
+        if(filter==='archive' && active) return false;
+        const curator = userNameById(g.curatorId).toLowerCase();
+        const leader = userNameById(g.starostaId || g.leaderId).toLowerCase();
+        return !q || [g.name||'',curator,leader].join(' ').toLowerCase().includes(q);
+    });
+
+    if(!list.length){
+        grid.innerHTML = '<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/></svg></div><div class="empty-title">'+(q?'Ничего не найдено':'Групп пока нет')+'</div><div class="empty-text">'+(q?'Измените поисковый запрос.':'Создайте первую учебную группу с помощью кнопки выше.')+'</div></div>';
+        return;
+    }
+
+    grid.innerHTML = list.map((g,i)=>{
+        const active = g.active !== false;
+        const ids = getGroupStudentIds(g);
+        const curator = findUser(g.curatorId);
+        const leader = findUser(g.starostaId || g.leaderId);
+        return `
+        <article class="group-card ${active?'':'archived'}" style="animation-delay:${Math.min(i*.045,.35)}s" onclick="openEditModal('${g.id}')">
+            <div class="group-card-head">
+                <div class="group-title-wrap">
+                    <div class="group-title">${escapeHtml(g.name || 'Без названия')}</div>
+                    <div class="group-id">ID: ${escapeHtml(g.id)}</div>
+                </div>
+                <span class="status ${active?'active':'archive'}"><span class="status-dot"></span>${active?'Активная':'Архив'}</span>
+            </div>
+            <div class="group-info">
+                <div class="info-item"><div class="info-label">Куратор</div><div class="info-value"><span class="mini-avatar">${escapeHtml(initials(curator?getUserName(curator):'?'))}</span>${escapeHtml(curator?getUserName(curator):'Не назначен')}</div></div>
+                <div class="info-item"><div class="info-label">Староста</div><div class="info-value"><span class="mini-avatar">${escapeHtml(initials(leader?getUserName(leader):'?'))}</span>${escapeHtml(leader?getUserName(leader):'Не назначен')}</div></div>
+            </div>
+            <div class="group-bottom"><div class="students-count"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>${ids.length} ${plural(ids.length,'студент','студента','студентов')}</div><div class="edit-hint">Редактировать <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></div></div>
+        </article>`;
+    }).join('');
+}
+function plural(n,a,b,c){const m=n%10, d=n%100;if(m===1&&d!==11)return a;if(m>=2&&m<=4&&(d<10||d>=20))return b;return c;}
+
+/* =========================================================
+   SELECTS
+========================================================= */
+function populateSelects(){
+    const curator = document.getElementById('curatorSelect');
+    const leader = document.getElementById('leaderSelect');
+    curator.innerHTML = '<option value="">Не назначен</option>' + users.map(u=>`<option value="${escapeHtml(u.id)}">${escapeHtml(getUserName(u))}${u.email?' — '+escapeHtml(u.email):''}</option>`).join('');
+    leader.innerHTML = '<option value="">Не назначен</option>' + users.map(u=>`<option value="${escapeHtml(u.id)}">${escapeHtml(getUserName(u))}${u.email?' — '+escapeHtml(u.email):''}</option>`).join('');
+}
+
+/* =========================================================
+   MODAL CREATE / EDIT
+========================================================= */
+function resetModal(){
+    editingGroupId = null;
+    selectedStudentIds = [];
+    document.getElementById('modalKicker').textContent='Новая группа';
+    document.getElementById('modalTitle').textContent='Создание группы';
+    document.getElementById('modalSubtitle').textContent='Заполните основные данные и добавьте студентов.';
+    document.getElementById('groupName').value='';
+    document.getElementById('curatorSelect').value='';
+    document.getElementById('leaderSelect').value='';
+    document.getElementById('deleteBtn').style.display='none';
+    document.getElementById('saveBtn').textContent='Сохранить группу';
+    document.getElementById('studentSearch').value='';
+    document.getElementById('studentOptions').classList.remove('show');
+    renderSelectedStudents();
+}
+function openCreateModal(){
+    resetModal();
+    document.getElementById('groupModal').classList.add('show');
+    setTimeout(()=>document.getElementById('groupName').focus(),50);
+}
+function openEditModal(id){
+    const group = groups.find(g=>g.id===id);
+    if(!group) return;
+    editingGroupId=id;
+    selectedStudentIds=getGroupStudentIds(group);
+    document.getElementById('modalKicker').textContent='Управление группой';
+    document.getElementById('modalTitle').textContent='Редактирование группы';
+    document.getElementById('modalSubtitle').textContent='Изменяйте название, ответственных и состав студентов.';
+    document.getElementById('groupName').value=group.name||'';
+    document.getElementById('curatorSelect').value=group.curatorId||'';
+    document.getElementById('leaderSelect').value=group.starostaId||group.leaderId||'';
+    document.getElementById('deleteBtn').style.display='flex';
+    document.getElementById('deleteBtn').innerHTML = group.active === false
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m5 12 4 4L19 6"/></svg>Восстановить группу'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg>Архивировать группу';
+    document.getElementById('saveBtn').textContent='Сохранить изменения';
+    document.getElementById('studentSearch').value='';
+    document.getElementById('studentOptions').classList.remove('show');
+    renderSelectedStudents();
+    document.getElementById('groupModal').classList.add('show');
+}
+function closeModal(){
+    if(saving) return;
+    document.getElementById('groupModal').classList.remove('show');
+}
+function overlayClose(e){ if(e.target===document.getElementById('groupModal')) closeModal(); }
+
+/* =========================================================
+   STUDENT MULTI SELECT
+========================================================= */
+const studentSearchInput = document.getElementById('studentSearch');
+studentSearchInput.addEventListener('input', ()=>renderStudentOptions());
+studentSearchInput.addEventListener('focus', ()=>renderStudentOptions());
+function renderStudentOptions(){
+    const options=document.getElementById('studentOptions');
+    const q=studentSearchInput.value.trim().toLowerCase();
+    const list=students.filter(s=>!selectedStudentIds.includes(s.id) && getStudentName(s).toLowerCase().includes(q)).slice(0,50);
+    if(!list.length){options.innerHTML='<div class="no-students">Студенты не найдены</div>';options.classList.add('show');return;}
+    options.innerHTML=list.map(s=>`<div class="student-option" onclick="addStudent('${s.id}')"><span class="mini-avatar">${escapeHtml(initials(getStudentName(s)))}</span><div><div class="option-name">${escapeHtml(getStudentName(s))}</div><div class="option-meta">${escapeHtml(s.groupId ? 'Уже состоит в группе' : 'Без группы')}</div></div><span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="m5 12 4 4L19 6"/></svg></span></div>`).join('');
+    options.classList.add('show');
+}
+function addStudent(id){
+    if(!selectedStudentIds.includes(id)) selectedStudentIds.push(id);
+    studentSearchInput.value='';
+    renderSelectedStudents();
+    renderStudentOptions();
+    updateLeaderOptions();
+}
+function removeSelectedStudent(id){
+    selectedStudentIds=selectedStudentIds.filter(x=>x!==id);
+    renderSelectedStudents();
+    renderStudentOptions();
+    updateLeaderOptions();
+}
+function renderSelectedStudents(){
+    const chips=document.getElementById('selectedChips');
+    document.getElementById('selectedCount').textContent='Выбрано: '+selectedStudentIds.length;
+    chips.innerHTML=selectedStudentIds.map(id=>{const s=findStudent(id);if(!s)return '';return `<span class="chip"><span class="chip-avatar">${escapeHtml(initials(getStudentName(s)))}</span>${escapeHtml(getStudentName(s))}<button class="chip-remove" onclick="removeSelectedStudent('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10M17 7 7 17"/></svg></button></span>`}).join('');
+    if(!selectedStudentIds.length) chips.innerHTML='<span style="font-size:10px;color:var(--text-light);padding:5px 2px">Студенты пока не добавлены</span>';
+}
+function updateLeaderOptions(){
+    const select=document.getElementById('leaderSelect');
+    const current=select.value;
+    const currentGroup=editingGroupId ? groups.find(g=>g.id===editingGroupId) : null;
+    const currentLeaderId=currentGroup?.starostaId||currentGroup?.leaderId||'';
+    const candidates=selectedStudentIds.map(id=>findStudent(id)).filter(Boolean);
+    const keep=currentLeaderId && !candidates.some(s=>s.id===currentLeaderId) ? findUser(currentLeaderId) : null;
+    select.innerHTML='<option value="">Не назначен</option>' + candidates.map(s=>`<option value="${escapeHtml(s.id)}">${escapeHtml(getStudentName(s))}</option>`).join('') + (keep?`<option value="${escapeHtml(keep.id)}">${escapeHtml(getUserName(keep))}</option>`:'');
+    if(candidates.some(s=>s.id===current)) select.value=current; else if(currentLeaderId && (candidates.some(s=>s.id===currentLeaderId)||keep)) select.value=currentLeaderId; else select.value='';
+}
+
+/* =========================================================
+   SAVE
+========================================================= */
+async function saveGroup(){
+    if(saving) return;
+    const name=document.getElementById('groupName').value.trim();
+    const curatorId=document.getElementById('curatorSelect').value;
+    const starostaId=document.getElementById('leaderSelect').value;
+    if(!name){ toast('Не заполнено название','Введите название группы.','error');document.getElementById('groupName').focus();return; }
+
+    const duplicate=groups.find(g=>g.id!==editingGroupId && String(g.name||'').trim().toLowerCase()===name.toLowerCase() && g.active!==false);
+    if(duplicate){toast('Такая группа уже есть','Выберите другое название.','error');return;}
+
+    saving=true;
+    const btn=document.getElementById('saveBtn');
+    btn.disabled=true;btn.innerHTML='<span class="save-spinner"></span>Сохранение...';
+    try{
+        const curator=findUser(curatorId);
+        const starostaUser=findUser(starostaId);
+        const payload={
+            name,
+            curatorId:curatorId||null,
+            curatorName:curator?getUserName(curator):null,
+            starostaId:starostaId||null,
+            starostaName:starostaUser?getUserName(starostaUser):null,
+            studentIds:selectedStudentIds,
+            active: editingGroupId ? (groups.find(g=>g.id===editingGroupId)?.active!==false) : true,
+            updatedAt:firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        let groupRef;
+        if(editingGroupId){
+            groupRef=db.collection('groups').doc(editingGroupId);
+            await groupRef.set(payload,{merge:true});
+        }else{
+            payload.createdAt=firebase.firestore.FieldValue.serverTimestamp();
+            groupRef=await db.collection('groups').add(payload);
+        }
+
+        await syncStudentGroups(editingGroupId, groupRef.id, selectedStudentIds);
+        toast(editingGroupId?'Изменения сохранены':'Группа создана',name,'success');
+        closeModal();
+        await loadData();
+    }catch(error){
+        console.error(error);
+        toast('Не удалось сохранить',error.message||'Проверьте права Firestore.','error');
+    }finally{
+        saving=false;btn.disabled=false;btn.textContent=editingGroupId?'Сохранить изменения':'Сохранить группу';
+    }
+}
+
+async function syncStudentGroups(oldGroupId,newGroupId,newStudentIds){
+    const newSet=new Set(newStudentIds);
+    const batch=db.batch();
+    let operations=0;
+    students.forEach(s=>{
+        const belongsNow=newSet.has(s.id);
+        const belongedBefore=oldGroupId ? s.groupId===oldGroupId : false;
+        if(belongsNow && s.groupId!==newGroupId){batch.update(db.collection('students').doc(s.id),{groupId:newGroupId,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});operations++;}
+        else if(!belongsNow && belongedBefore){batch.update(db.collection('students').doc(s.id),{groupId:null,updatedAt:firebase.firestore.FieldValue.serverTimestamp()});operations++;}
+    });
+    if(operations) await batch.commit();
+}
+
+/* =========================================================
+   ARCHIVE / DELETE
+========================================================= */
+async function archiveCurrentGroup(){
+    if(!editingGroupId || saving) return;
+    const group=groups.find(g=>g.id===editingGroupId);
+    if(!group) return;
+    const action=group.active===false ? 'восстановить' : 'переместить в архив';
+    if(!confirm(`Вы действительно хотите ${action} группу «${group.name||''}»?`)) return;
+    saving=true;
+    try{
+        await db.collection('groups').doc(editingGroupId).set({active:group.active===false,updatedAt:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+        toast(group.active===false?'Группа восстановлена':'Группа перемещена в архив',group.name||'Группа','success');
+        closeModal();
+        await loadData();
+    }catch(error){toast('Ошибка операции',error.message||'Не удалось изменить статус.','error');}
+    finally{saving=false;}
+}
+
+/* =========================================================
+   TOAST / AUTH
+========================================================= */
+function toast(title,text,type='success'){
+    const box=document.getElementById('toastContainer');
+    const el=document.createElement('div');el.className='toast '+type;
+    el.innerHTML=`<div class="toast-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="${type==='success'?'m5 12 4 4L19 6':'M12 8v4M12 16h.01'}"/></svg></div><div><div class="toast-title">${escapeHtml(title)}</div><div class="toast-text">${escapeHtml(text)}</div></div>`;
+    box.appendChild(el);setTimeout(()=>{el.style.opacity='0';el.style.transform='translateY(8px)';el.style.transition='.25s';setTimeout(()=>el.remove(),260)},3500);
+}
+async function logout(){
+    try{await firebase.auth().signOut();window.location.href='login.html';}
+    catch(e){toast('Ошибка выхода',e.message,'error');}
+}
+
+/* =========================================================
+   AUTH + START
+========================================================= */
+document.addEventListener('keydown',e=>{
+    if(e.key==='Escape') closeModal();
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();document.getElementById('groupSearch').focus();}
+});
+
+firebase.auth().onAuthStateChanged(async user=>{
+    try{
+        ensureFirebase();
+        if(!user){
+            window.location.href='login.html';
+            return;
+        }
+        await loadData();
+    }catch(error){
+        console.error(error);
+        toast('Ошибка запуска',error.message||'Проверьте Firebase.','error');
+    }
+});
+</script>
+</body>
+</html>

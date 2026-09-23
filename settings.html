@@ -303,6 +303,7 @@
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 /* =====================================================
    FIREBASE CONFIG
@@ -319,31 +320,50 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
 /* =====================================================
    РОЛЕВАЯ МОДЕЛЬ (RBAC)
    -----------------------------------------------------
-   Предполагается, что сессия пользователя (uid, role,
-   groupId, groupName) записана в localStorage под ключом
-   "currentUser" на этапе входа в систему (страница логина
-   / index.html этого приложения). Формат:
-   { uid: "...", role: "admin" | "curator" | "student",
-     groupId: "group_id_или_null", groupName: "ИС-21" }
-   Если в вашей системе сессия хранится иначе (Firebase
-   Auth + документ в коллекции "users"), замените функцию
-   getCurrentUser() на реальный источник данных — остальная
-   логика ниже рассчитана именно на такую структуру.
+   Источник правды — Firebase Authentication (кто вошёл)
+   + документ users/{uid} в Firestore (какая у него роль
+   и группа). Структура документа, как в вашей базе:
+   { uid, email, name, role: "admin" | "curator" | "student",
+     group: "214", createdAt }
+   Поле "group" одновременно служит и человекочитаемым
+   названием группы, и её идентификатором — оно же
+   используется как id документа в коллекции "settings".
 ===================================================== */
 
-function getCurrentUser() {
+function waitForAuthUser() {
+    return new Promise((resolve) => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            unsubscribe();
+            resolve(user);
+        });
+    });
+}
+
+async function getCurrentUser() {
+    const authUser = await waitForAuthUser();
+    if (!authUser) return null;
+
     try {
-        const raw = localStorage.getItem("currentUser");
-        if (!raw) return null;
-        const parsed = JSON.parse(raw);
-        if (!parsed || !parsed.role) return null;
-        return parsed;
+        const snap = await getDoc(doc(db, "users", authUser.uid));
+        if (!snap.exists()) return null;
+
+        const data = snap.data() || {};
+        if (!data.role) return null;
+
+        return {
+            uid: authUser.uid,
+            role: data.role,
+            group: data.group || null,
+            name: data.name || "",
+            email: data.email || authUser.email || ""
+        };
     } catch (e) {
-        console.error("Не удалось прочитать currentUser:", e);
+        console.error("Не удалось получить профиль пользователя (users/{uid}):", e);
         return null;
     }
 }
@@ -366,16 +386,21 @@ function showApp() {
 }
 
 async function loadGroups() {
+    // Отдельной коллекции "groups" в базе нет — группы существуют
+    // как значения поля "group" в документах коллекции "users".
+    // Собираем уникальные значения оттуда для селектора администратора.
     try {
-        const snapshot = await getDocs(collection(db, "groups"));
-        groupsCache = [];
+        const snapshot = await getDocs(collection(db, "users"));
+        const seen = new Set();
         snapshot.forEach(d => {
-            const data = d.data() || {};
-            groupsCache.push({ id: d.id, name: data.name || d.id });
+            const g = (d.data() || {}).group;
+            if (g) seen.add(String(g));
         });
-        groupsCache.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+        groupsCache = Array.from(seen)
+            .sort((a, b) => a.localeCompare(b, "ru", { numeric: true }))
+            .map(g => ({ id: g, name: g }));
     } catch (e) {
-        console.error("Не удалось загрузить список групп:", e);
+        console.error("Не удалось загрузить список групп из users:", e);
         groupsCache = [];
     }
 }
@@ -395,7 +420,7 @@ function populateGroupSelect() {
 /* Инициализация доступа: определяет роль, группу и включает
    соответствующий вид интерфейса до отрисовки любых данных. */
 async function initAccess() {
-    const user = getCurrentUser();
+    const user = await getCurrentUser();
 
     if (!user) {
         showAccessDenied();
@@ -410,8 +435,8 @@ async function initAccess() {
     }
 
     if (ROLE === "curator") {
-        CURRENT_GROUP_ID = user.groupId || null;
-        CURRENT_GROUP_NAME = user.groupName || "";
+        CURRENT_GROUP_ID = user.group || null;
+        CURRENT_GROUP_NAME = user.group || "";
 
         if (!CURRENT_GROUP_ID) {
             showAccessDenied();
@@ -420,12 +445,12 @@ async function initAccess() {
 
         const badge = document.getElementById("curatorGroupBadge");
         badge.hidden = false;
-        badge.textContent = "👥 " + CURRENT_GROUP_NAME;
+        badge.textContent = "👥 Группа " + CURRENT_GROUP_NAME;
 
         const roleBadge = document.getElementById("roleBadge");
         roleBadge.hidden = false;
         roleBadge.className = "role-badge curator";
-        roleBadge.textContent = "Куратор";
+        roleBadge.textContent = user.name ? "Куратор · " + user.name : "Куратор";
 
         document.getElementById("heroText").textContent =
             "Здесь можно настроить количество пар, дисциплины, звонки и даты аттестаций для группы «" + CURRENT_GROUP_NAME + "». Изменения сохраняются в Firebase.";
@@ -438,12 +463,12 @@ async function initAccess() {
         await loadGroups();
 
         if (groupsCache.length === 0) {
-            // Нет групп в системе — работаем с дефолтной группой,
+            // В системе пока нет ни одной группы — работаем с дефолтной,
             // чтобы страница не блокировалась администратору.
             groupsCache = [{ id: "default", name: "Основная группа" }];
         }
 
-        const preferred = groupsCache.find(g => g.id === user.groupId);
+        const preferred = groupsCache.find(g => g.id === String(user.group));
         CURRENT_GROUP_ID = preferred ? preferred.id : groupsCache[0].id;
         CURRENT_GROUP_NAME = preferred ? preferred.name : groupsCache[0].name;
 
@@ -453,7 +478,7 @@ async function initAccess() {
         const roleBadge = document.getElementById("roleBadge");
         roleBadge.hidden = false;
         roleBadge.className = "role-badge admin";
-        roleBadge.textContent = "Администратор";
+        roleBadge.textContent = user.name ? "Администратор · " + user.name : "Администратор";
 
         showApp();
         return true;

@@ -437,6 +437,93 @@
         }
 
         /* =====================================
+           GROUP SWITCHER / CURATOR SIGNATURE
+        ===================================== */
+
+        .group-panel {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+
+            border-bottom: 1px solid var(--border);
+        }
+
+        .group-field {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .group-field-label {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .group-select {
+            height: 40px;
+            padding: 0 12px;
+            border-radius: 11px;
+            border: 1px solid var(--border);
+            background: var(--slate-light);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .group-select:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 1px;
+        }
+
+        .group-static {
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 14px;
+            border-radius: 11px;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .curator-name-input {
+            height: 40px;
+            width: 230px;
+            padding: 0 12px;
+            border-radius: 11px;
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text);
+            font-size: 13.5px;
+            font-weight: 600;
+        }
+
+        .curator-name-input:disabled {
+            background: var(--slate-light);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .curator-name-input:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 1px;
+        }
+
+        .group-panel .empty-groups {
+            color: var(--red);
+            font-size: 13.5px;
+            font-weight: 600;
+        }
+
+        /* =====================================
            TABLE
         ===================================== */
 
@@ -1056,6 +1143,27 @@
 
         </div>
 
+        <div class="group-panel" id="groupPanel">
+
+            <div class="group-field">
+                <span class="group-field-label">Группа:</span>
+                <span id="groupSwitcherSlot"><span class="group-static">Загрузка...</span></span>
+            </div>
+
+            <div class="group-field">
+                <span class="group-field-label">Классный руководитель (для печати):</span>
+                <input
+                    type="text"
+                    id="curatorPrintName"
+                    class="curator-name-input"
+                    placeholder="ФИО куратора"
+                    disabled
+                    oninput="onCuratorNameEdited()"
+                >
+            </div>
+
+        </div>
+
         <div class="week-controls">
 
             <button
@@ -1156,7 +1264,7 @@
         class="print-header print-only"
         id="printHeader"
     >
-        <span class="ph-main">Информация о ежедневной посещаемости занятий 214    группы</span><span class="ph-gap">       </span><span class="ph-range" id="printHeaderRange">—</span>
+        <span class="ph-main">Информация о ежедневной посещаемости занятий <span id="printGroupName">—</span>    группы</span><span class="ph-gap">       </span><span class="ph-range" id="printHeaderRange">—</span>
     </div>
 
     <div
@@ -1165,7 +1273,7 @@
     ></div>
 
     <div class="print-footer print-only">
-        Классный руководитель        ______________                  <span class="pf-name">Ковба Е.А.</span>
+        Классный руководитель        ______________                  <span class="pf-name" id="printCuratorName">—</span>
     </div>
 
 </div>
@@ -1245,7 +1353,9 @@
         collection,
         getDocs,
         doc,
-        getDoc
+        getDoc,
+        query,
+        where
     }
     from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
@@ -1305,6 +1415,19 @@
     let attendance = {};
 
     let weekStart;
+
+
+    // --- RBAC / группы ---
+
+    let currentUid = null;
+
+    let userRole = null;          // "admin" | "curator" | "starosta"
+
+    let userGroups = [];          // группы, доступные текущему пользователю
+
+    let currentGroupId = null;
+
+    let curatorNameManuallyEdited = false;
 
 
     const days = [
@@ -1545,6 +1668,366 @@
 
 
     // =========================================
+    // RBAC / ГРУППЫ
+    // =========================================
+
+    // "ПЕТРОВА АННА ПЕТРОВНА" -> "Петрова А.П"
+    function toShortFio(fullName) {
+
+        const parts =
+            String(fullName || "")
+                .trim()
+                .split(/\s+/)
+                .filter(Boolean);
+
+
+        if (parts.length === 0) {
+            return "";
+        }
+
+
+        const surname =
+            parts[0].charAt(0).toUpperCase() +
+            parts[0].slice(1).toLowerCase();
+
+
+        const initials =
+            parts
+                .slice(1, 3)
+                .map(
+                    w => w.charAt(0).toUpperCase()
+                );
+
+
+        return initials.length
+            ? `${surname} ${initials.join(".")}`
+            : surname;
+
+    }
+
+
+    function getCurrentGroup() {
+
+        return userGroups.find(
+            g => g.id === currentGroupId
+        ) || null;
+
+    }
+
+
+    function groupsFromSnapshot(snapshot) {
+
+        return snapshot.docs.map(
+            d => ({
+                id: d.id,
+                ...d.data()
+            })
+        );
+
+    }
+
+
+    // Загружает роль пользователя и список групп,
+    // к которым у него есть доступ (RBAC).
+    async function loadUserAndGroups() {
+
+        currentUid =
+            auth.currentUser
+                ? auth.currentUser.uid
+                : null;
+
+
+        if (!currentUid) {
+            userRole = null;
+            userGroups = [];
+            currentGroupId = null;
+            return;
+        }
+
+
+        const userSnap =
+            await getDoc(
+                doc(db, "users", currentUid)
+            );
+
+
+        const userData =
+            userSnap.exists()
+                ? userSnap.data()
+                : {};
+
+
+        userRole =
+            userData.role || "starosta";
+
+
+        let groupsMap = new Map();
+
+
+        if (userRole === "admin") {
+
+            const snapshot =
+                await getDocs(
+                    collection(db, "groups")
+                );
+
+            groupsFromSnapshot(snapshot)
+                .filter(g => g.active !== false)
+                .forEach(g => groupsMap.set(g.id, g));
+
+        }
+        else if (userRole === "curator") {
+
+            const snapshot =
+                await getDocs(
+                    query(
+                        collection(db, "groups"),
+                        where("curatorId", "==", currentUid)
+                    )
+                );
+
+            groupsFromSnapshot(snapshot)
+                .filter(g => g.active !== false)
+                .forEach(g => groupsMap.set(g.id, g));
+
+        }
+        else {
+
+            // Староста: ищем группу и по полю starostaId,
+            // и по устаревшему leaderId (для совместимости)
+            const [snapA, snapB] =
+                await Promise.all([
+                    getDocs(
+                        query(
+                            collection(db, "groups"),
+                            where("starostaId", "==", currentUid)
+                        )
+                    ),
+                    getDocs(
+                        query(
+                            collection(db, "groups"),
+                            where("leaderId", "==", currentUid)
+                        )
+                    )
+                ]);
+
+            [
+                ...groupsFromSnapshot(snapA),
+                ...groupsFromSnapshot(snapB)
+            ]
+                .filter(g => g.active !== false)
+                .forEach(g => groupsMap.set(g.id, g));
+
+        }
+
+
+        userGroups =
+            Array.from(groupsMap.values())
+                .sort(
+                    (a, b) =>
+                        String(a.name || "")
+                            .localeCompare(
+                                String(b.name || ""),
+                                "ru"
+                            )
+                );
+
+
+        // Пытаемся сохранить ранее выбранную группу,
+        // если она всё ещё доступна пользователю
+        const remembered =
+            sessionStorage.getItem(
+                "selectedGroupId"
+            );
+
+
+        if (
+            remembered &&
+            userGroups.some(g => g.id === remembered)
+        ) {
+
+            currentGroupId = remembered;
+
+        }
+        else {
+
+            currentGroupId =
+                userGroups.length > 0
+                    ? userGroups[0].id
+                    : null;
+
+        }
+
+    }
+
+
+    // Рисует переключатель группы + поле ФИО куратора
+    function renderGroupSwitcher() {
+
+        const slot =
+            document.getElementById(
+                "groupSwitcherSlot"
+            );
+
+        const curatorInput =
+            document.getElementById(
+                "curatorPrintName"
+            );
+
+
+        if (userGroups.length === 0) {
+
+            slot.innerHTML =
+                '<span class="empty-groups">Нет доступных групп</span>';
+
+            curatorInput.value = "";
+            curatorInput.disabled = true;
+
+            return;
+
+        }
+
+
+        const showDropdown =
+            userRole === "admin" ||
+            (userRole === "curator" && userGroups.length > 1);
+
+
+        if (showDropdown) {
+
+            slot.innerHTML =
+                '<select class="group-select" id="groupSelect" onchange="switchGroup(this.value)"></select>';
+
+            const select =
+                document.getElementById(
+                    "groupSelect"
+                );
+
+            select.innerHTML =
+                userGroups
+                    .map(
+                        g =>
+                            `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name || g.id)}</option>`
+                    )
+                    .join("");
+
+            select.value = currentGroupId;
+
+        }
+        else {
+
+            const group = getCurrentGroup();
+
+            slot.innerHTML =
+                `<span class="group-static">${escapeHtml(group ? (group.name || group.id) : "—")}</span>`;
+
+        }
+
+
+        updateCuratorNameField();
+
+    }
+
+
+    // Обновляет поле ФИО куратора для печати —
+    // редактируемое только у администратора
+    function updateCuratorNameField() {
+
+        const curatorInput =
+            document.getElementById(
+                "curatorPrintName"
+            );
+
+        const group = getCurrentGroup();
+
+        const dbCuratorName =
+            group
+                ? toShortFio(group.curatorName || "")
+                : "";
+
+
+        if (userRole === "admin") {
+
+            curatorInput.disabled = false;
+
+            if (!curatorNameManuallyEdited) {
+
+                curatorInput.value = dbCuratorName;
+
+            }
+
+        }
+        else {
+
+            curatorInput.disabled = true;
+            curatorInput.value = dbCuratorName;
+
+        }
+
+    }
+
+
+    window.onCuratorNameEdited =
+        function () {
+
+            curatorNameManuallyEdited = true;
+
+        };
+
+
+    // Переключение группы в дропдауне без перезагрузки страницы
+    window.switchGroup =
+        async function (groupId) {
+
+            if (
+                !groupId ||
+                groupId === currentGroupId
+            ) {
+                return;
+            }
+
+            currentGroupId = groupId;
+
+            curatorNameManuallyEdited = false;
+
+            sessionStorage.setItem(
+                "selectedGroupId",
+                groupId
+            );
+
+
+            try {
+
+                showStatus(
+                    "Загрузка группы..."
+                );
+
+                await loadStudents();
+                await loadAttendance();
+
+                updateWeekRange();
+                renderTable();
+                renderWeekList();
+                updateCuratorNameField();
+
+            }
+            catch (error) {
+
+                console.error(
+                    "Ошибка переключения группы:",
+                    error
+                );
+
+                showStatus(
+                    "Не удалось загрузить данные группы"
+                );
+
+            }
+
+        };
+
+
+    // =========================================
     // LOAD SETTINGS
     // =========================================
 
@@ -1631,16 +2114,28 @@
 
         try {
 
+            students = [];
+
+
+            if (!currentGroupId) {
+                return;
+            }
+
+
             const snapshot =
                 await getDocs(
-                    collection(
-                        db,
-                        "students"
+                    query(
+                        collection(
+                            db,
+                            "students"
+                        ),
+                        where(
+                            "groupId",
+                            "==",
+                            currentGroupId
+                        )
                     )
                 );
-
-
-            students = [];
 
 
             snapshot.forEach(
@@ -1786,16 +2281,75 @@
 
         try {
 
-            const snapshot =
+            attendance = {};
+
+
+            if (!currentGroupId) {
+                return;
+            }
+
+
+            let snapshot =
                 await getDocs(
-                    collection(
-                        db,
-                        "attendance"
+                    query(
+                        collection(
+                            db,
+                            "attendance"
+                        ),
+                        where(
+                            "groupId",
+                            "==",
+                            currentGroupId
+                        )
                     )
                 );
 
 
-            attendance = {};
+            // Резервный путь только для администратора:
+            // старые записи посещаемости могли быть созданы
+            // до появления поля groupId. Такие записи не пройдут
+            // фильтр выше, поэтому админ может дозагрузить всё
+            // и отфильтровать по списку студентов текущей группы.
+            if (
+                snapshot.empty &&
+                userRole === "admin" &&
+                students.length > 0
+            ) {
+
+                const studentIds =
+                    new Set(
+                        students.map(
+                            s => String(s.id)
+                        )
+                    );
+
+
+                const fullSnapshot =
+                    await getDocs(
+                        collection(
+                            db,
+                            "attendance"
+                        )
+                    );
+
+
+                const filteredDocs =
+                    fullSnapshot.docs.filter(
+                        d =>
+                            studentIds.has(
+                                String(
+                                    d.data().studentId
+                                )
+                            )
+                    );
+
+
+                snapshot = {
+                    forEach: cb =>
+                        filteredDocs.forEach(cb)
+                };
+
+            }
 
 
             snapshot.forEach(
@@ -3162,6 +3716,43 @@
         }
 
 
+        // Заполняем шапку и подпись печатной формы
+        // актуальными данными выбранной группы
+        const group = getCurrentGroup();
+
+        const printGroupNameEl =
+            document.getElementById(
+                "printGroupName"
+            );
+
+        if (printGroupNameEl) {
+
+            printGroupNameEl.textContent =
+                group ? (group.name || group.id) : "—";
+
+        }
+
+
+        const printCuratorNameEl =
+            document.getElementById(
+                "printCuratorName"
+            );
+
+        const curatorInputEl =
+            document.getElementById(
+                "curatorPrintName"
+            );
+
+        if (printCuratorNameEl) {
+
+            printCuratorNameEl.textContent =
+                (curatorInputEl && curatorInputEl.value.trim())
+                    ? curatorInputEl.value.trim()
+                    : "—";
+
+        }
+
+
         const table =
             document.querySelector(
                 "#tableWrapper table"
@@ -3604,6 +4195,33 @@
                 getMonday(
                     new Date()
                 );
+
+
+            await loadUserAndGroups();
+
+            renderGroupSwitcher();
+
+
+            if (!currentGroupId) {
+
+                document.getElementById(
+                    "tableWrapper"
+                ).innerHTML = `
+
+                    <div class="empty">
+
+                        ⚠️ Вам не назначена ни одна группа.
+                        <br><br>
+                        Обратитесь к администратору для назначения
+                        группы (куратор / староста).
+
+                    </div>
+
+                `;
+
+                return;
+
+            }
 
 
             await loadSettings();

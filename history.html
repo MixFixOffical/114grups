@@ -90,6 +90,50 @@
         }
 
         /* =====================================
+           AUTH GUARD OVERLAY
+        ===================================== */
+
+        #authGuardOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+
+            background: linear-gradient(160deg, #f9fafc 0%, #f4f6fb 45%, #eef1f9 100%);
+        }
+
+        #authGuardOverlay .auth-spinner {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 4px solid var(--primary-light);
+            border-top-color: var(--primary);
+            animation: authSpin .8s linear infinite;
+        }
+
+        #authGuardOverlay .auth-guard-text {
+            font-family: "Inter", sans-serif;
+            font-size: 14.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        @keyframes authSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Пока идёт проверка авторизации — контент страницы скрыт */
+        body.auth-pending > header,
+        body.auth-pending > .container {
+            display: none !important;
+        }
+
+        /* =====================================
            HEADER
         ===================================== */
 
@@ -940,7 +984,12 @@
 
 </head>
 
-<body>
+<body class="auth-pending">
+
+<div id="authGuardOverlay">
+    <div class="auth-spinner"></div>
+    <div class="auth-guard-text">Проверка авторизации…</div>
+</div>
 
 <header>
 
@@ -3752,8 +3801,13 @@
             if (!user) {
 
                 console.warn(
-                    "Пользователь не авторизован."
+                    "Пользователь не авторизован. Перенаправление на страницу входа."
                 );
+
+                // Без авторизации открыть страницу нельзя —
+                // сразу отправляем на login.html
+                window.location.href =
+                    "login.html";
 
                 return;
 
@@ -3764,15 +3818,27 @@
                 user.uid
             );
 
+            // Пользователь подтверждён — показываем страницу
+            // и только теперь запускаем загрузку данных
+            document.body.classList.remove(
+                "auth-pending"
+            );
+
+            const overlay =
+                document.getElementById(
+                    "authGuardOverlay"
+                );
+
+            if (overlay) {
+
+                overlay.remove();
+
+            }
+
+            start();
+
         }
     );
-
-
-    // =========================================
-    // START APPLICATION
-    // =========================================
-
-    start();
 
 </script>
 

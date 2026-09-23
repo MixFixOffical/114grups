@@ -159,7 +159,7 @@ header{
 <div class="page-loader" id="pageLoader">
     <div class="loader-content">
         <div class="loader-logo">📚</div>
-        <div class="loader-text">Проверка прав доступа...</div>
+        <div class="loader-text" id="loaderText">Проверка прав доступа...</div>
     </div>
 </div>
 
@@ -316,205 +316,246 @@ header{
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { db, auth } from "./firebase-config.js";
 import {
-    getFirestore, doc, getDoc, setDoc, collection, getDocs
+    doc, getDoc, setDoc, collection, getDocs
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 import {
-    getAuth, onAuthStateChanged
+    onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
-const firebaseConfig = {
-    apiKey:"AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxFjU",
-    authDomain:"othets-1aa03.firebaseapp.com",
-    projectId:"othets-1aa03",
-    storageBucket:"othets-1aa03.firebasestorage.app",
-    messagingSenderId:"528392191591",
-    appId:"1:528392191591:web:1e97790e6f9f0a6e175ec2",
-    measurementId:"G-F50WVZRXZJ"
-};
+/* ==================== КОНСТАНТЫ ==================== */
+const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 
-const app=initializeApp(firebaseConfig);
-const db=getFirestore(app);
-const auth=getAuth(app);
-
-const days=["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
-
-let currentUser=null;
-let userData=null;
-let role="";
-let allowedGroups=[];
-let selectedGroup="";
-let groupSettings={};
-let schedule={};
-let disciplines={};
-let bells={
-    1:{start:"08:00",end:"08:45"},
-    2:{start:"08:55",end:"09:40"},
-    3:{start:"09:50",end:"10:35"},
-    4:{start:"10:45",end:"11:30"},
-    5:{start:"11:40",end:"12:25"},
-    6:{start:"12:35",end:"13:20"},
-    7:{start:"13:30",end:"14:15"}
-};
-let semester1={attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
-let semester2={attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
-
-const defaultSchedule={
+const defaultSchedule = {
     "Понедельник":5,"Вторник":5,"Среда":5,
     "Четверг":5,"Пятница":5,"Суббота":0
 };
 
+const defaultBells = {
+    1:{start:"08:00",end:"08:45"},2:{start:"08:55",end:"09:40"},
+    3:{start:"09:50",end:"10:35"},4:{start:"10:45",end:"11:30"},
+    5:{start:"11:40",end:"12:25"},6:{start:"12:35",end:"13:20"},
+    7:{start:"13:30",end:"14:15"}
+};
+
+/* ==================== СОСТОЯНИЕ ==================== */
+let currentUser = null;
+let userData = null;
+let role = "";
+// allowedGroups — массив объектов { id, name }
+let allowedGroups = [];
+// selectedGroupId — ID документа из коллекции groups
+let selectedGroupId = "";
+let selectedGroupName = "";
+let schedule = {};
+let disciplines = {};
+let bells = {};
+let semester1 = {attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
+let semester2 = {attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
+
+/* ==================== УТИЛИТЫ ==================== */
 function emptyDisciplines(){
-    return Object.fromEntries(days.map(d=>[d,[]]));
+    return Object.fromEntries(days.map(d => [d, []]));
 }
 
 function resetLocalSettings(){
-    schedule={...defaultSchedule};
-    disciplines=emptyDisciplines();
-    bells={
-        1:{start:"08:00",end:"08:45"},2:{start:"08:55",end:"09:40"},
-        3:{start:"09:50",end:"10:35"},4:{start:"10:45",end:"11:30"},
-        5:{start:"11:40",end:"12:25"},6:{start:"12:35",end:"13:20"},
-        7:{start:"13:30",end:"14:15"}
-    };
-    semester1={attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
-    semester2={attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
+    schedule = {...defaultSchedule};
+    disciplines = emptyDisciplines();
+    bells = JSON.parse(JSON.stringify(defaultBells));
+    semester1 = {attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
+    semester2 = {attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
 }
 
-function setDbStatus(text,cls){
-    const el=document.getElementById("dbStatus");
-    el.textContent=text; el.className="status "+cls;
+function setDbStatus(text, cls){
+    const el = document.getElementById("dbStatus");
+    if(!el) return;
+    el.textContent = text;
+    el.className = "status " + cls;
 }
 
 function normalizeGroupValue(value){
-    if(value===undefined||value===null) return "";
-    if(typeof value==="string") return value.trim();
+    if(value === undefined || value === null) return "";
+    if(typeof value === "string") return value.trim();
     return String(value).trim();
 }
 
 function extractUserGroups(data){
-    const result=[];
-    const candidates=[
-        data.group,
-        data.groupId,
-        data.groupName,
-        data.groups,
-        data.assignedGroups,
-        data.curatorGroups
+    const result = [];
+    const candidates = [
+        data.group, data.groupId, data.groupName,
+        data.groups, data.assignedGroups, data.curatorGroups
     ];
     for(const value of candidates){
         if(Array.isArray(value)){
-            value.forEach(v=>{const g=normalizeGroupValue(v);if(g&&!result.includes(g))result.push(g)});
-        }else{
-            const g=normalizeGroupValue(value);
-            if(g&&!result.includes(g))result.push(g);
+            value.forEach(v => {
+                const g = normalizeGroupValue(v);
+                if(g && !result.includes(g)) result.push(g);
+            });
+        } else {
+            const g = normalizeGroupValue(value);
+            if(g && !result.includes(g)) result.push(g);
         }
     }
     return result;
 }
 
-async function loadAllowedGroups(){
-    if(role==="admin"){
-        const snap=await getDocs(collection(db,"groupSettings"));
-        const groups=[];
-        snap.forEach(d=>{
-            const data=d.data()||{};
-            const group=normalizeGroupValue(data.group||d.id);
-            if(group&&!groups.includes(group)) groups.push(group);
-        });
-
-        // Резервный вариант: если groupSettings пока пустая, попробуем groups.
-        if(!groups.length){
-            try{
-                const gs=await getDocs(collection(db,"groups"));
-                gs.forEach(d=>{
-                    const data=d.data()||{};
-                    const group=normalizeGroupValue(data.name||data.group||d.id);
-                    if(group&&!groups.includes(group)) groups.push(group);
-                });
-            }catch(e){}
-        }
-        allowedGroups=groups.sort((a,b)=>a.localeCompare(b,"ru"));
-    }else if(role==="curator"){
-        allowedGroups=extractUserGroups(userData).sort((a,b)=>a.localeCompare(b,"ru"));
-    }
+function getLessonWord(count){
+    if(count === 1) return "пара";
+    if(count >= 2 && count <= 4) return "пары";
+    return "пар";
 }
 
-function renderGroupSelect(){
-    const select=document.getElementById("groupSelect");
-    select.innerHTML="";
-    if(!allowedGroups.length){
-        const opt=document.createElement("option");
-        opt.value=""; opt.textContent="Нет доступных групп";
-        select.appendChild(opt); select.disabled=true; return;
+/* ==================== ЗАГРУЗКА ГРУПП ==================== */
+async function loadAllowedGroups(){
+    const groupsMap = new Map(); // id -> name
+
+    if(role === "admin"){
+        // Админ видит ВСЕ группы из коллекции "groups"
+        const snap = await getDocs(collection(db, "groups"));
+        snap.forEach(d => {
+            const data = d.data() || {};
+            const name = normalizeGroupValue(data.name || data.group || d.id);
+            if(name) groupsMap.set(d.id, name);
+        });
+        // Резервный вариант — если groups пуста, пробуем groupSettings
+        if(groupsMap.size === 0){
+            try {
+                const gs = await getDocs(collection(db, "groupSettings"));
+                gs.forEach(d => {
+                    const data = d.data() || {};
+                    const name = normalizeGroupValue(data.group || data.name || d.id);
+                    if(name) groupsMap.set(d.id, name);
+                });
+            } catch(e){ console.warn("groupSettings fallback error:", e); }
+        }
+    } else if(role === "curator"){
+        // Куратор видит только свои группы (curatorId === uid)
+        const snap = await getDocs(collection(db, "groups"));
+        snap.forEach(d => {
+            const data = d.data() || {};
+            const curatorId = data.curatorId || data.curator || "";
+            if(curatorId === currentUser.uid){
+                const name = normalizeGroupValue(data.name || d.id);
+                if(name) groupsMap.set(d.id, name);
+            }
+        });
+        // Плюс — если в профиле указаны groups/curatorGroups по названиям,
+        // попробуем найти их в groups по name
+        const profileGroups = extractUserGroups(userData);
+        if(profileGroups.length){
+            snap.forEach(d => {
+                const data = d.data() || {};
+                const name = normalizeGroupValue(data.name || d.id);
+                if(profileGroups.includes(name) && !groupsMap.has(d.id)){
+                    groupsMap.set(d.id, name);
+                }
+            });
+        }
     }
-    select.disabled=false;
-    allowedGroups.forEach(group=>{
-        const opt=document.createElement("option");
-        opt.value=group; opt.textContent="Группа "+group;
+
+    allowedGroups = [...groupsMap.entries()]
+        .map(([id, name]) => ({ id, name }))
+        .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+}
+
+/* ==================== РЕНДЕР СЕЛЕКТА ГРУПП ==================== */
+function renderGroupSelect(){
+    const select = document.getElementById("groupSelect");
+    select.innerHTML = "";
+
+    if(!allowedGroups.length){
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "Нет доступных групп";
+        select.appendChild(opt);
+        select.disabled = true;
+        selectedGroupId = "";
+        selectedGroupName = "";
+        updateGroupLabels();
+        return;
+    }
+
+    select.disabled = false;
+    allowedGroups.forEach(g => {
+        const opt = document.createElement("option");
+        opt.value = g.id;
+        opt.textContent = "Группа " + g.name;
         select.appendChild(opt);
     });
-    if(!selectedGroup||!allowedGroups.includes(selectedGroup)) selectedGroup=allowedGroups[0];
-    select.value=selectedGroup;
+
+    if(!selectedGroupId || !allowedGroups.some(g => g.id === selectedGroupId)){
+        selectedGroupId = allowedGroups[0].id;
+        selectedGroupName = allowedGroups[0].name;
+    }
+    select.value = selectedGroupId;
     updateGroupLabels();
 }
 
 function updateGroupLabels(){
-    document.getElementById("headerGroup").textContent="Группа: "+(selectedGroup||"—");
-    document.getElementById("databaseGroup").textContent=selectedGroup||"—";
-    document.getElementById("heroTitle").textContent=selectedGroup ? "Настройки группы "+selectedGroup : "Настройки группы";
+    const group = allowedGroups.find(g => g.id === selectedGroupId);
+    const name = group ? group.name : (selectedGroupName || "—");
+
+    document.getElementById("headerGroup").textContent = "Группа: " + name;
+    document.getElementById("databaseGroup").textContent = name;
+    document.getElementById("heroTitle").textContent = name
+        ? "Настройки группы " + name
+        : "Настройки группы";
 }
 
+/* ==================== UI ПО РОЛИ ==================== */
 function applyRoleUI(){
-    const roleBadge=document.getElementById("roleBadge");
-    roleBadge.textContent=role==="admin"?"👑 Администратор":"🧑‍🏫 Куратор";
-    roleBadge.className="role-badge "+(role==="admin"?"admin":"curator");
+    const roleBadge = document.getElementById("roleBadge");
+    roleBadge.textContent = role === "admin" ? "👑 Администратор" : "🧑‍🏫 Куратор";
+    roleBadge.className = "role-badge " + (role === "admin" ? "admin" : "curator");
 
-    if(role==="curator"){
+    if(role === "curator"){
         document.getElementById("planMenu").classList.add("disabled");
         document.getElementById("bellsMenu").classList.add("disabled");
-        document.getElementById("headerSubtitle").textContent="Настройки закреплённых групп";
-        document.getElementById("heroText").textContent="Вы можете управлять количеством пар и дисциплинами только своих групп. Время звонков и учебный план доступны только администратору.";
-    }else{
-        document.getElementById("headerSubtitle").textContent="Полное управление системой";
-        document.getElementById("heroText").textContent="Администратор может выбрать любую доступную группу и управлять всеми настройками системы.";
+        document.getElementById("headerSubtitle").textContent = "Настройки закреплённых групп";
+        document.getElementById("heroText").textContent = "Вы можете управлять количеством пар и дисциплинами только своих групп. Время звонков и учебный план доступны только администратору.";
+    } else {
+        document.getElementById("headerSubtitle").textContent = "Полное управление системой";
+        document.getElementById("heroText").textContent = "Администратор может выбрать любую доступную группу и управлять всеми настройками системы.";
     }
 }
 
+/* ==================== ЗАГРУЗКА НАСТРОЕК ГРУППЫ ==================== */
 async function loadGroupSettings(){
     resetLocalSettings();
-    if(!selectedGroup){renderAll();return;}
 
-    const snap=await getDoc(doc(db,"groupSettings",selectedGroup));
-    if(snap.exists()){
-        groupSettings=snap.data()||{};
-        if(groupSettings.schedule) schedule={...schedule,...groupSettings.schedule};
-        if(groupSettings.disciplines) disciplines={...disciplines,...groupSettings.disciplines};
-        if(groupSettings.bells) bells={...bells,...groupSettings.bells};
-        if(groupSettings.semester1) semester1={...semester1,...groupSettings.semester1};
-        if(groupSettings.semester2) semester2={...semester2,...groupSettings.semester2};
-    }else{
-        groupSettings={};
+    if(!selectedGroupId){
+        renderAll();
+        return;
+    }
+
+    try {
+        const snap = await getDoc(doc(db, "groupSettings", selectedGroupId));
+        if(snap.exists()){
+            const data = snap.data() || {};
+            if(data.schedule) schedule = {...schedule, ...data.schedule};
+            if(data.disciplines) disciplines = {...disciplines, ...data.disciplines};
+            if(data.bells) bells = {...bells, ...data.bells};
+            if(data.semester1) semester1 = {...semester1, ...data.semester1};
+            if(data.semester2) semester2 = {...semester2, ...data.semester2};
+        }
+    } catch(e){
+        console.warn("Не удалось загрузить настройки группы:", e);
     }
 
     renderAll();
 }
 
-function getLessonWord(count){
-    if(count===1)return"пара";
-    if(count>=2&&count<=4)return"пары";
-    return"пар";
-}
-
+/* ==================== РЕНДЕР РАСПИСАНИЯ (кол-во пар) ==================== */
 function renderSchedule(){
-    const container=document.getElementById("scheduleContainer");
-    container.innerHTML="";
-    days.forEach(day=>{
-        const count=Math.max(0,Math.min(7,Number(schedule[day]||0)));
-        const card=document.createElement("div");
-        card.className="day-card";
-        card.innerHTML=`
+    const container = document.getElementById("scheduleContainer");
+    container.innerHTML = "";
+
+    days.forEach(day => {
+        const count = Math.max(0, Math.min(7, Number(schedule[day] || 0)));
+        const card = document.createElement("div");
+        card.className = "day-card";
+        card.innerHTML = `
             <div class="day-header">
                 <div class="day-name">${day}</div>
                 <div class="lesson-controls">
@@ -525,115 +566,145 @@ function renderSchedule(){
                 </div>
             </div>
             <div class="lesson-list"></div>`;
-        const list=card.querySelector(".lesson-list");
-        for(let i=1;i<=count;i++){
-            const chip=document.createElement("div");
-            chip.className="lesson-chip";
-            chip.textContent=`${i} пара`;
+        const list = card.querySelector(".lesson-list");
+        for(let i = 1; i <= count; i++){
+            const chip = document.createElement("div");
+            chip.className = "lesson-chip";
+            chip.textContent = `${i} пара`;
             list.appendChild(chip);
         }
         container.appendChild(card);
     });
 }
 
-window.addLesson=function(day){
-    if(role!=="admin"&&role!=="curator")return;
-    const current=Number(schedule[day]||0);
-    if(current>=7){alert("Максимальное количество — 7 пар.");return}
-    schedule[day]=current+1;
-    if(!Array.isArray(disciplines[day]))disciplines[day]=[];
-    while(disciplines[day].length<schedule[day])disciplines[day].push("");
+window.addLesson = function(day){
+    if(role !== "admin" && role !== "curator") return;
+    const current = Number(schedule[day] || 0);
+    if(current >= 7){ alert("Максимальное количество — 7 пар."); return; }
+    schedule[day] = current + 1;
+    if(!Array.isArray(disciplines[day])) disciplines[day] = [];
+    while(disciplines[day].length < schedule[day]) disciplines[day].push("");
     renderAll();
 };
 
-window.removeLesson=function(day){
-    if(role!=="admin"&&role!=="curator")return;
-    const current=Number(schedule[day]||0);
-    if(current<=0)return;
-    schedule[day]=current-1;
-    if(Array.isArray(disciplines[day]))disciplines[day]=disciplines[day].slice(0,schedule[day]);
+window.removeLesson = function(day){
+    if(role !== "admin" && role !== "curator") return;
+    const current = Number(schedule[day] || 0);
+    if(current <= 0) return;
+    schedule[day] = current - 1;
+    if(Array.isArray(disciplines[day])) disciplines[day] = disciplines[day].slice(0, schedule[day]);
     renderAll();
 };
 
+/* ==================== РЕНДЕР ДИСЦИПЛИН ==================== */
 function renderDisciplines(){
-    const container=document.getElementById("disciplinesContainer");
-    container.innerHTML="";
-    days.forEach(day=>{
-        const count=Number(schedule[day]||0);
-        if(count===0)return;
-        if(!Array.isArray(disciplines[day]))disciplines[day]=[];
-        while(disciplines[day].length<count)disciplines[day].push("");
+    const container = document.getElementById("disciplinesContainer");
+    container.innerHTML = "";
 
-        const block=document.createElement("div");
-        block.className="discipline-day";
-        const title=document.createElement("div");
-        title.className="discipline-day-title";
-        title.textContent=day;
+    days.forEach(day => {
+        const count = Number(schedule[day] || 0);
+        if(count === 0) return;
+
+        if(!Array.isArray(disciplines[day])) disciplines[day] = [];
+        while(disciplines[day].length < count) disciplines[day].push("");
+
+        const block = document.createElement("div");
+        block.className = "discipline-day";
+
+        const title = document.createElement("div");
+        title.className = "discipline-day-title";
+        title.textContent = day;
         block.appendChild(title);
 
-        for(let i=0;i<count;i++){
-            const row=document.createElement("div");
-            row.className="discipline-row";
-            row.innerHTML=`<div class="discipline-number">${i+1} пара</div>`;
-            const field=document.createElement("input");
-            field.type="text";
-            field.placeholder="Введите дисциплину...";
-            field.value=disciplines[day][i]||"";
-            field.addEventListener("input",()=>disciplines[day][i]=field.value);
-            row.appendChild(field); block.appendChild(row);
+        for(let i = 0; i < count; i++){
+            const row = document.createElement("div");
+            row.className = "discipline-row";
+            row.innerHTML = `<div class="discipline-number">${i + 1} пара</div>`;
+
+            const field = document.createElement("input");
+            field.type = "text";
+            field.placeholder = "Введите дисциплину...";
+            field.value = disciplines[day][i] || "";
+            field.addEventListener("input", () => disciplines[day][i] = field.value);
+
+            row.appendChild(field);
+            block.appendChild(row);
         }
         container.appendChild(block);
     });
-    if(!container.innerHTML)container.innerHTML='<div class="empty">Сначала добавьте пары в разделе «Пары».</div>';
+
+    if(!container.innerHTML){
+        container.innerHTML = '<div class="empty">Сначала добавьте пары в разделе «Пары».</div>';
+    }
 }
 
+/* ==================== РЕНДЕР ЗВОНКОВ ==================== */
 function renderBells(){
-    const container=document.getElementById("bellsContainer");
-    container.innerHTML="";
-    const maxLessons=Math.max(...days.map(day=>Number(schedule[day]||0)),0);
+    const container = document.getElementById("bellsContainer");
+    container.innerHTML = "";
+
+    const maxLessons = Math.max(...days.map(day => Number(schedule[day] || 0)), 0);
     if(!maxLessons){
-        container.innerHTML='<div class="empty">Сначала добавьте пары в разделе «Пары».</div>';
+        container.innerHTML = '<div class="empty">Сначала добавьте пары в разделе «Пары».</div>';
         return;
     }
-    const note=document.createElement("div");
-    note.className="readonly-note";
-    note.textContent="Время звонков является общесистемной настройкой и доступно только администратору.";
+
+    const note = document.createElement("div");
+    note.className = "readonly-note";
+    note.textContent = "Время звонков является общесистемной настройкой и доступно только администратору.";
     container.appendChild(note);
 
-    const block=document.createElement("div");
-    block.className="call-day";
-    const title=document.createElement("div");
-    title.className="call-day-title";
-    title.textContent="Общее время звонков";
+    const block = document.createElement("div");
+    block.className = "call-day";
+
+    const title = document.createElement("div");
+    title.className = "call-day-title";
+    title.textContent = "Общее время звонков";
     block.appendChild(title);
 
-    for(let i=1;i<=maxLessons;i++){
-        if(!bells[i])bells[i]={start:"",end:""};
-        const row=document.createElement("div");
-        row.className="call-row";
-        const number=document.createElement("div");
-        number.className="call-number"; number.textContent=`${i} пара`;
-        const start=document.createElement("input");
-        start.type="time"; start.value=bells[i].start||""; start.disabled=role!=="admin";
-        start.addEventListener("input",()=>bells[i].start=start.value);
-        const end=document.createElement("input");
-        end.type="time"; end.value=bells[i].end||""; end.disabled=role!=="admin";
-        end.addEventListener("input",()=>bells[i].end=end.value);
-        row.append(number,start,end); block.appendChild(row);
+    for(let i = 1; i <= maxLessons; i++){
+        if(!bells[i]) bells[i] = {start:"", end:""};
+
+        const row = document.createElement("div");
+        row.className = "call-row";
+
+        const number = document.createElement("div");
+        number.className = "call-number";
+        number.textContent = `${i} пара`;
+
+        const start = document.createElement("input");
+        start.type = "time";
+        start.value = bells[i].start || "";
+        start.disabled = role !== "admin";
+        start.addEventListener("input", () => bells[i].start = start.value);
+
+        const end = document.createElement("input");
+        end.type = "time";
+        end.value = bells[i].end || "";
+        end.disabled = role !== "admin";
+        end.addEventListener("input", () => bells[i].end = end.value);
+
+        row.append(number, start, end);
+        block.appendChild(row);
     }
     container.appendChild(block);
 }
 
+/* ==================== РЕНДЕР СЕМЕСТРОВ ==================== */
 function renderSemesters(){
-    const ids=[
-        ["sem1att1start",semester1.attestation1?.start],["sem1att1end",semester1.attestation1?.end],
-        ["sem1att2start",semester1.attestation2?.start],["sem1att2end",semester1.attestation2?.end],
-        ["sem2att1start",semester2.attestation1?.start],["sem2att1end",semester2.attestation1?.end],
-        ["sem2att2start",semester2.attestation2?.start],["sem2att2end",semester2.attestation2?.end]
+    const ids = [
+        ["sem1att1start", semester1.attestation1?.start], ["sem1att1end", semester1.attestation1?.end],
+        ["sem1att2start", semester1.attestation2?.start], ["sem1att2end", semester1.attestation2?.end],
+        ["sem2att1start", semester2.attestation1?.start], ["sem2att1end", semester2.attestation1?.end],
+        ["sem2att2start", semester2.attestation2?.start], ["sem2att2end", semester2.attestation2?.end]
     ];
-    ids.forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.value=val||""});
+    ids.forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if(el) el.value = val || "";
+    });
 }
 
+/* ==================== ОБЩИЙ РЕНДЕР ==================== */
 function renderAll(){
     updateGroupLabels();
     renderSchedule();
@@ -642,134 +713,178 @@ function renderAll(){
     renderSemesters();
 }
 
+/* ==================== СОХРАНЕНИЕ ==================== */
 async function saveSettings(){
-    if(!selectedGroup){alert("Сначала выберите группу.");return}
-    if(role!=="admin"&&role!=="curator"){return}
+    if(!selectedGroupId){ alert("Сначала выберите группу."); return; }
+    if(role !== "admin" && role !== "curator") return;
 
-    const msgIds=role==="curator"?["scheduleMessage","disciplineMessage"]:["scheduleMessage","disciplineMessage","planMessage","bellsMessage"];
-    msgIds.forEach(id=>{const el=document.getElementById(id);if(el){el.textContent="Сохранение...";el.className="message"}});
+    const msgIds = role === "curator"
+        ? ["scheduleMessage", "disciplineMessage"]
+        : ["scheduleMessage", "disciplineMessage", "planMessage", "bellsMessage"];
 
-    const payload={
-        group:selectedGroup,
+    msgIds.forEach(id => {
+        const el = document.getElementById(id);
+        if(el){ el.textContent = "Сохранение..."; el.className = "message"; }
+    });
+
+    const payload = {
+        group: selectedGroupName,
+        groupId: selectedGroupId,
         schedule,
         disciplines,
-        updatedAt:new Date().toISOString()
+        updatedAt: new Date().toISOString()
     };
 
-    if(role==="admin"){
-        payload.bells=bells;
-        payload.semester1={
-            attestation1:{start:document.getElementById("sem1att1start").value,end:document.getElementById("sem1att1end").value},
-            attestation2:{start:document.getElementById("sem1att2start").value,end:document.getElementById("sem1att2end").value}
+    if(role === "admin"){
+        payload.bells = bells;
+        payload.semester1 = {
+            attestation1: {
+                start: document.getElementById("sem1att1start").value,
+                end: document.getElementById("sem1att1end").value
+            },
+            attestation2: {
+                start: document.getElementById("sem1att2start").value,
+                end: document.getElementById("sem1att2end").value
+            }
         };
-        payload.semester2={
-            attestation1:{start:document.getElementById("sem2att1start").value,end:document.getElementById("sem2att1end").value},
-            attestation2:{start:document.getElementById("sem2att2start").value,end:document.getElementById("sem2att2end").value}
+        payload.semester2 = {
+            attestation1: {
+                start: document.getElementById("sem2att1start").value,
+                end: document.getElementById("sem2att1end").value
+            },
+            attestation2: {
+                start: document.getElementById("sem2att2start").value,
+                end: document.getElementById("sem2att2end").value
+            }
         };
     }
 
-    try{
-        await setDoc(doc(db,"groupSettings",selectedGroup),payload,{merge:true});
-        ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id=>{
-            const el=document.getElementById(id);
-            if(el){el.textContent="✓ Настройки сохранены";el.className="message"}
+    try {
+        await setDoc(doc(db, "groupSettings", selectedGroupId), payload, {merge: true});
+
+        ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id => {
+            const el = document.getElementById(id);
+            if(el){ el.textContent = "✓ Настройки сохранены"; el.className = "message"; }
         });
-        setTimeout(()=>["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id=>{
-            const el=document.getElementById(id);if(el)el.textContent="";
-        }),2500);
-    }catch(error){
+        setTimeout(() => {
+            ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.textContent = "";
+            });
+        }, 2500);
+    } catch(error){
         console.error(error);
-        ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id=>{
-            const el=document.getElementById(id);
-            if(el){el.textContent="Ошибка сохранения";el.className="message error"}
+        ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id => {
+            const el = document.getElementById(id);
+            if(el){ el.textContent = "Ошибка сохранения"; el.className = "message error"; }
         });
-        alert("Не удалось сохранить настройки.\n\n"+error.message);
+        alert("Не удалось сохранить настройки.\n\n" + error.message);
     }
 }
 
+/* ==================== ПРОВЕРКА БД ==================== */
 async function checkDatabase(){
-    try{
-        await getDoc(doc(db,"system","connection"));
-        setDbStatus("Подключено","online");
-    }catch(error){
+    try {
+        await getDoc(doc(db, "system", "connection"));
+        setDbStatus("Подключено", "online");
+    } catch(error){
         console.error(error);
-        setDbStatus("Ошибка подключения","error");
+        setDbStatus("Ошибка подключения", "error");
     }
 }
 
+/* ==================== ИНИЦИАЛИЗАЦИЯ ==================== */
 async function initializeForUser(user){
-    currentUser=user;
-    try{
-        const snap=await getDoc(doc(db,"users",user.uid));
-        if(!snap.exists())throw new Error("Профиль пользователя не найден.");
-        userData=snap.data()||{};
-        role=String(userData.role||"").toLowerCase().trim();
+    currentUser = user;
+    try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        if(!snap.exists()) throw new Error("Профиль пользователя не найден: users/" + user.uid);
 
-        // Поддержка возможных вариантов написания ролей.
-        if(["administrator","администратор"].includes(role))role="admin";
-        if(["куратор","curator"].includes(role))role="curator";
-        if(["student","студент"].includes(role))role="student";
+        userData = snap.data() || {};
+        console.log("📋 userData:", userData);
+        console.log("📋 role raw:", userData.role);
 
-        if(role==="student"||!["admin","curator"].includes(role)){
-            document.getElementById("mainContent").style.display="none";
-            document.getElementById("accessDenied").style.display="block";
-            document.querySelector(".loader-text").textContent="Доступ запрещён";
-            setTimeout(()=>document.getElementById("pageLoader").classList.add("hidden"),250);
+        role = String(userData.role || "").toLowerCase().trim();
+        if(["administrator","администратор"].includes(role)) role = "admin";
+        if(["куратор","curator"].includes(role)) role = "curator";
+        if(["student","студент"].includes(role)) role = "student";
+
+        console.log("📋 role normalized:", role);
+
+        if(role === "student" || !["admin","curator"].includes(role)){
+            document.getElementById("mainContent").style.display = "none";
+            document.getElementById("accessDenied").style.display = "block";
+            document.getElementById("loaderText").textContent = "Доступ запрещён";
+            setTimeout(() => document.getElementById("pageLoader").classList.add("hidden"), 250);
             return;
         }
 
         await loadAllowedGroups();
+        console.log("📋 allowedGroups:", allowedGroups);
+
         if(!allowedGroups.length){
-            throw new Error(role==="curator"
-                ?"За вашим аккаунтом не закреплена ни одна группа."
-                :"Не найдена ни одна группа. Создайте документы groupSettings/{группа}.");
+            throw new Error(role === "curator"
+                ? "За вашим аккаунтом не закреплена ни одна группа."
+                : "Не найдена ни одна группа. Проверьте коллекцию groups.");
         }
 
-        selectedGroup=allowedGroups[0];
+        selectedGroupId = allowedGroups[0].id;
+        selectedGroupName = allowedGroups[0].name;
+
         renderGroupSelect();
         applyRoleUI();
         await loadGroupSettings();
-        document.getElementById("mainContent").style.display="block";
+
+        document.getElementById("mainContent").style.display = "block";
         checkDatabase();
-        setTimeout(()=>document.getElementById("pageLoader").classList.add("hidden"),250);
-    }catch(error){
-        console.error(error);
-        document.getElementById("mainContent").style.display="none";
-        document.getElementById("accessDenied").style.display="block";
-        document.querySelector("#accessDenied h2").textContent="Не удалось открыть настройки";
-        document.querySelector("#accessDenied p").textContent=error.message;
-        setTimeout(()=>document.getElementById("pageLoader").classList.add("hidden"),250);
+        setTimeout(() => document.getElementById("pageLoader").classList.add("hidden"), 250);
+    } catch(error){
+        console.error("❌ Ошибка инициализации:", error);
+        document.getElementById("mainContent").style.display = "none";
+        document.getElementById("accessDenied").style.display = "block";
+        document.querySelector("#accessDenied h2").textContent = "Не удалось открыть настройки";
+        document.querySelector("#accessDenied p").textContent = error.message;
+        setTimeout(() => document.getElementById("pageLoader").classList.add("hidden"), 250);
     }
 }
 
-document.getElementById("groupSelect").addEventListener("change",async e=>{
-    const newGroup=e.target.value;
-    if(!newGroup||newGroup===selectedGroup)return;
-    selectedGroup=newGroup;
+/* ==================== ОБРАБОТЧИКИ ==================== */
+document.getElementById("groupSelect").addEventListener("change", async e => {
+    const newId = e.target.value;
+    if(!newId || newId === selectedGroupId) return;
+
+    const group = allowedGroups.find(g => g.id === newId);
+    selectedGroupId = newId;
+    selectedGroupName = group ? group.name : "";
+
     renderGroupSelect();
-    document.querySelectorAll(".message").forEach(el=>el.textContent="");
+    document.querySelectorAll(".message").forEach(el => el.textContent = "");
     await loadGroupSettings();
 });
 
-document.querySelectorAll(".nav-btn").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-        if(btn.classList.contains("disabled"))return;
-        document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
-        document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        if(btn.classList.contains("disabled")) return;
+        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
         btn.classList.add("active");
         document.getElementById(btn.dataset.section).classList.add("active");
     });
 });
 
-window.goBack=function(){
-    if(role==="curator")window.location.href="index.html";
-    else window.location.href="index.html";
+window.goBack = function(){
+    window.location.href = "index.html";
 };
 
-onAuthStateChanged(auth,user=>{
-    if(user)initializeForUser(user);
-    else{
-        window.location.href="login.html";
+/* ==================== ЗАПУСК ==================== */
+let initialized = false;
+onAuthStateChanged(auth, user => {
+    if(initialized) return;
+    if(user){
+        initialized = true;
+        initializeForUser(user);
+    } else {
+        window.location.href = "login.html";
     }
 });
 </script>

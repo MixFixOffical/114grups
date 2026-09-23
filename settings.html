@@ -4,348 +4,774 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=1100">
 <meta name="theme-color" content="#2563eb">
+<meta name="description" content="Настройки системы управления посещаемостью">
 <title>Настройки — Посещаемость</title>
+
 <style>
 *{box-sizing:border-box}
-body{margin:0;min-width:1100px;min-height:100vh;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#0f172a;background:linear-gradient(135deg,#f8fbff,#f5f7ff 50%,#faf8ff)}
-.page-loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#f8fafc;transition:opacity .45s,visibility .45s;font-size:14px;font-weight:700;color:#64748b;flex-direction:column;gap:14px}
+html{scroll-behavior:smooth}
+body{
+    margin:0;min-width:1100px;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:#0f172a;background:linear-gradient(135deg,#f8fbff 0%,#f5f7ff 50%,#faf8ff 100%);min-height:100vh
+}
+.background-orb{position:fixed;border-radius:50%;filter:blur(80px);opacity:.35;pointer-events:none;z-index:-1}
+.orb-1{width:380px;height:380px;top:-130px;left:-100px;background:#93c5fd}
+.orb-2{width:420px;height:420px;right:-130px;top:180px;background:#c4b5fd}
+.orb-3{width:320px;height:320px;left:35%;bottom:-150px;background:#bfdbfe}
+
+.page-loader{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:#f8fafc;transition:.45s}
 .page-loader.hidden{opacity:0;visibility:hidden}
-.page-loader .logo{width:64px;height:64px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:30px;background:linear-gradient(135deg,#2563eb,#4f46e5);animation:fl 1.6s infinite ease-in-out}
-@keyframes fl{50%{transform:translateY(-8px)}}
+.loader-content{text-align:center}
+.loader-logo{width:76px;height:76px;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;border-radius:24px;font-size:34px;background:linear-gradient(135deg,#2563eb,#4f46e5);box-shadow:0 20px 40px rgba(37,99,235,.25);animation:loaderFloat 1.6s infinite ease-in-out}
+.loader-text{font-size:13.5px;font-weight:700;color:#64748b}
+@keyframes loaderFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 
-header{position:sticky;top:0;z-index:100;background:rgba(255,255,255,.88);backdrop-filter:blur(24px);border-bottom:1px solid #e2e8f0;box-shadow:0 8px 30px rgba(15,23,42,.04)}
-.top{display:flex;align-items:center;gap:16px;padding:14px 40px}
-.back{width:42px;height:42px;border:none;border-radius:13px;background:#fff;color:#2563eb;font-size:22px;font-weight:700;cursor:pointer;box-shadow:0 6px 18px rgba(15,23,42,.08);transition:.2s}
-.back:hover{transform:translateX(-3px)}
-.title h1{margin:0;font-size:20px;font-weight:800;letter-spacing:-.4px}
-.title span{display:block;margin-top:2px;font-size:11.5px;color:#64748b;font-weight:600}
-.spacer{flex:1}
-.group-box{display:flex;align-items:center;gap:8px}
-.group-box label{font-size:11px;font-weight:800;color:#475569}
-select,input{font-family:inherit;font-size:12.5px;color:#0f172a;border:1px solid #dbe3ef;border-radius:11px;background:#fff;outline:none;transition:.2s}
-select{height:40px;padding:0 12px;min-width:150px;font-weight:700}
-input{width:100%;height:43px;padding:0 12px}
-select:focus,input:focus{border-color:#60a5fa;box-shadow:0 0 0 4px rgba(37,99,235,.08)}
-.mini{height:40px;width:40px;border:none;border-radius:11px;background:#eff6ff;color:#2563eb;font-size:20px;font-weight:800;cursor:pointer}
-.status{padding:7px 12px;border-radius:10px;font-size:11.5px;font-weight:800;background:#f1f5f9;color:#64748b}
-.status.online{background:#dcfce7;color:#15803d}.status.error{background:#fee2e2;color:#dc2626}
-.role{padding:7px 12px;border-radius:10px;font-size:11.5px;font-weight:800;background:#e0e7ff;color:#4338ca}
+header{
+    position:sticky;top:0;z-index:100;min-height:82px;display:flex;align-items:center;padding:12px 42px;
+    background:rgba(255,255,255,.86);backdrop-filter:blur(24px);border-bottom:1px solid rgba(226,232,240,.8);
+    box-shadow:0 8px 30px rgba(15,23,42,.04)
+}
+.back-button{
+    width:46px;height:46px;border:none;border-radius:15px;background:#fff;color:#2563eb;font-size:25px;font-weight:700;
+    cursor:pointer;box-shadow:0 8px 22px rgba(15,23,42,.08);transition:.2s
+}
+.back-button:hover{transform:translateX(-3px);box-shadow:0 12px 28px rgba(37,99,235,.18)}
+.header-title{margin-left:18px;min-width:260px}
+.header-title h1{margin:0;font-size:22px;font-weight:800;letter-spacing:-.4px}
+.header-title span{display:block;margin-top:3px;font-size:12px;color:#64748b;font-weight:600}
+.header-actions{margin-left:auto;display:flex;align-items:center;gap:10px}
 
-nav{display:flex;gap:8px;padding:0 40px 14px}
-nav button{border:none;padding:11px 18px;border-radius:12px;background:transparent;color:#475569;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;transition:.2s}
-nav button:hover{background:#f1f5f9}
-nav button.active{background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;box-shadow:0 8px 20px rgba(37,99,235,.25)}
+.role-badge,.group-badge{
+    display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border-radius:13px;font-size:12px;font-weight:800;
+    background:#f8fafc;border:1px solid #e2e8f0;color:#475569
+}
+.role-badge.admin{background:#eff6ff;color:#1d4ed8;border-color:#bfdbfe}
+.role-badge.curator{background:#f5f3ff;color:#6d28d9;border-color:#ddd6fe}
 
-.container{max-width:1050px;margin:0 auto;padding:32px 30px 80px}
-.card{border-radius:24px;background:rgba(255,255,255,.93);border:1px solid #e2e8f0;box-shadow:0 15px 40px rgba(15,23,42,.06);padding:28px;animation:in .25s ease}
-@keyframes in{from{opacity:0;transform:translateY(-7px)}}
-.section{display:none}.section.show{display:block}
-.heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
-.heading h3{margin:0;font-size:17px;font-weight:800}.heading span{font-size:12px;color:#64748b}
-.block{margin-bottom:14px;padding:18px;border-radius:18px;background:#f8fafc;border:1px solid #e2e8f0}
-.block-title{font-size:14px;font-weight:800;margin-bottom:14px}
-.day-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
-.controls{display:flex;align-items:center;gap:10px}
-.cnt{width:34px;height:34px;border:none;border-radius:10px;background:#fff;color:#2563eb;font-size:20px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px rgba(15,23,42,.07)}
-.cnt:hover{background:#eff6ff}
-.num{min-width:26px;text-align:center;font-size:15px;font-weight:800}
-.badge{padding:6px 10px;border-radius:9px;background:#e0e7ff;color:#4338ca;font-size:11px;font-weight:800}
-.chips{display:flex;flex-wrap:wrap;gap:8px}
-.chip{padding:8px 12px;border-radius:10px;background:#fff;border:1px solid #e2e8f0;color:#475569;font-size:11px;font-weight:700}
-.row{display:grid;grid-template-columns:90px 1fr;gap:12px;align-items:center;margin-bottom:9px}
-.row.bell{grid-template-columns:90px 1fr 1fr}
-.tag{height:43px;display:flex;align-items:center;justify-content:center;border-radius:11px;background:rgba(37,99,235,.08);color:#2563eb;font-size:12px;font-weight:800}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.container{width:100%;max-width:1120px;margin:0 auto;padding:28px 30px 80px}
+.hero{
+    padding:28px 30px;margin-bottom:18px;border-radius:26px;background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(248,250,255,.94));
+    border:1px solid rgba(255,255,255,.9);box-shadow:0 20px 50px rgba(15,23,42,.07)
+}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:30px}
+.hero-badge{display:inline-flex;align-items:center;padding:8px 13px;border-radius:12px;background:rgba(37,99,235,.09);color:#2563eb;font-size:12px;font-weight:800}
+.hero h2{margin:13px 0 7px;font-size:27px;letter-spacing:-.7px}
+.hero p{margin:0;max-width:760px;color:#64748b;line-height:1.6;font-size:13px}
+.group-panel{
+    min-width:300px;padding:15px;border-radius:18px;background:#fff;border:1px solid #e2e8f0;
+    box-shadow:0 8px 24px rgba(15,23,42,.05)
+}
+.group-panel label{display:block;font-size:11px;font-weight:800;color:#64748b;margin-bottom:7px}
+.group-select{
+    width:100%;height:43px;border:1px solid #dbe3ef;border-radius:11px;background:#fff;color:#0f172a;
+    padding:0 12px;font:700 12px inherit;outline:none
+}
+.group-select:focus{border-color:#60a5fa;box-shadow:0 0 0 4px rgba(37,99,235,.08)}
+
+.navbar{
+    display:flex;gap:8px;padding:8px;margin-bottom:18px;border:1px solid rgba(226,232,240,.9);
+    border-radius:18px;background:rgba(255,255,255,.9);box-shadow:0 12px 30px rgba(15,23,42,.05);
+    position:sticky;top:94px;z-index:50
+}
+.nav-btn{
+    flex:1;border:0;background:transparent;border-radius:12px;padding:12px 14px;cursor:pointer;color:#64748b;
+    font:800 12px inherit;transition:.2s
+}
+.nav-btn:hover{background:#f8fafc;color:#2563eb}
+.nav-btn.active{background:linear-gradient(135deg,#2563eb,#4f46e5);color:white;box-shadow:0 8px 18px rgba(37,99,235,.22)}
+.nav-btn.disabled{display:none}
+
+.section{display:none;animation:sectionIn .22s ease}
+.section.active{display:block}
+@keyframes sectionIn{from{opacity:0;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+
+.card{
+    margin-bottom:18px;border-radius:22px;background:rgba(255,255,255,.92);border:1px solid rgba(226,232,240,.85);
+    box-shadow:0 15px 40px rgba(15,23,42,.06);overflow:hidden
+}
+.card-head{display:flex;align-items:center;gap:14px;padding:22px 25px;border-bottom:1px solid #eef2f7}
+.card-icon{width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(135deg,rgba(37,99,235,.11),rgba(79,70,229,.1));font-size:21px}
+.card-title{font-size:15px;font-weight:800}
+.card-subtitle{margin-top:4px;color:#64748b;font-size:11.5px}
+.card-body{padding:22px 25px}
+
+.database-card{display:flex;align-items:center;justify-content:space-between;padding:20px 24px}
+.database-left{display:flex;align-items:center;gap:15px}
+.database-icon{width:46px;height:46px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:rgba(37,99,235,.1);font-size:22px}
+.database-title{font-size:14px;font-weight:800}.database-description{margin-top:4px;color:#64748b;font-size:11px}
+.status{padding:8px 13px;border-radius:10px;font-size:11px;font-weight:800}.status.checking{color:#64748b;background:#f1f5f9}.status.online{color:#15803d;background:#dcfce7}.status.error{color:#dc2626;background:#fee2e2}
+
+.day-card,.discipline-day,.call-day,.semester{
+    margin-bottom:12px;padding:17px;border-radius:17px;background:#f8fafc;border:1px solid #e2e8f0
+}
+.day-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}
+.day-name{font-size:14px;font-weight:800}
+.day-count{padding:6px 10px;border-radius:9px;background:#e0e7ff;color:#4338ca;font-size:11px;font-weight:800}
+.lesson-controls{display:flex;align-items:center;gap:9px}
+.count-button{
+    width:34px;height:34px;border:0;border-radius:10px;background:white;color:#2563eb;font-size:20px;font-weight:800;
+    cursor:pointer;box-shadow:0 4px 12px rgba(15,23,42,.07);transition:.18s
+}
+.count-button:hover{transform:translateY(-2px);background:#eff6ff}
+.lesson-count{min-width:30px;text-align:center;font-size:15px;font-weight:800}
+.lesson-list{display:flex;flex-wrap:wrap;gap:7px}.lesson-chip{padding:8px 12px;border-radius:10px;background:white;border:1px solid #e2e8f0;color:#475569;font-size:11px;font-weight:700}
+
+.discipline-day-title,.call-day-title{margin-bottom:13px;font-size:14px;font-weight:800}
+.discipline-row{display:grid;grid-template-columns:90px 1fr;gap:11px;align-items:center;margin-bottom:8px}
+.discipline-number,.call-number{
+    height:43px;display:flex;align-items:center;justify-content:center;border-radius:11px;
+    background:rgba(37,99,235,.08);color:#2563eb;font-size:12px;font-weight:800
+}
+.call-row{display:grid;grid-template-columns:90px 1fr 1fr;gap:11px;align-items:center;margin-bottom:8px}
+.call-number{background:rgba(79,70,229,.08);color:#4f46e5}
+
+.input-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:11px}
 .field{display:flex;flex-direction:column;gap:7px}.field label{font-size:11px;font-weight:800;color:#475569}
-.att{padding:14px;margin-bottom:10px;border-radius:14px;background:#fff;border:1px solid #e5e7eb}
-.att-title{margin-bottom:10px;font-size:12px;font-weight:800;color:#334155}
-.empty{padding:24px;text-align:center;color:#94a3b8;font-size:13px}
-.save-area{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:22px}
-.save{border:none;padding:13px 22px;border-radius:13px;background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;font-family:inherit;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 12px 25px rgba(37,99,235,.23);transition:.2s}
-.save:hover{transform:translateY(-2px)}.save:disabled{opacity:.5;pointer-events:none}
-#message{font-size:12px;font-weight:700;color:#16a34a}#message.err{color:#dc2626}
+.field input,.field select,.discipline-row input,.call-row input{
+    width:100%;height:43px;padding:0 12px;border:1px solid #dbe3ef;border-radius:11px;background:white;color:#0f172a;
+    outline:none;font:12px inherit;transition:.2s
+}
+.field input:focus,.field select:focus,.discipline-row input:focus,.call-row input:focus{border-color:#60a5fa;box-shadow:0 0 0 4px rgba(37,99,235,.08)}
+
+.save-area{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:20px}
+.save-button{
+    border:0;padding:13px 22px;border-radius:13px;background:linear-gradient(135deg,#2563eb,#4f46e5);color:white;
+    font:800 13px inherit;cursor:pointer;box-shadow:0 12px 25px rgba(37,99,235,.23);transition:.2s
+}
+.save-button:hover{transform:translateY(-2px);box-shadow:0 16px 30px rgba(37,99,235,.3)}
+.save-button:disabled{opacity:.55;cursor:not-allowed;transform:none}
+.message{font-size:12px;font-weight:700;color:#16a34a}
+.message.error{color:#dc2626}
+.empty{padding:20px;text-align:center;color:#94a3b8;font-size:12px}
+.readonly-note{padding:13px 15px;border-radius:13px;background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;font-size:11.5px;font-weight:700;margin-bottom:14px}
+.access-denied{padding:35px;text-align:center}
+.access-denied .icon{font-size:48px}.access-denied h2{margin:12px 0 7px}.access-denied p{color:#64748b;font-size:13px}
+
+@media(max-width:1150px){.container{padding-left:22px;padding-right:22px}.hero-top{gap:15px}.group-panel{min-width:280px}}
 </style>
 </head>
-<body>
 
-<div class="page-loader" id="loader"><div class="logo">⚙️</div><div id="loaderText">Загрузка...</div></div>
+<body>
+<div class="background-orb orb-1"></div>
+<div class="background-orb orb-2"></div>
+<div class="background-orb orb-3"></div>
+
+<div class="page-loader" id="pageLoader">
+    <div class="loader-content">
+        <div class="loader-logo">📚</div>
+        <div class="loader-text">Проверка прав доступа...</div>
+    </div>
+</div>
 
 <header>
-  <div class="top">
-    <button class="back" id="backBtn">←</button>
-    <div class="title"><h1>⚙️ Настройки</h1><span>Управление системой</span></div>
-    <div class="spacer"></div>
-    <span class="status" id="dbStatus" style="display:none">Проверка...</span>
-    <span class="role" id="roleBadge"></span>
-    <div class="group-box">
-      <label for="groupSelect">Группа</label>
-      <select id="groupSelect"></select>
-      <button class="mini" id="addGroup" title="Добавить группу" style="display:none">+</button>
+    <button class="back-button" onclick="goBack()">←</button>
+    <div class="header-title">
+        <h1>⚙️ Настройки</h1>
+        <span id="headerSubtitle">Управление системой</span>
     </div>
-  </div>
-  <nav id="tabs"></nav>
+    <div class="header-actions">
+        <span id="roleBadge" class="role-badge">Проверка роли...</span>
+        <span id="headerGroup" class="group-badge">Группа: —</span>
+    </div>
 </header>
 
-<main class="container">
+<main class="container" id="mainContent" style="display:none">
+    <section class="hero">
+        <div class="hero-top">
+            <div>
+                <div class="hero-badge">⚙️ Панель настроек</div>
+                <h2 id="heroTitle">Настройки системы</h2>
+                <p id="heroText">Выберите группу и нужный раздел. Настройки сохраняются отдельно для каждой группы.</p>
+            </div>
+            <div class="group-panel">
+                <label>РАБОЧАЯ ГРУППА</label>
+                <select id="groupSelect" class="group-select"></select>
+            </div>
+        </div>
+    </section>
 
-  <section class="card section" id="sec-lessons">
-    <div class="heading"><h3>Количество пар</h3><span>Максимум 7 пар · <b class="gname"></b></span></div>
-    <div id="scheduleBox"></div>
-  </section>
+    <nav class="navbar" id="topMenu">
+        <button class="nav-btn active" data-section="scheduleSection">🕐 Пары</button>
+        <button class="nav-btn" data-section="disciplinesSection">📚 Расписание</button>
+        <button class="nav-btn" data-section="planSection" id="planMenu">📋 План</button>
+        <button class="nav-btn" data-section="bellsSection" id="bellsMenu">🔔 Звонки</button>
+    </nav>
 
-  <section class="card section" id="sec-disc">
-    <div class="heading"><h3>Дисциплины</h3><span>Для каждой пары · <b class="gname"></b></span></div>
-    <div id="discBox"></div>
-  </section>
+    <section class="card database-card">
+        <div class="database-left">
+            <div class="database-icon">🗄️</div>
+            <div>
+                <div class="database-title">База данных</div>
+                <div class="database-description">Firebase Firestore • текущая группа: <span id="databaseGroup">—</span></div>
+            </div>
+        </div>
+        <span id="dbStatus" class="status checking">Проверка...</span>
+    </section>
 
-  <section class="card section" id="sec-plan">
-    <div class="heading"><h3>Учебный план</h3><span>Общий для всех групп</span></div>
-    <div id="planBox"></div>
-  </section>
+    <section class="section active" id="scheduleSection">
+        <div class="card">
+            <div class="card-head">
+                <div class="card-icon">🕐</div>
+                <div>
+                    <div class="card-title">Количество пар</div>
+                    <div class="card-subtitle">Количество занятий для каждого дня выбранной группы. Максимум — 7.</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="scheduleContainer"></div>
+            </div>
+        </div>
+        <div class="save-area">
+            <div class="message" id="scheduleMessage"></div>
+            <button class="save-button" onclick="saveSettings()">💾 Сохранить настройки группы</button>
+        </div>
+    </section>
 
-  <section class="card section" id="sec-bells">
-    <div class="heading"><h3>Время звонков</h3><span>Общее для всех групп</span></div>
-    <div id="bellsBox"></div>
-  </section>
+    <section class="section" id="disciplinesSection">
+        <div class="card">
+            <div class="card-head">
+                <div class="card-icon">📚</div>
+                <div>
+                    <div class="card-title">Расписание дисциплин</div>
+                    <div class="card-subtitle">Дисциплины настраиваются отдельно для каждой группы и дня.</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="disciplinesContainer"></div>
+            </div>
+        </div>
+        <div class="save-area">
+            <div class="message" id="disciplineMessage"></div>
+            <button class="save-button" onclick="saveSettings()">💾 Сохранить расписание</button>
+        </div>
+    </section>
 
-  <div class="save-area">
-    <div id="message"></div>
-    <button class="save" id="saveBtn">💾 Сохранить настройки</button>
-  </div>
+    <section class="section" id="planSection">
+        <div class="card">
+            <div class="card-head">
+                <div class="card-icon">📋</div>
+                <div>
+                    <div class="card-title">Учебный план и аттестации</div>
+                    <div class="card-subtitle">Даты аттестаций и периоды обучения доступны администратору.</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="semester">
+                    <div class="card-title" style="margin-bottom:15px">📘 Первый семестр</div>
+                    <div class="attestation"><b style="font-size:12px">Аттестация 1</b><div class="input-grid" style="margin-top:11px">
+                        <div class="field"><label>Дата начала</label><input type="date" id="sem1att1start"></div>
+                        <div class="field"><label>Дата окончания</label><input type="date" id="sem1att1end"></div>
+                    </div></div>
+                    <div class="attestation"><b style="font-size:12px">Аттестация 2</b><div class="input-grid" style="margin-top:11px">
+                        <div class="field"><label>Дата начала</label><input type="date" id="sem1att2start"></div>
+                        <div class="field"><label>Дата окончания</label><input type="date" id="sem1att2end"></div>
+                    </div></div>
+                </div>
+                <div class="semester">
+                    <div class="card-title" style="margin-bottom:15px">📗 Второй семестр</div>
+                    <div class="attestation"><b style="font-size:12px">Аттестация 1</b><div class="input-grid" style="margin-top:11px">
+                        <div class="field"><label>Дата начала</label><input type="date" id="sem2att1start"></div>
+                        <div class="field"><label>Дата окончания</label><input type="date" id="sem2att1end"></div>
+                    </div></div>
+                    <div class="attestation"><b style="font-size:12px">Аттестация 2</b><div class="input-grid" style="margin-top:11px">
+                        <div class="field"><label>Дата начала</label><input type="date" id="sem2att2start"></div>
+                        <div class="field"><label>Дата окончания</label><input type="date" id="sem2att2end"></div>
+                    </div></div>
+                </div>
+            </div>
+        </div>
+        <div class="save-area">
+            <div class="message" id="planMessage"></div>
+            <button class="save-button" onclick="saveSettings()">💾 Сохранить план</button>
+        </div>
+    </section>
+
+    <section class="section" id="bellsSection">
+        <div class="card">
+            <div class="card-head">
+                <div class="card-icon">🔔</div>
+                <div>
+                    <div class="card-title">Время звонков</div>
+                    <div class="card-subtitle">Общее время начала и окончания каждой пары.</div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="bellsContainer"></div>
+            </div>
+        </div>
+        <div class="save-area">
+            <div class="message" id="bellsMessage"></div>
+            <button class="save-button" onclick="saveSettings()">💾 Сохранить звонки</button>
+        </div>
+    </section>
 </main>
 
+<div id="accessDenied" class="container" style="display:none">
+    <div class="card access-denied">
+        <div class="icon">⛔</div>
+        <h2>Доступ запрещён</h2>
+        <p>Роль «студент» не имеет доступа к настройкам системы.</p>
+        <button class="save-button" onclick="goBack()">← Вернуться назад</button>
+    </div>
+</div>
+
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
-import { getAuth, signOut } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import {
+    getFirestore, doc, getDoc, setDoc, collection, getDocs
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import {
+    getAuth, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
-/* ---------- конфиг (тот же, что на странице входа) ---------- */
-const app = initializeApp({
-  apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
-  authDomain: "othets-1aa03.firebaseapp.com",
-  projectId: "othets-1aa03",
-  storageBucket: "othets-1aa03.firebasestorage.app",
-  messagingSenderId: "528392191591",
-  appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2",
-  measurementId: "G-F50WVZRXZJ"
-});
-const auth = getAuth(app), db = getFirestore(app);
-
-const LOGIN_PAGE = "index.html";   // страница входа
-const $ = id => document.getElementById(id);
-const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
-
-/* ---------- состояние ---------- */
-let isAdmin = false, group = "", dirty = false;
-let schedule = {}, disciplines = {}, defaults = {};
-let bells = {1:{start:"08:00",end:"08:45"},2:{start:"08:55",end:"09:40"},3:{start:"09:50",end:"10:35"},4:{start:"10:45",end:"11:30"},5:{start:"11:40",end:"12:25"},6:{start:"12:35",end:"13:20"},7:{start:"13:30",end:"14:15"}};
-let user, profile;
-
-const gid = g => g.replace(/[\/\s]+/g, "_");
-const word = n => n === 1 ? "пара" : (n >= 2 && n <= 4 ? "пары" : "пар");
-const parseGroups = d => (Array.isArray(d.groups) ? d.groups : String(d.group || "").split(/[,;]/)).map(s => s.trim()).filter(Boolean);
-function msg(t, err) { $("message").textContent = t; $("message").className = err ? "err" : ""; }
-function emptyState() { schedule = {}; disciplines = {}; days.forEach(d => { schedule[d] = d === "Суббота" ? 0 : 5; disciplines[d] = []; }); }
-
-/* ---------- доступ ---------- */
-async function init() {
-  await auth.authStateReady();          // ждём восстановления сессии
-  user = auth.currentUser;
-  if (!user) return location.replace(LOGIN_PAGE);
-
-  const snap = await getDoc(doc(db, "users", user.uid));
-  profile = snap.exists() ? snap.data() : null;
-
-  if (!profile || profile.reg !== 1) { await signOut(auth); return location.replace(LOGIN_PAGE); }
-
-  if (profile.role !== "admin" && profile.role !== "curator") {
-    $("loaderText").textContent = "Доступ запрещён: раздел только для кураторов и администраторов";
-    return setTimeout(() => location.replace("home.html"), 1500);
-  }
-
-  isAdmin = profile.role === "admin";
-  $("roleBadge").textContent = isAdmin ? "Администратор" : "Куратор";
-  $("backBtn").onclick = () => location.href = isAdmin ? "adminhome.html" : "home.html";
-
-  buildTabs();
-  await buildGroups();
-  if (isAdmin) { $("dbStatus").style.display = ""; checkDb(); loadGlobal(); }
-  await loadGroup();
-  $("loader").classList.add("hidden");
-}
-
-/* ---------- вкладки ---------- */
-function buildTabs() {
-  const tabs = [
-    ["lessons", "🕐 Количество пар", false],
-    ["disc", "📚 Дисциплины", false],
-    ["plan", "📋 План и аттестации", true],
-    ["bells", "🔔 Звонки", true]
-  ].filter(t => !t[2] || isAdmin);
-
-  $("tabs").innerHTML = tabs.map(t => `<button data-t="${t[0]}">${t[1]}</button>`).join("");
-  $("tabs").onclick = e => { const b = e.target.closest("button"); if (b) openTab(b.dataset.t); };
-  openTab("lessons");
-}
-function openTab(t) {
-  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("active", b.dataset.t === t));
-  document.querySelectorAll(".section").forEach(s => s.classList.toggle("show", s.id === "sec-" + t));
-}
-
-/* ---------- группы ---------- */
-async function buildGroups() {
-  let list = [];
-  if (isAdmin) {
-    $("addGroup").style.display = "";
-    try {
-      const all = await getDocs(collection(db, "users"));
-      const set = new Set();
-      all.forEach(d => parseGroups(d.data()).forEach(g => set.add(g)));
-      list = [...set];
-    } catch (e) { console.error("Список групп:", e); }
-    try {
-      const gs = await getDocs(collection(db, "groupSettings"));
-      gs.forEach(d => d.data().group && list.push(d.data().group));
-    } catch (e) {}
-  } else list = parseGroups(profile);
-
-  list = [...new Set(list)].sort((a, b) => a.localeCompare(b, "ru", { numeric: true }));
-  fillSelect(list);
-}
-function fillSelect(list, pick) {
-  const s = $("groupSelect");
-  s.innerHTML = list.length ? list.map(g => `<option>${g}</option>`).join("") : `<option value="">Нет групп</option>`;
-  if (pick) s.value = pick;
-  group = s.value;
-  s.disabled = !isAdmin && list.length <= 1;
-}
-$("groupSelect").onchange = async e => {
-  if (dirty && !confirm("Есть несохранённые изменения. Переключить группу?")) { e.target.value = group; return; }
-  group = e.target.value; await loadGroup();
-};
-$("addGroup").onclick = async () => {
-  const g = (prompt("Название группы, например 114") || "").trim();
-  if (!g) return;
-  const list = [...$("groupSelect").options].map(o => o.value).filter(Boolean);
-  if (!list.includes(g)) list.push(g);
-  fillSelect(list, g); await loadGroup();
+const firebaseConfig = {
+    apiKey:"AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxFjU",
+    authDomain:"othets-1aa03.firebaseapp.com",
+    projectId:"othets-1aa03",
+    storageBucket:"othets-1aa03.firebasestorage.app",
+    messagingSenderId:"528392191591",
+    appId:"1:528392191591:web:1e97790e6f9f0a6e175ec2",
+    measurementId:"G-F50WVZRXZJ"
 };
 
-/* ---------- загрузка ---------- */
-async function loadGlobal() {
-  try {
-    const d = (await getDoc(doc(db, "settings", "main"))).data() || {};
-    if (d.bells) bells = { ...bells, ...d.bells };
-    [1, 2].forEach(n => [1, 2].forEach(m => {
-      const a = d["semester" + n]?.["attestation" + m]; if (!a) return;
-      $(`s${n}a${m}start`).value = a.start || ""; $(`s${n}a${m}end`).value = a.end || "";
-    }));
-    renderBells();
-  } catch (e) { console.error(e); }
-}
-async function loadGroup() {
-  document.querySelectorAll(".gname").forEach(e => e.textContent = group ? "группа " + group : "");
-  emptyState(); dirty = false; msg("");
-  if (group) {
-    try {
-      let d = await getDoc(doc(db, "groupSettings", gid(group)));
-      if (!d.exists()) d = await getDoc(doc(db, "settings", "main"));   // значения по умолчанию
-      const data = d.data() || {};
-      if (data.schedule) schedule = { ...schedule, ...data.schedule };
-      if (data.disciplines) disciplines = { ...disciplines, ...data.disciplines };
-    } catch (e) { console.error(e); msg("Ошибка загрузки настроек", true); }
-  }
-  $("saveBtn").disabled = !group;
-  renderSchedule();
-}
-async function checkDb() {
-  try { await getDoc(doc(db, "system", "connection")); $("dbStatus").textContent = "БД подключена"; $("dbStatus").className = "status online"; }
-  catch { $("dbStatus").textContent = "Ошибка БД"; $("dbStatus").className = "status error"; }
-}
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const auth=getAuth(app);
 
-/* ---------- пары ---------- */
-function renderSchedule() {
-  const box = $("scheduleBox");
-  if (!group) { box.innerHTML = `<div class="empty">Группа не выбрана или не назначена вам.</div>`; renderDisc(); return; }
-  box.innerHTML = days.map(d => {
-    const n = +schedule[d] || 0;
-    return `<div class="block"><div class="day-header"><b>${d}</b>
-      <div class="controls"><button class="cnt" data-d="${d}" data-a="-1">−</button><span class="num">${n}</span><button class="cnt" data-d="${d}" data-a="1">+</button></div>
-      <span class="badge">${n} ${word(n)}</span></div>
-      <div class="chips">${Array.from({length: n}, (_, i) => `<span class="chip">${i + 1} пара</span>`).join("")}</div></div>`;
-  }).join("");
-  renderDisc(); renderBells();
-}
-$("scheduleBox").onclick = e => {
-  const b = e.target.closest(".cnt"); if (!b) return;
-  const d = b.dataset.d, n = (+schedule[d] || 0) + +b.dataset.a;
-  if (n > 7) return alert("Максимальное количество — 7 пар.");
-  if (n < 0) return;
-  schedule[d] = n; disciplines[d] = (disciplines[d] || []).slice(0, n);
-  dirty = true; renderSchedule();
+const days=["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+
+let currentUser=null;
+let userData=null;
+let role="";
+let allowedGroups=[];
+let selectedGroup="";
+let groupSettings={};
+let schedule={};
+let disciplines={};
+let bells={
+    1:{start:"08:00",end:"08:45"},
+    2:{start:"08:55",end:"09:40"},
+    3:{start:"09:50",end:"10:35"},
+    4:{start:"10:45",end:"11:30"},
+    5:{start:"11:40",end:"12:25"},
+    6:{start:"12:35",end:"13:20"},
+    7:{start:"13:30",end:"14:15"}
+};
+let semester1={attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
+let semester2={attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
+
+const defaultSchedule={
+    "Понедельник":5,"Вторник":5,"Среда":5,
+    "Четверг":5,"Пятница":5,"Суббота":0
 };
 
-/* ---------- дисциплины ---------- */
-function renderDisc() {
-  const box = $("discBox"); box.innerHTML = "";
-  if (!group) { box.innerHTML = `<div class="empty">Группа не выбрана.</div>`; return; }
-  days.forEach(d => {
-    const n = +schedule[d] || 0; if (!n) return;
-    disciplines[d] = disciplines[d] || [];
-    while (disciplines[d].length < n) disciplines[d].push("");
-    const block = document.createElement("div"); block.className = "block";
-    block.innerHTML = `<div class="block-title">${d}</div>`;
-    for (let i = 0; i < n; i++) {
-      const row = document.createElement("div"); row.className = "row";
-      const inp = document.createElement("input"); inp.placeholder = "Введите дисциплину..."; inp.value = disciplines[d][i] || "";
-      inp.oninput = () => { disciplines[d][i] = inp.value; dirty = true; };
-      row.innerHTML = `<div class="tag">${i + 1} пара</div>`; row.appendChild(inp); block.appendChild(row);
+function emptyDisciplines(){
+    return Object.fromEntries(days.map(d=>[d,[]]));
+}
+
+function resetLocalSettings(){
+    schedule={...defaultSchedule};
+    disciplines=emptyDisciplines();
+    bells={
+        1:{start:"08:00",end:"08:45"},2:{start:"08:55",end:"09:40"},
+        3:{start:"09:50",end:"10:35"},4:{start:"10:45",end:"11:30"},
+        5:{start:"11:40",end:"12:25"},6:{start:"12:35",end:"13:20"},
+        7:{start:"13:30",end:"14:15"}
+    };
+    semester1={attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
+    semester2={attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
+}
+
+function setDbStatus(text,cls){
+    const el=document.getElementById("dbStatus");
+    el.textContent=text; el.className="status "+cls;
+}
+
+function normalizeGroupValue(value){
+    if(value===undefined||value===null) return "";
+    if(typeof value==="string") return value.trim();
+    return String(value).trim();
+}
+
+function extractUserGroups(data){
+    const result=[];
+    const candidates=[
+        data.group,
+        data.groupId,
+        data.groupName,
+        data.groups,
+        data.assignedGroups,
+        data.curatorGroups
+    ];
+    for(const value of candidates){
+        if(Array.isArray(value)){
+            value.forEach(v=>{const g=normalizeGroupValue(v);if(g&&!result.includes(g))result.push(g)});
+        }else{
+            const g=normalizeGroupValue(value);
+            if(g&&!result.includes(g))result.push(g);
+        }
     }
-    box.appendChild(block);
-  });
-  if (!box.children.length) box.innerHTML = `<div class="empty">Сначала добавьте пары на вкладке «Количество пар».</div>`;
+    return result;
 }
 
-/* ---------- план (только админ) ---------- */
-if (true) {
-  $("planBox").innerHTML = [1, 2].map(n => `<div class="block"><div class="block-title">${n === 1 ? "📘 Первый" : "📗 Второй"} семестр</div>` +
-    [1, 2].map(m => `<div class="att"><div class="att-title">Аттестация ${m}</div><div class="grid">
-      <div class="field"><label>Дата начала</label><input type="date" id="s${n}a${m}start"></div>
-      <div class="field"><label>Дата окончания</label><input type="date" id="s${n}a${m}end"></div></div></div>`).join("") + `</div>`).join("");
-}
-const sem = n => { const o = {}; [1, 2].forEach(m => o["attestation" + m] = { start: $(`s${n}a${m}start`).value, end: $(`s${n}a${m}end`).value }); return o; };
+async function loadAllowedGroups(){
+    if(role==="admin"){
+        const snap=await getDocs(collection(db,"groupSettings"));
+        const groups=[];
+        snap.forEach(d=>{
+            const data=d.data()||{};
+            const group=normalizeGroupValue(data.group||d.id);
+            if(group&&!groups.includes(group)) groups.push(group);
+        });
 
-/* ---------- звонки (только админ) ---------- */
-function renderBells() {
-  if (!isAdmin) return;
-  $("bellsBox").innerHTML = `<div class="block"><div class="block-title">Общее время звонков</div>` +
-    [1, 2, 3, 4, 5, 6, 7].map(i => `<div class="row bell"><div class="tag">${i} пара</div>
-      <input type="time" data-i="${i}" data-k="start" value="${bells[i]?.start || ""}">
-      <input type="time" data-i="${i}" data-k="end" value="${bells[i]?.end || ""}"></div>`).join("") + `</div>`;
+        // Резервный вариант: если groupSettings пока пустая, попробуем groups.
+        if(!groups.length){
+            try{
+                const gs=await getDocs(collection(db,"groups"));
+                gs.forEach(d=>{
+                    const data=d.data()||{};
+                    const group=normalizeGroupValue(data.name||data.group||d.id);
+                    if(group&&!groups.includes(group)) groups.push(group);
+                });
+            }catch(e){}
+        }
+        allowedGroups=groups.sort((a,b)=>a.localeCompare(b,"ru"));
+    }else if(role==="curator"){
+        allowedGroups=extractUserGroups(userData).sort((a,b)=>a.localeCompare(b,"ru"));
+    }
 }
-$("bellsBox").oninput = e => {
-  const t = e.target; if (!isAdmin || !t.dataset.i) return;
-  (bells[t.dataset.i] = bells[t.dataset.i] || {})[t.dataset.k] = t.value; dirty = true;
-};
 
-/* ---------- сохранение ---------- */
-$("saveBtn").onclick = async () => {
-  if (!group) return;
-  msg("Сохранение...");
-  try {
-    await setDoc(doc(db, "groupSettings", gid(group)), {
-      group, schedule, disciplines, updatedAt: new Date().toISOString(), updatedBy: user.uid
+function renderGroupSelect(){
+    const select=document.getElementById("groupSelect");
+    select.innerHTML="";
+    if(!allowedGroups.length){
+        const opt=document.createElement("option");
+        opt.value=""; opt.textContent="Нет доступных групп";
+        select.appendChild(opt); select.disabled=true; return;
+    }
+    select.disabled=false;
+    allowedGroups.forEach(group=>{
+        const opt=document.createElement("option");
+        opt.value=group; opt.textContent="Группа "+group;
+        select.appendChild(opt);
     });
-    if (isAdmin) await setDoc(doc(db, "settings", "main"), {
-      bells, semester1: sem(1), semester2: sem(2), updatedAt: new Date().toISOString()
-    }, { merge: true });
-    dirty = false; msg("✓ Настройки сохранены");
-    setTimeout(() => msg(""), 3000);
-  } catch (e) { console.error(e); msg("Ошибка сохранения: " + e.message, true); }
+    if(!selectedGroup||!allowedGroups.includes(selectedGroup)) selectedGroup=allowedGroups[0];
+    select.value=selectedGroup;
+    updateGroupLabels();
+}
+
+function updateGroupLabels(){
+    document.getElementById("headerGroup").textContent="Группа: "+(selectedGroup||"—");
+    document.getElementById("databaseGroup").textContent=selectedGroup||"—";
+    document.getElementById("heroTitle").textContent=selectedGroup ? "Настройки группы "+selectedGroup : "Настройки группы";
+}
+
+function applyRoleUI(){
+    const roleBadge=document.getElementById("roleBadge");
+    roleBadge.textContent=role==="admin"?"👑 Администратор":"🧑‍🏫 Куратор";
+    roleBadge.className="role-badge "+(role==="admin"?"admin":"curator");
+
+    if(role==="curator"){
+        document.getElementById("planMenu").classList.add("disabled");
+        document.getElementById("bellsMenu").classList.add("disabled");
+        document.getElementById("headerSubtitle").textContent="Настройки закреплённых групп";
+        document.getElementById("heroText").textContent="Вы можете управлять количеством пар и дисциплинами только своих групп. Время звонков и учебный план доступны только администратору.";
+    }else{
+        document.getElementById("headerSubtitle").textContent="Полное управление системой";
+        document.getElementById("heroText").textContent="Администратор может выбрать любую доступную группу и управлять всеми настройками системы.";
+    }
+}
+
+async function loadGroupSettings(){
+    resetLocalSettings();
+    if(!selectedGroup){renderAll();return;}
+
+    const snap=await getDoc(doc(db,"groupSettings",selectedGroup));
+    if(snap.exists()){
+        groupSettings=snap.data()||{};
+        if(groupSettings.schedule) schedule={...schedule,...groupSettings.schedule};
+        if(groupSettings.disciplines) disciplines={...disciplines,...groupSettings.disciplines};
+        if(groupSettings.bells) bells={...bells,...groupSettings.bells};
+        if(groupSettings.semester1) semester1={...semester1,...groupSettings.semester1};
+        if(groupSettings.semester2) semester2={...semester2,...groupSettings.semester2};
+    }else{
+        groupSettings={};
+    }
+
+    renderAll();
+}
+
+function getLessonWord(count){
+    if(count===1)return"пара";
+    if(count>=2&&count<=4)return"пары";
+    return"пар";
+}
+
+function renderSchedule(){
+    const container=document.getElementById("scheduleContainer");
+    container.innerHTML="";
+    days.forEach(day=>{
+        const count=Math.max(0,Math.min(7,Number(schedule[day]||0)));
+        const card=document.createElement("div");
+        card.className="day-card";
+        card.innerHTML=`
+            <div class="day-header">
+                <div class="day-name">${day}</div>
+                <div class="lesson-controls">
+                    <button class="count-button" onclick="removeLesson('${day}')">−</button>
+                    <div class="lesson-count">${count}</div>
+                    <button class="count-button" onclick="addLesson('${day}')">+</button>
+                    <div class="day-count">${count} ${getLessonWord(count)}</div>
+                </div>
+            </div>
+            <div class="lesson-list"></div>`;
+        const list=card.querySelector(".lesson-list");
+        for(let i=1;i<=count;i++){
+            const chip=document.createElement("div");
+            chip.className="lesson-chip";
+            chip.textContent=`${i} пара`;
+            list.appendChild(chip);
+        }
+        container.appendChild(card);
+    });
+}
+
+window.addLesson=function(day){
+    if(role!=="admin"&&role!=="curator")return;
+    const current=Number(schedule[day]||0);
+    if(current>=7){alert("Максимальное количество — 7 пар.");return}
+    schedule[day]=current+1;
+    if(!Array.isArray(disciplines[day]))disciplines[day]=[];
+    while(disciplines[day].length<schedule[day])disciplines[day].push("");
+    renderAll();
 };
 
-window.addEventListener("beforeunload", e => { if (dirty) e.preventDefault(); });
-init().catch(e => { console.error(e); $("loaderText").textContent = "Ошибка: " + e.message; });
+window.removeLesson=function(day){
+    if(role!=="admin"&&role!=="curator")return;
+    const current=Number(schedule[day]||0);
+    if(current<=0)return;
+    schedule[day]=current-1;
+    if(Array.isArray(disciplines[day]))disciplines[day]=disciplines[day].slice(0,schedule[day]);
+    renderAll();
+};
+
+function renderDisciplines(){
+    const container=document.getElementById("disciplinesContainer");
+    container.innerHTML="";
+    days.forEach(day=>{
+        const count=Number(schedule[day]||0);
+        if(count===0)return;
+        if(!Array.isArray(disciplines[day]))disciplines[day]=[];
+        while(disciplines[day].length<count)disciplines[day].push("");
+
+        const block=document.createElement("div");
+        block.className="discipline-day";
+        const title=document.createElement("div");
+        title.className="discipline-day-title";
+        title.textContent=day;
+        block.appendChild(title);
+
+        for(let i=0;i<count;i++){
+            const row=document.createElement("div");
+            row.className="discipline-row";
+            row.innerHTML=`<div class="discipline-number">${i+1} пара</div>`;
+            const field=document.createElement("input");
+            field.type="text";
+            field.placeholder="Введите дисциплину...";
+            field.value=disciplines[day][i]||"";
+            field.addEventListener("input",()=>disciplines[day][i]=field.value);
+            row.appendChild(field); block.appendChild(row);
+        }
+        container.appendChild(block);
+    });
+    if(!container.innerHTML)container.innerHTML='<div class="empty">Сначала добавьте пары в разделе «Пары».</div>';
+}
+
+function renderBells(){
+    const container=document.getElementById("bellsContainer");
+    container.innerHTML="";
+    const maxLessons=Math.max(...days.map(day=>Number(schedule[day]||0)),0);
+    if(!maxLessons){
+        container.innerHTML='<div class="empty">Сначала добавьте пары в разделе «Пары».</div>';
+        return;
+    }
+    const note=document.createElement("div");
+    note.className="readonly-note";
+    note.textContent="Время звонков является общесистемной настройкой и доступно только администратору.";
+    container.appendChild(note);
+
+    const block=document.createElement("div");
+    block.className="call-day";
+    const title=document.createElement("div");
+    title.className="call-day-title";
+    title.textContent="Общее время звонков";
+    block.appendChild(title);
+
+    for(let i=1;i<=maxLessons;i++){
+        if(!bells[i])bells[i]={start:"",end:""};
+        const row=document.createElement("div");
+        row.className="call-row";
+        const number=document.createElement("div");
+        number.className="call-number"; number.textContent=`${i} пара`;
+        const start=document.createElement("input");
+        start.type="time"; start.value=bells[i].start||""; start.disabled=role!=="admin";
+        start.addEventListener("input",()=>bells[i].start=start.value);
+        const end=document.createElement("input");
+        end.type="time"; end.value=bells[i].end||""; end.disabled=role!=="admin";
+        end.addEventListener("input",()=>bells[i].end=end.value);
+        row.append(number,start,end); block.appendChild(row);
+    }
+    container.appendChild(block);
+}
+
+function renderSemesters(){
+    const ids=[
+        ["sem1att1start",semester1.attestation1?.start],["sem1att1end",semester1.attestation1?.end],
+        ["sem1att2start",semester1.attestation2?.start],["sem1att2end",semester1.attestation2?.end],
+        ["sem2att1start",semester2.attestation1?.start],["sem2att1end",semester2.attestation1?.end],
+        ["sem2att2start",semester2.attestation2?.start],["sem2att2end",semester2.attestation2?.end]
+    ];
+    ids.forEach(([id,val])=>{const el=document.getElementById(id);if(el)el.value=val||""});
+}
+
+function renderAll(){
+    updateGroupLabels();
+    renderSchedule();
+    renderDisciplines();
+    renderBells();
+    renderSemesters();
+}
+
+async function saveSettings(){
+    if(!selectedGroup){alert("Сначала выберите группу.");return}
+    if(role!=="admin"&&role!=="curator"){return}
+
+    const msgIds=role==="curator"?["scheduleMessage","disciplineMessage"]:["scheduleMessage","disciplineMessage","planMessage","bellsMessage"];
+    msgIds.forEach(id=>{const el=document.getElementById(id);if(el){el.textContent="Сохранение...";el.className="message"}});
+
+    const payload={
+        group:selectedGroup,
+        schedule,
+        disciplines,
+        updatedAt:new Date().toISOString()
+    };
+
+    if(role==="admin"){
+        payload.bells=bells;
+        payload.semester1={
+            attestation1:{start:document.getElementById("sem1att1start").value,end:document.getElementById("sem1att1end").value},
+            attestation2:{start:document.getElementById("sem1att2start").value,end:document.getElementById("sem1att2end").value}
+        };
+        payload.semester2={
+            attestation1:{start:document.getElementById("sem2att1start").value,end:document.getElementById("sem2att1end").value},
+            attestation2:{start:document.getElementById("sem2att2start").value,end:document.getElementById("sem2att2end").value}
+        };
+    }
+
+    try{
+        await setDoc(doc(db,"groupSettings",selectedGroup),payload,{merge:true});
+        ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id=>{
+            const el=document.getElementById(id);
+            if(el){el.textContent="✓ Настройки сохранены";el.className="message"}
+        });
+        setTimeout(()=>["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id=>{
+            const el=document.getElementById(id);if(el)el.textContent="";
+        }),2500);
+    }catch(error){
+        console.error(error);
+        ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id=>{
+            const el=document.getElementById(id);
+            if(el){el.textContent="Ошибка сохранения";el.className="message error"}
+        });
+        alert("Не удалось сохранить настройки.\n\n"+error.message);
+    }
+}
+
+async function checkDatabase(){
+    try{
+        await getDoc(doc(db,"system","connection"));
+        setDbStatus("Подключено","online");
+    }catch(error){
+        console.error(error);
+        setDbStatus("Ошибка подключения","error");
+    }
+}
+
+async function initializeForUser(user){
+    currentUser=user;
+    try{
+        const snap=await getDoc(doc(db,"users",user.uid));
+        if(!snap.exists())throw new Error("Профиль пользователя не найден.");
+        userData=snap.data()||{};
+        role=String(userData.role||"").toLowerCase().trim();
+
+        // Поддержка возможных вариантов написания ролей.
+        if(["administrator","администратор"].includes(role))role="admin";
+        if(["куратор","curator"].includes(role))role="curator";
+        if(["student","студент"].includes(role))role="student";
+
+        if(role==="student"||!["admin","curator"].includes(role)){
+            document.getElementById("mainContent").style.display="none";
+            document.getElementById("accessDenied").style.display="block";
+            document.querySelector(".loader-text").textContent="Доступ запрещён";
+            setTimeout(()=>document.getElementById("pageLoader").classList.add("hidden"),250);
+            return;
+        }
+
+        await loadAllowedGroups();
+        if(!allowedGroups.length){
+            throw new Error(role==="curator"
+                ?"За вашим аккаунтом не закреплена ни одна группа."
+                :"Не найдена ни одна группа. Создайте документы groupSettings/{группа}.");
+        }
+
+        selectedGroup=allowedGroups[0];
+        renderGroupSelect();
+        applyRoleUI();
+        await loadGroupSettings();
+        document.getElementById("mainContent").style.display="block";
+        checkDatabase();
+        setTimeout(()=>document.getElementById("pageLoader").classList.add("hidden"),250);
+    }catch(error){
+        console.error(error);
+        document.getElementById("mainContent").style.display="none";
+        document.getElementById("accessDenied").style.display="block";
+        document.querySelector("#accessDenied h2").textContent="Не удалось открыть настройки";
+        document.querySelector("#accessDenied p").textContent=error.message;
+        setTimeout(()=>document.getElementById("pageLoader").classList.add("hidden"),250);
+    }
+}
+
+document.getElementById("groupSelect").addEventListener("change",async e=>{
+    const newGroup=e.target.value;
+    if(!newGroup||newGroup===selectedGroup)return;
+    selectedGroup=newGroup;
+    renderGroupSelect();
+    document.querySelectorAll(".message").forEach(el=>el.textContent="");
+    await loadGroupSettings();
+});
+
+document.querySelectorAll(".nav-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+        if(btn.classList.contains("disabled"))return;
+        document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));
+        document.querySelectorAll(".section").forEach(s=>s.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById(btn.dataset.section).classList.add("active");
+    });
+});
+
+window.goBack=function(){
+    if(role==="curator")window.location.href="index.html";
+    else window.location.href="index.html";
+};
+
+onAuthStateChanged(auth,user=>{
+    if(user)initializeForUser(user);
+    else{
+        window.location.href="login.html";
+    }
+});
 </script>
 </body>
 </html>

@@ -1415,13 +1415,11 @@
     let weekStart;
 
 
-    // --- RBAC / группы ---
-
     let currentUid = null;
 
     let userRole = null;          // "admin" | "curator" | "starosta"
 
-    let userGroups = [];          // группы, доступные текущему пользователю
+    let userGroups = [];
 
     let currentGroupId = null;
 
@@ -1440,8 +1438,7 @@
     ];
 
 
-    const HOURS_PER_LESSON =
-        2;
+    const HOURS_PER_LESSON = 2;
 
 
     // =========================================
@@ -1450,44 +1447,25 @@
 
     function updateClock() {
 
-        const now =
-            new Date();
+        const now = new Date();
 
+        document.getElementById("currentTime").textContent =
+            now.toLocaleTimeString("ru-RU", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit"
+            });
 
-        document.getElementById(
-            "currentTime"
-        ).textContent =
-            now.toLocaleTimeString(
-                "ru-RU",
-                {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit"
-                }
-            );
-
-
-        document.getElementById(
-            "currentDate"
-        ).textContent =
-            now.toLocaleDateString(
-                "ru-RU",
-                {
-                    day: "2-digit",
-                    month: "2-digit",
-                    year: "numeric"
-                }
-            );
-
+        document.getElementById("currentDate").textContent =
+            now.toLocaleDateString("ru-RU", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+            });
     }
 
-
     updateClock();
-
-    setInterval(
-        updateClock,
-        1000
-    );
+    setInterval(updateClock, 1000);
 
 
     // =========================================
@@ -1496,172 +1474,69 @@
 
     function formatDate(date) {
 
-        const year =
-            date.getFullYear();
-
-
-        const month =
-            String(
-                date.getMonth() + 1
-            ).padStart(
-                2,
-                "0"
-            );
-
-
-        const day =
-            String(
-                date.getDate()
-            ).padStart(
-                2,
-                "0"
-            );
-
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
 
         return `${year}-${month}-${day}`;
-
     }
 
-
-    // =========================================
-    // NORMALIZE DATE
-    // =========================================
 
     function normalizeDate(value) {
 
-        if (!value) {
-            return "";
+        if (!value) return "";
+
+        if (typeof value === "object" && typeof value.toDate === "function") {
+            return formatDate(value.toDate());
         }
-
-
-        if (
-            typeof value === "object" &&
-            typeof value.toDate === "function"
-        ) {
-
-            return formatDate(
-                value.toDate()
-            );
-
-        }
-
 
         if (value instanceof Date) {
-
-            return formatDate(
-                value
-            );
-
+            return formatDate(value);
         }
 
+        const string = String(value).trim();
 
-        const string =
-            String(value).trim();
-
-
-        if (
-            /^\d{4}-\d{2}-\d{2}$/.test(
-                string
-            )
-        ) {
-
+        if (/^\d{4}-\d{2}-\d{2}$/.test(string)) {
             return string;
-
         }
 
-
-        const ruMatch =
-            string.match(
-                /^(\d{2})\.(\d{2})\.(\d{4})$/
-            );
-
+        const ruMatch = string.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
 
         if (ruMatch) {
-
             return `${ruMatch[3]}-${ruMatch[2]}-${ruMatch[1]}`;
-
         }
-
 
         return "";
-
     }
 
 
-    // =========================================
-    // DATE RU
-    // =========================================
+    function formatDateRu(dateString) {
 
-    function formatDateRu(
-        dateString
-    ) {
+        const normalized = normalizeDate(dateString);
 
-        const normalized =
-            normalizeDate(
-                dateString
-            );
+        if (!normalized) return "—";
 
+        const date = new Date(normalized + "T00:00:00");
 
-        if (!normalized) {
-            return "—";
-        }
-
-
-        const date =
-            new Date(
-                normalized +
-                "T00:00:00"
-            );
-
-
-        return date.toLocaleDateString(
-            "ru-RU",
-            {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric"
-            }
-        );
-
+        return date.toLocaleDateString("ru-RU", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
     }
 
-
-    // =========================================
-    // MONDAY
-    // =========================================
 
     function getMonday(date) {
 
-        const result =
-            new Date(date);
+        const result = new Date(date);
+        result.setHours(0, 0, 0, 0);
 
+        let day = result.getDay();
+        if (day === 0) day = 7;
 
-        result.setHours(
-            0,
-            0,
-            0,
-            0
-        );
-
-
-        let day =
-            result.getDay();
-
-
-        if (day === 0) {
-            day = 7;
-        }
-
-
-        result.setDate(
-            result.getDate() -
-            day +
-            1
-        );
-
+        result.setDate(result.getDate() - day + 1);
 
         return result;
-
     }
 
 
@@ -1671,66 +1546,43 @@
 
     function toShortFio(fullName) {
 
-        const parts =
-            String(fullName || "")
-                .trim()
-                .split(/\s+/)
-                .filter(Boolean);
+        const parts = String(fullName || "")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
 
-
-        if (parts.length === 0) {
-            return "";
-        }
-
+        if (parts.length === 0) return "";
 
         const surname =
             parts[0].charAt(0).toUpperCase() +
             parts[0].slice(1).toLowerCase();
 
-
-        const initials =
-            parts
-                .slice(1, 3)
-                .map(
-                    w => w.charAt(0).toUpperCase()
-                );
-
+        const initials = parts
+            .slice(1, 3)
+            .map(w => w.charAt(0).toUpperCase());
 
         return initials.length
             ? `${surname} ${initials.join(".")}`
             : surname;
-
     }
 
 
     function getCurrentGroup() {
-
-        return userGroups.find(
-            g => g.id === currentGroupId
-        ) || null;
-
+        return userGroups.find(g => g.id === currentGroupId) || null;
     }
 
 
     function groupsFromSnapshot(snapshot) {
-
-        return snapshot.docs.map(
-            d => ({
-                id: d.id,
-                ...d.data()
-            })
-        );
-
+        return snapshot.docs.map(d => ({
+            id: d.id,
+            ...d.data()
+        }));
     }
 
 
     async function loadUserAndGroups() {
 
-        currentUid =
-            auth.currentUser
-                ? auth.currentUser.uid
-                : null;
-
+        currentUid = auth.currentUser ? auth.currentUser.uid : null;
 
         if (!currentUid) {
             userRole = null;
@@ -1739,32 +1591,18 @@
             return;
         }
 
+        const userSnap = await getDoc(doc(db, "users", currentUid));
 
-        const userSnap =
-            await getDoc(
-                doc(db, "users", currentUid)
-            );
+        const userData = userSnap.exists() ? userSnap.data() : {};
 
-
-        const userData =
-            userSnap.exists()
-                ? userSnap.data()
-                : {};
-
-
-        userRole =
-            userData.role || "starosta";
-
+        userRole = userData.role || "starosta";
 
         let groupsMap = new Map();
 
-
         if (userRole === "admin") {
 
-            const snapshot =
-                await getDocs(
-                    collection(db, "groups")
-                );
+            // Админ видит все группы
+            const snapshot = await getDocs(collection(db, "groups"));
 
             groupsFromSnapshot(snapshot)
                 .filter(g => g.active !== false)
@@ -1773,13 +1611,12 @@
         }
         else if (userRole === "curator") {
 
-            const snapshot =
-                await getDocs(
-                    query(
-                        collection(db, "groups"),
-                        where("curatorId", "==", currentUid)
-                    )
-                );
+            const snapshot = await getDocs(
+                query(
+                    collection(db, "groups"),
+                    where("curatorId", "==", currentUid)
+                )
+            );
 
             groupsFromSnapshot(snapshot)
                 .filter(g => g.active !== false)
@@ -1788,82 +1625,47 @@
         }
         else {
 
-            const [snapA, snapB] =
-                await Promise.all([
-                    getDocs(
-                        query(
-                            collection(db, "groups"),
-                            where("starostaId", "==", currentUid)
-                        )
-                    ),
-                    getDocs(
-                        query(
-                            collection(db, "groups"),
-                            where("leaderId", "==", currentUid)
-                        )
+            const [snapA, snapB] = await Promise.all([
+                getDocs(
+                    query(
+                        collection(db, "groups"),
+                        where("starostaId", "==", currentUid)
                     )
-                ]);
+                ),
+                getDocs(
+                    query(
+                        collection(db, "groups"),
+                        where("leaderId", "==", currentUid)
+                    )
+                )
+            ]);
 
-            [
-                ...groupsFromSnapshot(snapA),
-                ...groupsFromSnapshot(snapB)
-            ]
+            [...groupsFromSnapshot(snapA), ...groupsFromSnapshot(snapB)]
                 .filter(g => g.active !== false)
                 .forEach(g => groupsMap.set(g.id, g));
-
         }
 
-
-        userGroups =
-            Array.from(groupsMap.values())
-                .sort(
-                    (a, b) =>
-                        String(a.name || "")
-                            .localeCompare(
-                                String(b.name || ""),
-                                "ru"
-                            )
-                );
-
-
-        const remembered =
-            sessionStorage.getItem(
-                "selectedGroupId"
+        userGroups = Array.from(groupsMap.values())
+            .sort((a, b) =>
+                String(a.name || "").localeCompare(String(b.name || ""), "ru")
             );
 
+        const remembered = sessionStorage.getItem("selectedGroupId");
 
-        if (
-            remembered &&
-            userGroups.some(g => g.id === remembered)
-        ) {
-
+        if (remembered && userGroups.some(g => g.id === remembered)) {
             currentGroupId = remembered;
-
         }
         else {
-
             currentGroupId =
-                userGroups.length > 0
-                    ? userGroups[0].id
-                    : null;
-
+                userGroups.length > 0 ? userGroups[0].id : null;
         }
-
     }
 
 
     function renderGroupSwitcher() {
 
-        const slot =
-            document.getElementById(
-                "groupSwitcherSlot"
-            );
-
-        const curatorInput =
-            document.getElementById(
-                "curatorPrintName"
-            );
-
+        const slot = document.getElementById("groupSwitcherSlot");
+        const curatorInput = document.getElementById("curatorPrintName");
 
         if (userGroups.length === 0) {
 
@@ -1872,34 +1674,25 @@
 
             curatorInput.value = "";
             curatorInput.disabled = true;
-
             return;
-
         }
-
 
         const showDropdown =
             userRole === "admin" ||
-            (userRole === "curator" && userGroups.length > 1);
-
+            userGroups.length > 1;
 
         if (showDropdown) {
 
             slot.innerHTML =
                 '<select class="group-select" id="groupSelect" onchange="switchGroup(this.value)"></select>';
 
-            const select =
-                document.getElementById(
-                    "groupSelect"
-                );
+            const select = document.getElementById("groupSelect");
 
-            select.innerHTML =
-                userGroups
-                    .map(
-                        g =>
-                            `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name || g.id)}</option>`
-                    )
-                    .join("");
+            select.innerHTML = userGroups
+                .map(g =>
+                    `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name || g.id)}</option>`
+                )
+                .join("");
 
             select.value = currentGroupId;
 
@@ -1913,114 +1706,69 @@
 
         }
 
-
         updateCuratorNameField();
-
     }
 
 
     function updateCuratorNameField() {
 
-        const curatorInput =
-            document.getElementById(
-                "curatorPrintName"
-            );
-
+        const curatorInput = document.getElementById("curatorPrintName");
         const group = getCurrentGroup();
 
-        const dbCuratorName =
-            group
-                ? toShortFio(group.curatorName || "")
-                : "";
-
+        const dbCuratorName = group
+            ? toShortFio(group.curatorName || "")
+            : "";
 
         if (userRole === "admin") {
-
             curatorInput.disabled = false;
-
             if (!curatorNameManuallyEdited) {
-
                 curatorInput.value = dbCuratorName;
-
             }
-
         }
         else {
-
             curatorInput.disabled = true;
             curatorInput.value = dbCuratorName;
-
         }
-
     }
 
 
-    window.onCuratorNameEdited =
-        function () {
-
-            curatorNameManuallyEdited = true;
-
-        };
+    window.onCuratorNameEdited = function () {
+        curatorNameManuallyEdited = true;
+    };
 
 
-    // Переключение группы без перезагрузки
-    // === ИЗМЕНЕНО: добавлен loadSettings() ===
-    window.switchGroup =
-        async function (groupId) {
+    window.switchGroup = async function (groupId) {
 
-            if (
-                !groupId ||
-                groupId === currentGroupId
-            ) {
-                return;
-            }
+        if (!groupId || groupId === currentGroupId) return;
 
-            currentGroupId = groupId;
+        currentGroupId = groupId;
+        curatorNameManuallyEdited = false;
 
-            curatorNameManuallyEdited = false;
+        sessionStorage.setItem("selectedGroupId", groupId);
 
-            sessionStorage.setItem(
-                "selectedGroupId",
-                groupId
-            );
+        try {
 
+            showStatus("Загрузка группы...");
 
-            try {
+            await loadSettings();
+            await loadStudents();
+            await loadAttendance();
 
-                showStatus(
-                    "Загрузка группы..."
-                );
+            updateWeekRange();
+            renderTable();
+            renderWeekList();
+            updateCuratorNameField();
 
-                // === ИЗМЕНЕНО: сначала настройки группы ===
-                await loadSettings();
-                await loadStudents();
-                await loadAttendance();
-
-                updateWeekRange();
-                renderTable();
-                renderWeekList();
-                updateCuratorNameField();
-
-            }
-            catch (error) {
-
-                console.error(
-                    "Ошибка переключения группы:",
-                    error
-                );
-
-                showStatus(
-                    "Не удалось загрузить данные группы"
-                );
-
-            }
-
-        };
+        }
+        catch (error) {
+            console.error("Ошибка переключения группы:", error);
+            showStatus("Не удалось загрузить данные группы");
+        }
+    };
 
 
     // =========================================
-    // === ИЗМЕНЕНО ===
-    // LOAD SETTINGS из groupSettings/{currentGroupId}
+    // LOAD SETTINGS из groupSettings/{groupId}
     // =========================================
 
     async function loadSettings() {
@@ -2033,26 +1781,17 @@
             semester2: {}
         };
 
-        if (!currentGroupId) {
-            return;
-        }
+        if (!currentGroupId) return;
 
         try {
 
-            const snapshot =
-                await getDoc(
-                    doc(
-                        db,
-                        "groupSettings",
-                        currentGroupId
-                    )
-                );
-
+            const snapshot = await getDoc(
+                doc(db, "groupSettings", currentGroupId)
+            );
 
             if (snapshot.exists()) {
 
-                const data =
-                    snapshot.data() || {};
+                const data = snapshot.data() || {};
 
                 settings = {
                     schedule: data.schedule || {},
@@ -2062,41 +1801,23 @@
                     semester2: data.semester2 || {}
                 };
 
-                console.log(
-                    "📥 groupSettings загружены:",
-                    currentGroupId,
-                    settings
-                );
+                console.log("📥 groupSettings загружены:", currentGroupId, settings);
 
             }
             else {
-
-                console.warn(
-                    "⚠ groupSettings не найдены для",
-                    currentGroupId
-                );
-
+                console.warn("⚠ groupSettings не найдены для", currentGroupId);
             }
 
         }
         catch (error) {
-
-            console.error(
-                "Ошибка загрузки настроек:",
-                error
-            );
-
-            showStatus(
-                "Не удалось загрузить настройки"
-            );
-
+            console.error("Ошибка загрузки настроек:", error);
+            showStatus("Не удалось загрузить настройки");
         }
-
     }
 
 
     // =========================================
-    // LOAD STUDENTS
+    // LOAD STUDENTS — по groupId + studentIds группы
     // =========================================
 
     async function loadStudents() {
@@ -2105,104 +1826,94 @@
 
             students = [];
 
+            if (!currentGroupId) return;
 
-            if (!currentGroupId) {
-                return;
-            }
+            const group = getCurrentGroup();
+
+            const explicitIds =
+                group && Array.isArray(group.studentIds)
+                    ? group.studentIds.map(String)
+                    : [];
 
 
-            const snapshot =
-                await getDocs(
+            // --- 1. Студенты по полю groupId ---
+
+            let byGroupId = [];
+
+            try {
+
+                const snapshot = await getDocs(
                     query(
-                        collection(
-                            db,
-                            "students"
-                        ),
-                        where(
-                            "groupId",
-                            "==",
-                            currentGroupId
-                        )
+                        collection(db, "students"),
+                        where("groupId", "==", currentGroupId)
                     )
                 );
 
+                byGroupId = snapshot.docs.map(d => ({
+                    id: d.id,
+                    ...d.data()
+                }));
 
-            snapshot.forEach(
-                studentDoc => {
+            }
+            catch (e) {
+                console.warn("Фильтр students по groupId не сработал:", e);
+                byGroupId = [];
+            }
 
-                    students.push({
 
-                        id:
-                            studentDoc.id,
+            // --- 2. Студенты из group.studentIds ---
 
-                        ...studentDoc.data()
+            let byExplicit = [];
 
-                    });
+            if (explicitIds.length > 0) {
 
-                }
+                const fullSnap = await getDocs(collection(db, "students"));
+
+                byExplicit = fullSnap.docs
+                    .filter(d => explicitIds.includes(String(d.id)))
+                    .map(d => ({
+                        id: d.id,
+                        ...d.data()
+                    }));
+            }
+
+
+            // --- 3. Объединяем ---
+
+            const map = new Map();
+
+            [...byGroupId, ...byExplicit].forEach(s => map.set(s.id, s));
+
+            students = Array.from(map.values());
+
+            students.sort((a, b) =>
+                String(a.name || "").localeCompare(String(b.name || ""), "ru")
             );
 
-
-            students.sort(
-                (a, b) =>
-
-                    String(
-                        a.name || ""
-                    ).localeCompare(
-                        String(
-                            b.name || ""
-                        ),
-                        "ru"
-                    )
-
+            console.log(
+                "📥 Студентов загружено:",
+                students.length,
+                "| по groupId:", byGroupId.length,
+                "| по studentIds группы:", byExplicit.length
             );
 
         }
         catch (error) {
 
-            console.error(
-                "Ошибка студентов:",
-                error
-            );
-
-
-            showStatus(
-                "Ошибка загрузки студентов"
-            );
+            console.error("Ошибка студентов:", error);
+            showStatus("Ошибка загрузки студентов");
 
         }
-
     }
 
 
-    // =========================================
-    // GET STUDENT NAME
-    // =========================================
+    function getStudentName(studentId) {
 
-    function getStudentName(
-        studentId
-    ) {
+        const student = students.find(
+            item => String(item.id) === String(studentId)
+        );
 
-        const student =
-            students.find(
-                item =>
-                    String(item.id) ===
-                    String(studentId)
-            );
-
-
-        if (student) {
-
-            return (
-                student.name ||
-                "Без имени"
-            );
-
-        }
-
-
-        return "Неизвестный студент";
-
+        return student ? (student.name || "Без имени") : "Неизвестный студент";
     }
 
 
@@ -2210,25 +1921,11 @@
     // NORMALIZE STATUS
     // =========================================
 
-    function normalizeStatus(
-        status
-    ) {
+    function normalizeStatus(status) {
 
-        if (
-            status === null ||
-            status === undefined
-        ) {
+        if (status === null || status === undefined) return "";
 
-            return "";
-
-        }
-
-
-        const value =
-            String(status)
-                .trim()
-                .toLowerCase();
-
+        const value = String(status).trim().toLowerCase();
 
         if (
             value === "present" ||
@@ -2238,11 +1935,8 @@
             value === "п" ||
             value === "✓"
         ) {
-
             return "present";
-
         }
-
 
         if (
             value === "absent" ||
@@ -2251,27 +1945,16 @@
             value === "отсутствие" ||
             value === "н"
         ) {
-
             return "absent";
-
         }
 
-
         return "";
-
     }
 
 
     // =========================================
-    // === ИЗМЕНЕНО ===
-    // LOAD ATTENDANCE
-    //
-    // Стратегия:
-    // 1. Пытаемся фильтровать по groupId.
-    // 2. Если пусто — fallback по studentId
-    //    (для ЛЮБОЙ роли, не только админа).
-    // 3. Если и это пусто — берём все документы
-    //    и фильтруем по studentId из текущей группы.
+    // LOAD ATTENDANCE — работает без groupId
+    // Фильтруем по studentId текущей группы.
     // =========================================
 
     async function loadAttendance() {
@@ -2280,253 +1963,100 @@
 
             attendance = {};
 
+            if (!currentGroupId) return;
 
-            if (!currentGroupId) {
+            if (students.length === 0) {
+                console.warn("⚠ Нет студентов — attendance не загружаем");
                 return;
             }
 
-
-            let docs = [];
-
-
-            // --- 1. По groupId ---
-
-            try {
-
-                const snapshot =
-                    await getDocs(
-                        query(
-                            collection(db, "attendance"),
-                            where("groupId", "==", currentGroupId)
-                        )
-                    );
-
-                docs = snapshot.docs;
-
-            }
-            catch (error) {
-
-                console.warn(
-                    "Фильтр по groupId не сработал:",
-                    error
-                );
-
-                docs = [];
-
-            }
-
-
-            // --- 2. Fallback по studentId (для всех ролей) ---
-
-            if (docs.length === 0 && students.length > 0) {
-
-                console.log(
-                    "⚠ Fallback: фильтруем attendance по studentId"
-                );
-
-                const studentIds =
-                    new Set(
-                        students.map(s => String(s.id))
-                    );
-
-
-                const fullSnapshot =
-                    await getDocs(
-                        collection(db, "attendance")
-                    );
-
-
-                docs =
-                    fullSnapshot.docs.filter(
-                        d =>
-                            studentIds.has(
-                                String(d.data().studentId)
-                            )
-                    );
-
-                console.log(
-                    "📥 Fallback нашёл документов:",
-                    docs.length
-                );
-
-            }
-
-
-            // --- 3. Разбираем документы ---
-
-            docs.forEach(
-                attendanceDoc => {
-
-                    const data =
-                        attendanceDoc.data();
-
-
-                    if (
-                        !data.date ||
-                        !data.studentId
-                    ) {
-
-                        return;
-
-                    }
-
-
-                    const date =
-                        normalizeDate(
-                            data.date
-                        );
-
-
-                    if (!date) {
-
-                        return;
-
-                    }
-
-
-                    const studentId =
-                        String(
-                            data.studentId
-                        );
-
-
-                    const studentName =
-                        data.studentName ||
-                        getStudentName(
-                            studentId
-                        );
-
-
-                    const lessons =
-                        data.lessons || {};
-
-
-                    Object.entries(
-                        lessons
-                    ).forEach(
-                        (
-                            [
-                                lessonNumber,
-                                lessonData
-                            ]
-                        ) => {
-
-                            if (
-                                !lessonData
-                            ) {
-
-                                return;
-
-                            }
-
-
-                            const status =
-                                normalizeStatus(
-                                    lessonData.status
-                                );
-
-
-                            if (!status) {
-
-                                return;
-
-                            }
-
-
-                            const reason =
-                                lessonData.reason ||
-                                lessonData.comment ||
-                                lessonData.description ||
-                                "";
-
-
-                            const absentType =
-                                String(
-                                    lessonData.absentType ||
-                                    ""
-                                )
-                                    .trim()
-                                    .toLowerCase();
-
-
-                            const key =
-                                `${date}_${studentId}_${lessonNumber}`;
-
-
-                            attendance[key] = {
-
-                                id:
-                                    attendanceDoc.id,
-
-                                documentId:
-                                    attendanceDoc.id,
-
-                                date:
-                                    date,
-
-                                studentId:
-                                    studentId,
-
-                                studentName:
-                                    studentName,
-
-                                lesson:
-                                    String(
-                                        lessonNumber
-                                    ),
-
-                                status:
-                                    status,
-
-                                absentType:
-                                    absentType,
-
-                                reason:
-                                    String(
-                                        reason
-                                    ),
-
-                                semester:
-                                    data.semester ||
-                                    "",
-
-                                attestation:
-                                    data.attestation ||
-                                    "",
-
-                                updatedAt:
-                                    data.updatedAt ||
-                                    ""
-
-                            };
-
-                        }
-                    );
-
-                }
+            const studentIdsSet = new Set(students.map(s => String(s.id)));
+
+            console.log(
+                "🔎 Ищем attendance для студентов:",
+                studentIdsSet.size
             );
 
 
+            // Берём всю коллекцию и фильтруем по studentId.
+            // Поле groupId в attendance не обязательно.
+            const snapshot = await getDocs(collection(db, "attendance"));
+
             console.log(
-                "Посещаемость:",
-                attendance
+                "📦 Всего документов attendance:",
+                snapshot.docs.length
+            );
+
+            let matched = 0;
+
+            snapshot.forEach(attendanceDoc => {
+
+                const data = attendanceDoc.data();
+
+                if (!data.date || !data.studentId) return;
+
+                const studentId = String(data.studentId);
+
+                if (!studentIdsSet.has(studentId)) return;
+
+                matched++;
+
+                const date = normalizeDate(data.date);
+                if (!date) return;
+
+                const studentName =
+                    data.studentName || getStudentName(studentId);
+
+                const lessons = data.lessons || {};
+
+                Object.entries(lessons).forEach(([lessonNumber, lessonData]) => {
+
+                    if (!lessonData) return;
+
+                    const status = normalizeStatus(lessonData.status);
+                    if (!status) return;
+
+                    const reason =
+                        lessonData.reason ||
+                        lessonData.comment ||
+                        lessonData.description ||
+                        "";
+
+                    const absentType = String(lessonData.absentType || "")
+                        .trim()
+                        .toLowerCase();
+
+                    const key = `${date}_${studentId}_${lessonNumber}`;
+
+                    attendance[key] = {
+                        id: attendanceDoc.id,
+                        documentId: attendanceDoc.id,
+                        date: date,
+                        studentId: studentId,
+                        studentName: studentName,
+                        lesson: String(lessonNumber),
+                        status: status,
+                        absentType: absentType,
+                        reason: String(reason),
+                        semester: data.semester || "",
+                        attestation: data.attestation || "",
+                        updatedAt: data.updatedAt || ""
+                    };
+                });
+            });
+
+            console.log(
+                "✅ Совпало документов attendance:",
+                matched,
+                "| ключей собрано:",
+                Object.keys(attendance).length
             );
 
         }
         catch (error) {
-
-            console.error(
-                "Ошибка загрузки посещаемости:",
-                error
-            );
-
-
-            showStatus(
-                "Ошибка загрузки посещаемости"
-            );
-
+            console.error("Ошибка загрузки посещаемости:", error);
+            showStatus("Ошибка загрузки посещаемости");
         }
-
     }
 
 
@@ -2534,50 +2064,22 @@
     // GET LESSON COUNT
     // =========================================
 
-    function getLessonCount(
-        dayIndex
-    ) {
+    function getLessonCount(dayIndex) {
 
-        const schedule =
-            settings.schedule || {};
+        const schedule = settings.schedule || {};
+        const day = days[dayIndex];
+        const value = schedule[day];
 
+        if (value === undefined || value === null) return 0;
 
-        const day =
-            days[dayIndex];
-
-
-        const value =
-            schedule[day];
-
-
-        if (
-            value === undefined ||
-            value === null
-        ) {
-            return 0;
-        }
-
-
-        if (Array.isArray(value)) {
-            return value.length;
-        }
-
+        if (Array.isArray(value)) return value.length;
 
         if (typeof value === "object") {
-
-            if (Array.isArray(value.lessons)) {
-                return value.lessons.length;
-            }
-
-            if (typeof value.count !== "undefined") {
-                return Number(value.count) || 0;
-            }
-
+            if (Array.isArray(value.lessons)) return value.lessons.length;
+            if (typeof value.count !== "undefined") return Number(value.count) || 0;
         }
 
-
         return Number(value) || 0;
-
     }
 
 
@@ -2589,67 +2091,25 @@
 
         const result = [];
 
-
-        for (
-            let i = 0;
-            i < 6;
-            i++
-        ) {
-
-            const date =
-                new Date(
-                    weekStart
-                );
-
-
-            date.setDate(
-                date.getDate() + i
-            );
-
-
-            result.push(
-                date
-            );
-
+        for (let i = 0; i < 6; i++) {
+            const date = new Date(weekStart);
+            date.setDate(date.getDate() + i);
+            result.push(date);
         }
 
-
         return result;
-
     }
 
 
-    // =========================================
-    // WEEK RANGE
-    // =========================================
-
     function updateWeekRange() {
 
-        const dates =
-            getWeekDates();
+        const dates = getWeekDates();
 
+        const first = formatDateRu(formatDate(dates[0]));
+        const last = formatDateRu(formatDate(dates[5]));
 
-        const first =
-            formatDateRu(
-                formatDate(
-                    dates[0]
-                )
-            );
-
-
-        const last =
-            formatDateRu(
-                formatDate(
-                    dates[5]
-                )
-            );
-
-
-        document.getElementById(
-            "weekRange"
-        ).textContent =
+        document.getElementById("weekRange").textContent =
             `Период: ${first} — ${last}`;
-
     }
 
 
@@ -2659,577 +2119,239 @@
 
     function renderTable() {
 
-        const wrapper =
-            document.getElementById(
-                "tableWrapper"
-            );
+        const wrapper = document.getElementById("tableWrapper");
 
-
-        if (
-            students.length === 0
-        ) {
+        if (students.length === 0) {
 
             wrapper.innerHTML = `
-
                 <div class="empty">
-
                     👨‍🎓 Студентов пока нет.
-
                     <br><br>
-
-                    Добавьте студентов
-                    в разделе «Студенты».
-
+                    Добавьте студентов в разделе «Студенты»
+                    или проверьте, что группа выбрана правильно.
                 </div>
-
             `;
 
-            const printSheet =
-                document.getElementById(
-                    "printSheet"
-                );
-
-            if (printSheet) {
-                printSheet.innerHTML = "";
-            }
+            const printSheet = document.getElementById("printSheet");
+            if (printSheet) printSheet.innerHTML = "";
 
             return;
-
         }
 
 
-        const weekDates =
-            getWeekDates();
+        const weekDates = getWeekDates();
 
 
         let html = `
-
             <table>
-
                 <thead>
-
                     <tr>
-
-                        <th
-                            class="student-column"
-                            rowspan="2"
-                        >
+                        <th class="student-column" rowspan="2">
                             Список обучающихся
                         </th>
-
         `;
 
 
-        weekDates.forEach(
-            (date, index) => {
+        weekDates.forEach((date, index) => {
 
-                const count =
-                    getLessonCount(
-                        index
-                    );
+            const count = getLessonCount(index);
 
-
-                html += `
-
-                    <th
-                        class="day-header"
-                        colspan="${Math.max(
-                            count,
-                            1
-                        )}"
-                    >
-
-                        <div class="day-name">
-                            ${days[index]}
-                        </div>
-
-                        <div class="day-date">
-                            ${formatDateRu(
-                                formatDate(date)
-                            )}
-                        </div>
-
-                    </th>
-
-                `;
-
-            }
-        );
+            html += `
+                <th class="day-header" colspan="${Math.max(count, 1)}">
+                    <div class="day-name">${days[index]}</div>
+                    <div class="day-date">${formatDateRu(formatDate(date))}</div>
+                </th>
+            `;
+        });
 
 
         html += `
-
                     <th class="day-header report-col" rowspan="2">
                         <div class="day-name">Все Н, ч</div>
                     </th>
-
                     <th class="day-header report-col report-uv" rowspan="2">
                         <div class="day-name">УВ Н, ч</div>
                     </th>
-
                     <th class="day-header report-col report-neuv" rowspan="2">
                         <div class="day-name">Неув Н, ч</div>
                     </th>
-
                     <th class="day-header report-col report-note-col" rowspan="2">
                         <div class="day-name">Примечание</div>
                     </th>
-
                     </tr>
-
                     <tr>
-
         `;
 
 
-        weekDates.forEach(
-            (
-                date,
-                dayIndex
-            ) => {
+        weekDates.forEach((date, dayIndex) => {
 
-                const count =
-                    getLessonCount(
-                        dayIndex
-                    );
+            const count = getLessonCount(dayIndex);
 
-
-                if (
-                    count === 0
-                ) {
-
-                    html += `
-
-                        <th>
-                            —
-                        </th>
-
-                    `;
-
-                    return;
-
-                }
-
-
-                for (
-                    let lesson = 1;
-                    lesson <= count;
-                    lesson++
-                ) {
-
-                    html += `
-
-                        <th>
-                            ${lesson}
-                        </th>
-
-                    `;
-
-                }
-
+            if (count === 0) {
+                html += `<th>—</th>`;
+                return;
             }
-        );
+
+            for (let lesson = 1; lesson <= count; lesson++) {
+                html += `<th>${lesson}</th>`;
+            }
+        });
 
 
         html += `
-
                     </tr>
-
                 </thead>
-
                 <tbody>
-
         `;
 
 
-        let groupAll =
-            0;
+        let groupAll = 0;
+        let groupUv = 0;
+        let groupNeuv = 0;
 
-        let groupUv =
-            0;
 
-        let groupNeuv =
-            0;
+        students.forEach((student, studentIndex) => {
 
+            let studentAll = 0;
+            let studentUv = 0;
+            let studentNeuv = 0;
+            const studentReasons = [];
 
-        students.forEach(
-            (
-                student,
-                studentIndex
-            ) => {
 
-                let studentAll =
-                    0;
+            html += `
+                <tr>
+                    <td class="student-cell">
+                        <div class="student-wrapper">
+                            <div class="student-number">${studentIndex + 1}</div>
+                            <div class="student-name">${escapeHtml(student.name || "Без имени")}</div>
+                        </div>
+                    </td>
+            `;
 
-                let studentUv =
-                    0;
 
-                let studentNeuv =
-                    0;
+            weekDates.forEach((date, dayIndex) => {
 
-                const studentReasons =
-                    [];
+                const dateString = formatDate(date);
+                const lessonCount = getLessonCount(dayIndex);
 
+                if (lessonCount === 0) {
+                    html += `<td class="lesson-cell empty-mark">—</td>`;
+                    return;
+                }
 
-                html += `
+                for (let lesson = 1; lesson <= lessonCount; lesson++) {
 
-                    <tr>
+                    const key = `${dateString}_${student.id}_${lesson}`;
+                    const record = attendance[key];
 
-                        <td class="student-cell">
+                    let mark = "—";
+                    let className = "empty-mark";
 
-                            <div class="student-wrapper">
-
-                                <div class="student-number">
-                                    ${studentIndex + 1}
-                                </div>
-
-                                <div class="student-name">
-                                    ${escapeHtml(
-                                        student.name ||
-                                        "Без имени"
-                                    )}
-                                </div>
-
-                            </div>
-
-                        </td>
-
-                `;
-
-
-                weekDates.forEach(
-                    (
-                        date,
-                        dayIndex
-                    ) => {
-
-                        const dateString =
-                            formatDate(
-                                date
-                            );
-
-
-                        const lessonCount =
-                            getLessonCount(
-                                dayIndex
-                            );
-
-
-                        if (
-                            lessonCount === 0
-                        ) {
-
-                            html += `
-
-                                <td
-                                    class="lesson-cell empty-mark"
-                                >
-                                    —
-                                </td>
-
-                            `;
-
-                            return;
-
-                        }
-
-
-                        for (
-                            let lesson = 1;
-                            lesson <= lessonCount;
-                            lesson++
-                        ) {
-
-                            const key =
-                                `${dateString}_${student.id}_${lesson}`;
-
-
-                            const record =
-                                attendance[key];
-
-
-                            let mark =
-                                "—";
-
-
-                            let className =
-                                "empty-mark";
-
-
-                            if (
-                                record &&
-                                record.status ===
-                                "present"
-                            ) {
-
-                                mark =
-                                    "✓";
-
-                                className =
-                                    "present";
-
-                            }
-
-
-                            if (
-                                record &&
-                                record.status ===
-                                "absent"
-                            ) {
-
-                                mark =
-                                    "Н";
-
-                                className =
-                                    "absent";
-
-
-                                studentAll +=
-                                    HOURS_PER_LESSON;
-
-
-                                const reasonText =
-                                    String(
-                                        record.reason ||
-                                        ""
-                                    ).trim();
-
-
-                                const absentType =
-                                    record.absentType ||
-                                    "";
-
-
-                                const isExcused =
-                                    absentType === "uv" ||
-                                    absentType === "bolezn" ||
-                                    (
-                                        !absentType &&
-                                        Boolean(reasonText)
-                                    );
-
-
-                                if (isExcused) {
-
-                                    studentUv +=
-                                        HOURS_PER_LESSON;
-
-
-                                    if (
-                                        reasonText &&
-                                        !studentReasons.includes(
-                                            reasonText
-                                        )
-                                    ) {
-
-                                        studentReasons.push(
-                                            reasonText
-                                        );
-
-                                    }
-
-                                }
-                                else {
-
-                                    studentNeuv +=
-                                        HOURS_PER_LESSON;
-
-                                }
-
-                            }
-
-
-                            html += `
-
-                                <td
-                                    class="
-                                        lesson-cell
-                                        ${className}
-                                    "
-                                    data-record-key="${escapeHtml(
-                                        key
-                                    )}"
-                                >
-
-                                    ${mark}
-
-                                </td>
-
-                            `;
-
-                        }
-
+                    if (record && record.status === "present") {
+                        mark = "✓";
+                        className = "present";
                     }
-                );
 
+                    if (record && record.status === "absent") {
 
-                groupAll +=
-                    studentAll;
+                        mark = "Н";
+                        className = "absent";
 
-                groupUv +=
-                    studentUv;
+                        studentAll += HOURS_PER_LESSON;
 
-                groupNeuv +=
-                    studentNeuv;
+                        const reasonText = String(record.reason || "").trim();
+                        const absentType = record.absentType || "";
 
+                        const isExcused =
+                            absentType === "uv" ||
+                            absentType === "bolezn" ||
+                            (!absentType && Boolean(reasonText));
 
-                html += `
+                        if (isExcused) {
 
-                        <td class="report-col report-total">
-                            ${studentAll}
-                        </td>
+                            studentUv += HOURS_PER_LESSON;
 
-                        <td class="report-col report-uv">
-                            ${studentUv}
-                        </td>
-
-                        <td class="report-col report-neuv">
-                            ${studentNeuv}
-                        </td>
-
-                        <td class="report-col report-note-col ${
-                            studentReasons.length
-                                ? ""
-                                : "empty-mark"
-                        }">
-                            ${
-                                studentReasons.length
-                                    ? escapeHtml(
-                                        studentReasons.join(
-                                            "; "
-                                        )
-                                    )
-                                    : "—"
+                            if (reasonText && !studentReasons.includes(reasonText)) {
+                                studentReasons.push(reasonText);
                             }
-                        </td>
 
-                    </tr>
+                        }
+                        else {
+                            studentNeuv += HOURS_PER_LESSON;
+                        }
+                    }
 
-                `;
-
-            }
-        );
-
-
-        html += `
-
-                    <tr class="total-row">
-
-                        <td class="student-cell">
-                            <strong>Итого по группе</strong>
-                        </td>
-
-        `;
-
-
-        weekDates.forEach(
-            (
-                date,
-                dayIndex
-            ) => {
-
-                const count =
-                    getLessonCount(
-                        dayIndex
-                    );
-
-
-                const slots =
-                    Math.max(
-                        count,
-                        1
-                    );
-
-
-                for (
-                    let i = 0;
-                    i < slots;
-                    i++
-                ) {
 
                     html += `
-
-                        <td class="empty-mark">—</td>
-
+                        <td class="lesson-cell ${className}" data-record-key="${escapeHtml(key)}">
+                            ${mark}
+                        </td>
                     `;
-
                 }
-
-            }
-        );
+            });
 
 
-        html += `
+            groupAll += studentAll;
+            groupUv += studentUv;
+            groupNeuv += studentNeuv;
 
-                        <td class="report-col report-total">
-                            ${groupAll}
-                        </td>
 
-                        <td class="report-col report-uv">
-                            ${groupUv}
-                        </td>
-
-                        <td class="report-col report-neuv">
-                            ${groupNeuv}
-                        </td>
-
-                        <td class="report-col report-note-col empty-mark">—</td>
-
-                    </tr>
-
-                `;
+            html += `
+                    <td class="report-col report-total">${studentAll}</td>
+                    <td class="report-col report-uv">${studentUv}</td>
+                    <td class="report-col report-neuv">${studentNeuv}</td>
+                    <td class="report-col report-note-col ${studentReasons.length ? "" : "empty-mark"}">
+                        ${studentReasons.length ? escapeHtml(studentReasons.join("; ")) : "—"}
+                    </td>
+                </tr>
+            `;
+        });
 
 
         html += `
-
-                </tbody>
-
-            </table>
-
+                <tr class="total-row">
+                    <td class="student-cell"><strong>Итого по группе</strong></td>
         `;
 
 
-        wrapper.innerHTML =
-            html;
+        weekDates.forEach((date, dayIndex) => {
+
+            const count = getLessonCount(dayIndex);
+            const slots = Math.max(count, 1);
+
+            for (let i = 0; i < slots; i++) {
+                html += `<td class="empty-mark">—</td>`;
+            }
+        });
 
 
-        wrapper
-            .querySelectorAll(
-                ".lesson-cell"
-            )
-            .forEach(
-                cell => {
+        html += `
+                    <td class="report-col report-total">${groupAll}</td>
+                    <td class="report-col report-uv">${groupUv}</td>
+                    <td class="report-col report-neuv">${groupNeuv}</td>
+                    <td class="report-col report-note-col empty-mark">—</td>
+                </tr>
+                </tbody>
+            </table>
+        `;
 
-                    cell.addEventListener(
-                        "click",
-                        event => {
 
-                            showRecordInfo(
-                                event,
-                                cell
-                            );
+        wrapper.innerHTML = html;
 
-                        }
-                    );
 
-                }
-            );
+        wrapper.querySelectorAll(".lesson-cell").forEach(cell => {
+            cell.addEventListener("click", event => {
+                showRecordInfo(event, cell);
+            });
+        });
 
 
         try {
-
             buildPrintSheet();
-
         }
         catch (error) {
-
-            console.error(
-                "Ошибка печатной формы:",
-                error
-            );
-
+            console.error("Ошибка печатной формы:", error);
         }
-
     }
 
 
@@ -3237,459 +2359,164 @@
     // SHOW RECORD
     // =========================================
 
-    function showRecordInfo(
-        event,
-        cell
-    ) {
+    function showRecordInfo(event, cell) {
 
-        const key =
-            cell.dataset.recordKey;
-
-
-        const record =
-            attendance[key];
-
+        const key = cell.dataset.recordKey;
+        const record = attendance[key];
 
         if (!record) {
-
             hidePopup();
-
             return;
-
         }
 
+        const popup = document.getElementById("infoPopup");
 
-        const popup =
-            document.getElementById(
-                "infoPopup"
-            );
-
-
-        if (
-            record.status ===
-            "absent"
-        ) {
-
-            document.getElementById(
-                "popupTitle"
-            ).textContent =
-                "⚠️ Отсутствие";
-
+        if (record.status === "absent") {
+            document.getElementById("popupTitle").textContent = "⚠️ Отсутствие";
         }
         else {
-
-            document.getElementById(
-                "popupTitle"
-            ).textContent =
-                "✓ Присутствие";
-
+            document.getElementById("popupTitle").textContent = "✓ Присутствие";
         }
 
+        document.getElementById("popupStudent").textContent =
+            "ФИО: " + record.studentName;
 
-        document.getElementById(
-            "popupStudent"
-        ).textContent =
-            "ФИО: " +
-            record.studentName;
+        document.getElementById("popupDate").textContent =
+            "Дата: " + formatDateRu(record.date);
 
+        document.getElementById("popupLesson").textContent =
+            "Пара: " + record.lesson;
 
-        document.getElementById(
-            "popupDate"
-        ).textContent =
-            "Дата: " +
-            formatDateRu(
-                record.date
-            );
-
-
-        document.getElementById(
-            "popupLesson"
-        ).textContent =
-            "Пара: " +
-            record.lesson;
-
-
-        document.getElementById(
-            "popupReason"
-        ).textContent =
+        document.getElementById("popupReason").textContent =
             record.reason ||
-            (
-                record.status === "absent"
-                    ? "Причина не указана"
-                    : "Студент присутствовал"
-            );
+            (record.status === "absent"
+                ? "Причина не указана"
+                : "Студент присутствовал");
 
+        popup.style.display = "block";
 
-        popup.style.display =
-            "block";
+        const rect = cell.getBoundingClientRect();
 
+        let left = rect.left;
+        let top = rect.bottom + 5;
 
-        const rect =
-            cell.getBoundingClientRect();
+        if (left + 290 > window.innerWidth) left = window.innerWidth - 300;
+        if (top + 190 > window.innerHeight) top = rect.top - 195;
+        if (left < 5) left = 5;
+        if (top < 5) top = 5;
 
-
-        let left =
-            rect.left;
-
-
-        let top =
-            rect.bottom + 5;
-
-
-        if (
-            left + 290 >
-            window.innerWidth
-        ) {
-
-            left =
-                window.innerWidth - 300;
-
-        }
-
-
-        if (
-            top + 190 >
-            window.innerHeight
-        ) {
-
-            top =
-                rect.top - 195;
-
-        }
-
-
-        if (
-            left < 5
-        ) {
-
-            left = 5;
-
-        }
-
-
-        if (
-            top < 5
-        ) {
-
-            top = 5;
-
-        }
-
-
-        popup.style.left =
-            left + "px";
-
-
-        popup.style.top =
-            top + "px";
-
+        popup.style.left = left + "px";
+        popup.style.top = top + "px";
 
         event.stopPropagation();
-
     }
 
-
-    // =========================================
-    // HIDE POPUP
-    // =========================================
 
     function hidePopup() {
-
-        document.getElementById(
-            "infoPopup"
-        ).style.display =
-            "none";
-
+        document.getElementById("infoPopup").style.display = "none";
     }
 
 
-    document.addEventListener(
-        "click",
-        event => {
+    document.addEventListener("click", event => {
 
-            const popup =
-                document.getElementById(
-                    "infoPopup"
-                );
+        const popup = document.getElementById("infoPopup");
 
-
-            if (
-                !popup.contains(
-                    event.target
-                )
-            ) {
-
-                hidePopup();
-
-            }
-
+        if (!popup.contains(event.target)) {
+            hidePopup();
         }
-    );
+    });
 
 
     // =========================================
-    // PREVIOUS WEEK
+    // WEEK NAVIGATION
     // =========================================
 
-    window.previousWeek =
-        function() {
+    window.previousWeek = function () {
+        weekStart.setDate(weekStart.getDate() - 7);
+        updateWeekRange();
+        renderTable();
+        renderWeekList();
+    };
 
-            weekStart.setDate(
-                weekStart.getDate() - 7
-            );
+
+    window.nextWeek = function () {
+        weekStart.setDate(weekStart.getDate() + 7);
+        updateWeekRange();
+        renderTable();
+        renderWeekList();
+    };
 
 
-            updateWeekRange();
+    window.currentWeek = function () {
+        weekStart = getMonday(new Date());
+        updateWeekRange();
+        renderTable();
+        renderWeekList();
+    };
 
-            renderTable();
 
+    window.toggleWeekList = function () {
+
+        const list = document.getElementById("weekList");
+
+        list.classList.toggle("show");
+
+        if (list.classList.contains("show")) {
             renderWeekList();
+        }
+    };
 
-        };
-
-
-    // =========================================
-    // NEXT WEEK
-    // =========================================
-
-    window.nextWeek =
-        function() {
-
-            weekStart.setDate(
-                weekStart.getDate() + 7
-            );
-
-
-            updateWeekRange();
-
-            renderTable();
-
-            renderWeekList();
-
-        };
-
-
-    // =========================================
-    // CURRENT WEEK
-    // =========================================
-
-    window.currentWeek =
-        function() {
-
-            weekStart =
-                getMonday(
-                    new Date()
-                );
-
-
-            updateWeekRange();
-
-            renderTable();
-
-            renderWeekList();
-
-        };
-
-
-    // =========================================
-    // OPEN/CLOSE WEEK LIST
-    // =========================================
-
-    window.toggleWeekList =
-        function() {
-
-            const list =
-                document.getElementById(
-                    "weekList"
-                );
-
-
-            list.classList.toggle(
-                "show"
-            );
-
-
-            if (
-                list.classList.contains(
-                    "show"
-                )
-            ) {
-
-                renderWeekList();
-
-            }
-
-        };
-
-
-    // =========================================
-    // RENDER WEEK LIST
-    // =========================================
 
     function renderWeekList() {
 
-        const list =
-            document.getElementById(
-                "weekList"
-            );
+        const list = document.getElementById("weekList");
 
+        list.innerHTML = "";
 
-        list.innerHTML =
-            "";
+        const currentMonday = getMonday(new Date());
 
+        for (let i = -20; i <= 20; i++) {
 
-        const currentMonday =
-            getMonday(
-                new Date()
-            );
+            const monday = new Date(currentMonday);
+            monday.setDate(monday.getDate() + i * 7);
 
+            const saturday = new Date(monday);
+            saturday.setDate(saturday.getDate() + 5);
 
-        for (
-            let i = -20;
-            i <= 20;
-            i++
-        ) {
+            const mondayText = formatDateRu(formatDate(monday));
+            const saturdayText = formatDateRu(formatDate(saturday));
 
-            const monday =
-                new Date(
-                    currentMonday
-                );
+            const button = document.createElement("button");
 
+            button.className = "week-option";
 
-            monday.setDate(
-                monday.getDate() +
-                i * 7
-            );
-
-
-            const saturday =
-                new Date(
-                    monday
-                );
-
-
-            saturday.setDate(
-                saturday.getDate() +
-                5
-            );
-
-
-            const mondayText =
-                formatDateRu(
-                    formatDate(
-                        monday
-                    )
-                );
-
-
-            const saturdayText =
-                formatDateRu(
-                    formatDate(
-                        saturday
-                    )
-                );
-
-
-            const button =
-                document.createElement(
-                    "button"
-                );
-
-
-            button.className =
-                "week-option";
-
-
-            if (
-                formatDate(monday) ===
-                formatDate(weekStart)
-            ) {
-
-                button.classList.add(
-                    "selected"
-                );
-
+            if (formatDate(monday) === formatDate(weekStart)) {
+                button.classList.add("selected");
             }
 
+            if (i === 0) button.classList.add("current-week");
 
-            if (
-                i === 0
-            ) {
+            button.textContent = i === 0
+                ? `⭐ Текущая неделя — ${mondayText} — ${saturdayText}`
+                : `${mondayText} — ${saturdayText}`;
 
-                button.classList.add(
-                    "current-week"
-                );
+            button.addEventListener("click", () => selectWeek(monday));
 
-            }
-
-
-            if (
-                i === 0
-            ) {
-
-                button.textContent =
-                    `⭐ Текущая неделя — ${mondayText} — ${saturdayText}`;
-
-            }
-            else {
-
-                button.textContent =
-                    `${mondayText} — ${saturdayText}`;
-
-            }
-
-
-            button.addEventListener(
-                "click",
-                () => {
-
-                    selectWeek(
-                        monday
-                    );
-
-                }
-            );
-
-
-            list.appendChild(
-                button
-            );
-
+            list.appendChild(button);
         }
-
     }
 
 
-    // =========================================
-    // SELECT WEEK
-    // =========================================
+    function selectWeek(date) {
 
-    function selectWeek(
-        date
-    ) {
-
-        weekStart =
-            getMonday(
-                date
-            );
-
+        weekStart = getMonday(date);
 
         updateWeekRange();
-
         renderTable();
 
-
-        document
-            .getElementById(
-                "weekList"
-            )
-            .classList.remove(
-                "show"
-            );
-
+        document.getElementById("weekList").classList.remove("show");
 
         renderWeekList();
-
     }
 
 
@@ -3697,166 +2524,72 @@
     // PRINT
     // =========================================
 
-    function formatShortDate(
-        date,
-        withYear
-    ) {
+    function formatShortDate(date, withYear) {
 
-        const dd =
-            String(date.getDate())
-                .padStart(2, "0");
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
 
+        if (!withYear) return `${dd}.${mm}`;
 
-        const mm =
-            String(date.getMonth() + 1)
-                .padStart(2, "0");
-
-
-        if (!withYear) {
-
-            return `${dd}.${mm}`;
-
-        }
-
-
-        const yy =
-            String(date.getFullYear())
-                .slice(-2);
-
-
+        const yy = String(date.getFullYear()).slice(-2);
         return `${dd}.${mm}.${yy}`;
-
     }
 
 
     function buildPrintSheet() {
 
-        const sheet =
-            document.getElementById(
-                "printSheet"
-            );
-
-
-        if (!sheet) {
-            return;
-        }
-
+        const sheet = document.getElementById("printSheet");
+        if (!sheet) return;
 
         const group = getCurrentGroup();
 
-        const printGroupNameEl =
-            document.getElementById(
-                "printGroupName"
-            );
-
+        const printGroupNameEl = document.getElementById("printGroupName");
         if (printGroupNameEl) {
-
-            printGroupNameEl.textContent =
-                group ? (group.name || group.id) : "—";
-
+            printGroupNameEl.textContent = group ? (group.name || group.id) : "—";
         }
 
-
-        const printCuratorNameEl =
-            document.getElementById(
-                "printCuratorName"
-            );
-
-        const curatorInputEl =
-            document.getElementById(
-                "curatorPrintName"
-            );
+        const printCuratorNameEl = document.getElementById("printCuratorName");
+        const curatorInputEl = document.getElementById("curatorPrintName");
 
         if (printCuratorNameEl) {
-
             printCuratorNameEl.textContent =
                 (curatorInputEl && curatorInputEl.value.trim())
                     ? curatorInputEl.value.trim()
                     : "—";
-
         }
 
+        const table = document.querySelector("#tableWrapper table");
 
-        const table =
-            document.querySelector(
-                "#tableWrapper table"
-            );
-
-
-        if (
-            !table ||
-            students.length === 0
-        ) {
-
+        if (!table || students.length === 0) {
             sheet.innerHTML = "";
-
             return;
-
         }
 
+        const weekDates = getWeekDates();
 
-        const weekDates =
-            getWeekDates();
+        const lessonCounts = weekDates.map((date, index) => getLessonCount(index));
 
+        const rows = Array.from(
+            table.querySelectorAll("tbody tr:not(.total-row)")
+        );
 
-        const lessonCounts =
-            weekDates.map(
-                (
-                    date,
-                    index
-                ) =>
-                    getLessonCount(index)
-            );
-
-
-        const rows =
-            Array.from(
-                table.querySelectorAll(
-                    "tbody tr:not(.total-row)"
-                )
-            );
-
-
-        const rowHeight =
-            Math.min(
-                7.68,
-                Math.max(
-                    4.5,
-                    153 /
-                    Math.max(
-                        rows.length,
-                        1
-                    )
-                )
-            );
-
+        const rowHeight = Math.min(
+            7.68,
+            Math.max(4.5, 153 / Math.max(rows.length, 1))
+        );
 
         let cols =
             '<col style="width:10.92mm">' +
             '<col style="width:59.07mm">';
 
-
-        lessonCounts.forEach(
-            count => {
-
-                if (count === 0) {
-
-                    cols +=
-                        '<col style="width:21mm">';
-
-                }
-                else {
-
-                    cols +=
-                        "<col>".repeat(
-                            count
-                        );
-
-                }
-
+        lessonCounts.forEach(count => {
+            if (count === 0) {
+                cols += '<col style="width:21mm">';
             }
-        );
-
+            else {
+                cols += "<col>".repeat(count);
+            }
+        });
 
         cols +=
             '<col style="width:10.65mm">' +
@@ -3864,63 +2597,29 @@
             '<col style="width:10.04mm">' +
             '<col style="width:24.02mm">';
 
-
         let head1 =
             '<th rowspan="2"></th>' +
             '<th rowspan="2">Ф.И.О.</th>';
 
+        let head2 = "";
 
-        let head2 =
-            "";
+        weekDates.forEach((date, index) => {
 
+            const count = lessonCounts[index];
 
-        weekDates.forEach(
-            (
-                date,
-                index
-            ) => {
+            head1 +=
+                `<th colspan="${Math.max(count, 1)}">` +
+                `${days[index]}<br>${formatShortDate(date, false)}</th>`;
 
-                const count =
-                    lessonCounts[index];
-
-
-                head1 +=
-                    `<th colspan="${Math.max(
-                        count,
-                        1
-                    )}">` +
-                    `${days[index]}<br>` +
-                    `${formatShortDate(
-                        date,
-                        false
-                    )}` +
-                    `</th>`;
-
-
-                if (count === 0) {
-
-                    head2 +=
-                        "<th>—</th>";
-
-                }
-                else {
-
-                    for (
-                        let lesson = 1;
-                        lesson <= count;
-                        lesson++
-                    ) {
-
-                        head2 +=
-                            `<th>${lesson}</th>`;
-
-                    }
-
-                }
-
+            if (count === 0) {
+                head2 += "<th>—</th>";
             }
-        );
-
+            else {
+                for (let lesson = 1; lesson <= count; lesson++) {
+                    head2 += `<th>${lesson}</th>`;
+                }
+            }
+        });
 
         head1 +=
             '<th class="sm">Всего</th>' +
@@ -3928,104 +2627,44 @@
             '<th class="sm">Неув</th>' +
             "<th>Примечания</th>";
 
+        head2 += "<th></th><th></th><th></th><th></th>";
 
-        head2 +=
-            "<th></th><th></th><th></th><th></th>";
+        let body = "";
 
+        rows.forEach((row, rowIndex) => {
 
-        let body =
-            "";
+            const nameElement = row.querySelector(".student-name");
+            const name = nameElement ? nameElement.textContent.trim() : "";
 
+            let cells = "";
 
-        rows.forEach(
-            (
-                row,
-                rowIndex
-            ) => {
+            row.querySelectorAll(".lesson-cell").forEach(cell => {
+                const mark = cell.classList.contains("absent") ? "Н" : "";
+                cells += `<td class="c-l">${mark}</td>`;
+            });
 
-                const nameElement =
-                    row.querySelector(
-                        ".student-name"
-                    );
+            const readCell = selector => {
+                const cell = row.querySelector(selector);
+                return cell ? cell.textContent.trim() : "";
+            };
 
+            const noteCell = row.querySelector("td.report-note-col");
 
-                const name =
-                    nameElement
-                        ? nameElement.textContent.trim()
-                        : "";
+            const note = (noteCell && !noteCell.classList.contains("empty-mark"))
+                ? noteCell.textContent.trim()
+                : "";
 
-
-                let cells =
-                    "";
-
-
-                row.querySelectorAll(
-                    ".lesson-cell"
-                ).forEach(
-                    cell => {
-
-                        const mark =
-                            cell.classList.contains(
-                                "absent"
-                            )
-                                ? "Н"
-                                : "";
-
-
-                        cells +=
-                            `<td class="c-l">${mark}</td>`;
-
-                    }
-                );
-
-
-                const readCell =
-                    selector => {
-
-                        const cell =
-                            row.querySelector(
-                                selector
-                            );
-
-
-                        return cell
-                            ? cell.textContent.trim()
-                            : "";
-
-                    };
-
-
-                const noteCell =
-                    row.querySelector(
-                        "td.report-note-col"
-                    );
-
-
-                const note =
-                    (
-                        noteCell &&
-                        !noteCell.classList.contains(
-                            "empty-mark"
-                        )
-                    )
-                        ? noteCell.textContent.trim()
-                        : "";
-
-
-                body +=
-                    `<tr style="height:${rowHeight}mm">` +
-                    `<td class="c-num" style="height:${rowHeight}mm">${rowIndex + 1}.</td>` +
-                    `<td class="c-name">${escapeHtml(name)}</td>` +
-                    cells +
-                    `<td class="c-t">${escapeHtml(readCell("td.report-total"))}</td>` +
-                    `<td class="c-t">${escapeHtml(readCell("td.report-uv"))}</td>` +
-                    `<td class="c-t">${escapeHtml(readCell("td.report-neuv"))}</td>` +
-                    `<td class="c-note">${escapeHtml(note)}</td>` +
-                    `</tr>`;
-
-            }
-        );
-
+            body +=
+                `<tr style="height:${rowHeight}mm">` +
+                `<td class="c-num" style="height:${rowHeight}mm">${rowIndex + 1}.</td>` +
+                `<td class="c-name">${escapeHtml(name)}</td>` +
+                cells +
+                `<td class="c-t">${escapeHtml(readCell("td.report-total"))}</td>` +
+                `<td class="c-t">${escapeHtml(readCell("td.report-uv"))}</td>` +
+                `<td class="c-t">${escapeHtml(readCell("td.report-neuv"))}</td>` +
+                `<td class="c-note">${escapeHtml(note)}</td>` +
+                `</tr>`;
+        });
 
         sheet.innerHTML =
             `<table class="pt">` +
@@ -4033,109 +2672,59 @@
             `<thead><tr>${head1}</tr><tr>${head2}</tr></thead>` +
             `<tbody>${body}</tbody>` +
             `</table>`;
-
     }
 
 
     function printReport() {
 
-        const dates =
-            getWeekDates();
-
+        const dates = getWeekDates();
 
         const rangeText =
-            `с ${formatShortDate(
-                dates[0],
-                true
-            )}` +
-            ` - ${formatShortDate(
-                dates[5],
-                true
-            )}гг`;
+            `с ${formatShortDate(dates[0], true)}` +
+            ` - ${formatShortDate(dates[5], true)}гг`;
 
-
-        document.getElementById(
-            "printHeaderRange"
-        ).textContent =
-            rangeText;
-
+        document.getElementById("printHeaderRange").textContent = rangeText;
 
         buildPrintSheet();
 
-
         window.print();
-
     }
 
 
-    window.printReport =
-        printReport;
+    window.printReport = printReport;
 
 
     // =========================================
     // MAIN MENU — ПЕРЕХОД ПО РОЛИ
     // =========================================
 
-    window.goBack =
-        async function() {
+    window.goBack = async function () {
 
-            try {
+        try {
 
-                const user =
-                    auth.currentUser;
+            const user = auth.currentUser;
 
-
-                if (!user) {
-
-                    window.location.href =
-                        "login.html";
-
-                    return;
-
-                }
-
-
-                const userDoc =
-                    await getDoc(
-                        doc(
-                            db,
-                            "users",
-                            user.uid
-                        )
-                    );
-
-
-                if (
-                    userDoc.exists() &&
-                    userDoc.data().role === "admin"
-                ) {
-
-                    window.location.href =
-                        "adminhome.html";
-
-                    return;
-
-                }
-
-
-                window.location.href =
-                    "home.html";
-
-            }
-            catch (error) {
-
-                console.error(
-                    "Ошибка определения роли:",
-                    error
-                );
-
-
-                window.location.href =
-                    "home.html";
-
+            if (!user) {
+                window.location.href = "login.html";
+                return;
             }
 
-        };
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+
+            if (userDoc.exists() && userDoc.data().role === "admin") {
+                window.location.href = "adminhome.html";
+                return;
+            }
+
+            window.location.href = "home.html";
+
+        }
+        catch (error) {
+
+            console.error("Ошибка определения роли:", error);
+            window.location.href = "home.html";
+        }
+    };
 
 
     // =========================================
@@ -4144,20 +2733,9 @@
 
     function escapeHtml(text) {
 
-        const div =
-            document.createElement(
-                "div"
-            );
-
-
-        div.textContent =
-            String(
-                text ?? ""
-            );
-
-
+        const div = document.createElement("div");
+        div.textContent = String(text ?? "");
         return div.innerHTML;
-
     }
 
 
@@ -4165,36 +2743,16 @@
     // STATUS
     // =========================================
 
-    function showStatus(
-        message
-    ) {
+    function showStatus(message) {
 
-        const status =
-            document.getElementById(
-                "status"
-            );
+        const status = document.getElementById("status");
 
+        status.textContent = message;
+        status.classList.add("show");
 
-        status.textContent =
-            message;
-
-
-        status.classList.add(
-            "show"
-        );
-
-
-        setTimeout(
-            () => {
-
-                status.classList.remove(
-                    "show"
-                );
-
-            },
-            2500
-        );
-
+        setTimeout(() => {
+            status.classList.remove("show");
+        }, 2500);
     }
 
 
@@ -4206,110 +2764,59 @@
 
         try {
 
-            weekStart =
-                getMonday(
-                    new Date()
-                );
-
+            weekStart = getMonday(new Date());
 
             await loadUserAndGroups();
 
             renderGroupSwitcher();
 
-
             if (!currentGroupId) {
 
-                document.getElementById(
-                    "tableWrapper"
-                ).innerHTML = `
-
+                document.getElementById("tableWrapper").innerHTML = `
                     <div class="empty">
-
                         ⚠️ Вам не назначена ни одна группа.
                         <br><br>
                         Обратитесь к администратору для назначения
                         группы (куратор / староста).
-
                     </div>
-
                 `;
 
                 return;
-
             }
 
-
-            // === ИЗМЕНЕНО: сначала настройки группы ===
             await loadSettings();
             await loadStudents();
             await loadAttendance();
 
-
             updateWeekRange();
-
             renderTable();
-
             renderWeekList();
 
-
-            const today =
-                formatDate(
-                    new Date()
-                );
-
-
-            const info =
-                getAttestationInfo(
-                    today
-                );
-
+            const today = formatDate(new Date());
+            const info = getAttestationInfo(today);
 
             if (info) {
-
-                document.getElementById(
-                    "semesterInfo"
-                ).textContent =
+                document.getElementById("semesterInfo").textContent =
                     `${info.semester} семестр • Аттестация №${info.attestation}`;
-
             }
             else {
-
-                document.getElementById(
-                    "semesterInfo"
-                ).textContent =
+                document.getElementById("semesterInfo").textContent =
                     "Семестр / аттестация не определены";
-
             }
 
         }
         catch (error) {
 
-            console.error(
-                "Ошибка запуска:",
-                error
-            );
+            console.error("Ошибка запуска:", error);
 
-
-            document.getElementById(
-                "tableWrapper"
-            ).innerHTML = `
-
+            document.getElementById("tableWrapper").innerHTML = `
                 <div class="empty">
-
                     ❌ Ошибка загрузки данных.
-
                     <br><br>
-
-                    Откройте консоль браузера
-                    (F12 → Console)
-                    для подробностей.
-
+                    Откройте консоль браузера (F12 → Console) для подробностей.
                 </div>
-
             `;
-
         }
-
     }
 
 
@@ -4317,108 +2824,30 @@
     // ATTESTATION
     // =========================================
 
-    function getAttestationInfo(
-        dateString
-    ) {
+    function getAttestationInfo(dateString) {
 
-        const date =
-            new Date(
-                dateString +
-                "T00:00:00"
-            );
-
+        const date = new Date(dateString + "T00:00:00");
 
         const periods = [
-
-            {
-                semester: 1,
-                attestation: 1,
-
-                period:
-                    settings
-                        .semester1
-                        ?.attestation1
-
-            },
-
-            {
-                semester: 1,
-                attestation: 2,
-
-                period:
-                    settings
-                        .semester1
-                        ?.attestation2
-
-            },
-
-            {
-                semester: 2,
-                attestation: 1,
-
-                period:
-                    settings
-                        .semester2
-                        ?.attestation1
-
-            },
-
-            {
-                semester: 2,
-                attestation: 2,
-
-                period:
-                    settings
-                        .semester2
-                        ?.attestation2
-
-            }
-
+            { semester: 1, attestation: 1, period: settings.semester1?.attestation1 },
+            { semester: 1, attestation: 2, period: settings.semester1?.attestation2 },
+            { semester: 2, attestation: 1, period: settings.semester2?.attestation1 },
+            { semester: 2, attestation: 2, period: settings.semester2?.attestation2 }
         ];
 
+        for (const item of periods) {
 
-        for (
-            const item of periods
-        ) {
+            if (!item.period?.start || !item.period?.end) continue;
 
-            if (
-                !item.period?.start ||
-                !item.period?.end
-            ) {
+            const start = new Date(item.period.start + "T00:00:00");
+            const end = new Date(item.period.end + "T23:59:59");
 
-                continue;
-
-            }
-
-
-            const start =
-                new Date(
-                    item.period.start +
-                    "T00:00:00"
-                );
-
-
-            const end =
-                new Date(
-                    item.period.end +
-                    "T23:59:59"
-                );
-
-
-            if (
-                date >= start &&
-                date <= end
-            ) {
-
+            if (date >= start && date <= end) {
                 return item;
-
             }
-
         }
 
-
         return null;
-
     }
 
 
@@ -4426,47 +2855,23 @@
     // AUTH STATE
     // =========================================
 
-    onAuthStateChanged(
-        auth,
-        user => {
+    onAuthStateChanged(auth, user => {
 
-            if (!user) {
-
-                console.warn(
-                    "Пользователь не авторизован. Перенаправление на страницу входа."
-                );
-
-                window.location.href =
-                    "login.html";
-
-                return;
-
-            }
-
-            console.log(
-                "Авторизован:",
-                user.uid
-            );
-
-            document.body.classList.remove(
-                "auth-pending"
-            );
-
-            const overlay =
-                document.getElementById(
-                    "authGuardOverlay"
-                );
-
-            if (overlay) {
-
-                overlay.remove();
-
-            }
-
-            start();
-
+        if (!user) {
+            console.warn("Пользователь не авторизован. Перенаправление на login.html");
+            window.location.href = "login.html";
+            return;
         }
-    );
+
+        console.log("Авторизован:", user.uid);
+
+        document.body.classList.remove("auth-pending");
+
+        const overlay = document.getElementById("authGuardOverlay");
+        if (overlay) overlay.remove();
+
+        start();
+    });
 
 </script>
 

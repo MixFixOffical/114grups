@@ -311,7 +311,7 @@ header{
         <div class="icon">⛔</div>
         <h2>Доступ запрещён</h2>
         <p>Роль «студент» не имеет доступа к настройкам системы.</p>
-        <button class="save-button" onclick="goBack()">← Вернуться назад</button>
+        <button class="save-button" onclick="goHomeByRole()">← Вернуться назад</button>
     </div>
 </div>
 
@@ -825,7 +825,14 @@ async function initializeForUser(user){
 
         console.log("📋 role normalized:", role);
 
-        if(role === "student" || !["admin","curator"].includes(role)){
+        // Студента сразу отправляем на home.html
+        if(role === "student"){
+            window.location.href = "home.html";
+            return;
+        }
+
+        // Неизвестная роль — показываем заглушку
+        if(!["admin","curator"].includes(role)){
             document.getElementById("mainContent").style.display = "none";
             document.getElementById("accessDenied").style.display = "block";
             document.getElementById("loaderText").textContent = "Доступ запрещён";
@@ -862,6 +869,29 @@ async function initializeForUser(user){
     }
 }
 
+/* ==================== ПЕРЕХОД НА ГЛАВНУЮ ПО РОЛИ ==================== */
+function goHomeByRole(){
+    const r = String(role || "").toLowerCase().trim();
+    console.log("🏠 goHomeByRole, role =", r);
+
+    if(["admin","administrator","администратор"].includes(r)){
+        window.location.href = "adminhome.html";
+    } else if(["curator","куратор"].includes(r)){
+        window.location.href = "home.html";
+    } else if(["student","студент"].includes(r)){
+        window.location.href = "home.html";
+    } else {
+        // Если роль ещё не определена — пробуем определить по userData
+        const raw = String(userData?.role || "").toLowerCase().trim();
+        if(["admin","administrator","администратор"].includes(raw)){
+            window.location.href = "adminhome.html";
+        } else {
+            window.location.href = "home.html";
+        }
+    }
+}
+window.goHomeByRole = goHomeByRole;
+
 /* ==================== ОБРАБОТЧИКИ ==================== */
 document.getElementById("groupSelect").addEventListener("change", async e => {
     const newId = e.target.value;
@@ -887,7 +917,7 @@ document.querySelectorAll(".nav-btn").forEach(btn => {
 });
 
 window.goBack = function(){
-    window.location.href = "index.html";
+    goHomeByRole();
 };
 
 /* ==================== ЗАПУСК ==================== */

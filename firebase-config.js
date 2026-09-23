@@ -3,7 +3,7 @@ import { getFirestore } from "https://www.gstatic.com/firebasejs/12.0.0/firebase
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
 const firebaseConfig = {
-    apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+    apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxFjU",
     authDomain: "othets-1aa03.firebaseapp.com",
     projectId: "othets-1aa03",
     storageBucket: "othets-1aa03.firebasestorage.app",
@@ -12,10 +12,6 @@ const firebaseConfig = {
     measurementId: "G-F50WVZRXZJ"
 };
 
-firebase.initializeApp(firebaseConfig);
-
-
+const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 export const auth = getAuth(app);
-export { app };
-export default firebaseConfig;

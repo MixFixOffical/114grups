@@ -127,7 +127,6 @@
             to { transform: rotate(360deg); }
         }
 
-        /* Пока идёт проверка авторизации — контент страницы скрыт */
         body.auth-pending > header,
         body.auth-pending > .container {
             display: none !important;
@@ -1341,7 +1340,6 @@
     }
     from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 
-    // Firebase Authentication
     import {
         getAuth,
         onAuthStateChanged
@@ -1671,7 +1669,6 @@
     // RBAC / ГРУППЫ
     // =========================================
 
-    // "ПЕТРОВА АННА ПЕТРОВНА" -> "Петрова А.П"
     function toShortFio(fullName) {
 
         const parts =
@@ -1727,8 +1724,6 @@
     }
 
 
-    // Загружает роль пользователя и список групп,
-    // к которым у него есть доступ (RBAC).
     async function loadUserAndGroups() {
 
         currentUid =
@@ -1793,8 +1788,6 @@
         }
         else {
 
-            // Староста: ищем группу и по полю starostaId,
-            // и по устаревшему leaderId (для совместимости)
             const [snapA, snapB] =
                 await Promise.all([
                     getDocs(
@@ -1833,8 +1826,6 @@
                 );
 
 
-        // Пытаемся сохранить ранее выбранную группу,
-        // если она всё ещё доступна пользователю
         const remembered =
             sessionStorage.getItem(
                 "selectedGroupId"
@@ -1861,7 +1852,6 @@
     }
 
 
-    // Рисует переключатель группы + поле ФИО куратора
     function renderGroupSwitcher() {
 
         const slot =
@@ -1929,8 +1919,6 @@
     }
 
 
-    // Обновляет поле ФИО куратора для печати —
-    // редактируемое только у администратора
     function updateCuratorNameField() {
 
         const curatorInput =
@@ -1975,7 +1963,8 @@
         };
 
 
-    // Переключение группы в дропдауне без перезагрузки страницы
+    // Переключение группы без перезагрузки
+    // === ИЗМЕНЕНО: добавлен loadSettings() ===
     window.switchGroup =
         async function (groupId) {
 
@@ -2002,6 +1991,8 @@
                     "Загрузка группы..."
                 );
 
+                // === ИЗМЕНЕНО: сначала настройки группы ===
+                await loadSettings();
                 await loadStudents();
                 await loadAttendance();
 
@@ -2028,10 +2019,23 @@
 
 
     // =========================================
-    // LOAD SETTINGS
+    // === ИЗМЕНЕНО ===
+    // LOAD SETTINGS из groupSettings/{currentGroupId}
     // =========================================
 
     async function loadSettings() {
+
+        settings = {
+            schedule: {},
+            disciplines: {},
+            bells: {},
+            semester1: {},
+            semester2: {}
+        };
+
+        if (!currentGroupId) {
+            return;
+        }
 
         try {
 
@@ -2039,36 +2043,38 @@
                 await getDoc(
                     doc(
                         db,
-                        "settings",
-                        "main"
+                        "groupSettings",
+                        currentGroupId
                     )
                 );
 
 
-            if (
-                snapshot.exists()
-            ) {
+            if (snapshot.exists()) {
 
-                settings =
-                    snapshot.data();
+                const data =
+                    snapshot.data() || {};
+
+                settings = {
+                    schedule: data.schedule || {},
+                    disciplines: data.disciplines || {},
+                    bells: data.bells || {},
+                    semester1: data.semester1 || {},
+                    semester2: data.semester2 || {}
+                };
+
+                console.log(
+                    "📥 groupSettings загружены:",
+                    currentGroupId,
+                    settings
+                );
 
             }
             else {
 
-                settings = {
-
-                    schedule: {
-
-                        "Понедельник": 5,
-                        "Вторник": 5,
-                        "Среда": 5,
-                        "Четверг": 5,
-                        "Пятница": 5,
-                        "Суббота": 5
-
-                    }
-
-                };
+                console.warn(
+                    "⚠ groupSettings не найдены для",
+                    currentGroupId
+                );
 
             }
 
@@ -2079,23 +2085,6 @@
                 "Ошибка загрузки настроек:",
                 error
             );
-
-
-            settings = {
-
-                schedule: {
-
-                    "Понедельник": 5,
-                    "Вторник": 5,
-                    "Среда": 5,
-                    "Четверг": 5,
-                    "Пятница": 5,
-                    "Суббота": 5
-
-                }
-
-            };
-
 
             showStatus(
                 "Не удалось загрузить настройки"
@@ -2274,7 +2263,15 @@
 
 
     // =========================================
+    // === ИЗМЕНЕНО ===
     // LOAD ATTENDANCE
+    //
+    // Стратегия:
+    // 1. Пытаемся фильтровать по groupId.
+    // 2. Если пусто — fallback по studentId
+    //    (для ЛЮБОЙ роли, не только админа).
+    // 3. Если и это пусто — берём все документы
+    //    и фильтруем по studentId из текущей группы.
     // =========================================
 
     async function loadAttendance() {
@@ -2289,70 +2286,75 @@
             }
 
 
-            let snapshot =
-                await getDocs(
-                    query(
-                        collection(
-                            db,
-                            "attendance"
-                        ),
-                        where(
-                            "groupId",
-                            "==",
-                            currentGroupId
+            let docs = [];
+
+
+            // --- 1. По groupId ---
+
+            try {
+
+                const snapshot =
+                    await getDocs(
+                        query(
+                            collection(db, "attendance"),
+                            where("groupId", "==", currentGroupId)
                         )
-                    )
+                    );
+
+                docs = snapshot.docs;
+
+            }
+            catch (error) {
+
+                console.warn(
+                    "Фильтр по groupId не сработал:",
+                    error
                 );
 
+                docs = [];
 
-            // Резервный путь только для администратора:
-            // старые записи посещаемости могли быть созданы
-            // до появления поля groupId. Такие записи не пройдут
-            // фильтр выше, поэтому админ может дозагрузить всё
-            // и отфильтровать по списку студентов текущей группы.
-            if (
-                snapshot.empty &&
-                userRole === "admin" &&
-                students.length > 0
-            ) {
+            }
+
+
+            // --- 2. Fallback по studentId (для всех ролей) ---
+
+            if (docs.length === 0 && students.length > 0) {
+
+                console.log(
+                    "⚠ Fallback: фильтруем attendance по studentId"
+                );
 
                 const studentIds =
                     new Set(
-                        students.map(
-                            s => String(s.id)
-                        )
+                        students.map(s => String(s.id))
                     );
 
 
                 const fullSnapshot =
                     await getDocs(
-                        collection(
-                            db,
-                            "attendance"
-                        )
+                        collection(db, "attendance")
                     );
 
 
-                const filteredDocs =
+                docs =
                     fullSnapshot.docs.filter(
                         d =>
                             studentIds.has(
-                                String(
-                                    d.data().studentId
-                                )
+                                String(d.data().studentId)
                             )
                     );
 
-
-                snapshot = {
-                    forEach: cb =>
-                        filteredDocs.forEach(cb)
-                };
+                console.log(
+                    "📥 Fallback нашёл документов:",
+                    docs.length
+                );
 
             }
 
 
-            snapshot.forEach(
+            // --- 3. Разбираем документы ---
+
+            docs.forEach(
                 attendanceDoc => {
 
                     const data =
@@ -2544,13 +2546,37 @@
             days[dayIndex];
 
 
-        const count =
-            Number(
-                schedule[day] || 0
-            );
+        const value =
+            schedule[day];
 
 
-        return count;
+        if (
+            value === undefined ||
+            value === null
+        ) {
+            return 0;
+        }
+
+
+        if (Array.isArray(value)) {
+            return value.length;
+        }
+
+
+        if (typeof value === "object") {
+
+            if (Array.isArray(value.lessons)) {
+                return value.lessons.length;
+            }
+
+            if (typeof value.count !== "undefined") {
+                return Number(value.count) || 0;
+            }
+
+        }
+
+
+        return Number(value) || 0;
 
     }
 
@@ -3716,8 +3742,6 @@
         }
 
 
-        // Заполняем шапку и подпись печатной формы
-        // актуальными данными выбранной группы
         const group = getCurrentGroup();
 
         const printGroupNameEl =
@@ -4057,12 +4081,10 @@
 
             try {
 
-                // Получаем текущего авторизованного пользователя
                 const user =
                     auth.currentUser;
 
 
-                // Если пользователь не авторизован
                 if (!user) {
 
                     window.location.href =
@@ -4073,7 +4095,6 @@
                 }
 
 
-                // Получаем users/{uid}
                 const userDoc =
                     await getDoc(
                         doc(
@@ -4084,13 +4105,11 @@
                     );
 
 
-                // Проверяем роль
                 if (
                     userDoc.exists() &&
                     userDoc.data().role === "admin"
                 ) {
 
-                    // Администратор
                     window.location.href =
                         "adminhome.html";
 
@@ -4099,8 +4118,6 @@
                 }
 
 
-                // Все остальные роли
-                // считаем студентом
                 window.location.href =
                     "home.html";
 
@@ -4113,8 +4130,6 @@
                 );
 
 
-                // При ошибке отправляем
-                // на обычную страницу студента
                 window.location.href =
                     "home.html";
 
@@ -4224,10 +4239,9 @@
             }
 
 
+            // === ИЗМЕНЕНО: сначала настройки группы ===
             await loadSettings();
-
             await loadStudents();
-
             await loadAttendance();
 
 
@@ -4422,8 +4436,6 @@
                     "Пользователь не авторизован. Перенаправление на страницу входа."
                 );
 
-                // Без авторизации открыть страницу нельзя —
-                // сразу отправляем на login.html
                 window.location.href =
                     "login.html";
 
@@ -4436,8 +4448,6 @@
                 user.uid
             );
 
-            // Пользователь подтверждён — показываем страницу
-            // и только теперь запускаем загрузку данных
             document.body.classList.remove(
                 "auth-pending"
             );

@@ -315,15 +315,36 @@ header{
     </div>
 </div>
 
-<script type="module">
-import { db, auth } from "./firebase-config.js";
-import {
-    doc, getDoc, setDoc, collection, getDocs
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-import {
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+<!-- ============================================================ -->
+<!-- Firebase COMPAT (v10)                                        -->
+<!-- ============================================================ -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
 
+<!-- ============================================================ -->
+<!-- Инициализация Firebase                                       -->
+<!-- ============================================================ -->
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxFjU",
+    authDomain: "othets-1aa03.firebaseapp.com",
+    projectId: "othets-1aa03",
+    storageBucket: "othets-1aa03.firebasestorage.app",
+    messagingSenderId: "528392191591",
+    appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+    measurementId: "G-F50WVZRXZJ"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const auth = firebase.auth();
+</script>
+
+<!-- ============================================================ -->
+<!-- Основная логика                                              -->
+<!-- ============================================================ -->
+<script>
 /* ==================== КОНСТАНТЫ ==================== */
 const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 
@@ -343,9 +364,7 @@ const defaultBells = {
 let currentUser = null;
 let userData = null;
 let role = "";
-// allowedGroups — массив объектов { id, name }
-let allowedGroups = [];
-// selectedGroupId — ID документа из коллекции groups
+let allowedGroups = [];      // [{ id, name }]
 let selectedGroupId = "";
 let selectedGroupName = "";
 let schedule = {};
@@ -408,20 +427,18 @@ function getLessonWord(count){
 
 /* ==================== ЗАГРУЗКА ГРУПП ==================== */
 async function loadAllowedGroups(){
-    const groupsMap = new Map(); // id -> name
+    const groupsMap = new Map();
 
     if(role === "admin"){
-        // Админ видит ВСЕ группы из коллекции "groups"
-        const snap = await getDocs(collection(db, "groups"));
+        const snap = await db.collection("groups").get();
         snap.forEach(d => {
             const data = d.data() || {};
             const name = normalizeGroupValue(data.name || data.group || d.id);
             if(name) groupsMap.set(d.id, name);
         });
-        // Резервный вариант — если groups пуста, пробуем groupSettings
         if(groupsMap.size === 0){
             try {
-                const gs = await getDocs(collection(db, "groupSettings"));
+                const gs = await db.collection("groupSettings").get();
                 gs.forEach(d => {
                     const data = d.data() || {};
                     const name = normalizeGroupValue(data.group || data.name || d.id);
@@ -430,8 +447,7 @@ async function loadAllowedGroups(){
             } catch(e){ console.warn("groupSettings fallback error:", e); }
         }
     } else if(role === "curator"){
-        // Куратор видит только свои группы (curatorId === uid)
-        const snap = await getDocs(collection(db, "groups"));
+        const snap = await db.collection("groups").get();
         snap.forEach(d => {
             const data = d.data() || {};
             const curatorId = data.curatorId || data.curator || "";
@@ -440,8 +456,6 @@ async function loadAllowedGroups(){
                 if(name) groupsMap.set(d.id, name);
             }
         });
-        // Плюс — если в профиле указаны groups/curatorGroups по названиям,
-        // попробуем найти их в groups по name
         const profileGroups = extractUserGroups(userData);
         if(profileGroups.length){
             snap.forEach(d => {
@@ -459,7 +473,7 @@ async function loadAllowedGroups(){
         .sort((a, b) => a.name.localeCompare(b.name, "ru"));
 }
 
-/* ==================== РЕНДЕР СЕЛЕКТА ГРУПП ==================== */
+/* ==================== РЕНДЕР СЕЛЕКТА ==================== */
 function renderGroupSelect(){
     const select = document.getElementById("groupSelect");
     select.innerHTML = "";
@@ -520,7 +534,7 @@ function applyRoleUI(){
     }
 }
 
-/* ==================== ЗАГРУЗКА НАСТРОЕК ГРУППЫ ==================== */
+/* ==================== ЗАГРУЗКА НАСТРОЕК ==================== */
 async function loadGroupSettings(){
     resetLocalSettings();
 
@@ -530,8 +544,8 @@ async function loadGroupSettings(){
     }
 
     try {
-        const snap = await getDoc(doc(db, "groupSettings", selectedGroupId));
-        if(snap.exists()){
+        const snap = await db.collection("groupSettings").doc(selectedGroupId).get();
+        if(snap.exists){
             const data = snap.data() || {};
             if(data.schedule) schedule = {...schedule, ...data.schedule};
             if(data.disciplines) disciplines = {...disciplines, ...data.disciplines};
@@ -546,7 +560,7 @@ async function loadGroupSettings(){
     renderAll();
 }
 
-/* ==================== РЕНДЕР РАСПИСАНИЯ (кол-во пар) ==================== */
+/* ==================== РЕНДЕР РАСПИСАНИЯ ==================== */
 function renderSchedule(){
     const container = document.getElementById("scheduleContainer");
     container.innerHTML = "";
@@ -616,277 +630,4 @@ function renderDisciplines(){
         title.textContent = day;
         block.appendChild(title);
 
-        for(let i = 0; i < count; i++){
-            const row = document.createElement("div");
-            row.className = "discipline-row";
-            row.innerHTML = `<div class="discipline-number">${i + 1} пара</div>`;
-
-            const field = document.createElement("input");
-            field.type = "text";
-            field.placeholder = "Введите дисциплину...";
-            field.value = disciplines[day][i] || "";
-            field.addEventListener("input", () => disciplines[day][i] = field.value);
-
-            row.appendChild(field);
-            block.appendChild(row);
-        }
-        container.appendChild(block);
-    });
-
-    if(!container.innerHTML){
-        container.innerHTML = '<div class="empty">Сначала добавьте пары в разделе «Пары».</div>';
-    }
-}
-
-/* ==================== РЕНДЕР ЗВОНКОВ ==================== */
-function renderBells(){
-    const container = document.getElementById("bellsContainer");
-    container.innerHTML = "";
-
-    const maxLessons = Math.max(...days.map(day => Number(schedule[day] || 0)), 0);
-    if(!maxLessons){
-        container.innerHTML = '<div class="empty">Сначала добавьте пары в разделе «Пары».</div>';
-        return;
-    }
-
-    const note = document.createElement("div");
-    note.className = "readonly-note";
-    note.textContent = "Время звонков является общесистемной настройкой и доступно только администратору.";
-    container.appendChild(note);
-
-    const block = document.createElement("div");
-    block.className = "call-day";
-
-    const title = document.createElement("div");
-    title.className = "call-day-title";
-    title.textContent = "Общее время звонков";
-    block.appendChild(title);
-
-    for(let i = 1; i <= maxLessons; i++){
-        if(!bells[i]) bells[i] = {start:"", end:""};
-
-        const row = document.createElement("div");
-        row.className = "call-row";
-
-        const number = document.createElement("div");
-        number.className = "call-number";
-        number.textContent = `${i} пара`;
-
-        const start = document.createElement("input");
-        start.type = "time";
-        start.value = bells[i].start || "";
-        start.disabled = role !== "admin";
-        start.addEventListener("input", () => bells[i].start = start.value);
-
-        const end = document.createElement("input");
-        end.type = "time";
-        end.value = bells[i].end || "";
-        end.disabled = role !== "admin";
-        end.addEventListener("input", () => bells[i].end = end.value);
-
-        row.append(number, start, end);
-        block.appendChild(row);
-    }
-    container.appendChild(block);
-}
-
-/* ==================== РЕНДЕР СЕМЕСТРОВ ==================== */
-function renderSemesters(){
-    const ids = [
-        ["sem1att1start", semester1.attestation1?.start], ["sem1att1end", semester1.attestation1?.end],
-        ["sem1att2start", semester1.attestation2?.start], ["sem1att2end", semester1.attestation2?.end],
-        ["sem2att1start", semester2.attestation1?.start], ["sem2att1end", semester2.attestation1?.end],
-        ["sem2att2start", semester2.attestation2?.start], ["sem2att2end", semester2.attestation2?.end]
-    ];
-    ids.forEach(([id, val]) => {
-        const el = document.getElementById(id);
-        if(el) el.value = val || "";
-    });
-}
-
-/* ==================== ОБЩИЙ РЕНДЕР ==================== */
-function renderAll(){
-    updateGroupLabels();
-    renderSchedule();
-    renderDisciplines();
-    renderBells();
-    renderSemesters();
-}
-
-/* ==================== СОХРАНЕНИЕ ==================== */
-async function saveSettings(){
-    if(!selectedGroupId){ alert("Сначала выберите группу."); return; }
-    if(role !== "admin" && role !== "curator") return;
-
-    const msgIds = role === "curator"
-        ? ["scheduleMessage", "disciplineMessage"]
-        : ["scheduleMessage", "disciplineMessage", "planMessage", "bellsMessage"];
-
-    msgIds.forEach(id => {
-        const el = document.getElementById(id);
-        if(el){ el.textContent = "Сохранение..."; el.className = "message"; }
-    });
-
-    const payload = {
-        group: selectedGroupName,
-        groupId: selectedGroupId,
-        schedule,
-        disciplines,
-        updatedAt: new Date().toISOString()
-    };
-
-    if(role === "admin"){
-        payload.bells = bells;
-        payload.semester1 = {
-            attestation1: {
-                start: document.getElementById("sem1att1start").value,
-                end: document.getElementById("sem1att1end").value
-            },
-            attestation2: {
-                start: document.getElementById("sem1att2start").value,
-                end: document.getElementById("sem1att2end").value
-            }
-        };
-        payload.semester2 = {
-            attestation1: {
-                start: document.getElementById("sem2att1start").value,
-                end: document.getElementById("sem2att1end").value
-            },
-            attestation2: {
-                start: document.getElementById("sem2att2start").value,
-                end: document.getElementById("sem2att2end").value
-            }
-        };
-    }
-
-    try {
-        await setDoc(doc(db, "groupSettings", selectedGroupId), payload, {merge: true});
-
-        ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id => {
-            const el = document.getElementById(id);
-            if(el){ el.textContent = "✓ Настройки сохранены"; el.className = "message"; }
-        });
-        setTimeout(() => {
-            ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id => {
-                const el = document.getElementById(id);
-                if(el) el.textContent = "";
-            });
-        }, 2500);
-    } catch(error){
-        console.error(error);
-        ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id => {
-            const el = document.getElementById(id);
-            if(el){ el.textContent = "Ошибка сохранения"; el.className = "message error"; }
-        });
-        alert("Не удалось сохранить настройки.\n\n" + error.message);
-    }
-}
-
-/* ==================== ПРОВЕРКА БД ==================== */
-async function checkDatabase(){
-    try {
-        await getDoc(doc(db, "system", "connection"));
-        setDbStatus("Подключено", "online");
-    } catch(error){
-        console.error(error);
-        setDbStatus("Ошибка подключения", "error");
-    }
-}
-
-/* ==================== ИНИЦИАЛИЗАЦИЯ ==================== */
-async function initializeForUser(user){
-    currentUser = user;
-    try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        if(!snap.exists()) throw new Error("Профиль пользователя не найден: users/" + user.uid);
-
-        userData = snap.data() || {};
-        console.log("📋 userData:", userData);
-        console.log("📋 role raw:", userData.role);
-
-        role = String(userData.role || "").toLowerCase().trim();
-        if(["administrator","администратор"].includes(role)) role = "admin";
-        if(["куратор","curator"].includes(role)) role = "curator";
-        if(["student","студент"].includes(role)) role = "student";
-
-        console.log("📋 role normalized:", role);
-
-        if(role === "student" || !["admin","curator"].includes(role)){
-            document.getElementById("mainContent").style.display = "none";
-            document.getElementById("accessDenied").style.display = "block";
-            document.getElementById("loaderText").textContent = "Доступ запрещён";
-            setTimeout(() => document.getElementById("pageLoader").classList.add("hidden"), 250);
-            return;
-        }
-
-        await loadAllowedGroups();
-        console.log("📋 allowedGroups:", allowedGroups);
-
-        if(!allowedGroups.length){
-            throw new Error(role === "curator"
-                ? "За вашим аккаунтом не закреплена ни одна группа."
-                : "Не найдена ни одна группа. Проверьте коллекцию groups.");
-        }
-
-        selectedGroupId = allowedGroups[0].id;
-        selectedGroupName = allowedGroups[0].name;
-
-        renderGroupSelect();
-        applyRoleUI();
-        await loadGroupSettings();
-
-        document.getElementById("mainContent").style.display = "block";
-        checkDatabase();
-        setTimeout(() => document.getElementById("pageLoader").classList.add("hidden"), 250);
-    } catch(error){
-        console.error("❌ Ошибка инициализации:", error);
-        document.getElementById("mainContent").style.display = "none";
-        document.getElementById("accessDenied").style.display = "block";
-        document.querySelector("#accessDenied h2").textContent = "Не удалось открыть настройки";
-        document.querySelector("#accessDenied p").textContent = error.message;
-        setTimeout(() => document.getElementById("pageLoader").classList.add("hidden"), 250);
-    }
-}
-
-/* ==================== ОБРАБОТЧИКИ ==================== */
-document.getElementById("groupSelect").addEventListener("change", async e => {
-    const newId = e.target.value;
-    if(!newId || newId === selectedGroupId) return;
-
-    const group = allowedGroups.find(g => g.id === newId);
-    selectedGroupId = newId;
-    selectedGroupName = group ? group.name : "";
-
-    renderGroupSelect();
-    document.querySelectorAll(".message").forEach(el => el.textContent = "");
-    await loadGroupSettings();
-});
-
-document.querySelectorAll(".nav-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-        if(btn.classList.contains("disabled")) return;
-        document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-        document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-        btn.classList.add("active");
-        document.getElementById(btn.dataset.section).classList.add("active");
-    });
-});
-
-window.goBack = function(){
-    window.location.href = "index.html";
-};
-
-/* ==================== ЗАПУСК ==================== */
-let initialized = false;
-onAuthStateChanged(auth, user => {
-    if(initialized) return;
-    if(user){
-        initialized = true;
-        initializeForUser(user);
-    } else {
-        window.location.href = "login.html";
-    }
-});
-</script>
-</body>
-</html>
+        for(let i = 

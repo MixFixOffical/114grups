@@ -37,6 +37,9 @@
     --indigo: #4f46e5;
     --indigo-light: #eef2ff;
 
+    --rose: #e11d48;
+    --rose-light: #fff1f2;
+
     --red: #dc2626;
     --red-light: #fef2f2;
 
@@ -46,20 +49,22 @@
 
     --surface: #ffffff;
     --surface-2: #f8fafc;
+    --surface-3: #f1f5f9;
     --border: #e6ebf3;
     --border-soft: #eef2f7;
 
-    --sidebar-w: 260px;
-    --topbar-h: 68px;
+    --sidebar-w: 264px;
+    --topbar-h: 64px;
 
-    --shadow-sm: 0 1px 2px rgba(15, 23, 42, .05);
-    --shadow-md: 0 8px 24px -10px rgba(15, 23, 42, .12);
-    --shadow-lg: 0 24px 60px -20px rgba(15, 23, 42, .2);
-    --shadow-xl: 0 40px 80px -24px rgba(15, 23, 42, .26);
+    --shadow-xs: 0 1px 2px rgba(15, 23, 42, .04);
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, .06), 0 1px 2px rgba(15, 23, 42, .04);
+    --shadow-md: 0 10px 24px -10px rgba(15, 23, 42, .14);
+    --shadow-lg: 0 24px 60px -20px rgba(15, 23, 42, .22);
+    --shadow-xl: 0 40px 80px -24px rgba(15, 23, 42, .28);
 
-    --radius-lg: 20px;
-    --radius-md: 14px;
-    --radius-sm: 10px;
+    --radius-lg: 22px;
+    --radius-md: 16px;
+    --radius-sm: 12px;
 
     --ease: cubic-bezier(.22, 1, .36, 1);
     --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
@@ -74,16 +79,14 @@ body {
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 
     color: var(--text);
-
     background: #f4f6fb;
-
     overflow-x: auto;
 
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, .brand-title, .section-title, .page-title, .card-title, .hero-clock-time {
+h1, h2, .brand-title, .section-title, .page-title, .card-title, .hero-clock-time, .stat-value {
     font-family: "Plus Jakarta Sans", "Inter", sans-serif;
 }
 
@@ -125,9 +128,7 @@ button { font-family: inherit; }
     display: flex;
     flex-direction: column;
 
-    background:
-        linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
-
+    background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
     border-right: 1px solid var(--border);
 
     padding: 22px 16px 18px;
@@ -145,26 +146,25 @@ button { font-family: inherit; }
 }
 
 .sidebar-logo {
-    width: 42px;
-    height: 42px;
+    width: 44px;
+    height: 44px;
     flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 13px;
+    border-radius: 14px;
     color: #fff;
 
     background: linear-gradient(135deg, #3b82f6 0%, #2454e8 55%, #1a3aa8 100%);
 
     box-shadow:
         0 1px 0 rgba(255,255,255,.4) inset,
-        0 8px 20px rgba(36, 84, 232, .32);
+        0 10px 22px rgba(36, 84, 232, .35);
 
     transition: transform .4s var(--ease-spring);
 }
 
 .sidebar-logo:hover { transform: rotate(-6deg) scale(1.06); }
-
 .sidebar-logo svg { width: 22px; height: 22px; }
 
 .sidebar-brand-text { display: flex; flex-direction: column; min-width: 0; }
@@ -206,27 +206,17 @@ button { font-family: inherit; }
 
 .sidebar-link {
     position: relative;
-
     display: flex;
     align-items: center;
     gap: 11px;
-
     padding: 10px 12px;
-
     border-radius: 11px;
-
     font-size: 13.5px;
     font-weight: 600;
-
     color: var(--text-secondary);
-
     cursor: pointer;
     text-decoration: none;
-
-    transition:
-        background .2s ease,
-        color .2s ease,
-        transform .2s var(--ease);
+    transition: background .2s ease, color .2s ease, transform .2s var(--ease);
 }
 
 .sidebar-link svg {
@@ -254,15 +244,30 @@ button { font-family: inherit; }
     background: var(--primary-light);
 }
 
+.sidebar-link.active::before {
+    content: "";
+    position: absolute;
+    left: -16px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 20px;
+    border-radius: 0 3px 3px 0;
+    background: var(--primary);
+}
+
 .sidebar-link.active svg { color: var(--primary); }
 
 .sidebar-link.nav-permissions:hover { color: var(--violet); background: var(--violet-light); }
 .sidebar-link.nav-permissions:hover svg { color: var(--violet); }
 .sidebar-link.nav-users:hover { color: var(--teal); background: var(--teal-light); }
 .sidebar-link.nav-users:hover svg { color: var(--teal); }
+.sidebar-link.nav-messages:hover { color: var(--rose); background: var(--rose-light); }
+.sidebar-link.nav-messages:hover svg { color: var(--rose); }
 
-/* Бейдж заявок */
-.permissions-badge {
+/* Бейджи */
+.permissions-badge,
+.messages-badge {
     min-width: 20px;
     height: 20px;
     padding: 0 6px;
@@ -272,12 +277,20 @@ button { font-family: inherit; }
     margin-left: auto;
     border-radius: 999px;
     color: #fff;
-    background: linear-gradient(135deg, #ef4444, #dc2626);
     font-size: 10.5px;
     font-weight: 800;
     line-height: 1;
-    box-shadow: 0 4px 12px rgba(220, 38, 38, .3);
     animation: badgeAppear .35s var(--ease);
+}
+
+.permissions-badge {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, .3);
+}
+
+.messages-badge {
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    box-shadow: 0 4px 12px rgba(225, 29, 72, .3);
 }
 
 @keyframes badgeAppear {
@@ -301,9 +314,30 @@ button { font-family: inherit; }
     background: #fee2e2;
 }
 
+.sidebar-link.nav-messages.has-unread {
+    color: var(--rose);
+    background: var(--rose-light);
+    box-shadow: 0 0 0 1px rgba(225, 29, 72, .08);
+}
+
+.sidebar-link.nav-messages.has-unread svg {
+    color: var(--rose);
+    animation: messageIconPulse 2.2s ease-in-out infinite;
+}
+
+.sidebar-link.nav-messages.has-unread:hover {
+    color: #be123c;
+    background: #ffe4e6;
+}
+
 @keyframes permissionIconPulse {
     0%, 100% { transform: scale(1); }
     50%      { transform: scale(1.12); }
+}
+
+@keyframes messageIconPulse {
+    0%, 100% { transform: scale(1) rotate(0deg); }
+    50%      { transform: scale(1.1) rotate(-6deg); }
 }
 
 .sidebar-footer {
@@ -326,8 +360,8 @@ button { font-family: inherit; }
 }
 
 .status-dot {
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--teal);
     box-shadow: 0 0 0 4px rgba(13, 148, 136, .13);
@@ -358,7 +392,6 @@ button { font-family: inherit; }
     position: sticky;
     top: 0;
     z-index: 40;
-
     height: var(--topbar-h);
 
     display: flex;
@@ -400,18 +433,105 @@ button { font-family: inherit; }
     gap: 10px;
 }
 
-/* Инлайн-статус в топбаре */
-.topbar-status {
+.topbar-btn {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 13px;
+    gap: 7px;
+    padding: 8px 13px;
+    border: 1px solid var(--border);
     border-radius: 999px;
+    background: #fff;
+    color: var(--text-secondary);
     font-size: 12px;
     font-weight: 600;
-    color: #0a7a5a;
-    background: var(--teal-light);
-    border: 1px solid rgba(13, 148, 136, .16);
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+    transition: color .2s ease, border-color .2s ease, box-shadow .25s ease, transform .2s var(--ease);
+}
+
+.topbar-btn svg {
+    width: 15px;
+    height: 15px;
+}
+
+.topbar-btn:hover {
+    color: var(--primary);
+    border-color: rgba(36, 84, 232, .3);
+    box-shadow: var(--shadow-sm);
+}
+
+.topbar-btn:active { transform: scale(.97); }
+
+/* Кнопка сообщений в топбаре (иконка) */
+.topbar-icon-btn {
+    position: relative;
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: #fff;
+    color: var(--text-secondary);
+    cursor: pointer;
+    box-shadow: var(--shadow-xs);
+    transition: color .2s ease, border-color .2s ease, box-shadow .25s ease, transform .25s var(--ease);
+}
+
+.topbar-icon-btn svg {
+    width: 17px;
+    height: 17px;
+}
+
+.topbar-icon-btn:hover {
+    color: var(--primary);
+    border-color: rgba(36, 84, 232, .3);
+    box-shadow: var(--shadow-sm);
+    transform: translateY(-1px);
+}
+
+.topbar-icon-btn:active { transform: translateY(0) scale(.96); }
+
+.topbar-icon-btn.has-unread {
+    color: var(--rose);
+    border-color: rgba(225, 29, 72, .3);
+}
+
+.topbar-icon-btn.has-unread svg {
+    animation: messageIconPulse 2.2s ease-in-out infinite;
+}
+
+/* Точка непрочитанного */
+.unread-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    border: 2px solid #fff;
+    box-shadow: 0 2px 6px rgba(225, 29, 72, .4);
+    display: none;
+    animation: badgeAppear .35s var(--ease);
+}
+
+.unread-dot.show { display: block; }
+
+.unread-dot::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 50%;
+    background: rgba(225, 29, 72, .4);
+    animation: dotPulse 2s ease-out infinite;
+    z-index: -1;
+}
+
+@keyframes dotPulse {
+    0%   { transform: scale(.9); opacity: .8; }
+    100% { transform: scale(2); opacity: 0; }
 }
 
 /* =========================================================
@@ -433,13 +553,13 @@ button { font-family: inherit; }
     font-size: 12.5px;
     font-weight: 600;
     color: var(--text);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-xs);
     transition: box-shadow .25s ease, border-color .25s ease;
 }
 
 .user-menu-button:hover {
     border-color: rgba(36, 84, 232, .3);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-sm);
 }
 
 .user-menu-button.open {
@@ -550,18 +670,37 @@ button { font-family: inherit; }
 .dropdown-item.danger:hover { background: var(--red-light); color: var(--red); }
 .dropdown-item.danger:hover svg { color: var(--red); }
 
+/* Пункт "Сообщения" в user-dropdown */
+.dropdown-item .item-badge {
+    margin-left: auto;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #f43f5e, #e11d48);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.dropdown-item .item-badge.show { display: flex; }
+
 /* =========================================================
-   PAGE CONTENT
+   PAGE
 ========================================================= */
 
 .page {
-    padding: 28px 36px 44px;
+    padding: 26px 36px 44px;
     max-width: 1400px;
     width: 100%;
 }
 
 /* =========================================================
-   HERO (compact)
+   HERO
 ========================================================= */
 
 .hero {
@@ -580,7 +719,7 @@ button { font-family: inherit; }
 
     box-shadow:
         0 1px 0 rgba(255,255,255,.18) inset,
-        0 24px 60px -20px rgba(36, 84, 232, .4);
+        0 24px 60px -20px rgba(36, 84, 232, .42);
 }
 
 .hero::before {
@@ -603,6 +742,39 @@ button { font-family: inherit; }
             mask-image: linear-gradient(120deg, #000 0%, transparent 55%);
     opacity: .55;
     pointer-events: none;
+}
+
+.hero-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.hero-particles span {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .7);
+    box-shadow: 0 0 10px rgba(255, 255, 255, .9);
+    animation: heroFloat 12s linear infinite;
+    opacity: 0;
+}
+
+.hero-particles span:nth-child(1) { left: 12%; bottom: 10%; animation-delay: 0s; }
+.hero-particles span:nth-child(2) { left: 28%; bottom: 5%;  animation-delay: 2s; }
+.hero-particles span:nth-child(3) { left: 44%; bottom: 12%; animation-delay: 4s; }
+.hero-particles span:nth-child(4) { left: 62%; bottom: 8%;  animation-delay: 6s; }
+.hero-particles span:nth-child(5) { left: 78%; bottom: 15%; animation-delay: 8s; }
+.hero-particles span:nth-child(6) { left: 90%; bottom: 6%;  animation-delay: 10s; }
+
+@keyframes heroFloat {
+    0%   { transform: translateY(0) scale(.6); opacity: 0; }
+    15%  { opacity: .8; }
+    50%  { transform: translateY(-120px) scale(1.1); opacity: .5; }
+    85%  { opacity: .25; }
+    100% { transform: translateY(-240px) scale(.5); opacity: 0; }
 }
 
 .hero-content { position: relative; z-index: 2; }
@@ -639,8 +811,8 @@ button { font-family: inherit; }
 .hero-clock {
     position: relative;
     z-index: 2;
-    width: 200px;
-    padding: 20px 18px;
+    width: 210px;
+    padding: 22px 20px;
     text-align: center;
     border-radius: 20px;
     background: rgba(255,255,255,.13);
@@ -651,45 +823,57 @@ button { font-family: inherit; }
         0 10px 28px rgba(15, 23, 42, .12);
 }
 
+.hero-clock::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 20%;
+    right: 20%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.9), transparent);
+}
+
 .hero-clock-label {
     margin-bottom: 6px;
     font-size: 11px;
     font-weight: 500;
-    opacity: .72;
+    opacity: .75;
     letter-spacing: .3px;
+    text-transform: uppercase;
 }
 
 .hero-clock-time {
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 700;
     font-variant-numeric: tabular-nums;
     letter-spacing: .5px;
+    text-shadow: 0 2px 12px rgba(0,0,0,.15);
 }
 
 .hero-clock-date {
     margin-top: 8px;
     font-size: 11.5px;
     line-height: 1.4;
-    color: rgba(255,255,255,.78);
+    color: rgba(255,255,255,.8);
 }
 
 /* =========================================================
-   INFO CARDS
+   STATS ROW
 ========================================================= */
 
-.info-grid {
+.stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 14px;
-    margin-bottom: 28px;
+    margin-bottom: 24px;
 }
 
-.info-card {
+.stat-card {
     position: relative;
     display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 16px 18px;
+    flex-direction: column;
+    gap: 10px;
+    padding: 18px 20px;
     overflow: hidden;
     border-radius: var(--radius-md);
     background: var(--surface);
@@ -698,62 +882,177 @@ button { font-family: inherit; }
     transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease);
 }
 
-.info-card::before {
+.stat-card::before {
     content: "";
     position: absolute;
     top: 0;
-    left: 18px;
-    right: 18px;
+    left: 20px;
+    right: 20px;
     height: 3px;
     border-radius: 0 0 3px 3px;
     opacity: 0;
     transition: opacity .3s ease;
 }
 
-.info-card:nth-child(1)::before { background: linear-gradient(90deg, transparent, #2454e8, transparent); }
-.info-card:nth-child(2)::before { background: linear-gradient(90deg, transparent, #0d9488, transparent); }
-.info-card:nth-child(3)::before { background: linear-gradient(90deg, transparent, #d97706, transparent); }
+.stat-card:nth-child(1)::before { background: linear-gradient(90deg, transparent, #2454e8, transparent); }
+.stat-card:nth-child(2)::before { background: linear-gradient(90deg, transparent, #0d9488, transparent); }
+.stat-card:nth-child(3)::before { background: linear-gradient(90deg, transparent, #7c3aed, transparent); }
+.stat-card:nth-child(4)::before { background: linear-gradient(90deg, transparent, #d97706, transparent); }
 
-.info-card:hover {
+.stat-card:hover {
     transform: translateY(-3px);
     box-shadow: var(--shadow-md);
     border-color: rgba(36, 84, 232, .18);
 }
 
-.info-card:hover::before { opacity: 1; }
+.stat-card:hover::before { opacity: 1; }
 
-.info-icon {
-    width: 44px;
-    height: 44px;
-    flex-shrink: 0;
+.stat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.stat-icon {
+    width: 40px;
+    height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 13px;
+    border-radius: 12px;
     box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
 }
 
-.info-icon svg { width: 20px; height: 20px; }
+.stat-icon svg { width: 20px; height: 20px; }
 
-.info-icon.blue   { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); color: var(--primary); }
-.info-icon.green  { background: linear-gradient(135deg, #ecfdf9 0%, #d1fae5 100%); color: var(--teal); }
-.info-icon.orange { background: linear-gradient(135deg, #fef8ec 0%, #fef3c7 100%); color: var(--amber); }
+.stat-icon.blue   { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); color: var(--primary); }
+.stat-icon.teal   { background: linear-gradient(135deg, #ecfdf9 0%, #d1fae5 100%); color: var(--teal); }
+.stat-icon.violet { background: linear-gradient(135deg, #f4f0ff 0%, #ede9fe 100%); color: var(--violet); }
+.stat-icon.amber  { background: linear-gradient(135deg, #fef8ec 0%, #fef3c7 100%); color: var(--amber); }
 
-.info-text { min-width: 0; }
-
-.info-title {
-    margin-bottom: 3px;
+.stat-label {
     font-size: 11.5px;
     font-weight: 500;
     color: var(--text-secondary);
 }
 
-.info-value {
-    font-size: 14px;
+.stat-value {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -.6px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.stat-value small {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-light);
+    letter-spacing: 0;
+    margin-left: 2px;
+}
+
+.stat-value.pending {
+    background: linear-gradient(90deg, #eef2f7 25%, #f6f8fc 50%, #eef2f7 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s linear infinite;
+    color: transparent;
+    border-radius: 6px;
+    min-width: 40px;
+    display: inline-block;
+}
+
+@keyframes shimmer {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.stat-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--teal);
+}
+
+.stat-trend.warn { color: var(--amber); }
+.stat-trend.muted { color: var(--text-light); }
+.stat-trend svg { width: 12px; height: 12px; }
+
+/* =========================================================
+   PROGRESS
+========================================================= */
+
+.progress-card {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 22px;
+    padding: 20px 24px;
+    margin-bottom: 26px;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+}
+
+.progress-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 13px;
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    color: var(--primary);
+    box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
+}
+
+.progress-icon svg { width: 22px; height: 22px; }
+
+.progress-body { min-width: 0; }
+
+.progress-title {
+    font-size: 13.5px;
     font-weight: 700;
-    white-space: nowrap;
+    margin-bottom: 6px;
+    color: var(--text);
+}
+
+.progress-track {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--surface-3);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, .04) inset;
     overflow: hidden;
-    text-overflow: ellipsis;
+}
+
+.progress-bar {
+    width: 0%;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #3b82f6, #2454e8, #7c3aed);
+    background-size: 200% 100%;
+    animation: progressShift 4s ease-in-out infinite;
+    transition: width .9s var(--ease);
+    box-shadow: 0 0 12px rgba(36, 84, 232, .4);
+}
+
+@keyframes progressShift {
+    0%, 100% { background-position: 0% 50%; }
+    50%      { background-position: 100% 50%; }
+}
+
+.progress-percent {
+    font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -.5px;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
 }
 
 /* =========================================================
@@ -780,7 +1079,7 @@ button { font-family: inherit; }
 }
 
 /* =========================================================
-   QUICK ACTIONS GRID (компактный, 3×2)
+   QUICK ACTIONS GRID
 ========================================================= */
 
 .menu {
@@ -794,20 +1093,15 @@ button { font-family: inherit; }
     display: flex;
     align-items: flex-start;
     gap: 14px;
-
     padding: 20px 18px;
-
     overflow: hidden;
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-
     background: var(--surface);
     color: var(--text);
     cursor: pointer;
     text-align: left;
-
     box-shadow: var(--shadow-sm);
-
     transition:
         transform .3s var(--ease),
         box-shadow .3s var(--ease),
@@ -831,6 +1125,7 @@ button { font-family: inherit; }
 .students::before   { background: linear-gradient(90deg, transparent, #7c3aed, transparent); }
 .groups::before     { background: linear-gradient(90deg, transparent, #4f46e5, transparent); }
 .settings::before   { background: linear-gradient(90deg, transparent, #d97706, transparent); }
+.messages::before   { background: linear-gradient(90deg, transparent, #e11d48, transparent); }
 
 .menu-button::after {
     content: "";
@@ -851,6 +1146,7 @@ button { font-family: inherit; }
 .students::after   { background: radial-gradient(circle at 50% 50%, rgba(124, 58, 237, .12), transparent 70%); }
 .groups::after     { background: radial-gradient(circle at 50% 50%, rgba(79, 70, 229, .12), transparent 70%); }
 .settings::after   { background: radial-gradient(circle at 50% 50%, rgba(217, 119, 6, .12), transparent 70%); }
+.messages::after   { background: radial-gradient(circle at 50% 50%, rgba(225, 29, 72, .12), transparent 70%); }
 
 .menu-button:hover {
     transform: translateY(-4px);
@@ -885,6 +1181,7 @@ button { font-family: inherit; }
 .students .icon   { background: linear-gradient(135deg, #f4f0ff 0%, #ede9fe 100%); color: var(--violet); }
 .groups .icon     { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); color: var(--indigo); }
 .settings .icon   { background: linear-gradient(135deg, #fef8ec 0%, #fef3c7 100%); color: var(--amber); }
+.messages .icon   { background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); color: var(--rose); }
 
 .button-content {
     position: relative;
@@ -931,6 +1228,12 @@ button { font-family: inherit; }
     color: var(--primary);
     background: var(--primary-light);
     border-color: rgba(36, 84, 232, .18);
+}
+
+.messages:hover .shortcut {
+    color: var(--rose);
+    background: var(--rose-light);
+    border-color: rgba(225, 29, 72, .18);
 }
 
 /* =========================================================
@@ -1041,10 +1344,7 @@ body.auth-pending aside { visibility: hidden; }
 
 <body class="auth-pending">
 
-<!-- =========================================================
-     ЗАГРУЗКА
-========================================================= -->
-
+<!-- LOADER -->
 <div class="page-loader" id="pageLoader">
     <div class="loader-content">
         <div class="loader-logo">
@@ -1062,14 +1362,10 @@ body.auth-pending aside { visibility: hidden; }
 
 <div class="app">
 
-    <!-- =====================================================
-         SIDEBAR
-    ====================================================== -->
-
+    <!-- SIDEBAR -->
     <aside class="sidebar">
 
         <div class="sidebar-brand">
-
             <div class="sidebar-logo">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                      stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1078,21 +1374,17 @@ body.auth-pending aside { visibility: hidden; }
                     <path d="M22 8v6"/>
                 </svg>
             </div>
-
             <div class="sidebar-brand-text">
                 <div class="brand-title">Посещаемость</div>
                 <div class="brand-subtitle">Админ-панель</div>
             </div>
-
         </div>
-
 
         <nav class="sidebar-nav">
 
             <!-- РАБОТА -->
             <div>
                 <div class="nav-group-title">Работа</div>
-
                 <div class="nav-list">
 
                     <a class="sidebar-link" onclick="openAttendance()">
@@ -1116,13 +1408,25 @@ body.auth-pending aside { visibility: hidden; }
                         Посещаемость
                     </a>
 
+                    <!-- СООБЩЕНИЯ -->
+                    <a class="sidebar-link nav-messages" id="messagesNav" onclick="openMessages()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            <path d="M8.5 11.5h.01"/>
+                            <path d="M12.5 11.5h.01"/>
+                            <path d="M16.5 11.5h.01"/>
+                        </svg>
+                        Сообщения
+                        <span class="messages-badge" id="messagesBadge">0</span>
+                    </a>
+
                 </div>
             </div>
 
             <!-- СПРАВОЧНИКИ -->
             <div>
                 <div class="nav-group-title">Справочники</div>
-
                 <div class="nav-list">
 
                     <a class="sidebar-link" onclick="openStudents()">
@@ -1153,7 +1457,6 @@ body.auth-pending aside { visibility: hidden; }
             <!-- УПРАВЛЕНИЕ -->
             <div>
                 <div class="nav-group-title">Управление</div>
-
                 <div class="nav-list">
 
                     <a class="sidebar-link nav-permissions" id="permissionsNav" onclick="openPermissions()">
@@ -1195,7 +1498,6 @@ body.auth-pending aside { visibility: hidden; }
 
         </nav>
 
-
         <div class="sidebar-footer">
             <div class="status-card">
                 <span class="status-dot"></span>
@@ -1206,10 +1508,7 @@ body.auth-pending aside { visibility: hidden; }
     </aside>
 
 
-    <!-- =====================================================
-         MAIN
-    ====================================================== -->
-
+    <!-- MAIN -->
     <div class="main">
 
         <!-- TOPBAR -->
@@ -1217,13 +1516,36 @@ body.auth-pending aside { visibility: hidden; }
 
             <div class="topbar-title">
                 <h1>Панель управления</h1>
-                <span id="today">Загрузка даты...</span>
+                <span>Центр администрирования</span>
             </div>
 
             <div class="topbar-actions">
 
-                <div class="user-menu" id="userMenu">
+                <!-- Кнопка сообщений в топбаре -->
+                <button class="topbar-icon-btn" id="topbarMessagesBtn" onclick="openMessages()" title="Сообщения">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                        <path d="M8.5 11.5h.01"/>
+                        <path d="M12.5 11.5h.01"/>
+                        <path d="M16.5 11.5h.01"/>
+                    </svg>
+                    <span class="unread-dot" id="topbarUnreadDot"></span>
+                </button>
 
+                <!-- Кнопка горячих клавиш -->
+                <button class="topbar-btn" onclick="openShortcuts()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="6" width="18" height="12" rx="2.5"/>
+                        <path d="M7 10h.01"/><path d="M11 10h.01"/>
+                        <path d="M15 10h.01"/><path d="M7 14h10"/>
+                    </svg>
+                    Клавиши
+                </button>
+
+                <!-- USER MENU -->
+                <div class="user-menu" id="userMenu">
                     <button class="user-menu-button" id="userMenuButton" onclick="toggleUserMenu()">
                         <span class="user-avatar" id="userAvatar">?</span>
                         <span id="userFio">Загрузка...</span>
@@ -1240,6 +1562,15 @@ body.auth-pending aside { visibility: hidden; }
                             <div class="dropdown-name" id="dropdownName">Пользователь</div>
                             <div class="dropdown-role">🛡️ Администратор</div>
                         </div>
+
+                        <button class="dropdown-item" onclick="openMessages()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            </svg>
+                            Сообщения
+                            <span class="item-badge" id="dropdownMessagesBadge">0</span>
+                        </button>
 
                         <button class="dropdown-item" onclick="openMyButtons()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1272,7 +1603,6 @@ body.auth-pending aside { visibility: hidden; }
                         </button>
 
                     </div>
-
                 </div>
 
             </div>
@@ -1286,9 +1616,14 @@ body.auth-pending aside { visibility: hidden; }
             <!-- HERO -->
             <section class="hero">
 
+                <div class="hero-particles">
+                    <span></span><span></span><span></span>
+                    <span></span><span></span><span></span>
+                </div>
+
                 <div class="hero-content">
                     <div class="hero-badge">🛡️ Администрирование</div>
-                    <h1>Добро пожаловать! 👋</h1>
+                    <h1 id="greeting">Добро пожаловать! 👋</h1>
                     <p>
                         Полный доступ: управляйте студентами, посещаемостью,
                         пользователями и разрешениями системы.
@@ -1304,50 +1639,90 @@ body.auth-pending aside { visibility: hidden; }
             </section>
 
 
-            <!-- INFO CARDS -->
-            <section class="info-grid">
+            <!-- STATS -->
+            <section class="stats-grid">
 
-                <div class="info-card">
-                    <div class="info-icon blue">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3.5" y="5" width="17" height="16" rx="3"/>
-                            <path d="M8 3v4"/><path d="M16 3v4"/><path d="M3.5 10h17"/>
-                        </svg>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="5" y="10.5" width="14" height="10" rx="2.5"/>
+                                <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+                                <circle cx="12" cy="15.5" r="1.4"/>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="info-text">
-                        <div class="info-title">Сегодня</div>
-                        <div class="info-value" id="todayCard">Загрузка...</div>
-                    </div>
+                    <div class="stat-label">Заявки на регистрацию</div>
+                    <div class="stat-value pending" id="statRequests">0</div>
                 </div>
 
-                <div class="info-card">
-                    <div class="info-icon green">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="m5 13 4 4L19 7"/>
-                        </svg>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon teal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                                <circle cx="11.5" cy="7.2" r="3"/>
+                                <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                                <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="info-text">
-                        <div class="info-title">Статус системы</div>
-                        <div class="info-value">Система активна</div>
-                    </div>
+                    <div class="stat-label">Всего студентов</div>
+                    <div class="stat-value pending" id="statStudents">0</div>
                 </div>
 
-                <div class="info-card">
-                    <div class="info-icon orange">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="8.5"/>
-                            <path d="M12 7.5V12l3 2"/>
-                        </svg>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon violet">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
                     </div>
-                    <div class="info-text">
-                        <div class="info-title">Текущее время</div>
-                        <div class="info-value" id="smallClock">00:00</div>
-                    </div>
+                    <div class="stat-label">Учебных групп</div>
+                    <div class="stat-value pending" id="statGroups">0</div>
                 </div>
 
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <div class="stat-icon amber">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-label">Новых сообщений</div>
+                    <div class="stat-value pending" id="statMessages">0</div>
+                </div>
+
+            </section>
+
+
+            <!-- PROGRESS -->
+            <section class="progress-card">
+                <div class="progress-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 20h18"/>
+                        <path d="M6 20V10"/>
+                        <path d="M12 20V4"/>
+                        <path d="M18 20v-7"/>
+                    </svg>
+                </div>
+                <div class="progress-body">
+                    <div class="progress-title">Активность системы</div>
+                    <div class="progress-track">
+                        <div class="progress-bar" id="activityBar"></div>
+                    </div>
+                </div>
+                <div class="progress-percent" id="activityPercent">0%</div>
             </section>
 
 
@@ -1361,7 +1736,6 @@ body.auth-pending aside { visibility: hidden; }
 
             <section class="menu">
 
-                <!-- 1. Отметить посещаемость -->
                 <button class="menu-button attendance" onclick="openAttendance()">
                     <span class="icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1380,7 +1754,6 @@ body.auth-pending aside { visibility: hidden; }
                     <span class="shortcut">1</span>
                 </button>
 
-                <!-- 2. Посещаемость (история) -->
                 <button class="menu-button history" onclick="openHistory()">
                     <span class="icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1400,7 +1773,6 @@ body.auth-pending aside { visibility: hidden; }
                     <span class="shortcut">2</span>
                 </button>
 
-                <!-- 3. Студенты -->
                 <button class="menu-button students" onclick="openStudents()">
                     <span class="icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1420,7 +1792,6 @@ body.auth-pending aside { visibility: hidden; }
                     <span class="shortcut">3</span>
                 </button>
 
-                <!-- 4. Группы -->
                 <button class="menu-button groups" onclick="openGroups()">
                     <span class="icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1440,7 +1811,6 @@ body.auth-pending aside { visibility: hidden; }
                     <span class="shortcut">4</span>
                 </button>
 
-                <!-- 5. Настройки -->
                 <button class="menu-button settings" onclick="openSettings()">
                     <span class="icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -1461,6 +1831,26 @@ body.auth-pending aside { visibility: hidden; }
                     <span class="shortcut">5</span>
                 </button>
 
+                <!-- СООБЩЕНИЯ -->
+                <button class="menu-button messages" onclick="openMessages()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            <path d="M8.5 11.5h.01"/>
+                            <path d="M12.5 11.5h.01"/>
+                            <path d="M16.5 11.5h.01"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Сообщения</span>
+                        <span class="button-description">
+                            Внутренние сообщения, уведомления и обращения от кураторов.
+                        </span>
+                    </span>
+                    <span class="shortcut">6</span>
+                </button>
+
             </section>
 
 
@@ -1479,23 +1869,34 @@ body.auth-pending aside { visibility: hidden; }
 
 
 <!-- TOAST -->
-
 <div class="toast" id="toast"></div>
 
 
-<!-- =========================================================
-     JAVASCRIPT (без изменений логики)
-========================================================= -->
-
 <script>
 
-function openAttendance() { window.location.href = "attendance.html"; }
-function openHistory()    { window.location.href = "history.html"; }
-function openStudents()   { window.location.href = "students.html"; }
-function openGroups()     { window.location.href = "groups.html"; }
-function openSettings()   { window.location.href = "settings.html"; }
-function openPermissions(){ window.location.href = "permissions.html"; }
-function openUsers()      { window.location.href = "users.html"; }
+/* =========================================================
+   НАВИГАЦИЯ
+========================================================= */
+
+function openAttendance()  { window.location.href = "attendance.html"; }
+function openHistory()     { window.location.href = "history.html"; }
+function openStudents()    { window.location.href = "students.html"; }
+function openGroups()      { window.location.href = "groups.html"; }
+function openSettings()    { window.location.href = "settings.html"; }
+function openPermissions() { window.location.href = "permissions.html"; }
+function openUsers()       { window.location.href = "users.html"; }
+function openMessages()    { window.location.href = "messages.html"; }
+function openMyButtons()   { window.location.href = "mybuttons.html"; }
+function openSecurity()    { window.location.href = "security.html"; }
+
+function openShortcuts() {
+    showToast("Клавиши: 1–5 — быстрые действия, 6 — Сообщения, 7 — Разрешения, 8 — Пользователи");
+}
+
+
+/* =========================================================
+   МЕНЮ ПОЛЬЗОВАТЕЛЯ
+========================================================= */
 
 function toggleUserMenu() {
     const menu = document.getElementById("userMenu");
@@ -1519,8 +1920,10 @@ document.addEventListener("keydown", function(event) {
     }
 });
 
-function openMyButtons() { window.location.href = "mybuttons.html"; }
-function openSecurity()  { window.location.href = "security.html"; }
+
+/* =========================================================
+   ВЫХОД
+========================================================= */
 
 function logout() {
     firebase.auth().signOut()
@@ -1528,46 +1931,61 @@ function logout() {
         .catch(function() { showToast("Не удалось выйти. Попробуйте снова."); });
 }
 
-/* ЧАСЫ */
+
+/* =========================================================
+   ЧАСЫ + ПРИВЕТСТВИЕ
+========================================================= */
+
 function updateClock() {
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, "0");
     const minutes = String(now.getMinutes()).padStart(2, "0");
     const seconds = String(now.getSeconds()).padStart(2, "0");
 
-    const fullTime = `${hours}:${minutes}:${seconds}`;
-    const shortTime = `${hours}:${minutes}`;
-
-    document.getElementById("clock").textContent = fullTime;
-    document.getElementById("smallClock").textContent = shortTime;
+    document.getElementById("clock").textContent = `${hours}:${minutes}:${seconds}`;
 
     const dateText = now.toLocaleDateString("ru-RU", {
         weekday: "long", day: "numeric", month: "long", year: "numeric"
     });
-    const formattedDate = dateText.charAt(0).toUpperCase() + dateText.slice(1);
+    document.getElementById("date").textContent =
+        dateText.charAt(0).toUpperCase() + dateText.slice(1);
 
-    document.getElementById("date").textContent = formattedDate;
+    /* Приветствие по времени суток */
+    const h = now.getHours();
+    let greet = "Доброй ночи";
+    let emoji = "🌙";
+    if (h >= 5 && h < 12)  { greet = "Доброе утро";  emoji = "☀️"; }
+    else if (h >= 12 && h < 18) { greet = "Добрый день";  emoji = "🌤️"; }
+    else if (h >= 18 && h < 23) { greet = "Добрый вечер"; emoji = "🌆"; }
 
-    /* Раньше обновлялся #today, но он теперь в топбаре.
-       Обновляем оба: #today (топбар) и #todayCard (карточка). */
-    const todayTop = document.getElementById("today");
-    if (todayTop) todayTop.textContent = formattedDate;
-
-    const todayCard = document.getElementById("todayCard");
-    if (todayCard) todayCard.textContent = formattedDate;
+    const g = document.getElementById("greeting");
+    if (g) g.textContent = `${greet}! ${emoji}`;
 }
 
-/* TOAST */
+
+/* =========================================================
+   TOAST
+========================================================= */
+
 let toastTimer;
 function showToast(message) {
     const toast = document.getElementById("toast");
     toast.textContent = message;
     toast.classList.add("show");
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => { toast.classList.remove("show"); }, 2500);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
 }
 
-/* ГОРЯЧИЕ КЛАВИШИ */
+
+/* =========================================================
+   ГОРЯЧИЕ КЛАВИШИ
+   Обновлённая раскладка:
+   1–5 — быстрые действия
+   6 — Сообщения
+   7 — Разрешения
+   8 — Пользователи
+========================================================= */
+
 document.addEventListener("keydown", function(event) {
     const tag = document.activeElement ? document.activeElement.tagName : "";
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
@@ -1577,24 +1995,35 @@ document.addEventListener("keydown", function(event) {
     if (event.key === "3") openStudents();
     if (event.key === "4") openGroups();
     if (event.key === "5") openSettings();
-    if (event.key === "6") openPermissions();
-    if (event.key === "7") openUsers();
+    if (event.key === "6") openMessages();
+    if (event.key === "7") openPermissions();
+    if (event.key === "8") openUsers();
 });
 
-/* ЗАГРУЗКА */
+
+/* =========================================================
+   ЗАГРУЗКА
+========================================================= */
+
 window.addEventListener("load", function() {
     updateClock();
     setInterval(updateClock, 1000);
 });
 
-/* СЧЁТЧИК ЗАЯВОК */
+
+/* =========================================================
+   СЧЁТЧИКИ (заявки + сообщения)
+========================================================= */
+
 let registrationRequestsUnsubscribe = null;
+let messagesUnsubscribe = null;
+
+/* ---------- ЗАЯВКИ НА РЕГИСТРАЦИЮ ---------- */
 
 function startRegistrationRequestsListener() {
     const badge = document.getElementById("permissionsBadge");
-    const permissionsNav = document.getElementById("permissionsNav");
-
-    if (!badge || !permissionsNav) return;
+    const nav = document.getElementById("permissionsNav");
+    if (!badge || !nav) return;
 
     if (typeof registrationRequestsUnsubscribe === "function") {
         registrationRequestsUnsubscribe();
@@ -1606,26 +2035,182 @@ function startRegistrationRequestsListener() {
         .onSnapshot(
             function(snapshot) {
                 const count = snapshot.size;
-                if (count > 0) {
-                    badge.textContent = count > 99 ? "99+" : String(count);
-                    badge.style.display = "flex";
-                    permissionsNav.classList.add("has-requests");
-                } else {
-                    badge.textContent = "0";
-                    badge.style.display = "none";
-                    permissionsNav.classList.remove("has-requests");
+                updateBadge(badge, nav, count, "has-requests");
+
+                /* Обновляем и в статистике */
+                const statEl = document.getElementById("statRequests");
+                if (statEl) {
+                    statEl.classList.remove("pending");
+                    statEl.textContent = count;
                 }
             },
             function(error) {
-                console.error("Ошибка счётчика запросов:", error);
-                badge.textContent = "0";
-                badge.style.display = "none";
-                permissionsNav.classList.remove("has-requests");
+                console.error("Ошибка счётчика заявок:", error);
+                updateBadge(badge, nav, 0, "has-requests");
             }
         );
 }
 
-/* АВТОРИЗАЦИЯ */
+/* ---------- СООБЩЕНИЯ ---------- */
+
+/*
+ * Слушаем коллекцию "messages" и считаем непрочитанные.
+ * Логика: если поле read != true — считаем непрочитанным.
+ * Если коллекции нет — просто 0, без ошибок.
+ */
+
+function startMessagesListener() {
+    const sidebarBadge = document.getElementById("messagesBadge");
+    const sidebarNav = document.getElementById("messagesNav");
+    const topbarDot = document.getElementById("topbarUnreadDot");
+    const dropdownBadge = document.getElementById("dropdownMessagesBadge");
+
+    if (typeof messagesUnsubscribe === "function") {
+        messagesUnsubscribe();
+        messagesUnsubscribe = null;
+    }
+
+    messagesUnsubscribe = firebase.firestore()
+        .collection("messages")
+        .where("read", "==", false)
+        .onSnapshot(
+            function(snapshot) {
+                const count = snapshot.size;
+
+                /* Сайдбар */
+                if (sidebarBadge) {
+                    if (count > 0) {
+                        sidebarBadge.textContent = count > 99 ? "99+" : String(count);
+                        sidebarBadge.style.display = "flex";
+                    } else {
+                        sidebarBadge.textContent = "0";
+                        sidebarBadge.style.display = "none";
+                    }
+                }
+                if (sidebarNav) {
+                    sidebarNav.classList.toggle("has-unread", count > 0);
+                }
+
+                /* Топбар — точка */
+                if (topbarDot) {
+                    topbarDot.classList.toggle("show", count > 0);
+                }
+
+                /* Dropdown */
+                if (dropdownBadge) {
+                    dropdownBadge.textContent = count > 99 ? "99+" : String(count);
+                    dropdownBadge.classList.toggle("show", count > 0);
+                }
+
+                /* Статистика */
+                const statEl = document.getElementById("statMessages");
+                if (statEl) {
+                    statEl.classList.remove("pending");
+                    statEl.textContent = count;
+                }
+
+                /* Обновляем прогресс-бар активности */
+                updateActivity();
+            },
+            function(error) {
+                /*
+                 * Если коллекции нет или прав нет —
+                 * тихо устанавливаем 0, без шума.
+                 */
+                console.warn("Счётчик сообщений недоступен:", error.code || error.message);
+
+                if (sidebarBadge) { sidebarBadge.textContent = "0"; sidebarBadge.style.display = "none"; }
+                if (sidebarNav)   sidebarNav.classList.remove("has-unread");
+                if (topbarDot)    topbarDot.classList.remove("show");
+                if (dropdownBadge){ dropdownBadge.textContent = "0"; dropdownBadge.classList.remove("show"); }
+
+                const statEl = document.getElementById("statMessages");
+                if (statEl) {
+                    statEl.classList.remove("pending");
+                    statEl.textContent = "0";
+                }
+            }
+        );
+}
+
+/* ---------- Универсальный апдейт бейджа ---------- */
+
+function updateBadge(badge, nav, count, activeClass) {
+    if (count > 0) {
+        badge.textContent = count > 99 ? "99+" : String(count);
+        badge.style.display = "flex";
+        if (nav) nav.classList.add(activeClass);
+    } else {
+        badge.textContent = "0";
+        badge.style.display = "none";
+        if (nav) nav.classList.remove(activeClass);
+    }
+}
+
+
+/* =========================================================
+   СТАТИСТИКА (студенты, группы)
+========================================================= */
+
+function loadCollectionCount(collectionName, elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    firebase.firestore()
+        .collection(collectionName)
+        .onSnapshot(
+            function(snapshot) {
+                el.classList.remove("pending");
+                el.textContent = snapshot.size;
+                updateActivity();
+            },
+            function(error) {
+                console.warn(`Коллекция "${collectionName}" недоступна:`, error.code || error.message);
+                el.classList.remove("pending");
+                el.textContent = "0";
+            }
+        );
+}
+
+
+/* =========================================================
+   ПРОГРЕСС АКТИВНОСТИ
+========================================================= */
+
+function updateActivity() {
+    /*
+     * Считаем "активность" как сумму очков:
+     * студенты + группы + заявки + сообщения
+     * Нормируем на условный максимум.
+     */
+
+    const getNum = id => {
+        const el = document.getElementById(id);
+        if (!el) return 0;
+        const n = parseInt(el.textContent, 10);
+        return isNaN(n) ? 0 : n;
+    };
+
+    const students = getNum("statStudents");
+    const groups   = getNum("statGroups");
+    const requests = getNum("statRequests");
+    const messages = getNum("statMessages");
+
+    const total = students + groups * 3 + requests * 2 + messages;
+    const max = 150; /* условный максимум */
+    const percent = Math.min(Math.round((total / max) * 100), 100);
+
+    const bar = document.getElementById("activityBar");
+    const label = document.getElementById("activityPercent");
+    if (bar) bar.style.width = percent + "%";
+    if (label) label.textContent = percent + "%";
+}
+
+
+/* =========================================================
+   АВТОРИЗАЦИЯ
+========================================================= */
+
 firebase.auth().onAuthStateChanged(function(user) {
     if (!user) {
         window.location.href = "index.html";
@@ -1648,12 +2233,21 @@ firebase.auth().onAuthStateChanged(function(user) {
             }
             document.getElementById("userAvatar").textContent = initials;
 
+            /* Запускаем все слушатели */
             startRegistrationRequestsListener();
+            startMessagesListener();
+            loadCollectionCount("students", "statStudents");
+            loadCollectionCount("groups", "statGroups");
         })
         .catch(function(error) {
             console.error("Ошибка загрузки профиля:", error);
             document.getElementById("userFio").textContent = "Пользователь";
+
+            /* Всё равно пробуем */
             startRegistrationRequestsListener();
+            startMessagesListener();
+            loadCollectionCount("students", "statStudents");
+            loadCollectionCount("groups", "statGroups");
         })
         .finally(function() {
             document.body.classList.remove("auth-pending");
@@ -1661,17 +2255,29 @@ firebase.auth().onAuthStateChanged(function(user) {
         });
 });
 
-/* ОШИБКИ */
+
+/* =========================================================
+   ОБРАБОТКА ОШИБОК
+========================================================= */
+
 window.addEventListener("error", function(event) {
     console.error("Ошибка на странице:", event.error || event.message);
     showToast("Произошла ошибка на странице");
 });
 
-/* ОЧИСТКА */
+
+/* =========================================================
+   ОЧИСТКА
+========================================================= */
+
 window.addEventListener("beforeunload", function() {
     if (typeof registrationRequestsUnsubscribe === "function") {
         registrationRequestsUnsubscribe();
         registrationRequestsUnsubscribe = null;
+    }
+    if (typeof messagesUnsubscribe === "function") {
+        messagesUnsubscribe();
+        messagesUnsubscribe = null;
     }
 });
 

@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=1100">
-<meta name="theme-color" content="#1e3a8a">
+<meta name="viewport" content="width=1280">
+<meta name="theme-color" content="#0b1220">
 <meta name="description" content="Современная система управления посещаемостью студентов">
 <title>Посещаемость — Панель управления</title>
 
@@ -11,7 +11,6 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-<!-- FIREBASE -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -19,14 +18,7 @@
 
 <style>
 
-/* =========================================================
-   ОСНОВНЫЕ НАСТРОЙКИ
-========================================================= */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
     --primary: #2454e8;
@@ -52,77 +44,38 @@
     --text-secondary: #5b6478;
     --text-light: #9aa3b5;
 
-    --surface: rgba(255, 255, 255, 0.9);
-    --border: rgba(220, 226, 238, 0.85);
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --border: #e6ebf3;
+    --border-soft: #eef2f7;
 
-    --shadow-sm:
-        0 1px 2px rgba(15, 23, 42, .05),
-        0 1px 1px rgba(15, 23, 42, .03);
+    --sidebar-w: 260px;
+    --topbar-h: 68px;
 
-    --shadow-md:
-        0 10px 24px -8px rgba(15, 23, 42, .10),
-        0 2px 6px rgba(15, 23, 42, .05);
+    --shadow-sm: 0 1px 2px rgba(15, 23, 42, .05);
+    --shadow-md: 0 8px 24px -10px rgba(15, 23, 42, .12);
+    --shadow-lg: 0 24px 60px -20px rgba(15, 23, 42, .2);
+    --shadow-xl: 0 40px 80px -24px rgba(15, 23, 42, .26);
 
-    --shadow-lg:
-        0 26px 50px -16px rgba(15, 23, 42, .16),
-        0 8px 18px -10px rgba(15, 23, 42, .08);
-
-    --shadow-xl:
-        0 40px 80px -24px rgba(15, 23, 42, .22),
-        0 12px 30px -12px rgba(15, 23, 42, .12);
-
-    --radius-lg: 30px;
-    --radius-md: 22px;
-    --radius-sm: 14px;
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 10px;
 
     --ease: cubic-bezier(.22, 1, .36, 1);
     --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
 }
 
-html {
-    scroll-behavior: smooth;
-    min-width: 1100px;
-}
+html { min-width: 1280px; scroll-behavior: smooth; }
 
 body {
-    min-width: 1100px;
+    min-width: 1280px;
     min-height: 100vh;
 
-    font-family:
-        "Inter",
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        Roboto,
-        Arial,
-        sans-serif;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
 
     color: var(--text);
 
-    background:
-        radial-gradient(
-            ellipse 900px 700px at 8% 0%,
-            rgba(36, 84, 232, .10),
-            transparent 45%
-        ),
-        radial-gradient(
-            ellipse 1000px 800px at 96% 14%,
-            rgba(124, 58, 237, .07),
-            transparent 42%
-        ),
-        radial-gradient(
-            ellipse 700px 600px at 50% 100%,
-            rgba(13, 148, 136, .05),
-            transparent 50%
-        ),
-        linear-gradient(
-            160deg,
-            #f9fafc 0%,
-            #f4f6fb 45%,
-            #eef1f9 100%
-        );
-
-    background-attachment: fixed;
+    background: #f4f6fb;
 
     overflow-x: auto;
 
@@ -130,21 +83,11 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-h1,
-h2,
-.brand-title,
-.section-title,
-.button-title,
-.hero-clock-time {
-    font-family:
-        "Plus Jakarta Sans",
-        "Inter",
-        sans-serif;
+h1, h2, .brand-title, .section-title, .page-title, .card-title, .hero-clock-time {
+    font-family: "Plus Jakarta Sans", "Inter", sans-serif;
 }
 
-button {
-    font-family: inherit;
-}
+button { font-family: inherit; }
 
 :focus-visible {
     outline: 2px solid var(--primary);
@@ -153,1888 +96,132 @@ button {
 }
 
 @media (prefers-reduced-motion: reduce) {
-
-    *,
-    *::before,
-    *::after {
+    *, *::before, *::after {
         animation-duration: .001ms !important;
         animation-iteration-count: 1 !important;
         transition-duration: .001ms !important;
     }
-
 }
 
 /* =========================================================
-   ТОЧЕЧНАЯ ТЕКСТУРА
+   LAYOUT
 ========================================================= */
 
-.grid-texture {
-    position: fixed;
-    inset: 0;
-
-    z-index: -1;
-
-    pointer-events: none;
-
-    background-image:
-        radial-gradient(
-            rgba(36, 84, 232, .10) 1px,
-            transparent 1px
-        );
-
-    background-size: 28px 28px;
-
-    -webkit-mask-image:
-        radial-gradient(
-            ellipse 70% 55% at 50% 0%,
-            #000 0%,
-            transparent 70%
-        );
-
-    mask-image:
-        radial-gradient(
-            ellipse 70% 55% at 50% 0%,
-            #000 0%,
-            transparent 70%
-        );
+.app {
+    display: grid;
+    grid-template-columns: var(--sidebar-w) 1fr;
+    min-height: 100vh;
 }
 
 /* =========================================================
-   ФОНОВЫЕ ОРБЫ
+   SIDEBAR
 ========================================================= */
 
-.bg-orbs {
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    overflow: hidden;
-}
-
-.bg-orbs span {
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(100px);
-    opacity: .5;
-    animation: orbFloat 20s ease-in-out infinite;
-}
-
-.bg-orbs span:nth-child(1) {
-    width: 400px;
-    height: 400px;
-    top: -140px;
-    left: -80px;
-    background: radial-gradient(
-        circle at 30% 30%,
-        rgba(36, 84, 232, .35),
-        transparent 70%
-    );
-}
-
-.bg-orbs span:nth-child(2) {
-    width: 460px;
-    height: 460px;
-    top: 20%;
-    right: -160px;
-    background: radial-gradient(
-        circle at 60% 40%,
-        rgba(124, 58, 237, .28),
-        transparent 70%
-    );
-    animation-delay: -7s;
-}
-
-.bg-orbs span:nth-child(3) {
-    width: 320px;
-    height: 320px;
-    bottom: -100px;
-    left: 30%;
-    background: radial-gradient(
-        circle at 50% 50%,
-        rgba(13, 148, 136, .22),
-        transparent 70%
-    );
-    animation-delay: -14s;
-}
-
-@keyframes orbFloat {
-    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-    50%      { transform: translate3d(30px, -40px, 0) scale(1.08); }
-}
-
-/* =========================================================
-   АНИМАЦИЯ ПОЯВЛЕНИЯ
-========================================================= */
-
-@keyframes rise {
-
-    from {
-        opacity: 0;
-        transform: translateY(14px);
-    }
-
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-}
-
-.hero,
-.info-card,
-.menu-button {
-    animation:
-        rise .6s var(--ease) both;
-}
-
-.info-card:nth-child(1) {
-    animation-delay: .08s;
-}
-
-.info-card:nth-child(2) {
-    animation-delay: .15s;
-}
-
-.info-card:nth-child(3) {
-    animation-delay: .22s;
-}
-
-.menu-button:nth-child(1) {
-    animation-delay: .16s;
-}
-
-.menu-button:nth-child(2) {
-    animation-delay: .23s;
-}
-
-.menu-button:nth-child(3) {
-    animation-delay: .30s;
-}
-
-.menu-button:nth-child(4) {
-    animation-delay: .37s;
-}
-
-.menu-button:nth-child(5) {
-    animation-delay: .44s;
-}
-
-/* =========================================================
-   HEADER
-========================================================= */
-
-header {
+.sidebar {
     position: sticky;
     top: 0;
-    z-index: 100;
-
-    width: 100%;
-    min-width: 1100px;
-    height: 78px;
+    height: 100vh;
 
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    padding: 0 42px;
+    flex-direction: column;
 
     background:
-        rgba(255, 255, 255, .82);
+        linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
 
-    backdrop-filter: blur(24px) saturate(140%);
-    -webkit-backdrop-filter: blur(24px) saturate(140%);
+    border-right: 1px solid var(--border);
 
-    border-bottom:
-        1px solid var(--border);
+    padding: 22px 16px 18px;
 
-    box-shadow:
-        0 2px 24px rgba(15, 23, 42, .05);
+    z-index: 50;
 }
 
-.header-left {
+.sidebar-brand {
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
+    padding: 4px 6px 22px;
+    border-bottom: 1px solid var(--border-soft);
+    margin-bottom: 16px;
 }
 
-.logo {
-    width: 48px;
-    height: 48px;
-
+.sidebar-logo {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-
-    border-radius: 16px;
-
+    border-radius: 13px;
     color: #fff;
 
-    background:
-        linear-gradient(
-            135deg,
-            #3b82f6 0%,
-            #2454e8 55%,
-            #1a3aa8 100%
-        );
+    background: linear-gradient(135deg, #3b82f6 0%, #2454e8 55%, #1a3aa8 100%);
 
     box-shadow:
         0 1px 0 rgba(255,255,255,.4) inset,
-        0 10px 24px rgba(36, 84, 232, .32),
-        0 4px 10px rgba(36, 84, 232, .2);
+        0 8px 20px rgba(36, 84, 232, .32);
 
-    transition:
-        transform .4s var(--ease-spring),
-        box-shadow .35s ease;
+    transition: transform .4s var(--ease-spring);
 }
 
-.logo svg {
-    width: 25px;
-    height: 25px;
-}
+.sidebar-logo:hover { transform: rotate(-6deg) scale(1.06); }
 
-.logo:hover {
-    transform:
-        rotate(-6deg)
-        scale(1.08);
-    box-shadow:
-        0 1px 0 rgba(255,255,255,.5) inset,
-        0 14px 32px rgba(36, 84, 232, .4),
-        0 6px 14px rgba(36, 84, 232, .25);
-}
+.sidebar-logo svg { width: 22px; height: 22px; }
 
-.brand {
-    display: flex;
-    flex-direction: column;
-}
+.sidebar-brand-text { display: flex; flex-direction: column; min-width: 0; }
 
 .brand-title {
-    font-size: 18.5px;
+    font-size: 15px;
     font-weight: 700;
     letter-spacing: -.3px;
-    background: linear-gradient(
-        135deg,
-        var(--text) 0%,
-        #1e2b4a 100%
-    );
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text);
 }
 
 .brand-subtitle {
     margin-top: 1px;
-
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
-
-    color:
-        var(--text-secondary);
+    color: var(--text-secondary);
 }
 
-.header-right {
+.sidebar-nav {
+    flex: 1;
     display: flex;
-    align-items: center;
-    gap: 14px;
+    flex-direction: column;
+    gap: 22px;
+    overflow-y: auto;
+    padding-right: 2px;
 }
 
-/* =========================================================
-   NAV
-========================================================= */
-
-.main-nav {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-
-    padding: 5px;
-    margin-left: 26px;
-
-    border-radius: 999px;
-
-    background:
-        linear-gradient(180deg, #f2f4f9 0%, #eaeef6 100%);
-
-    border:
-        1px solid #e2e8f2;
-
-    box-shadow:
-        0 1px 0 rgba(255,255,255,.9) inset,
-        0 1px 2px rgba(15,23,42,.03) inset;
+.nav-group-title {
+    padding: 0 10px;
+    margin-bottom: 8px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: .8px;
+    text-transform: uppercase;
+    color: var(--text-light);
 }
 
-.nav-link {
+.nav-list { display: flex; flex-direction: column; gap: 2px; }
+
+.sidebar-link {
     position: relative;
 
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 11px;
 
-    padding:
-        9px 17px;
+    padding: 10px 12px;
 
-    border-radius: 999px;
+    border-radius: 11px;
 
     font-size: 13.5px;
     font-weight: 600;
 
-    color:
-        var(--text-secondary);
+    color: var(--text-secondary);
 
     cursor: pointer;
-
     text-decoration: none;
-
-    transition:
-        background .25s ease,
-        color .25s ease,
-        box-shadow .25s ease,
-        transform .25s var(--ease);
-}
-
-.nav-link svg {
-    width: 17px;
-    height: 17px;
-
-    flex-shrink: 0;
-
-    transition:
-        color .25s ease,
-        transform .3s var(--ease);
-}
-
-.nav-link:hover {
-    color: var(--primary);
-
-    background:
-        rgba(36, 84, 232, .08);
-}
-
-.nav-link:active {
-    transform:
-        scale(.97);
-}
-
-.nav-link.nav-permissions:hover {
-    color: var(--violet);
-
-    background:
-        var(--violet-light);
-}
-
-.nav-link.nav-users:hover {
-    color: var(--teal);
-
-    background:
-        var(--teal-light);
-}
-
-/* =========================================================
-   ЗАПРОСЫ НА РЕГИСТРАЦИЮ
-========================================================= */
-
-.permissions-badge {
-    min-width: 21px;
-    height: 21px;
-
-    padding:
-        0 6px;
-
-    display: none;
-
-    align-items: center;
-    justify-content: center;
-
-    margin-left: 1px;
-
-    border-radius: 999px;
-
-    color: #fff;
-
-    background:
-        linear-gradient(
-            135deg,
-            #ef4444,
-            #dc2626
-        );
-
-    font-size: 10.5px;
-    font-weight: 800;
-
-    line-height: 1;
-
-    box-shadow:
-        0 4px 12px
-        rgba(220, 38, 38, .30);
-
-    transform-origin: center;
-
-    animation:
-        badgeAppear .35s var(--ease);
-}
-
-@keyframes badgeAppear {
-
-    from {
-        opacity: 0;
-        transform:
-            scale(.5)
-            translateY(-3px);
-    }
-
-    to {
-        opacity: 1;
-        transform:
-            scale(1)
-            translateY(0);
-    }
-
-}
-
-.nav-link.nav-permissions.has-requests {
-
-    color:
-        var(--red);
-
-    background:
-        var(--red-light);
-
-    box-shadow:
-        0 0 0 1px
-        rgba(220, 38, 38, .08);
-
-    animation:
-        permissionAttention 2.2s ease-in-out infinite;
-}
-
-.nav-link.nav-permissions.has-requests svg {
-    color:
-        var(--red);
-
-    animation:
-        permissionIconPulse 1.8s ease-in-out infinite;
-}
-
-.nav-link.nav-permissions.has-requests:hover {
-
-    color:
-        #b91c1c;
-
-    background:
-        #fee2e2;
-}
-
-@keyframes permissionAttention {
-
-    0%,
-    100% {
-        box-shadow:
-            0 0 0 0
-            rgba(220, 38, 38, .00);
-    }
-
-    50% {
-        box-shadow:
-            0 0 0 4px
-            rgba(220, 38, 38, .07);
-    }
-
-}
-
-@keyframes permissionIconPulse {
-
-    0%,
-    100% {
-        transform:
-            scale(1);
-    }
-
-    50% {
-        transform:
-            scale(1.10);
-    }
-
-}
-
-/* =========================================================
-   ОНЛАЙН
-========================================================= */
-
-.online-status {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-
-    padding:
-        9px 16px;
-
-    border-radius: 999px;
-
-    font-size: 13px;
-    font-weight: 600;
-
-    color:
-        #0a7a5a;
-
-    background:
-        var(--teal-light);
-
-    border:
-        1px solid
-        rgba(13, 148, 136, .16);
-}
-
-.online-dot {
-    width: 7px;
-    height: 7px;
-
-    border-radius: 50%;
-
-    background:
-        var(--teal);
-
-    box-shadow:
-        0 0 0 5px
-        rgba(13, 148, 136, .13);
-
-    animation:
-        pulse 2.2s infinite;
-}
-
-@keyframes pulse {
-
-    0%,
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-
-    50% {
-        transform: scale(1.3);
-        opacity: .75;
-    }
-
-}
-
-/* =========================================================
-   CONTAINER
-========================================================= */
-
-.container {
-    width: 1100px;
-    min-width: 1100px;
-
-    margin:
-        0 auto;
-
-    padding:
-        40px 0 52px;
-}
-
-/* =========================================================
-   HERO
-========================================================= */
-
-.hero {
-    position: relative;
-
-    display: grid;
-    grid-template-columns: 1fr auto;
-
-    align-items: center;
-
-    gap: 40px;
-
-    padding:
-        48px 52px;
-
-    margin-bottom:
-        24px;
-
-    overflow: hidden;
-
-    border-radius:
-        var(--radius-lg);
-
-    color: #fff;
-
-    background:
-        linear-gradient(
-            128deg,
-            #17348f 0%,
-            #2454e8 55%,
-            #3b5fea 100%
-        );
-
-    box-shadow:
-        0 1px 0 rgba(255,255,255,.18) inset,
-        0 32px 70px -18px
-        rgba(36, 84, 232, .45),
-        0 12px 30px -12px
-        rgba(36, 84, 232, .3);
-}
-
-/* Световые пятна */
-.hero::before {
-    content: "";
-
-    position: absolute;
-    inset: 0;
-
-    background:
-        radial-gradient(
-            circle at 85% 15%,
-            rgba(139, 92, 246, .3),
-            transparent 45%
-        ),
-        radial-gradient(
-            circle at 10% 90%,
-            rgba(34, 211, 238, .18),
-            transparent 45%
-        );
-
-    pointer-events: none;
-}
-
-/* Точечная текстура */
-.hero::after {
-    content: "";
-
-    position: absolute;
-    inset: 0;
-
-    background-image:
-        radial-gradient(
-            rgba(255, 255, 255, .16) 1px,
-            transparent 1px
-        );
-
-    background-size:
-        22px 22px;
-
-    -webkit-mask-image:
-        linear-gradient(
-            120deg,
-            #000 0%,
-            transparent 55%
-        );
-
-    mask-image:
-        linear-gradient(
-            120deg,
-            #000 0%,
-            transparent 55%
-        );
-
-    opacity: .5;
-
-    pointer-events: none;
-}
-
-/* Sheen-блик */
-.hero-sheen {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: -60%;
-    width: 45%;
-    height: 100%;
-    background:
-        linear-gradient(
-            100deg,
-            transparent,
-            rgba(255, 255, 255, .18),
-            transparent
-        );
-    animation:
-        sheen 2.2s var(--ease) .5s 1;
-    pointer-events: none;
-}
-
-@keyframes sheen {
-
-    to {
-        left: 130%;
-    }
-
-}
-
-.hero-content {
-    position: relative;
-    z-index: 2;
-}
-
-.hero-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-
-    padding:
-        8px 15px;
-
-    margin-bottom:
-        18px;
-
-    border-radius:
-        999px;
-
-    font-size: 12.5px;
-    font-weight: 600;
-
-    background:
-        rgba(255, 255, 255, .14);
-
-    border:
-        1px solid
-        rgba(255, 255, 255, .24);
-
-    backdrop-filter:
-        blur(10px);
-
-    box-shadow:
-        0 1px 0 rgba(255,255,255,.15) inset;
-}
-
-.hero h1 {
-    font-size: 42px;
-    line-height: 1.1;
-
-    margin-bottom:
-        14px;
-
-    font-weight: 800;
-
-    letter-spacing:
-        -1.2px;
-
-    text-shadow:
-        0 2px 20px rgba(0,0,0,.1);
-}
-
-.hero p {
-    max-width:
-        560px;
-
-    font-size:
-        15.5px;
-
-    line-height:
-        1.7;
-
-    color:
-        rgba(255, 255, 255, .85);
-}
-
-.hero-clock {
-    position: relative;
-    z-index: 2;
-
-    width:
-        230px;
-
-    padding:
-        26px 22px;
-
-    text-align:
-        center;
-
-    border-radius:
-        24px;
-
-    background:
-        rgba(255, 255, 255, .13);
-
-    border:
-        1px solid
-        rgba(255, 255, 255, .22);
-
-    backdrop-filter:
-        blur(20px) saturate(140%);
-
-    box-shadow:
-        inset 0 1px 0
-        rgba(255, 255, 255, .2),
-        0 12px 32px rgba(15, 23, 42, .12);
-
-    overflow: hidden;
-}
-
-.hero-clock::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 20%;
-    right: 20%;
-    height: 1px;
-    background: linear-gradient(
-        90deg,
-        transparent,
-        rgba(255,255,255,.9),
-        transparent
-    );
-}
-
-.hero-clock-label {
-    margin-bottom:
-        8px;
-
-    font-size:
-        12px;
-
-    font-weight:
-        500;
-
-    opacity:
-        .72;
-
-    letter-spacing:
-        .3px;
-}
-
-.hero-clock-time {
-    font-size:
-        36px;
-
-    font-weight:
-        700;
-
-    font-variant-numeric:
-        tabular-nums;
-
-    letter-spacing:
-        .5px;
-
-    text-shadow:
-        0 2px 12px rgba(0,0,0,.15);
-}
-
-.hero-clock-date {
-    margin-top:
-        10px;
-
-    font-size:
-        12.5px;
-
-    line-height:
-        1.4;
-
-    color:
-        rgba(255, 255, 255, .78);
-}
-
-/* =========================================================
-   INFO CARDS
-========================================================= */
-
-.info-grid {
-    display:
-        grid;
-
-    grid-template-columns:
-        repeat(3, 1fr);
-
-    gap:
-        18px;
-
-    margin-bottom:
-        38px;
-}
-
-.info-card {
-    position: relative;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    gap:
-        16px;
-
-    padding:
-        22px 24px;
-
-    overflow: hidden;
-
-    border-radius:
-        var(--radius-md);
-
-    background:
-        var(--surface);
-
-    border:
-        1px solid
-        var(--border);
-
-    box-shadow:
-        var(--shadow-sm);
-
-    transition:
-        transform .35s var(--ease),
-        box-shadow .35s var(--ease),
-        border-color .35s var(--ease);
-}
-
-/* Цветная полоска сверху */
-.info-card::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 22px;
-    right: 22px;
-    height: 3px;
-    border-radius: 0 0 3px 3px;
-    background: linear-gradient(90deg, transparent, var(--primary), transparent);
-    opacity: 0;
-    transition: opacity .3s ease;
-}
-
-.info-card:nth-child(1)::before {
-    background: linear-gradient(90deg, transparent, #2454e8, transparent);
-}
-
-.info-card:nth-child(2)::before {
-    background: linear-gradient(90deg, transparent, #0d9488, transparent);
-}
-
-.info-card:nth-child(3)::before {
-    background: linear-gradient(90deg, transparent, #d97706, transparent);
-}
-
-.info-card:hover {
-    transform:
-        translateY(-4px);
-
-    box-shadow:
-        var(--shadow-md);
-
-    border-color:
-        rgba(36, 84, 232, .18);
-}
-
-.info-card:hover::before {
-    opacity: 1;
-}
-
-.info-icon {
-    width:
-        50px;
-
-    height:
-        50px;
-
-    flex-shrink:
-        0;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        center;
-
-    border-radius:
-        15px;
-
-    box-shadow:
-        0 1px 0 rgba(255,255,255,.6) inset;
-}
-
-.info-icon svg {
-    width:
-        22px;
-
-    height:
-        22px;
-}
-
-.info-icon.blue {
-    background:
-        linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-    color:
-        var(--primary);
-}
-
-.info-icon.green {
-    background:
-        linear-gradient(135deg, #ecfdf9 0%, #d1fae5 100%);
-    color:
-        var(--teal);
-}
-
-.info-icon.orange {
-    background:
-        linear-gradient(135deg, #fef8ec 0%, #fef3c7 100%);
-    color:
-        var(--amber);
-}
-
-.info-text {
-    min-width:
-        0;
-}
-
-.info-title {
-    margin-bottom:
-        4px;
-
-    font-size:
-        12px;
-
-    font-weight:
-        500;
-
-    color:
-        var(--text-secondary);
-}
-
-.info-value {
-    font-size:
-        15px;
-
-    font-weight:
-        700;
-
-    white-space:
-        nowrap;
-
-    overflow:
-        hidden;
-
-    text-overflow:
-        ellipsis;
-}
-
-/* =========================================================
-   SECTION HEADER
-========================================================= */
-
-.section-header {
-    display:
-        flex;
-
-    align-items:
-        flex-end;
-
-    justify-content:
-        space-between;
-
-    margin-bottom:
-        20px;
-}
-
-.section-title {
-    font-size:
-        24px;
-
-    font-weight:
-        700;
-
-    letter-spacing:
-        -.6px;
-}
-
-.section-subtitle {
-    margin-top:
-        6px;
-
-    color:
-        var(--text-secondary);
-
-    font-size:
-        13.5px;
-}
-
-/* =========================================================
-   MENU
-========================================================= */
-
-.menu {
-    display:
-        grid;
-
-    grid-template-columns:
-        repeat(2, 1fr);
-
-    gap:
-        18px;
-}
-
-.menu-button {
-    position:
-        relative;
-
-    min-height:
-        172px;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    padding:
-        30px 28px;
-
-    overflow:
-        hidden;
-
-    border:
-        1px solid
-        var(--border);
-
-    border-radius:
-        var(--radius-lg);
-
-    background:
-        var(--surface);
-
-    color:
-        var(--text);
-
-    cursor:
-        pointer;
-
-    text-align:
-        left;
-
-    box-shadow:
-        var(--shadow-sm);
-
-    transition:
-        transform .4s var(--ease),
-        box-shadow .4s var(--ease),
-        border-color .4s var(--ease);
-}
-
-/* Декоративный круг */
-.menu-button::before {
-    content:
-        "";
-
-    position:
-        absolute;
-
-    width:
-        190px;
-
-    height:
-        190px;
-
-    right:
-        -80px;
-
-    top:
-        -100px;
-
-    border-radius:
-        50%;
-
-    opacity:
-        0;
-
-    transition:
-        opacity .4s ease,
-        transform .6s var(--ease);
-
-    transform: scale(.85);
-}
-
-.menu-button:hover::before {
-    opacity:
-        1;
-    transform: scale(1);
-}
-
-/* Верхняя акцентная линия */
-.menu-button::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 24px;
-    right: 24px;
-    height: 3px;
-    border-radius: 0 0 3px 3px;
-    opacity: 0;
-    transition: opacity .35s ease;
-}
-
-.attendance::after {
-    background: linear-gradient(90deg, transparent, #0d9488, transparent);
-}
-
-.history::after {
-    background: linear-gradient(90deg, transparent, #2454e8, transparent);
-}
-
-.students::after {
-    background: linear-gradient(90deg, transparent, #7c3aed, transparent);
-}
-
-.groups::after {
-    background: linear-gradient(90deg, transparent, #4f46e5, transparent);
-}
-
-.settings::after {
-    background: linear-gradient(90deg, transparent, #d97706, transparent);
-}
-
-.menu-button:hover::after {
-    opacity: 1;
-}
-
-.attendance::before {
-    background:
-        radial-gradient(
-            circle at 50% 50%,
-            rgba(13, 148, 136, .12),
-            transparent 70%
-        );
-}
-
-.history::before {
-    background:
-        radial-gradient(
-            circle at 50% 50%,
-            rgba(36, 84, 232, .12),
-            transparent 70%
-        );
-}
-
-.students::before {
-    background:
-        radial-gradient(
-            circle at 50% 50%,
-            rgba(124, 58, 237, .12),
-            transparent 70%
-        );
-}
-
-.groups::before {
-    background:
-        radial-gradient(
-            circle at 50% 50%,
-            rgba(79, 70, 229, .12),
-            transparent 70%
-        );
-}
-
-.settings::before {
-    background:
-        radial-gradient(
-            circle at 50% 50%,
-            rgba(217, 119, 6, .12),
-            transparent 70%
-        );
-}
-
-.menu-button:hover {
-    transform:
-        translateY(-6px);
-
-    box-shadow:
-        var(--shadow-lg);
-
-    border-color:
-        rgba(36, 84, 232, .2);
-}
-
-.menu-button:active {
-    transform:
-        translateY(-3px) scale(.985);
-}
-
-.menu-arrow {
-    position:
-        absolute;
-
-    right:
-        26px;
-
-    bottom:
-        24px;
-
-    width:
-        38px;
-
-    height:
-        38px;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        center;
-
-    border-radius:
-        13px;
-
-    color:
-        var(--text-secondary);
-
-    background:
-        #f2f4f8;
-
-    transition:
-        transform .35s var(--ease),
-        background .35s ease,
-        color .35s ease,
-        box-shadow .35s ease;
-}
-
-.menu-arrow svg {
-    width:
-        18px;
-
-    height:
-        18px;
-}
-
-.menu-button:hover .menu-arrow {
-    transform:
-        translateX(5px);
-
-    color:
-        #fff;
-
-    background:
-        var(--primary);
-
-    box-shadow:
-        0 6px 16px rgba(36, 84, 232, .35);
-}
-
-.attendance:hover .menu-arrow {
-    background: var(--teal);
-    box-shadow: 0 6px 16px rgba(13, 148, 136, .35);
-}
-
-.students:hover .menu-arrow {
-    background: var(--violet);
-    box-shadow: 0 6px 16px rgba(124, 58, 237, .35);
-}
-
-.groups:hover .menu-arrow {
-    background: var(--indigo);
-    box-shadow: 0 6px 16px rgba(79, 70, 229, .35);
-}
-
-.settings:hover .menu-arrow {
-    background: var(--amber);
-    box-shadow: 0 6px 16px rgba(217, 119, 6, .35);
-}
-
-.shortcut {
-    position:
-        absolute;
-
-    top:
-        20px;
-
-    right:
-        22px;
-
-    width:
-        28px;
-
-    height:
-        28px;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        center;
-
-    border-radius:
-        9px;
-
-    font-size:
-        12px;
-
-    font-weight:
-        700;
-
-    color:
-        var(--text-secondary);
-
-    background:
-        linear-gradient(180deg, #f8fafc 0%, #eef1f6 100%);
-
-    border:
-        1px solid
-        #e4e9f2;
-
-    box-shadow:
-        0 1px 0 rgba(255,255,255,.8) inset;
-}
-
-.icon {
-    position:
-        relative;
-
-    z-index:
-        2;
-
-    width:
-        72px;
-
-    height:
-        72px;
-
-    flex-shrink:
-        0;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        center;
-
-    margin-right:
-        24px;
-
-    border-radius:
-        22px;
-
-    transition:
-        transform .45s var(--ease),
-        box-shadow .4s ease;
-}
-
-.icon::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    box-shadow:
-        0 1px 0 rgba(255,255,255,.7) inset;
-}
-
-.icon svg {
-    width:
-        32px;
-
-    height:
-        32px;
-
-    position: relative;
-    z-index: 1;
-}
-
-.menu-button:hover .icon {
-    transform:
-        scale(1.1)
-        rotate(-5deg);
-}
-
-.attendance .icon {
-    background:
-        linear-gradient(135deg, #ecfdf9 0%, #d1fae5 100%);
-    color:
-        var(--teal);
-}
-
-.history .icon {
-    background:
-        linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-    color:
-        var(--primary);
-}
-
-.students .icon {
-    background:
-        linear-gradient(135deg, #f4f0ff 0%, #ede9fe 100%);
-    color:
-        var(--violet);
-}
-
-.groups .icon {
-    background:
-        linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
-    color:
-        var(--indigo);
-}
-
-.settings .icon {
-    background:
-        linear-gradient(135deg, #fef8ec 0%, #fef3c7 100%);
-    color:
-        var(--amber);
-}
-
-.attendance:hover .icon {
-    box-shadow:
-        0 12px 28px -8px rgba(13, 148, 136, .35);
-}
-
-.history:hover .icon {
-    box-shadow:
-        0 12px 28px -8px rgba(36, 84, 232, .35);
-}
-
-.students:hover .icon {
-    box-shadow:
-        0 12px 28px -8px rgba(124, 58, 237, .35);
-}
-
-.groups:hover .icon {
-    box-shadow:
-        0 12px 28px -8px rgba(79, 70, 229, .35);
-}
-
-.settings:hover .icon {
-    box-shadow:
-        0 12px 28px -8px rgba(217, 119, 6, .35);
-}
-
-.button-content {
-    position:
-        relative;
-
-    z-index:
-        2;
-
-    min-width:
-        0;
-
-    padding-right:
-        50px;
-}
-
-.button-title {
-    display:
-        block;
-
-    margin-bottom:
-        8px;
-
-    font-size:
-        19px;
-
-    font-weight:
-        700;
-
-    letter-spacing:
-        -.3px;
-}
-
-.button-description {
-    display:
-        block;
-
-    max-width:
-        330px;
-
-    color:
-        var(--text-secondary);
-
-    font-size:
-        13.5px;
-
-    line-height:
-        1.55;
-}
-
-/* =========================================================
-   USER MENU
-========================================================= */
-
-.user-menu {
-    position:
-        relative;
-}
-
-.user-menu-button {
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    gap:
-        11px;
-
-    padding:
-        6px 15px 6px 6px;
-
-    border:
-        1px solid
-        var(--border);
-
-    border-radius:
-        999px;
-
-    background:
-        #fff;
-
-    cursor:
-        pointer;
-
-    font-family:
-        inherit;
-
-    font-size:
-        13px;
-
-    font-weight:
-        600;
-
-    color:
-        var(--text);
-
-    box-shadow:
-        var(--shadow-sm);
-
-    transition:
-        box-shadow .25s ease,
-        border-color .25s ease,
-        transform .25s var(--ease);
-}
-
-.user-menu-button:hover {
-    border-color:
-        rgba(36, 84, 232, .3);
-
-    box-shadow:
-        var(--shadow-md);
-}
-
-.user-menu-button:active {
-    transform:
-        scale(.97);
-}
-
-.user-menu-button.open {
-    border-color:
-        rgba(36, 84, 232, .35);
-
-    box-shadow:
-        0 0 0 4px rgba(36, 84, 232, .08);
-}
-
-.user-avatar {
-    width:
-        36px;
-
-    height:
-        36px;
-
-    flex-shrink:
-        0;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        center;
-
-    border-radius:
-        50%;
-
-    color:
-        #fff;
-
-    font-size:
-        13px;
-
-    font-weight:
-        700;
-
-    background:
-        linear-gradient(
-            135deg,
-            #3b82f6 0%,
-            #2454e8 55%,
-            #1a3aa8 100%
-        );
-
-    box-shadow:
-        0 1px 0 rgba(255,255,255,.35) inset,
-        0 4px 10px rgba(36, 84, 232, .25);
-}
-
-.user-chevron {
-    width:
-        16px;
-
-    height:
-        16px;
-
-    color:
-        var(--text-light);
-
-    transition:
-        transform .3s var(--ease);
-}
-
-.user-menu.open .user-chevron {
-    transform:
-        rotate(180deg);
-}
-
-.user-dropdown {
-    position:
-        absolute;
-
-    top:
-        calc(100% + 10px);
-
-    right:
-        0;
-
-    z-index:
-        200;
-
-    width:
-        240px;
-
-    padding:
-        8px;
-
-    border-radius:
-        20px;
-
-    background:
-        #fff;
-
-    border:
-        1px solid
-        var(--border);
-
-    box-shadow:
-        var(--shadow-xl);
-
-    opacity:
-        0;
-
-    visibility:
-        hidden;
-
-    transform:
-        translateY(-8px)
-        scale(.97);
-
-    transform-origin:
-        top right;
-
-    transition:
-        opacity .25s ease,
-        transform .3s var(--ease),
-        visibility .25s ease;
-}
-
-.user-menu.open .user-dropdown {
-    opacity:
-        1;
-
-    visibility:
-        visible;
-
-    transform:
-        translateY(0)
-        scale(1);
-}
-
-.dropdown-header {
-    padding:
-        12px 14px 14px;
-
-    margin-bottom:
-        6px;
-
-    border-bottom:
-        1px solid
-        #eef1f6;
-}
-
-.dropdown-name {
-    font-size:
-        13.5px;
-
-    font-weight:
-        700;
-
-    white-space:
-        nowrap;
-
-    overflow:
-        hidden;
-
-    text-overflow:
-        ellipsis;
-}
-
-.dropdown-role {
-    margin-top:
-        4px;
-
-    font-size:
-        11.5px;
-
-    font-weight:
-        600;
-
-    color:
-        var(--violet);
-}
-
-.dropdown-item {
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    gap:
-        11px;
-
-    width:
-        100%;
-
-    padding:
-        11px 13px;
-
-    border:
-        none;
-
-    border-radius:
-        13px;
-
-    background:
-        transparent;
-
-    cursor:
-        pointer;
-
-    text-align:
-        left;
-
-    font-family:
-        inherit;
-
-    font-size:
-        13.5px;
-
-    font-weight:
-        600;
-
-    color:
-        var(--text);
 
     transition:
         background .2s ease,
@@ -2042,51 +229,708 @@ header {
         transform .2s var(--ease);
 }
 
+.sidebar-link svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    color: var(--text-light);
+    transition: color .2s ease, transform .25s var(--ease);
+}
+
+.sidebar-link:hover {
+    background: var(--surface-2);
+    color: var(--text);
+}
+
+.sidebar-link:hover svg {
+    color: var(--primary);
+    transform: scale(1.05);
+}
+
+.sidebar-link:active { transform: scale(.985); }
+
+.sidebar-link.active {
+    color: var(--primary);
+    background: var(--primary-light);
+}
+
+.sidebar-link.active svg { color: var(--primary); }
+
+.sidebar-link.nav-permissions:hover { color: var(--violet); background: var(--violet-light); }
+.sidebar-link.nav-permissions:hover svg { color: var(--violet); }
+.sidebar-link.nav-users:hover { color: var(--teal); background: var(--teal-light); }
+.sidebar-link.nav-users:hover svg { color: var(--teal); }
+
+/* Бейдж заявок */
+.permissions-badge {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    margin-left: auto;
+    border-radius: 999px;
+    color: #fff;
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    font-size: 10.5px;
+    font-weight: 800;
+    line-height: 1;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, .3);
+    animation: badgeAppear .35s var(--ease);
+}
+
+@keyframes badgeAppear {
+    from { opacity: 0; transform: scale(.5); }
+    to   { opacity: 1; transform: scale(1); }
+}
+
+.sidebar-link.nav-permissions.has-requests {
+    color: var(--red);
+    background: var(--red-light);
+    box-shadow: 0 0 0 1px rgba(220, 38, 38, .08);
+}
+
+.sidebar-link.nav-permissions.has-requests svg {
+    color: var(--red);
+    animation: permissionIconPulse 1.8s ease-in-out infinite;
+}
+
+.sidebar-link.nav-permissions.has-requests:hover {
+    color: #b91c1c;
+    background: #fee2e2;
+}
+
+@keyframes permissionIconPulse {
+    0%, 100% { transform: scale(1); }
+    50%      { transform: scale(1.12); }
+}
+
+.sidebar-footer {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
+}
+
+.status-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 12px;
+    border-radius: 12px;
+    background: var(--teal-light);
+    border: 1px solid rgba(13, 148, 136, .16);
+    color: #0a7a5a;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--teal);
+    box-shadow: 0 0 0 4px rgba(13, 148, 136, .13);
+    animation: pulse 2.2s infinite;
+    flex-shrink: 0;
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50%      { transform: scale(1.3); opacity: .75; }
+}
+
+/* =========================================================
+   MAIN AREA
+========================================================= */
+
+.main {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+/* =========================================================
+   TOPBAR
+========================================================= */
+
+.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+
+    height: var(--topbar-h);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 0 36px;
+
+    background: rgba(255, 255, 255, .82);
+    backdrop-filter: blur(20px) saturate(140%);
+    -webkit-backdrop-filter: blur(20px) saturate(140%);
+
+    border-bottom: 1px solid var(--border);
+}
+
+.topbar-title {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.topbar-title h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+    color: var(--text);
+}
+
+.topbar-title span {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Инлайн-статус в топбаре */
+.topbar-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 13px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #0a7a5a;
+    background: var(--teal-light);
+    border: 1px solid rgba(13, 148, 136, .16);
+}
+
+/* =========================================================
+   USER MENU
+========================================================= */
+
+.user-menu { position: relative; }
+
+.user-menu-button {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 13px 5px 5px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #fff;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow .25s ease, border-color .25s ease;
+}
+
+.user-menu-button:hover {
+    border-color: rgba(36, 84, 232, .3);
+    box-shadow: var(--shadow-md);
+}
+
+.user-menu-button.open {
+    border-color: rgba(36, 84, 232, .35);
+    box-shadow: 0 0 0 4px rgba(36, 84, 232, .08);
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #3b82f6 0%, #2454e8 55%, #1a3aa8 100%);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.35) inset,
+        0 4px 10px rgba(36, 84, 232, .25);
+}
+
+.user-chevron {
+    width: 15px;
+    height: 15px;
+    color: var(--text-light);
+    transition: transform .3s var(--ease);
+}
+
+.user-menu.open .user-chevron { transform: rotate(180deg); }
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    z-index: 200;
+    width: 240px;
+    padding: 8px;
+    border-radius: 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-xl);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-8px) scale(.97);
+    transform-origin: top right;
+    transition: opacity .25s ease, transform .3s var(--ease), visibility .25s ease;
+}
+
+.user-menu.open .user-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0) scale(1);
+}
+
+.dropdown-header {
+    padding: 12px 14px 13px;
+    margin-bottom: 6px;
+    border-bottom: 1px solid var(--border-soft);
+}
+
+.dropdown-name {
+    font-size: 13.5px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dropdown-role {
+    margin-top: 4px;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--violet);
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    width: 100%;
+    padding: 10px 12px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    transition: background .2s ease, color .2s ease;
+}
+
 .dropdown-item svg {
-    width:
-        18px;
+    width: 17px;
+    height: 17px;
+    flex-shrink: 0;
+    color: var(--text-light);
+    transition: color .2s ease;
+}
 
-    height:
-        18px;
+.dropdown-item:hover { background: var(--primary-light); color: var(--primary); }
+.dropdown-item:hover svg { color: var(--primary); }
 
-    flex-shrink:
-        0;
+.dropdown-item.danger:hover { background: var(--red-light); color: var(--red); }
+.dropdown-item.danger:hover svg { color: var(--red); }
 
-    color:
-        var(--text-light);
+/* =========================================================
+   PAGE CONTENT
+========================================================= */
+
+.page {
+    padding: 28px 36px 44px;
+    max-width: 1400px;
+    width: 100%;
+}
+
+/* =========================================================
+   HERO (compact)
+========================================================= */
+
+.hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 32px;
+    padding: 32px 36px;
+    margin-bottom: 20px;
+    overflow: hidden;
+    border-radius: var(--radius-lg);
+    color: #fff;
+
+    background: linear-gradient(128deg, #17348f 0%, #2454e8 55%, #3b5fea 100%);
+
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.18) inset,
+        0 24px 60px -20px rgba(36, 84, 232, .4);
+}
+
+.hero::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 88% 20%, rgba(139, 92, 246, .28), transparent 42%),
+        radial-gradient(circle at 8% 92%, rgba(34, 211, 238, .18), transparent 45%);
+    pointer-events: none;
+}
+
+.hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(rgba(255,255,255,.14) 1px, transparent 1px);
+    background-size: 22px 22px;
+    -webkit-mask-image: linear-gradient(120deg, #000 0%, transparent 55%);
+            mask-image: linear-gradient(120deg, #000 0%, transparent 55%);
+    opacity: .55;
+    pointer-events: none;
+}
+
+.hero-content { position: relative; z-index: 2; }
+
+.hero-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 13px;
+    margin-bottom: 14px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.24);
+    backdrop-filter: blur(10px);
+}
+
+.hero h1 {
+    font-size: 30px;
+    line-height: 1.15;
+    margin-bottom: 10px;
+    font-weight: 800;
+    letter-spacing: -.8px;
+}
+
+.hero p {
+    max-width: 560px;
+    font-size: 14px;
+    line-height: 1.65;
+    color: rgba(255,255,255,.85);
+}
+
+.hero-clock {
+    position: relative;
+    z-index: 2;
+    width: 200px;
+    padding: 20px 18px;
+    text-align: center;
+    border-radius: 20px;
+    background: rgba(255,255,255,.13);
+    border: 1px solid rgba(255,255,255,.22);
+    backdrop-filter: blur(20px) saturate(140%);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.2),
+        0 10px 28px rgba(15, 23, 42, .12);
+}
+
+.hero-clock-label {
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    opacity: .72;
+    letter-spacing: .3px;
+}
+
+.hero-clock-time {
+    font-size: 30px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: .5px;
+}
+
+.hero-clock-date {
+    margin-top: 8px;
+    font-size: 11.5px;
+    line-height: 1.4;
+    color: rgba(255,255,255,.78);
+}
+
+/* =========================================================
+   INFO CARDS
+========================================================= */
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+}
+
+.info-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 18px;
+    overflow: hidden;
+    border-radius: var(--radius-md);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: transform .3s var(--ease), box-shadow .3s var(--ease), border-color .3s var(--ease);
+}
+
+.info-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 18px;
+    right: 18px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    opacity: 0;
+    transition: opacity .3s ease;
+}
+
+.info-card:nth-child(1)::before { background: linear-gradient(90deg, transparent, #2454e8, transparent); }
+.info-card:nth-child(2)::before { background: linear-gradient(90deg, transparent, #0d9488, transparent); }
+.info-card:nth-child(3)::before { background: linear-gradient(90deg, transparent, #d97706, transparent); }
+
+.info-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(36, 84, 232, .18);
+}
+
+.info-card:hover::before { opacity: 1; }
+
+.info-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 13px;
+    box-shadow: 0 1px 0 rgba(255,255,255,.6) inset;
+}
+
+.info-icon svg { width: 20px; height: 20px; }
+
+.info-icon.blue   { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); color: var(--primary); }
+.info-icon.green  { background: linear-gradient(135deg, #ecfdf9 0%, #d1fae5 100%); color: var(--teal); }
+.info-icon.orange { background: linear-gradient(135deg, #fef8ec 0%, #fef3c7 100%); color: var(--amber); }
+
+.info-text { min-width: 0; }
+
+.info-title {
+    margin-bottom: 3px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.info-value {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* =========================================================
+   SECTION
+========================================================= */
+
+.section-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.section-title {
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -.3px;
+}
+
+.section-subtitle {
+    margin-top: 4px;
+    color: var(--text-secondary);
+    font-size: 12.5px;
+}
+
+/* =========================================================
+   QUICK ACTIONS GRID (компактный, 3×2)
+========================================================= */
+
+.menu {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+
+.menu-button {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+
+    padding: 20px 18px;
+
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+
+    box-shadow: var(--shadow-sm);
 
     transition:
-        color .2s ease;
+        transform .3s var(--ease),
+        box-shadow .3s var(--ease),
+        border-color .3s var(--ease);
 }
 
-.dropdown-item:hover {
-    background:
-        var(--primary-light);
-
-    color:
-        var(--primary);
+.menu-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 18px;
+    right: 18px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    opacity: 0;
+    transition: opacity .3s ease;
 }
 
-.dropdown-item:active {
-    transform: scale(.98);
+.attendance::before { background: linear-gradient(90deg, transparent, #0d9488, transparent); }
+.history::before    { background: linear-gradient(90deg, transparent, #2454e8, transparent); }
+.students::before   { background: linear-gradient(90deg, transparent, #7c3aed, transparent); }
+.groups::before     { background: linear-gradient(90deg, transparent, #4f46e5, transparent); }
+.settings::before   { background: linear-gradient(90deg, transparent, #d97706, transparent); }
+
+.menu-button::after {
+    content: "";
+    position: absolute;
+    width: 160px;
+    height: 160px;
+    right: -70px;
+    top: -90px;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity .35s ease, transform .6s var(--ease);
+    transform: scale(.85);
+    pointer-events: none;
 }
 
-.dropdown-item:hover svg {
-    color:
-        var(--primary);
+.attendance::after { background: radial-gradient(circle at 50% 50%, rgba(13, 148, 136, .12), transparent 70%); }
+.history::after    { background: radial-gradient(circle at 50% 50%, rgba(36, 84, 232, .12), transparent 70%); }
+.students::after   { background: radial-gradient(circle at 50% 50%, rgba(124, 58, 237, .12), transparent 70%); }
+.groups::after     { background: radial-gradient(circle at 50% 50%, rgba(79, 70, 229, .12), transparent 70%); }
+.settings::after   { background: radial-gradient(circle at 50% 50%, rgba(217, 119, 6, .12), transparent 70%); }
+
+.menu-button:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: rgba(36, 84, 232, .2);
 }
 
-.dropdown-item.danger:hover {
-    background:
-        #fef2f2;
+.menu-button:hover::before { opacity: 1; }
+.menu-button:hover::after  { opacity: 1; transform: scale(1); }
 
-    color:
-        #dc2626;
+.menu-button:active { transform: translateY(-2px) scale(.99); }
+
+.icon {
+    position: relative;
+    z-index: 2;
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    transition: transform .35s var(--ease);
 }
 
-.dropdown-item.danger:hover svg {
-    color:
-        #dc2626;
+.icon svg { width: 22px; height: 22px; }
+
+.menu-button:hover .icon { transform: scale(1.06) rotate(-4deg); }
+
+.attendance .icon { background: linear-gradient(135deg, #ecfdf9 0%, #d1fae5 100%); color: var(--teal); }
+.history .icon    { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); color: var(--primary); }
+.students .icon   { background: linear-gradient(135deg, #f4f0ff 0%, #ede9fe 100%); color: var(--violet); }
+.groups .icon     { background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); color: var(--indigo); }
+.settings .icon   { background: linear-gradient(135deg, #fef8ec 0%, #fef3c7 100%); color: var(--amber); }
+
+.button-content {
+    position: relative;
+    z-index: 2;
+    min-width: 0;
+    flex: 1;
+}
+
+.button-title {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: -.2px;
+    color: var(--text);
+}
+
+.button-description {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.shortcut {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--text-light);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    transition: color .2s ease, background .2s ease;
+}
+
+.menu-button:hover .shortcut {
+    color: var(--primary);
+    background: var(--primary-light);
+    border-color: rgba(36, 84, 232, .18);
 }
 
 /* =========================================================
@@ -2094,44 +938,21 @@ header {
 ========================================================= */
 
 footer {
-    margin-top:
-        56px;
-
-    padding:
-        28px 10px;
-
-    text-align:
-        center;
-
-    color:
-        var(--text-light);
-
-    font-size:
-        12.5px;
+    margin-top: 40px;
+    padding: 20px 0 0;
+    text-align: center;
+    color: var(--text-light);
+    font-size: 12px;
+    border-top: 1px solid var(--border-soft);
 }
 
 .footer-line {
-    width:
-        50px;
-
-    height:
-        4px;
-
-    margin:
-        0 auto 16px;
-
-    border-radius:
-        999px;
-
-    background:
-        linear-gradient(
-            90deg,
-            #93c5fd,
-            #7c9cf0
-        );
-
-    box-shadow:
-        0 2px 10px rgba(124, 156, 240, .35);
+    width: 44px;
+    height: 3px;
+    margin: 0 auto 14px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #93c5fd, #7c9cf0);
+    box-shadow: 0 2px 10px rgba(124, 156, 240, .35);
 }
 
 /* =========================================================
@@ -2139,130 +960,51 @@ footer {
 ========================================================= */
 
 .page-loader {
-    position:
-        fixed;
-
-    inset:
-        0;
-
-    z-index:
-        999;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        center;
-
-    background:
-        radial-gradient(
-            circle at 50% 50%,
-            #ffffff 0%,
-            #f5f8ff 55%,
-            #eef4ff 100%
-        );
-
-    transition:
-        opacity .5s ease,
-        visibility .5s ease;
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 50%, #ffffff 0%, #f5f8ff 55%, #eef4ff 100%);
+    transition: opacity .5s ease, visibility .5s ease;
 }
 
-.page-loader.hidden {
-    opacity:
-        0;
-
-    visibility:
-        hidden;
-}
+.page-loader.hidden { opacity: 0; visibility: hidden; }
 
 body.auth-pending main,
-body.auth-pending header {
-    visibility:
-        hidden;
-}
+body.auth-pending header,
+body.auth-pending aside { visibility: hidden; }
 
-.loader-content {
-    text-align:
-        center;
-}
+.loader-content { text-align: center; }
 
 .loader-logo {
-    width:
-        76px;
-
-    height:
-        76px;
-
-    color:
-        #fff;
-
-    display:
-        flex;
-
-    align-items:
-        center;
-
-    justify-content:
-        center;
-
-    margin:
-        0 auto 18px;
-
-    border-radius:
-        24px;
-
-    background:
-        linear-gradient(
-            135deg,
-            #3b82f6 0%,
-            #2454e8 55%,
-            #1a3aa8 100%
-        );
-
+    width: 68px;
+    height: 68px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    border-radius: 22px;
+    background: linear-gradient(135deg, #3b82f6 0%, #2454e8 55%, #1a3aa8 100%);
     box-shadow:
         0 1px 0 rgba(255,255,255,.4) inset,
-        0 22px 44px rgba(36, 84, 232, .35),
-        0 8px 18px rgba(36, 84, 232, .25);
-
-    animation:
-        loaderFloat 1.6s infinite ease-in-out;
+        0 20px 40px rgba(36, 84, 232, .35);
+    animation: loaderFloat 1.6s infinite ease-in-out;
 }
 
-.loader-logo svg {
-    width:
-        34px;
-
-    height:
-        34px;
-}
+.loader-logo svg { width: 30px; height: 30px; }
 
 .loader-text {
-    font-size:
-        13.5px;
-
-    font-weight:
-        600;
-
-    color:
-        var(--text-secondary);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
 }
 
 @keyframes loaderFloat {
-
-    0%,
-    100% {
-        transform:
-            translateY(0);
-    }
-
-    50% {
-        transform:
-            translateY(-10px);
-    }
-
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-9px); }
 }
 
 /* =========================================================
@@ -2270,61 +1012,26 @@ body.auth-pending header {
 ========================================================= */
 
 .toast {
-    position:
-        fixed;
-
-    left:
-        50%;
-
-    bottom:
-        30px;
-
-    z-index:
-        1000;
-
-    transform:
-        translate(-50%, 120px);
-
-    padding:
-        14px 22px;
-
-    border-radius:
-        16px;
-
-    background:
-        linear-gradient(135deg, #101a30 0%, #1a2547 100%);
-
-    color:
-        #fff;
-
-    font-size:
-        13.5px;
-
-    font-weight:
-        600;
-
+    position: fixed;
+    left: 50%;
+    bottom: 30px;
+    z-index: 1000;
+    transform: translate(-50%, 120px);
+    padding: 13px 22px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #101a30 0%, #1a2547 100%);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
     box-shadow:
         0 1px 0 rgba(255,255,255,.1) inset,
-        0 22px 50px rgba(15, 23, 42, .32);
-
-    opacity:
-        0;
-
-    pointer-events:
-        none;
-
-    transition:
-        transform .4s var(--ease),
-        opacity .4s ease;
+        0 20px 44px rgba(15, 23, 42, .32);
+    opacity: 0;
+    pointer-events: none;
+    transition: transform .4s var(--ease), opacity .4s ease;
 }
 
-.toast.show {
-    transform:
-        translate(-50%, 0);
-
-    opacity:
-        1;
-}
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
 
 </style>
 
@@ -2334,1661 +1041,639 @@ body.auth-pending header {
 
 <body class="auth-pending">
 
-<div class="grid-texture"></div>
-
-<div class="bg-orbs">
-    <span></span>
-    <span></span>
-    <span></span>
-</div>
-
-
 <!-- =========================================================
      ЗАГРУЗКА
 ========================================================= -->
 
 <div class="page-loader" id="pageLoader">
-
     <div class="loader-content">
-
         <div class="loader-logo">
-
-            <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M12 3 2 8l10 5 10-5-10-5Z"/>
                 <path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/>
                 <path d="M22 8v6"/>
             </svg>
+        </div>
+        <div class="loader-text">Загрузка системы...</div>
+    </div>
+</div>
+
+
+<div class="app">
+
+    <!-- =====================================================
+         SIDEBAR
+    ====================================================== -->
+
+    <aside class="sidebar">
+
+        <div class="sidebar-brand">
+
+            <div class="sidebar-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3 2 8l10 5 10-5-10-5Z"/>
+                    <path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/>
+                    <path d="M22 8v6"/>
+                </svg>
+            </div>
+
+            <div class="sidebar-brand-text">
+                <div class="brand-title">Посещаемость</div>
+                <div class="brand-subtitle">Админ-панель</div>
+            </div>
 
         </div>
 
-        <div class="loader-text">
-            Загрузка системы...
+
+        <nav class="sidebar-nav">
+
+            <!-- РАБОТА -->
+            <div>
+                <div class="nav-group-title">Работа</div>
+
+                <div class="nav-list">
+
+                    <a class="sidebar-link" onclick="openAttendance()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"/>
+                            <rect x="5" y="6" width="14" height="15" rx="2.5"/>
+                            <path d="m9 13.2 2.3 2.3L15.5 11"/>
+                        </svg>
+                        Отметить посещаемость
+                    </a>
+
+                    <a class="sidebar-link" onclick="openHistory()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 20V11"/>
+                            <path d="M10.5 20V4"/>
+                            <path d="M17 20v-8"/>
+                            <path d="M3 20h18"/>
+                        </svg>
+                        Посещаемость
+                    </a>
+
+                </div>
+            </div>
+
+            <!-- СПРАВОЧНИКИ -->
+            <div>
+                <div class="nav-group-title">Справочники</div>
+
+                <div class="nav-list">
+
+                    <a class="sidebar-link" onclick="openStudents()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                            <circle cx="11.5" cy="7.2" r="3"/>
+                            <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                            <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                        </svg>
+                        Студенты
+                    </a>
+
+                    <a class="sidebar-link" onclick="openGroups()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        Группы
+                    </a>
+
+                </div>
+            </div>
+
+            <!-- УПРАВЛЕНИЕ -->
+            <div>
+                <div class="nav-group-title">Управление</div>
+
+                <div class="nav-list">
+
+                    <a class="sidebar-link nav-permissions" id="permissionsNav" onclick="openPermissions()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="10.5" width="14" height="10" rx="2.5"/>
+                            <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+                            <circle cx="12" cy="15.5" r="1.4"/>
+                        </svg>
+                        Разрешения
+                        <span class="permissions-badge" id="permissionsBadge">0</span>
+                    </a>
+
+                    <a class="sidebar-link nav-users" onclick="openUsers()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                            <circle cx="11.5" cy="7.2" r="3"/>
+                            <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                            <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                        </svg>
+                        Пользователи
+                    </a>
+
+                    <a class="sidebar-link" onclick="openSettings()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3.3"/>
+                            <path d="M12 2.5v3.2"/><path d="M12 18.3v3.2"/>
+                            <path d="M4.5 4.5l2.3 2.3"/><path d="M17.2 17.2l2.3 2.3"/>
+                            <path d="M2.5 12h3.2"/><path d="M18.3 12h3.2"/>
+                            <path d="M4.5 19.5l2.3-2.3"/><path d="M17.2 6.8l2.3-2.3"/>
+                        </svg>
+                        Настройки
+                    </a>
+
+                </div>
+            </div>
+
+        </nav>
+
+
+        <div class="sidebar-footer">
+            <div class="status-card">
+                <span class="status-dot"></span>
+                Система активна
+            </div>
         </div>
+
+    </aside>
+
+
+    <!-- =====================================================
+         MAIN
+    ====================================================== -->
+
+    <div class="main">
+
+        <!-- TOPBAR -->
+        <header class="topbar">
+
+            <div class="topbar-title">
+                <h1>Панель управления</h1>
+                <span id="today">Загрузка даты...</span>
+            </div>
+
+            <div class="topbar-actions">
+
+                <div class="user-menu" id="userMenu">
+
+                    <button class="user-menu-button" id="userMenuButton" onclick="toggleUserMenu()">
+                        <span class="user-avatar" id="userAvatar">?</span>
+                        <span id="userFio">Загрузка...</span>
+                        <svg class="user-chevron" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                    </button>
+
+                    <div class="user-dropdown" id="userDropdown">
+
+                        <div class="dropdown-header">
+                            <div class="dropdown-name" id="dropdownName">Пользователь</div>
+                            <div class="dropdown-role">🛡️ Администратор</div>
+                        </div>
+
+                        <button class="dropdown-item" onclick="openMyButtons()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3.5" y="3.5" width="7" height="7" rx="2"/>
+                                <rect x="13.5" y="3.5" width="7" height="7" rx="2"/>
+                                <rect x="3.5" y="13.5" width="7" height="7" rx="2"/>
+                                <rect x="13.5" y="13.5" width="7" height="7" rx="2"/>
+                            </svg>
+                            Мои кнопки
+                        </button>
+
+                        <button class="dropdown-item" onclick="openSecurity()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3 5 5.8v5.4c0 4.4 3 8.4 7 9.8 4-1.4 7-5.4 7-9.8V5.8L12 3Z"/>
+                                <path d="m9.3 12 1.9 1.9 3.5-3.8"/>
+                            </svg>
+                            Безопасность
+                        </button>
+
+                        <button class="dropdown-item danger" onclick="logout()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/>
+                                <path d="m11 8-4 4 4 4"/>
+                                <path d="M7 12h10"/>
+                            </svg>
+                            Выход
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <!-- PAGE -->
+        <main class="page">
+
+            <!-- HERO -->
+            <section class="hero">
+
+                <div class="hero-content">
+                    <div class="hero-badge">🛡️ Администрирование</div>
+                    <h1>Добро пожаловать! 👋</h1>
+                    <p>
+                        Полный доступ: управляйте студентами, посещаемостью,
+                        пользователями и разрешениями системы.
+                    </p>
+                </div>
+
+                <div class="hero-clock">
+                    <div class="hero-clock-label">Текущее время</div>
+                    <div class="hero-clock-time" id="clock">00:00:00</div>
+                    <div class="hero-clock-date" id="date">Загрузка даты...</div>
+                </div>
+
+            </section>
+
+
+            <!-- INFO CARDS -->
+            <section class="info-grid">
+
+                <div class="info-card">
+                    <div class="info-icon blue">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3.5" y="5" width="17" height="16" rx="3"/>
+                            <path d="M8 3v4"/><path d="M16 3v4"/><path d="M3.5 10h17"/>
+                        </svg>
+                    </div>
+                    <div class="info-text">
+                        <div class="info-title">Сегодня</div>
+                        <div class="info-value" id="todayCard">Загрузка...</div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon green">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m5 13 4 4L19 7"/>
+                        </svg>
+                    </div>
+                    <div class="info-text">
+                        <div class="info-title">Статус системы</div>
+                        <div class="info-value">Система активна</div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon orange">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="8.5"/>
+                            <path d="M12 7.5V12l3 2"/>
+                        </svg>
+                    </div>
+                    <div class="info-text">
+                        <div class="info-title">Текущее время</div>
+                        <div class="info-value" id="smallClock">00:00</div>
+                    </div>
+                </div>
+
+            </section>
+
+
+            <!-- QUICK ACTIONS -->
+            <div class="section-header">
+                <div>
+                    <div class="section-title">Быстрые действия</div>
+                    <div class="section-subtitle">Выберите необходимый раздел</div>
+                </div>
+            </div>
+
+            <section class="menu">
+
+                <!-- 1. Отметить посещаемость -->
+                <button class="menu-button attendance" onclick="openAttendance()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"/>
+                            <rect x="5" y="6" width="14" height="15" rx="2.5"/>
+                            <path d="m9 13.2 2.3 2.3L15.5 11"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Отметить посещаемость</span>
+                        <span class="button-description">
+                            Отметьте присутствующих и отсутствующих студентов на занятиях.
+                        </span>
+                    </span>
+                    <span class="shortcut">1</span>
+                </button>
+
+                <!-- 2. Посещаемость (история) -->
+                <button class="menu-button history" onclick="openHistory()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 20V11"/>
+                            <path d="M10.5 20V4"/>
+                            <path d="M17 20v-8"/>
+                            <path d="M3 20h18"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Посещаемость</span>
+                        <span class="button-description">
+                            Просматривайте статистику посещаемости по дням и учебным неделям.
+                        </span>
+                    </span>
+                    <span class="shortcut">2</span>
+                </button>
+
+                <!-- 3. Студенты -->
+                <button class="menu-button students" onclick="openStudents()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                            <circle cx="11.5" cy="7.2" r="3"/>
+                            <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                            <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Студенты</span>
+                        <span class="button-description">
+                            Добавляйте, просматривайте и управляйте списком студентов.
+                        </span>
+                    </span>
+                    <span class="shortcut">3</span>
+                </button>
+
+                <!-- 4. Группы -->
+                <button class="menu-button groups" onclick="openGroups()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Группы</span>
+                        <span class="button-description">
+                            Управляйте учебными группами, курсами и специальностями.
+                        </span>
+                    </span>
+                    <span class="shortcut">4</span>
+                </button>
+
+                <!-- 5. Настройки -->
+                <button class="menu-button settings" onclick="openSettings()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3.3"/>
+                            <path d="M12 2.5v3.2"/><path d="M12 18.3v3.2"/>
+                            <path d="M4.5 4.5l2.3 2.3"/><path d="M17.2 17.2l2.3 2.3"/>
+                            <path d="M2.5 12h3.2"/><path d="M18.3 12h3.2"/>
+                            <path d="M4.5 19.5l2.3-2.3"/><path d="M17.2 6.8l2.3-2.3"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Настройки</span>
+                        <span class="button-description">
+                            Настройте расписание, семестры и учебные периоды.
+                        </span>
+                    </span>
+                    <span class="shortcut">5</span>
+                </button>
+
+            </section>
+
+
+            <!-- FOOTER -->
+            <footer>
+                <div class="footer-line"></div>
+                <div>© 2026 Система посещаемости</div>
+                <div style="margin-top:5px">Админ-панель • Полный доступ</div>
+            </footer>
+
+        </main>
 
     </div>
 
 </div>
 
 
-<!-- =========================================================
-     HEADER
-========================================================= -->
-
-<header>
-
-    <div class="header-left">
-
-        <div class="logo">
-
-            <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path d="M12 3 2 8l10 5 10-5-10-5Z"/>
-                <path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/>
-                <path d="M22 8v6"/>
-            </svg>
-
-        </div>
-
-        <div class="brand">
-
-            <div class="brand-title">
-                Посещаемость
-            </div>
-
-            <div class="brand-subtitle">
-                Админ-панель
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- =====================================================
-         НАВИГАЦИЯ
-    ====================================================== -->
-
-    <nav class="main-nav">
-
-        <!-- РАЗРЕШЕНИЯ -->
-
-        <a
-            class="nav-link nav-permissions"
-            id="permissionsNav"
-            onclick="openPermissions()"
-        >
-
-            <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <rect
-                    x="5"
-                    y="10.5"
-                    width="14"
-                    height="10"
-                    rx="2.5"
-                />
-
-                <path
-                    d="M8 10.5V7.5a4 4 0 0 1 8 0v3"
-                />
-
-                <circle
-                    cx="12"
-                    cy="15.5"
-                    r="1.4"
-                />
-            </svg>
-
-            <span>
-                Разрешения
-            </span>
-
-            <!-- СЧЁТЧИК -->
-
-            <span
-                class="permissions-badge"
-                id="permissionsBadge"
-            >
-                0
-            </span>
-
-        </a>
-
-
-        <!-- ПОЛЬЗОВАТЕЛИ -->
-
-        <a
-            class="nav-link nav-users"
-            onclick="openUsers()"
-        >
-
-            <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.8"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-            >
-                <path
-                    d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"
-                />
-
-                <circle
-                    cx="11.5"
-                    cy="7.2"
-                    r="3"
-                />
-
-                <path
-                    d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"
-                />
-
-                <path
-                    d="M15 4.1a3 3 0 0 1 0 5.8"
-                />
-            </svg>
-
-            Пользователи
-
-        </a>
-
-    </nav>
-
-
-    <!-- =====================================================
-         USER
-    ====================================================== -->
-
-    <div class="header-right">
-
-        <div
-            class="user-menu"
-            id="userMenu"
-        >
-
-            <button
-                class="user-menu-button"
-                id="userMenuButton"
-                onclick="toggleUserMenu()"
-            >
-
-                <span
-                    class="user-avatar"
-                    id="userAvatar"
-                >
-                    ?
-                </span>
-
-                <span id="userFio">
-                    Загрузка...
-                </span>
-
-                <svg
-                    class="user-chevron"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="m6 9 6 6 6-6"/>
-                </svg>
-
-            </button>
-
-
-            <div
-                class="user-dropdown"
-                id="userDropdown"
-            >
-
-                <div class="dropdown-header">
-
-                    <div
-                        class="dropdown-name"
-                        id="dropdownName"
-                    >
-                        Пользователь
-                    </div>
-
-                    <div class="dropdown-role">
-                        🛡️ Администратор
-                    </div>
-
-                </div>
-
-
-                <button
-                    class="dropdown-item"
-                    onclick="openMyButtons()"
-                >
-
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <rect
-                            x="3.5"
-                            y="3.5"
-                            width="7"
-                            height="7"
-                            rx="2"
-                        />
-
-                        <rect
-                            x="13.5"
-                            y="3.5"
-                            width="7"
-                            height="7"
-                            rx="2"
-                        />
-
-                        <rect
-                            x="3.5"
-                            y="13.5"
-                            width="7"
-                            height="7"
-                            rx="2"
-                        />
-
-                        <rect
-                            x="13.5"
-                            y="13.5"
-                            width="7"
-                            height="7"
-                            rx="2"
-                        />
-                    </svg>
-
-                    Мои кнопки
-
-                </button>
-
-
-                <button
-                    class="dropdown-item"
-                    onclick="openSecurity()"
-                >
-
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path
-                            d="M12 3 5 5.8v5.4c0 4.4 3 8.4 7 9.8 4-1.4 7-5.4 7-9.8V5.8L12 3Z"
-                        />
-
-                        <path
-                            d="m9.3 12 1.9 1.9 3.5-3.8"
-                        />
-                    </svg>
-
-                    Безопасность
-
-                </button>
-
-
-                <button
-                    class="dropdown-item danger"
-                    onclick="logout()"
-                >
-
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                    >
-                        <path
-                            d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"
-                        />
-
-                        <path
-                            d="m11 8-4 4 4 4"
-                        />
-
-                        <path
-                            d="M7 12h10"
-                        />
-                    </svg>
-
-                    Выход
-
-                </button>
-
-            </div>
-
-        </div>
-
-    </div>
-
-</header>
-
-
-<!-- =========================================================
-     MAIN
-========================================================= -->
-
-<main class="container">
-
-
-    <!-- HERO -->
-
-    <section class="hero">
-
-        <div class="hero-sheen"></div>
-
-        <div class="hero-content">
-
-            <div class="hero-badge">
-                🛡️ Администрирование
-            </div>
-
-            <h1>
-                Добро пожаловать! 👋
-            </h1>
-
-            <p>
-                Полный доступ: управляйте студентами,
-                посещаемостью, пользователями и разрешениями системы.
-            </p>
-
-        </div>
-
-
-        <div class="hero-clock">
-
-            <div class="hero-clock-label">
-                Текущее время
-            </div>
-
-            <div
-                class="hero-clock-time"
-                id="clock"
-            >
-                00:00:00
-            </div>
-
-            <div
-                class="hero-clock-date"
-                id="date"
-            >
-                Загрузка даты...
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         INFO CARDS
-    ====================================================== -->
-
-    <section class="info-grid">
-
-
-        <div class="info-card">
-
-            <div class="info-icon blue">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <rect
-                        x="3.5"
-                        y="5"
-                        width="17"
-                        height="16"
-                        rx="3"
-                    />
-
-                    <path d="M8 3v4"/>
-                    <path d="M16 3v4"/>
-                    <path d="M3.5 10h17"/>
-                </svg>
-
-            </div>
-
-            <div class="info-text">
-
-                <div class="info-title">
-                    Сегодня
-                </div>
-
-                <div
-                    class="info-value"
-                    id="today"
-                >
-                    Загрузка...
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="info-card">
-
-            <div class="info-icon green">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path
-                        d="m5 13 4 4L19 7"
-                    />
-                </svg>
-
-            </div>
-
-            <div class="info-text">
-
-                <div class="info-title">
-                    Статус системы
-                </div>
-
-                <div class="info-value">
-                    Система активна
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <div class="info-card">
-
-            <div class="info-icon orange">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <circle
-                        cx="12"
-                        cy="12"
-                        r="8.5"
-                    />
-
-                    <path
-                        d="M12 7.5V12l3 2"
-                    />
-                </svg>
-
-            </div>
-
-            <div class="info-text">
-
-                <div class="info-title">
-                    Текущее время
-                </div>
-
-                <div
-                    class="info-value"
-                    id="smallClock"
-                >
-                    00:00
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-    <!-- =====================================================
-         SECTION
-    ====================================================== -->
-
-    <div class="section-header">
-
-        <div>
-
-            <div class="section-title">
-                Быстрые действия
-            </div>
-
-            <div class="section-subtitle">
-                Выберите необходимый раздел
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- =====================================================
-         MENU
-    ====================================================== -->
-
-    <section class="menu">
-
-
-        <!-- ПОСЕЩАЕМОСТЬ -->
-
-        <button
-            class="menu-button attendance"
-            onclick="openAttendance()"
-        >
-
-            <span class="shortcut">
-                1
-            </span>
-
-            <span class="icon">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path
-                        d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"
-                    />
-
-                    <rect
-                        x="5"
-                        y="6"
-                        width="14"
-                        height="15"
-                        rx="2.5"
-                    />
-
-                    <path
-                        d="m9 13.2 2.3 2.3L15.5 11"
-                    />
-                </svg>
-
-            </span>
-
-            <span class="button-content">
-
-                <span class="button-title">
-                    Отметить посещаемость
-                </span>
-
-                <span class="button-description">
-                    Отметьте присутствующих и отсутствующих студентов на занятиях.
-                </span>
-
-            </span>
-
-            <span class="menu-arrow">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="m9 6 6 6-6 6"/>
-                </svg>
-
-            </span>
-
-        </button>
-
-
-        <!-- ИСТОРИЯ -->
-
-        <button
-            class="menu-button history"
-            onclick="openHistory()"
-        >
-
-            <span class="shortcut">
-                2
-            </span>
-
-            <span class="icon">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="M4 20V11"/>
-                    <path d="M10.5 20V4"/>
-                    <path d="M17 20v-8"/>
-                    <path d="M3 20h18"/>
-                </svg>
-
-            </span>
-
-            <span class="button-content">
-
-                <span class="button-title">
-                    Посещаемость
-                </span>
-
-                <span class="button-description">
-                    Просматривайте статистику посещаемости по дням и учебным неделям.
-                </span>
-
-            </span>
-
-            <span class="menu-arrow">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="m9 6 6 6-6 6"/>
-                </svg>
-
-            </span>
-
-        </button>
-
-
-        <!-- СТУДЕНТЫ -->
-
-        <button
-            class="menu-button students"
-            onclick="openStudents()"
-        >
-
-            <span class="shortcut">
-                3
-            </span>
-
-            <span class="icon">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path
-                        d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"
-                    />
-
-                    <circle
-                        cx="11.5"
-                        cy="7.2"
-                        r="3"
-                    />
-
-                    <path
-                        d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"
-                    />
-
-                    <path
-                        d="M15 4.1a3 3 0 0 1 0 5.8"
-                    />
-                </svg>
-
-            </span>
-
-            <span class="button-content">
-
-                <span class="button-title">
-                    Студенты
-                </span>
-
-                <span class="button-description">
-                    Добавляйте, просматривайте и управляйте списком студентов.
-                </span>
-
-            </span>
-
-            <span class="menu-arrow">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="m9 6 6 6-6 6"/>
-                </svg>
-
-            </span>
-
-        </button>
-
-
-        <!-- ГРУППЫ -->
-
-        <button
-            class="menu-button groups"
-            onclick="openGroups()"
-        >
-
-            <span class="shortcut">
-                4
-            </span>
-
-            <span class="icon">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                    <circle cx="9" cy="7" r="4" />
-                    <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                </svg>
-
-            </span>
-
-            <span class="button-content">
-
-                <span class="button-title">
-                    Группы
-                </span>
-
-                <span class="button-description">
-                    Управляйте учебными группами, курсами, специальностями и кураторами.
-                </span>
-
-            </span>
-
-            <span class="menu-arrow">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="m9 6 6 6-6 6"/>
-                </svg>
-
-            </span>
-
-        </button>
-
-
-        <!-- НАСТРОЙКИ -->
-
-        <button
-            class="menu-button settings"
-            onclick="openSettings()"
-        >
-
-            <span class="shortcut">
-                5
-            </span>
-
-            <span class="icon">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="1.8"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <circle
-                        cx="12"
-                        cy="12"
-                        r="3.3"
-                    />
-
-                    <path d="M12 2.5v3.2"/>
-                    <path d="M12 18.3v3.2"/>
-                    <path d="M4.5 4.5l2.3 2.3"/>
-                    <path d="M17.2 17.2l2.3 2.3"/>
-                    <path d="M2.5 12h3.2"/>
-                    <path d="M18.3 12h3.2"/>
-                    <path d="M4.5 19.5l2.3-2.3"/>
-                    <path d="M17.2 6.8l2.3-2.3"/>
-                </svg>
-
-            </span>
-
-            <span class="button-content">
-
-                <span class="button-title">
-                    Настройки
-                </span>
-
-                <span class="button-description">
-                    Настройте расписание, семестры и учебные периоды.
-                </span>
-
-            </span>
-
-            <span class="menu-arrow">
-
-                <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                >
-                    <path d="m9 6 6 6-6 6"/>
-                </svg>
-
-            </span>
-
-        </button>
-
-    </section>
-
-
-    <!-- =====================================================
-         FOOTER
-    ====================================================== -->
-
-    <footer>
-
-        <div class="footer-line"></div>
-
-        <div>
-            © 2026 Система посещаемости
-        </div>
-
-        <div style="margin-top:5px">
-            Админ-панель • Полный доступ
-        </div>
-
-    </footer>
-
-</main>
-
-
 <!-- TOAST -->
 
-<div
-    class="toast"
-    id="toast"
-></div>
+<div class="toast" id="toast"></div>
 
 
 <!-- =========================================================
-     JAVASCRIPT
+     JAVASCRIPT (без изменений логики)
 ========================================================= -->
 
 <script>
 
-/* =========================================================
-   НАВИГАЦИЯ
-========================================================= */
-
-function openAttendance() {
-    window.location.href = "attendance.html";
-}
-
-function openHistory() {
-    window.location.href = "history.html";
-}
-
-function openStudents() {
-    window.location.href = "students.html";
-}
-
-function openGroups() {
-    window.location.href = "groups.html";
-}
-
-function openSettings() {
-    window.location.href = "settings.html";
-}
-
-function openPermissions() {
-    window.location.href = "permissions.html";
-}
-
-function openUsers() {
-    window.location.href = "users.html";
-}
-
-
-/* =========================================================
-   МЕНЮ ПОЛЬЗОВАТЕЛЯ
-========================================================= */
+function openAttendance() { window.location.href = "attendance.html"; }
+function openHistory()    { window.location.href = "history.html"; }
+function openStudents()   { window.location.href = "students.html"; }
+function openGroups()     { window.location.href = "groups.html"; }
+function openSettings()   { window.location.href = "settings.html"; }
+function openPermissions(){ window.location.href = "permissions.html"; }
+function openUsers()      { window.location.href = "users.html"; }
 
 function toggleUserMenu() {
-
-    const menu =
-        document.getElementById("userMenu");
-
-    const button =
-        document.getElementById("userMenuButton");
-
+    const menu = document.getElementById("userMenu");
+    const button = document.getElementById("userMenuButton");
     menu.classList.toggle("open");
-
     button.classList.toggle("open");
 }
 
-
-/* =========================================================
-   ЗАКРЫТИЕ МЕНЮ ПО КЛИКУ ВНЕ
-========================================================= */
-
-document.addEventListener(
-    "click",
-    function(event) {
-
-        const menu =
-            document.getElementById("userMenu");
-
-        if (
-            menu &&
-            !menu.contains(event.target)
-        ) {
-
-            menu.classList.remove("open");
-
-            document
-                .getElementById("userMenuButton")
-                .classList.remove("open");
-        }
-
+document.addEventListener("click", function(event) {
+    const menu = document.getElementById("userMenu");
+    if (menu && !menu.contains(event.target)) {
+        menu.classList.remove("open");
+        document.getElementById("userMenuButton").classList.remove("open");
     }
-);
+});
 
-
-/* =========================================================
-   ESCAPE
-========================================================= */
-
-document.addEventListener(
-    "keydown",
-    function(event) {
-
-        if (event.key === "Escape") {
-
-            document
-                .getElementById("userMenu")
-                .classList.remove("open");
-
-            document
-                .getElementById("userMenuButton")
-                .classList.remove("open");
-        }
-
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+        document.getElementById("userMenu").classList.remove("open");
+        document.getElementById("userMenuButton").classList.remove("open");
     }
-);
+});
 
-
-/* =========================================================
-   ДОПОЛНИТЕЛЬНАЯ НАВИГАЦИЯ
-========================================================= */
-
-function openMyButtons() {
-    window.location.href = "mybuttons.html";
-}
-
-function openSecurity() {
-    window.location.href = "security.html";
-}
-
-
-/* =========================================================
-   ВЫХОД
-========================================================= */
+function openMyButtons() { window.location.href = "mybuttons.html"; }
+function openSecurity()  { window.location.href = "security.html"; }
 
 function logout() {
-
-    firebase.auth()
-        .signOut()
-
-        .then(function() {
-
-            window.location.href =
-                "index.html";
-
-        })
-
-        .catch(function() {
-
-            showToast(
-                "Не удалось выйти. Попробуйте снова."
-            );
-
-        });
-
+    firebase.auth().signOut()
+        .then(function() { window.location.href = "index.html"; })
+        .catch(function() { showToast("Не удалось выйти. Попробуйте снова."); });
 }
 
-
-/* =========================================================
-   ЧАСЫ
-========================================================= */
-
+/* ЧАСЫ */
 function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
 
-    const now =
-        new Date();
+    const fullTime = `${hours}:${minutes}:${seconds}`;
+    const shortTime = `${hours}:${minutes}`;
 
-    const hours =
-        String(
-            now.getHours()
-        ).padStart(2, "0");
+    document.getElementById("clock").textContent = fullTime;
+    document.getElementById("smallClock").textContent = shortTime;
 
-    const minutes =
-        String(
-            now.getMinutes()
-        ).padStart(2, "0");
+    const dateText = now.toLocaleDateString("ru-RU", {
+        weekday: "long", day: "numeric", month: "long", year: "numeric"
+    });
+    const formattedDate = dateText.charAt(0).toUpperCase() + dateText.slice(1);
 
-    const seconds =
-        String(
-            now.getSeconds()
-        ).padStart(2, "0");
+    document.getElementById("date").textContent = formattedDate;
 
-    const fullTime =
-        `${hours}:${minutes}:${seconds}`;
+    /* Раньше обновлялся #today, но он теперь в топбаре.
+       Обновляем оба: #today (топбар) и #todayCard (карточка). */
+    const todayTop = document.getElementById("today");
+    if (todayTop) todayTop.textContent = formattedDate;
 
-    const shortTime =
-        `${hours}:${minutes}`;
-
-
-    document
-        .getElementById("clock")
-        .textContent =
-        fullTime;
-
-
-    document
-        .getElementById("smallClock")
-        .textContent =
-        shortTime;
-
-
-    const dateText =
-        now.toLocaleDateString(
-            "ru-RU",
-            {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric"
-            }
-        );
-
-
-    const formattedDate =
-        dateText.charAt(0).toUpperCase()
-        + dateText.slice(1);
-
-
-    document
-        .getElementById("date")
-        .textContent =
-        formattedDate;
-
-
-    document
-        .getElementById("today")
-        .textContent =
-        formattedDate;
+    const todayCard = document.getElementById("todayCard");
+    if (todayCard) todayCard.textContent = formattedDate;
 }
 
-
-/* =========================================================
-   TOAST
-========================================================= */
-
+/* TOAST */
 let toastTimer;
-
 function showToast(message) {
-
-    const toast =
-        document.getElementById("toast");
-
-    toast.textContent =
-        message;
-
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
     toast.classList.add("show");
-
-    clearTimeout(
-        toastTimer
-    );
-
-    toastTimer =
-        setTimeout(
-            () => {
-
-                toast.classList.remove(
-                    "show"
-                );
-
-            },
-            2500
-        );
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.classList.remove("show"); }, 2500);
 }
 
+/* ГОРЯЧИЕ КЛАВИШИ */
+document.addEventListener("keydown", function(event) {
+    const tag = document.activeElement ? document.activeElement.tagName : "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
-/* =========================================================
-   ГОРЯЧИЕ КЛАВИШИ
-========================================================= */
+    if (event.key === "1") openAttendance();
+    if (event.key === "2") openHistory();
+    if (event.key === "3") openStudents();
+    if (event.key === "4") openGroups();
+    if (event.key === "5") openSettings();
+    if (event.key === "6") openPermissions();
+    if (event.key === "7") openUsers();
+});
 
-document.addEventListener(
-    "keydown",
-    function(event) {
+/* ЗАГРУЗКА */
+window.addEventListener("load", function() {
+    updateClock();
+    setInterval(updateClock, 1000);
+});
 
-        /*
-         * Не срабатываем,
-         * если пользователь печатает
-         * в поле ввода.
-         */
-
-        const tag =
-            document.activeElement
-                ? document.activeElement.tagName
-                : "";
-
-        if (
-            tag === "INPUT" ||
-            tag === "TEXTAREA" ||
-            tag === "SELECT"
-        ) {
-            return;
-        }
-
-
-        if (event.key === "1") {
-            openAttendance();
-        }
-
-        if (event.key === "2") {
-            openHistory();
-        }
-
-        if (event.key === "3") {
-            openStudents();
-        }
-
-        if (event.key === "4") {
-            openGroups();
-        }
-
-        if (event.key === "5") {
-            openSettings();
-        }
-
-        if (event.key === "6") {
-            openPermissions();
-        }
-
-        if (event.key === "7") {
-            openUsers();
-        }
-
-    }
-);
-
-
-/* =========================================================
-   ЗАГРУЗКА
-========================================================= */
-
-window.addEventListener(
-    "load",
-    function() {
-
-        updateClock();
-
-        setInterval(
-            updateClock,
-            1000
-        );
-
-    }
-);
-
-
-/* =========================================================
-   СЧЁТЧИК ЗАПРОСОВ НА РЕГИСТРАЦИЮ
-========================================================= */
-
-/*
- * В login.html при регистрации
- * создаётся:
- *
- * users/{uid}
- *
- * и:
- *
- * reg: 0
- *
- * Поэтому:
- *
- * reg === 0
- *
- * означает:
- *
- * "Ожидает разрешения администратора".
- *
- *
- * Когда администратор разрешает:
- *
- * reg === 1
- *
- * Когда отказывает:
- *
- * reg === 2
- *
- * onSnapshot позволяет получать изменения
- * практически сразу без перезагрузки страницы.
- */
-
-let registrationRequestsUnsubscribe =
-    null;
-
+/* СЧЁТЧИК ЗАЯВОК */
+let registrationRequestsUnsubscribe = null;
 
 function startRegistrationRequestsListener() {
+    const badge = document.getElementById("permissionsBadge");
+    const permissionsNav = document.getElementById("permissionsNav");
 
-    const badge =
-        document.getElementById(
-            "permissionsBadge"
+    if (!badge || !permissionsNav) return;
+
+    if (typeof registrationRequestsUnsubscribe === "function") {
+        registrationRequestsUnsubscribe();
+        registrationRequestsUnsubscribe = null;
+    }
+
+    registrationRequestsUnsubscribe = firebase.firestore()
+        .collection("users").where("reg", "==", 0)
+        .onSnapshot(
+            function(snapshot) {
+                const count = snapshot.size;
+                if (count > 0) {
+                    badge.textContent = count > 99 ? "99+" : String(count);
+                    badge.style.display = "flex";
+                    permissionsNav.classList.add("has-requests");
+                } else {
+                    badge.textContent = "0";
+                    badge.style.display = "none";
+                    permissionsNav.classList.remove("has-requests");
+                }
+            },
+            function(error) {
+                console.error("Ошибка счётчика запросов:", error);
+                badge.textContent = "0";
+                badge.style.display = "none";
+                permissionsNav.classList.remove("has-requests");
+            }
         );
+}
 
-    const permissionsNav =
-        document.getElementById(
-            "permissionsNav"
-        );
-
-
-    if (
-        !badge ||
-        !permissionsNav
-    ) {
+/* АВТОРИЗАЦИЯ */
+firebase.auth().onAuthStateChanged(function(user) {
+    if (!user) {
+        window.location.href = "index.html";
         return;
     }
 
+    firebase.firestore().collection("users").doc(user.uid).get()
+        .then(function(doc) {
+            const fio = (doc.exists && doc.data().name) ? doc.data().name : "Пользователь";
 
-    /*
-     * Если старый listener существует,
-     * отключаем его перед созданием нового.
-     */
+            document.getElementById("userFio").textContent = fio;
+            document.getElementById("dropdownName").textContent = fio;
 
-    if (
-        typeof registrationRequestsUnsubscribe ===
-        "function"
-    ) {
-
-        registrationRequestsUnsubscribe();
-
-        registrationRequestsUnsubscribe =
-            null;
-    }
-
-
-    /*
-     * Слушаем пользователей,
-     * у которых reg == 0.
-     */
-
-    registrationRequestsUnsubscribe =
-        firebase
-            .firestore()
-            .collection("users")
-            .where(
-                "reg",
-                "==",
-                0
-            )
-            .onSnapshot(
-
-                function(snapshot) {
-
-                    const count =
-                        snapshot.size;
-
-
-                    if (count > 0) {
-
-                        /*
-                         * Показываем количество.
-                         */
-
-                        badge.textContent =
-                            count > 99
-                                ? "99+"
-                                : String(count);
-
-
-                        badge.style.display =
-                            "flex";
-
-
-                        /*
-                         * Включаем красную подсветку.
-                         */
-
-                        permissionsNav
-                            .classList
-                            .add(
-                                "has-requests"
-                            );
-
-                    } else {
-
-                        /*
-                         * Заявок нет.
-                         */
-
-                        badge.textContent =
-                            "0";
-
-                        badge.style.display =
-                            "none";
-
-
-                        permissionsNav
-                            .classList
-                            .remove(
-                                "has-requests"
-                            );
-
-                    }
-
-                },
-
-                function(error) {
-
-                    console.error(
-                        "Ошибка счётчика запросов:",
-                        error
-                    );
-
-
-                    /*
-                     * Если Firestore
-                     * не разрешает чтение,
-                     * не показываем неправильный
-                     * счётчик.
-                     */
-
-                    badge.textContent =
-                        "0";
-
-                    badge.style.display =
-                        "none";
-
-                    permissionsNav
-                        .classList
-                        .remove(
-                            "has-requests"
-                        );
-
-                }
-
-            );
-
-}
-
-
-/* =========================================================
-   ПРОВЕРКА АВТОРИЗАЦИИ
-========================================================= */
-
-firebase
-    .auth()
-    .onAuthStateChanged(
-        function(user) {
-
-            /*
-             * Пользователь не авторизован.
-             */
-
-            if (!user) {
-
-                window.location.href =
-                    "index.html";
-
-                return;
+            const parts = fio.trim().split(/\s+/);
+            let initials = "?";
+            if (parts.length >= 2) {
+                initials = (parts[0][0] + parts[1][0]).toUpperCase();
+            } else if (parts.length === 1 && parts[0].length > 0) {
+                initials = parts[0][0].toUpperCase();
             }
+            document.getElementById("userAvatar").textContent = initials;
 
+            startRegistrationRequestsListener();
+        })
+        .catch(function(error) {
+            console.error("Ошибка загрузки профиля:", error);
+            document.getElementById("userFio").textContent = "Пользователь";
+            startRegistrationRequestsListener();
+        })
+        .finally(function() {
+            document.body.classList.remove("auth-pending");
+            document.getElementById("pageLoader").classList.add("hidden");
+        });
+});
 
-            /*
-             * Получаем профиль текущего пользователя.
-             */
+/* ОШИБКИ */
+window.addEventListener("error", function(event) {
+    console.error("Ошибка на странице:", event.error || event.message);
+    showToast("Произошла ошибка на странице");
+});
 
-            firebase
-                .firestore()
-                .collection("users")
-                .doc(user.uid)
-                .get()
-
-                .then(function(doc) {
-
-                    /*
-                     * Если документа пользователя нет,
-                     * не показываем пустое имя.
-                     */
-
-                    const fio =
-                        (
-                            doc.exists &&
-                            doc.data().name
-                        )
-                            ? doc.data().name
-                            : "Пользователь";
-
-
-                    document
-                        .getElementById("userFio")
-                        .textContent =
-                        fio;
-
-
-                    document
-                        .getElementById("dropdownName")
-                        .textContent =
-                        fio;
-
-
-                    /*
-                     * Инициалы.
-                     */
-
-                    const parts =
-                        fio
-                            .trim()
-                            .split(/\s+/);
-
-
-                    let initials =
-                        "?";
-
-
-                    if (
-                        parts.length >= 2
-                    ) {
-
-                        initials =
-                            (
-                                parts[0][0] +
-                                parts[1][0]
-                            ).toUpperCase();
-
-                    } else if (
-                        parts.length === 1 &&
-                        parts[0].length > 0
-                    ) {
-
-                        initials =
-                            parts[0][0]
-                                .toUpperCase();
-
-                    }
-
-
-                    document
-                        .getElementById("userAvatar")
-                        .textContent =
-                        initials;
-
-
-                    /*
-                     * После успешной авторизации
-                     * запускаем счётчик заявок.
-                     */
-
-                    startRegistrationRequestsListener();
-
-                })
-
-                .catch(function(error) {
-
-                    console.error(
-                        "Ошибка загрузки профиля:",
-                        error
-                    );
-
-
-                    document
-                        .getElementById("userFio")
-                        .textContent =
-                        "Пользователь";
-
-
-                    /*
-                     * Даже если профиль не загрузился,
-                     * пробуем запустить listener.
-                     */
-
-                    startRegistrationRequestsListener();
-
-                })
-
-                .finally(function() {
-
-                    /*
-                     * Показываем страницу.
-                     */
-
-                    document
-                        .body
-                        .classList
-                        .remove(
-                            "auth-pending"
-                        );
-
-
-                    document
-                        .getElementById("pageLoader")
-                        .classList
-                        .add(
-                            "hidden"
-                        );
-
-                });
-
-        }
-    );
-
-
-/* =========================================================
-   ОБРАБОТКА ОШИБОК
-========================================================= */
-
-window.addEventListener(
-    "error",
-    function(event) {
-
-        console.error(
-            "Ошибка на странице:",
-            event.error || event.message
-        );
-
-        showToast(
-            "Произошла ошибка на странице"
-        );
-
+/* ОЧИСТКА */
+window.addEventListener("beforeunload", function() {
+    if (typeof registrationRequestsUnsubscribe === "function") {
+        registrationRequestsUnsubscribe();
+        registrationRequestsUnsubscribe = null;
     }
-);
-
-
-/* =========================================================
-   ОЧИСТКА FIRESTORE LISTENER
-========================================================= */
-
-window.addEventListener(
-    "beforeunload",
-    function() {
-
-        if (
-            typeof registrationRequestsUnsubscribe ===
-            "function"
-        ) {
-
-            registrationRequestsUnsubscribe();
-
-            registrationRequestsUnsubscribe =
-                null;
-        }
-
-    }
-);
+});
 
 </script>
 

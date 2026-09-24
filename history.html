@@ -919,6 +919,8 @@
             margin: 0;
             color: #000;
             white-space: pre;
+            page-break-after: avoid;
+            break-after: avoid;
         }
 
         .print-header .ph-main {
@@ -931,16 +933,7 @@
         }
 
         .print-footer {
-            font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
-            font-size: 11pt;
-            line-height: normal;
-            color: #000;
-            white-space: pre;
-            margin: 9mm 0 0 42.6mm;
-        }
-
-        .print-footer .pf-name {
-            text-decoration: underline;
+            display: none;
         }
 
         @media print {
@@ -983,6 +976,11 @@
             #printSheet {
                 font-family: "Times New Roman", Times, "Liberation Serif", serif;
                 color: #000;
+                width: 281.9mm;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                page-break-after: avoid;
+                break-after: avoid;
             }
 
             #printSheet table.pt {
@@ -992,9 +990,12 @@
                 border-collapse: separate;
                 border-spacing: 0;
                 table-layout: fixed;
-                font-size: 11pt;
                 background: #fff;
                 box-shadow: 0 0 0 0.25pt #000;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                page-break-after: avoid;
+                break-after: avoid;
             }
 
             #printSheet table.pt th,
@@ -1015,54 +1016,51 @@
                 transition: none;
             }
 
-            #printSheet table.pt thead th {
-                height: 8.38mm;
-                font-size: 10pt;
-            }
-
-            #printSheet table.pt thead th.sm {
-                font-size: 8pt;
-            }
-
             #printSheet table.pt td.c-num {
                 text-align: left;
-                font-size: 12pt;
                 padding: 0 1.9mm;
             }
 
             #printSheet table.pt td.c-name {
                 text-align: left;
-                font-size: 11pt;
-                line-height: 14.5pt;
                 padding: 0 1.9mm;
             }
 
-            #printSheet table.pt td.c-l {
-                font-size: 10pt;
-            }
-
-            #printSheet table.pt td.c-t {
-                font-size: 10pt;
-            }
-
             #printSheet table.pt td.c-note {
-                font-size: 9pt;
                 text-align: left;
                 padding: 0 1mm;
                 overflow-wrap: anywhere;
             }
 
+            #printSheet table.pt td.c-signature {
+                text-align: left;
+                font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+                font-weight: normal;
+                padding: 3mm 0 0 42.6mm;
+                border: none !important;
+                box-shadow: none !important;
+                white-space: nowrap;
+                vertical-align: bottom;
+                line-height: normal;
+            }
+
+            #printSheet table.pt td.c-signature .pf-name {
+                text-decoration: underline;
+            }
+
+            /* Шапка НЕ повторяется на второй странице */
             #printSheet table.pt thead {
-                display: table-header-group;
+                display: table-row-group;
             }
 
-            #printSheet table.pt tr {
-                break-inside: avoid;
+            /* Подпись не переносится */
+            #printSheet table.pt tbody tr:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
             }
 
-            .print-header,
             .print-footer {
-                break-inside: avoid;
+                display: none !important;
             }
         }
 
@@ -1271,10 +1269,6 @@
         id="printSheet"
     ></div>
 
-    <div class="print-footer print-only">
-        Классный руководитель        ______________                  <span class="pf-name" id="printCuratorName">—</span>
-    </div>
-
 </div>
 
 <div
@@ -1417,7 +1411,7 @@
 
     let currentUid = null;
 
-    let userRole = null;          // "admin" | "curator" | "starosta"
+    let userRole = null;
 
     let userGroups = [];
 
@@ -1601,7 +1595,6 @@
 
         if (userRole === "admin") {
 
-            // Админ видит все группы
             const snapshot = await getDocs(collection(db, "groups"));
 
             groupsFromSnapshot(snapshot)
@@ -1768,7 +1761,7 @@
 
 
     // =========================================
-    // LOAD SETTINGS из groupSettings/{groupId}
+    // LOAD SETTINGS
     // =========================================
 
     async function loadSettings() {
@@ -1817,7 +1810,7 @@
 
 
     // =========================================
-    // LOAD STUDENTS — по groupId + studentIds группы
+    // LOAD STUDENTS
     // =========================================
 
     async function loadStudents() {
@@ -1835,8 +1828,6 @@
                     ? group.studentIds.map(String)
                     : [];
 
-
-            // --- 1. Студенты по полю groupId ---
 
             let byGroupId = [];
 
@@ -1861,8 +1852,6 @@
             }
 
 
-            // --- 2. Студенты из group.studentIds ---
-
             let byExplicit = [];
 
             if (explicitIds.length > 0) {
@@ -1877,8 +1866,6 @@
                     }));
             }
 
-
-            // --- 3. Объединяем ---
 
             const map = new Map();
 
@@ -1953,8 +1940,7 @@
 
 
     // =========================================
-    // LOAD ATTENDANCE — работает без groupId
-    // Фильтруем по studentId текущей группы.
+    // LOAD ATTENDANCE
     // =========================================
 
     async function loadAttendance() {
@@ -1978,8 +1964,6 @@
             );
 
 
-            // Берём всю коллекцию и фильтруем по studentId.
-            // Поле groupId в attendance не обязательно.
             const snapshot = await getDocs(collection(db, "attendance"));
 
             console.log(
@@ -2345,13 +2329,6 @@
             });
         });
 
-
-        try {
-            buildPrintSheet();
-        }
-        catch (error) {
-            console.error("Ошибка печатной формы:", error);
-        }
     }
 
 
@@ -2536,7 +2513,11 @@
     }
 
 
-    function buildPrintSheet() {
+    // =========================================
+    // BUILD PRINT SHEET
+    // =========================================
+
+    function buildPrintSheet(scaleFactor) {
 
         const sheet = document.getElementById("printSheet");
         if (!sheet) return;
@@ -2548,15 +2529,7 @@
             printGroupNameEl.textContent = group ? (group.name || group.id) : "—";
         }
 
-        const printCuratorNameEl = document.getElementById("printCuratorName");
         const curatorInputEl = document.getElementById("curatorPrintName");
-
-        if (printCuratorNameEl) {
-            printCuratorNameEl.textContent =
-                (curatorInputEl && curatorInputEl.value.trim())
-                    ? curatorInputEl.value.trim()
-                    : "—";
-        }
 
         const table = document.querySelector("#tableWrapper table");
 
@@ -2566,17 +2539,29 @@
         }
 
         const weekDates = getWeekDates();
-
         const lessonCounts = weekDates.map((date, index) => getLessonCount(index));
 
         const rows = Array.from(
             table.querySelectorAll("tbody tr:not(.total-row)")
         );
 
-        const rowHeight = Math.min(
-            7.68,
-            Math.max(4.5, 153 / Math.max(rows.length, 1))
-        );
+        const s = scaleFactor || 1.0;
+
+        const baseRowHeight  = 7.5;
+        const baseHeadHeight = 7.0;
+        const baseSignHeight = 14;
+
+        const rowHeight  = baseRowHeight  * s;
+        const headHeight = baseHeadHeight * s;
+        const signHeight = baseSignHeight * s;
+
+        const fontBody  = (11  * s).toFixed(2);
+        const fontName  = (11  * s).toFixed(2);
+        const fontNum   = (12  * s).toFixed(2);
+        const fontSmall = (10  * s).toFixed(2);
+        const fontNote  = (9   * s).toFixed(2);
+        const fontHead  = (10  * s).toFixed(2);
+        const fontLineH = (14.5 * s).toFixed(2);
 
         let cols =
             '<col style="width:10.92mm">' +
@@ -2585,8 +2570,7 @@
         lessonCounts.forEach(count => {
             if (count === 0) {
                 cols += '<col style="width:21mm">';
-            }
-            else {
+            } else {
                 cols += "<col>".repeat(count);
             }
         });
@@ -2597,24 +2581,18 @@
             '<col style="width:10.04mm">' +
             '<col style="width:24.02mm">';
 
-        let head1 =
-            '<th rowspan="2"></th>' +
-            '<th rowspan="2">Ф.И.О.</th>';
-
+        let head1 = '<th rowspan="2"></th><th rowspan="2">Ф.И.О.</th>';
         let head2 = "";
 
         weekDates.forEach((date, index) => {
-
             const count = lessonCounts[index];
-
             head1 +=
                 `<th colspan="${Math.max(count, 1)}">` +
                 `${days[index]}<br>${formatShortDate(date, false)}</th>`;
 
             if (count === 0) {
                 head2 += "<th>—</th>";
-            }
-            else {
+            } else {
                 for (let lesson = 1; lesson <= count; lesson++) {
                     head2 += `<th>${lesson}</th>`;
                 }
@@ -2637,7 +2615,6 @@
             const name = nameElement ? nameElement.textContent.trim() : "";
 
             let cells = "";
-
             row.querySelectorAll(".lesson-cell").forEach(cell => {
                 const mark = cell.classList.contains("absent") ? "Н" : "";
                 cells += `<td class="c-l">${mark}</td>`;
@@ -2649,7 +2626,6 @@
             };
 
             const noteCell = row.querySelector("td.report-note-col");
-
             const note = (noteCell && !noteCell.classList.contains("empty-mark"))
                 ? noteCell.textContent.trim()
                 : "";
@@ -2666,14 +2642,54 @@
                 `</tr>`;
         });
 
+        const totalCols =
+            2 + lessonCounts.reduce((s, c) => s + Math.max(c, 1), 0) + 4;
+
+        const curatorName = (curatorInputEl && curatorInputEl.value.trim())
+            ? curatorInputEl.value.trim()
+            : "________________";
+
+        const signatureRow = `
+            <tr style="height:${signHeight}mm">
+                <td colspan="${totalCols}" class="c-signature">
+                    Классный руководитель&nbsp;&nbsp;&nbsp;&nbsp;______________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="pf-name">${escapeHtml(curatorName)}</span>
+                </td>
+            </tr>
+        `;
+
+        const oldStyle = document.getElementById("ptDynamicStyle");
+        if (oldStyle) oldStyle.remove();
+
         sheet.innerHTML =
             `<table class="pt">` +
-            `<colgroup>${cols}</colgroup>` +
-            `<thead><tr>${head1}</tr><tr>${head2}</tr></thead>` +
-            `<tbody>${body}</tbody>` +
+                `<colgroup>${cols}</colgroup>` +
+                `<thead>
+                    <tr style="height:${headHeight}mm">${head1}</tr>
+                    <tr style="height:${headHeight}mm">${head2}</tr>
+                </thead>` +
+                `<tbody>${body}${signatureRow}</tbody>` +
             `</table>`;
+
+        const styleTag = document.createElement("style");
+        styleTag.id = "ptDynamicStyle";
+        styleTag.textContent = `
+            #printSheet table.pt { font-size: ${fontBody}pt; }
+            #printSheet table.pt thead th { font-size: ${fontHead}pt; }
+            #printSheet table.pt thead th.sm { font-size: ${fontSmall}pt; }
+            #printSheet table.pt td.c-num { font-size: ${fontNum}pt; }
+            #printSheet table.pt td.c-name { font-size: ${fontName}pt; line-height: ${fontLineH}pt; }
+            #printSheet table.pt td.c-l { font-size: ${fontSmall}pt; }
+            #printSheet table.pt td.c-t { font-size: ${fontSmall}pt; }
+            #printSheet table.pt td.c-note { font-size: ${fontNote}pt; }
+            #printSheet table.pt td.c-signature { font-size: ${fontBody}pt; }
+        `;
+        document.head.appendChild(styleTag);
     }
 
+
+    // =========================================
+    // PRINT REPORT — РАСЧЁТ МАСШТАБА ЗАРАНЕЕ
+    // =========================================
 
     function printReport() {
 
@@ -2685,9 +2701,44 @@
 
         document.getElementById("printHeaderRange").textContent = rangeText;
 
-        buildPrintSheet();
+        // ============================================================
+        // Доступная высота таблицы (A4 landscape 210мм):
+        //   210 - 10 (верх) - 5 (низ) - 8 (заголовок) - 9 (запас) = 178мм
+        //
+        // Расход при scale=1.0:
+        //   - шапка таблицы (2 строки)  ≈ 14мм
+        //   - строка подписи            ≈ 14мм
+        //   - N строк студентов × 7.5мм
+        // ============================================================
 
-        window.print();
+        const AVAILABLE_MM = 178;
+        const HEAD_MM  = 14;
+        const SIGN_MM  = 14;
+        const ROW_MM   = 7.5;
+
+        const studentCount = students.length;
+        const neededMm = HEAD_MM + SIGN_MM + studentCount * ROW_MM;
+
+        let scale = 1.0;
+
+        if (neededMm > AVAILABLE_MM) {
+            scale = AVAILABLE_MM / neededMm;
+        }
+
+        if (scale < 0.55) scale = 0.55;
+
+        console.log(
+            "🖨 Студентов:", studentCount,
+            "| нужно:", neededMm.toFixed(1), "мм",
+            "| доступно:", AVAILABLE_MM, "мм",
+            "| масштаб:", scale.toFixed(3)
+        );
+
+        buildPrintSheet(scale);
+
+        setTimeout(() => {
+            window.print();
+        }, 150);
     }
 
 
@@ -2695,7 +2746,7 @@
 
 
     // =========================================
-    // MAIN MENU — ПЕРЕХОД ПО РОЛИ
+    // MAIN MENU
     // =========================================
 
     window.goBack = async function () {

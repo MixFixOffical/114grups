@@ -5,3678 +5,3929 @@
 
     <meta charset="UTF-8">
 
-    <title>Посещаемость</title>
+    <meta name="viewport" content="width=1100">
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#2563eb">
+
+    <meta name="description"
+          content="Система управления посещаемостью студентов">
+
+    <title>Отметка посещаемости</title>
+
 
     <style>
 
-        * { box-sizing: border-box; }
+        /* =========================================================
+           ОСНОВНЫЕ НАСТРОЙКИ
+        ========================================================= */
 
-        html, body {
+        * {
             margin: 0;
             padding: 0;
-            min-width: 1100px;
-            zoom: 90%;
+            box-sizing: border-box;
         }
+
 
         :root {
-            --primary: #2454e8;
-            --primary-dark: #17348f;
-            --primary-light: #eef2ff;
-            --teal: #0d9488;
-            --teal-light: #ecfdf9;
-            --violet: #7c3aed;
-            --violet-light: #f4f0ff;
-            --amber: #d97706;
-            --amber-light: #fef8ec;
-            --red: #dc2626;
+
+            --blue: #2563eb;
+            --blue-dark: #1d4ed8;
+            --blue-light: #eff6ff;
+
+            --green: #22c55e;
+            --green-dark: #15803d;
+            --green-light: #f0fdf4;
+
+            --orange: #f59e0b;
+            --orange-light: #fffbeb;
+
+            --purple: #8b5cf6;
+            --purple-light: #f5f3ff;
+
+            --red: #ef4444;
+            --red-dark: #dc2626;
             --red-light: #fef2f2;
-            --slate: #64748b;
-            --slate-light: #f1f5f9;
 
-            --text: #0f1729;
-            --text-secondary: #5b6478;
-            --text-light: #9aa3b5;
+            --text: #111827;
+            --text-secondary: #6b7280;
+            --text-light: #9ca3af;
 
-            --border: rgba(220, 226, 238, 0.9);
+            --background: #f4f7fb;
 
-            --shadow-sm: 0 1px 2px rgba(15, 23, 42, .05), 0 1px 1px rgba(15, 23, 42, .03);
-            --shadow-md: 0 10px 24px -8px rgba(15, 23, 42, .10), 0 2px 6px rgba(15, 23, 42, .05);
-            --shadow-lg: 0 26px 50px -16px rgba(15, 23, 42, .18), 0 8px 18px -10px rgba(15, 23, 42, .09);
+            --border: #e5e7eb;
 
-            --ease: cubic-bezier(.22, 1, .36, 1);
+            --shadow:
+                0 10px 30px rgba(15, 23, 42, 0.07);
+
+            --shadow-hover:
+                0 18px 45px rgba(15, 23, 42, 0.13);
+
+            --radius: 22px;
+
         }
+
+
+        html {
+            min-width: 1100px;
+            scroll-behavior: smooth;
+        }
+
 
         body {
-            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background:
-                radial-gradient(circle at 6% 0%, rgba(36, 84, 232, .06), transparent 40%),
-                radial-gradient(circle at 96% 10%, rgba(124, 58, 237, .04), transparent 38%),
-                linear-gradient(160deg, #f9fafc 0%, #f4f6fb 45%, #eef1f9 100%);
-            background-attachment: fixed;
+
+            min-height: 100vh;
+            min-width: 1100px;
+
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Roboto,
+                Arial,
+                sans-serif;
+
             color: var(--text);
+
+            background:
+
+                radial-gradient(
+                    circle at 10% 10%,
+                    rgba(37, 99, 235, 0.10),
+                    transparent 30%
+                ),
+
+                radial-gradient(
+                    circle at 90% 20%,
+                    rgba(139, 92, 246, 0.08),
+                    transparent 28%
+                ),
+
+                linear-gradient(
+                    135deg,
+                    #f8fafc,
+                    #eef3f9
+                );
+
             overflow-x: auto;
+
         }
 
-        h1, h2, .title, .week-title, .student-name, .popup-title {
-            font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-        }
 
-        button {
+        button,
+        input,
+        textarea {
             font-family: inherit;
         }
 
-        :focus-visible {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
-            border-radius: 6px;
-        }
 
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: .001ms !important;
-                transition-duration: .001ms !important;
-            }
-        }
+        /* =========================================================
+           ЗАГРУЗКА СИСТЕМЫ
+        ========================================================= */
 
-        svg.icon-inline {
-            width: 1em;
-            height: 1em;
-            vertical-align: -0.14em;
-            margin-right: 2px;
-        }
+        .page-loader {
 
-        /* =====================================
-           AUTH GUARD OVERLAY
-        ===================================== */
-
-        #authGuardOverlay {
             position: fixed;
             inset: 0;
-            z-index: 99999;
+            z-index: 5000;
 
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 14px;
 
-            background: linear-gradient(160deg, #f9fafc 0%, #f4f6fb 45%, #eef1f9 100%);
+            background: #f8fafc;
+
+            transition:
+                opacity 0.45s ease,
+                visibility 0.45s ease;
+
         }
 
-        #authGuardOverlay .auth-spinner {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            border: 4px solid var(--primary-light);
-            border-top-color: var(--primary);
-            animation: authSpin .8s linear infinite;
+
+        .page-loader.hidden {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
         }
 
-        #authGuardOverlay .auth-guard-text {
-            font-family: "Inter", sans-serif;
-            font-size: 14.5px;
-            font-weight: 600;
-            color: var(--text-secondary);
+
+        .loader-content {
+            text-align: center;
         }
 
-        @keyframes authSpin {
-            to { transform: rotate(360deg); }
-        }
 
-        body.auth-pending > header,
-        body.auth-pending > .container {
-            display: none !important;
-        }
+        .loader-logo {
 
-        /* =====================================
-           HEADER
-        ===================================== */
-
-        header {
-            background: linear-gradient(100deg, #131f3d 0%, #1c3577 55%, #2454e8 100%);
-            color: white;
-            padding: 16px 28px;
+            width: 76px;
+            height: 76px;
 
             display: flex;
-            justify-content: space-between;
             align-items: center;
+            justify-content: center;
 
-            width: 100%;
-            min-width: 1100px;
+            margin: 0 auto 18px;
+
+            border-radius: 24px;
+
+            font-size: 34px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #4f46e5
+                );
+
+            box-shadow:
+                0 20px 40px
+                rgba(37,99,235,0.25);
+
+            animation:
+                loaderFloat 1.6s infinite ease-in-out;
+
+        }
+
+
+        .loader-text {
+
+            font-size: 13.5px;
+            font-weight: 700;
+            color: var(--text-secondary);
+
+        }
+
+
+        .loader-progress {
+
+            width: 180px;
+            height: 4px;
+
+            margin: 18px auto 0;
+
+            overflow: hidden;
+
+            border-radius: 999px;
+
+            background: #e5e7eb;
+
+        }
+
+
+        .loader-progress::after {
+
+            content: "";
+
+            display: block;
+
+            width: 45%;
+            height: 100%;
+
+            border-radius: inherit;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #2563eb,
+                    #8b5cf6
+                );
+
+            animation:
+                loaderProgress 1.1s infinite ease-in-out;
+
+        }
+
+
+        @keyframes loaderFloat {
+
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+
+        }
+
+
+        @keyframes loaderProgress {
+
+            0% { transform: translateX(-120%); }
+            100% { transform: translateX(400%); }
+
+        }
+
+
+        /* =========================================================
+           ФОН
+        ========================================================= */
+
+        .background-orb {
+            position: fixed;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+
+        .orb-1 {
+            width: 280px;
+            height: 280px;
+            top: -100px;
+            left: -100px;
+            background: rgba(37, 99, 235, 0.08);
+        }
+
+
+        .orb-2 {
+            width: 350px;
+            height: 350px;
+            right: -150px;
+            bottom: -120px;
+            background: rgba(139, 92, 246, 0.07);
+        }
+
+
+        /* =========================================================
+           HEADER
+        ========================================================= */
+
+        header {
 
             position: sticky;
             top: 0;
-            z-index: 50;
+            z-index: 100;
 
-            box-shadow: 0 12px 30px -12px rgba(36, 84, 232, .38);
+            width: 100%;
+            min-width: 1100px;
+            height: 76px;
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+
+            padding: 0 30px;
+
+            color: white;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb,
+                    #1d4ed8
+                );
+
+            box-shadow:
+                0 5px 25px
+                rgba(37, 99, 235, 0.22);
+
         }
 
-        .header-brand {
+
+        .header-left {
             display: flex;
             align-items: center;
             gap: 14px;
         }
 
-        .header-logo {
-            width: 42px;
-            height: 42px;
-            flex-shrink: 0;
+
+        .back-button {
+
+            width: 46px;
+            height: 46px;
+
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 13px;
-            background: rgba(255, 255, 255, .14);
-            border: 1px solid rgba(255, 255, 255, .2);
-        }
 
-        .header-logo svg {
-            width: 22px;
-            height: 22px;
-        }
-
-        .title {
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: -.3px;
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-
-        .subtitle {
-            margin-top: 4px;
-            font-size: 13px;
-            font-weight: 500;
-            color: rgba(255, 255, 255, .78);
-        }
-
-        .clock {
-            text-align: right;
-            flex-shrink: 0;
-        }
-
-        .time {
-            font-size: 21px;
-            font-weight: 700;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .date {
-            font-size: 13px;
-            margin-top: 3px;
-            color: rgba(255, 255, 255, .78);
-        }
-
-        /* =====================================
-           CONTAINER
-        ===================================== */
-
-        .container {
-            width: 1500px;
-            min-width: 1500px;
-
-            margin: 24px auto 40px;
-            padding: 0 20px;
-        }
-
-        /* =====================================
-           WEEK PANEL
-        ===================================== */
-
-        .week-panel {
-            background: rgba(255, 255, 255, .96);
-            border: 1px solid var(--border);
+            border: none;
             border-radius: 14px;
 
-            padding: 20px 22px;
+            color: white;
 
-            box-shadow: var(--shadow-sm);
+            background: rgba(255,255,255,0.16);
 
-            margin-bottom: 20px;
+            font-size: 25px;
 
-            min-width: 1100px;
+            cursor: pointer;
+            transition: 0.2s ease;
+
         }
 
-        .week-title {
-            font-size: 19px;
-            font-weight: 700;
-            letter-spacing: -.3px;
 
-            margin-bottom: 16px;
+        .back-button:hover {
+            background: rgba(255,255,255,0.24);
+            transform: translateX(-3px);
+        }
 
+
+        .header-brand {
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        .header-title {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.3px;
+        }
+
+
+        .header-subtitle {
+            margin-top: 2px;
+            font-size: 12px;
+            opacity: 0.75;
+        }
+
+
+        .header-right {
             display: flex;
             align-items: center;
-            gap: 9px;
-        }
-
-        .week-title svg {
-            width: 20px;
-            height: 20px;
-            color: var(--primary);
-        }
-
-        .week-controls {
-            display: flex;
-            align-items: center;
-
             gap: 10px;
-
-            flex-wrap: nowrap;
-
-            min-width: 1100px;
         }
 
-        .week-controls button {
+
+        .online-status {
+
+            display: flex;
+            align-items: center;
+            gap: 8px;
+
+            padding: 9px 14px;
+
+            border-radius: 999px;
+
+            font-size: 13px;
+            font-weight: 600;
+
+            background: rgba(255,255,255,0.13);
+
+            backdrop-filter: blur(10px);
+
+        }
+
+
+        .online-dot {
+
+            width: 9px;
+            height: 9px;
+
+            border-radius: 50%;
+
+            background: #4ade80;
+
+            box-shadow:
+                0 0 0 4px
+                rgba(74,222,128,0.15);
+
+            animation: pulse 2s infinite;
+
+        }
+
+
+        @keyframes pulse {
+
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.25); opacity: 0.7; }
+
+        }
+
+
+        /* =========================================================
+           MAIN
+        ========================================================= */
+
+        .container {
+
+            width: 1100px;
+            min-width: 1100px;
+
+            margin: 0 auto;
+            padding: 35px 0 40px;
+
+        }
+
+
+        /* =========================================================
+           HERO
+        ========================================================= */
+
+        .page-hero {
+
+            position: relative;
+
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: center;
+            gap: 30px;
+
+            padding: 30px 35px;
+            margin-bottom: 22px;
+
+            border-radius: 28px;
+
+            color: white;
+
+            overflow: hidden;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2563eb 0%,
+                    #1d4ed8 55%,
+                    #4338ca 100%
+                );
+
+            box-shadow:
+                0 18px 50px
+                rgba(37, 99, 235, 0.22);
+
+        }
+
+
+        .page-hero::before {
+
+            content: "";
+            position: absolute;
+
+            width: 300px;
+            height: 300px;
+
+            right: -100px;
+            top: -150px;
+
+            border-radius: 50%;
+
+            background: rgba(255,255,255,0.08);
+
+        }
+
+
+        .page-hero::after {
+
+            content: "";
+            position: absolute;
+
+            width: 180px;
+            height: 180px;
+
+            right: 180px;
+            bottom: -110px;
+
+            border-radius: 50%;
+
+            background: rgba(255,255,255,0.06);
+
+        }
+
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+
+        .hero-badge {
+
             display: inline-flex;
             align-items: center;
             gap: 7px;
 
-            border: 1px solid transparent;
+            padding: 7px 12px;
+            margin-bottom: 13px;
 
-            padding: 10px 16px;
+            border-radius: 999px;
 
-            border-radius: 9px;
+            font-size: 12px;
+            font-weight: 700;
+
+            background: rgba(255,255,255,0.13);
+
+            border:
+                1px solid
+                rgba(255,255,255,0.13);
+
+        }
+
+
+        .page-hero h1 {
+
+            font-size: 31px;
+            line-height: 1.15;
+
+            margin-bottom: 8px;
+
+            letter-spacing: -0.8px;
+
+        }
+
+
+        .page-hero p {
+
+            max-width: 650px;
+
+            font-size: 14px;
+            line-height: 1.6;
+
+            color: rgba(255,255,255,0.78);
+
+        }
+
+
+        .hero-clock {
+
+            position: relative;
+            z-index: 2;
+
+            width: 210px;
+
+            padding: 20px;
+
+            text-align: center;
+
+            border-radius: 22px;
+
+            background: rgba(255,255,255,0.11);
+
+            border:
+                1px solid
+                rgba(255,255,255,0.13);
+
+            backdrop-filter: blur(15px);
+
+        }
+
+
+        .hero-clock-time {
+
+            font-size: 31px;
+            font-weight: 800;
+            letter-spacing: 1px;
+
+        }
+
+
+        .hero-clock-date {
+
+            margin-top: 5px;
+
+            font-size: 12px;
+
+            color: rgba(255,255,255,0.70);
+
+        }
+
+
+        /* =========================================================
+           INFORMATION
+        ========================================================= */
+
+        .top-panel {
+
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr;
+            gap: 16px;
+
+            margin-bottom: 20px;
+
+        }
+
+
+        .info-card {
+
+            position: relative;
+
+            padding: 20px;
+
+            background: rgba(255,255,255,0.92);
+
+            border:
+                1px solid
+                rgba(255,255,255,0.8);
+
+            border-radius: 18px;
+
+            box-shadow: var(--shadow);
+
+            backdrop-filter: blur(12px);
+
+            transition: 0.25s ease;
+
+        }
+
+
+        .info-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-hover);
+        }
+
+
+        .info-label {
+
+            color: var(--text-secondary);
+            font-size: 12px;
+
+            margin-bottom: 9px;
+
+        }
+
+
+        .info-value {
+
+            font-size: 17px;
+            font-weight: 800;
+
+        }
+
+
+        .date-input {
+
+            width: 100%;
+
+            padding: 10px 12px;
+
+            border: 1px solid #dbe1ea;
+
+            border-radius: 11px;
+
+            font-size: 14px;
+
+            outline: none;
+
+            background: #f8fafc;
 
             cursor: pointer;
 
-            font-size: 13.5px;
-            font-weight: 600;
+            color: #111827;
 
-            transition:
-                transform .2s var(--ease),
-                background .2s ease,
-                box-shadow .2s ease;
-
-            white-space: nowrap;
-
-            flex-shrink: 0;
         }
 
-        .week-controls button svg {
-            width: 16px;
-            height: 16px;
+
+        .date-input:focus {
+
+            border-color: var(--blue);
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37,99,235,0.10);
+
         }
 
-        .week-controls button:hover {
-            transform: translateY(-1px);
+
+        .date-input:disabled {
+            cursor: default;
+            opacity: 0.75;
+            background: #eef1f5;
         }
 
-        .week-controls button:active {
-            transform: translateY(0) scale(.97);
+
+        .group-hint {
+
+            margin-top: 7px;
+
+            font-size: 11px;
+
+            color: var(--text-light);
+
         }
 
-        .previous,
-        .next {
-            background: var(--slate-light);
-            color: var(--text);
-            border-color: var(--border);
+
+        /* =========================================================
+           QUICK MODE
+        ========================================================= */
+
+        .quick-panel {
+
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 15px;
+
+            padding: 15px 18px;
+            margin-bottom: 20px;
+
+            border: 1px solid #dbe4f0;
+            border-radius: 18px;
+
+            background: rgba(255,255,255,0.92);
+
+            box-shadow: var(--shadow);
+
         }
 
-        .previous:hover,
-        .next:hover {
-            background: #e6eaf2;
+
+        .quick-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
 
-        .current {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 8px 18px -6px rgba(36, 84, 232, .45);
+
+        .quick-icon {
+
+            width: 42px;
+            height: 42px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 13px;
+
+            background: var(--blue-light);
+            color: var(--blue);
+
+            font-size: 20px;
+
         }
 
-        .current:hover {
-            background: var(--primary-dark);
+
+        .quick-title {
+            font-size: 14px;
+            font-weight: 800;
         }
 
-        .list-button {
-            background: var(--violet-light);
-            color: var(--violet);
-        }
 
-        .list-button:hover {
-            background: #e9e0ff;
-        }
+        .quick-description {
 
-        .print-button {
-            background: var(--teal-light);
-            color: var(--teal);
-        }
+            margin-top: 3px;
 
-        .print-button:hover {
-            background: #d9f5ef;
-        }
-
-        .back {
-            margin-left: auto;
-            background: var(--slate-light);
             color: var(--text-secondary);
+            font-size: 11px;
+
         }
 
-        .back:hover {
-            background: #e6eaf2;
-            color: var(--text);
+
+        .quick-actions {
+            display: flex;
+            gap: 8px;
         }
 
-        /* =====================================
-           WEEK LIST
-        ===================================== */
 
-        .week-list {
-            display: none;
-
-            margin-top: 15px;
-
-            background: #f7f8fc;
-
-            border: 1px solid var(--border);
-
-            border-radius: 16px;
-
-            padding: 8px;
-
-            max-height: 320px;
-
-            overflow-y: auto;
-        }
-
-        .week-list.show {
-            display: block;
-            animation: rise .25s var(--ease) both;
-        }
-
-        .week-option {
-            width: 100%;
+        .quick-button {
 
             border: none;
+            border-radius: 12px;
 
-            background: white;
-
-            padding: 12px 15px;
-
-            margin-bottom: 5px;
-
-            border-radius: 11px;
+            padding: 11px 15px;
 
             cursor: pointer;
 
-            text-align: left;
+            font-size: 12px;
+            font-weight: 800;
 
-            font-size: 14.5px;
-            font-weight: 500;
+            transition: 0.2s ease;
 
-            transition:
-                background .15s ease,
-                transform .15s ease;
         }
 
-        .week-option:hover {
-            background: var(--primary-light);
+
+        .quick-button:hover {
+            transform: translateY(-2px);
         }
 
-        .week-option.selected {
-            background: var(--primary);
-            color: white;
-            font-weight: 600;
+
+        .quick-present {
+            background: var(--green-light);
+            color: var(--green-dark);
         }
 
-        .week-option.current-week {
-            border-left: 4px solid var(--teal);
+
+        .quick-absent {
+            background: var(--red-light);
+            color: var(--red-dark);
         }
 
-        .week-range {
-            margin-top: 14px;
 
-            color: var(--text-secondary);
+        .quick-cancel {
 
-            font-size: 14.5px;
-            font-weight: 500;
+            display: none;
+
+            background: #f3f4f6;
+            color: #4b5563;
+
         }
 
-        /* =====================================
-           GROUP SWITCHER / CURATOR SIGNATURE
-        ===================================== */
 
-        .group-panel {
+        .quick-panel.active {
+
+            border-color: #93c5fd;
+
+            box-shadow:
+                0 10px 35px
+                rgba(37,99,235,0.12);
+
+        }
+
+
+        .quick-panel.active .quick-cancel {
+            display: block;
+        }
+
+
+        .quick-mode-label {
+
+            display: none;
+
+            padding: 7px 10px;
+
+            border-radius: 999px;
+
+            background: var(--blue-light);
+            color: var(--blue-dark);
+
+            font-size: 11px;
+            font-weight: 800;
+
+        }
+
+
+        .quick-panel.active .quick-mode-label {
+            display: inline-flex;
+        }
+
+
+        /* =========================================================
+           TOOLBAR
+        ========================================================= */
+
+        .toolbar {
+
             display: flex;
             align-items: center;
-            flex-wrap: wrap;
-            gap: 12px 20px;
+            justify-content: space-between;
 
-            padding-bottom: 16px;
             margin-bottom: 16px;
 
-            border-bottom: 1px solid var(--border);
         }
 
-        .group-field {
+
+        .toolbar-left {
             display: flex;
             align-items: center;
-            gap: 9px;
+            gap: 10px;
         }
 
-        .group-field-label {
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            white-space: nowrap;
+
+        .toolbar-title {
+
+            font-size: 22px;
+            font-weight: 800;
+
+            letter-spacing: -0.4px;
+
         }
 
-        .group-select {
-            height: 40px;
-            padding: 0 12px;
-            border-radius: 11px;
-            border: 1px solid var(--border);
-            background: var(--slate-light);
-            color: var(--text);
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
 
-        .group-select:focus {
-            outline: 2px solid var(--primary);
-            outline-offset: 1px;
-        }
+        .day-badge {
 
-        .group-static {
-            height: 40px;
-            display: inline-flex;
-            align-items: center;
-            padding: 0 14px;
-            border-radius: 11px;
-            background: var(--primary-light);
-            color: var(--primary-dark);
-            font-size: 14px;
+            padding: 7px 11px;
+
+            border-radius: 999px;
+
+            color: var(--blue-dark);
+            background: var(--blue-light);
+
+            font-size: 12px;
             font-weight: 700;
+
         }
 
-        .curator-name-input {
-            height: 40px;
-            width: 230px;
-            padding: 0 12px;
-            border-radius: 11px;
+
+        .refresh-button {
+
+            display: flex;
+            align-items: center;
+            gap: 7px;
+
+            padding: 10px 15px;
+
             border: 1px solid var(--border);
-            background: white;
-            color: var(--text);
-            font-size: 13.5px;
-            font-weight: 600;
+            border-radius: 12px;
+
+            background: rgba(255,255,255,0.92);
+            color: #374151;
+
+            cursor: pointer;
+
+            font-weight: 700;
+
+            box-shadow:
+                0 5px 18px
+                rgba(15,23,42,0.05);
+
+            transition: 0.2s ease;
+
         }
 
-        .curator-name-input:disabled {
-            background: var(--slate-light);
-            color: var(--text-secondary);
-            cursor: not-allowed;
+
+        .refresh-button:hover {
+
+            border-color: var(--blue);
+            color: var(--blue);
+
+            transform: translateY(-2px);
+
         }
 
-        .curator-name-input:focus {
-            outline: 2px solid var(--primary);
-            outline-offset: 1px;
-        }
 
-        .group-panel .empty-groups {
-            color: var(--red);
-            font-size: 13.5px;
-            font-weight: 600;
-        }
-
-        /* =====================================
+        /* =========================================================
            TABLE
-        ===================================== */
+        ========================================================= */
 
-        .table-container {
-            background: white;
-
-            border: 1px solid var(--border);
-            border-radius: 14px;
-
-            box-shadow: var(--shadow-sm);
-
-            overflow-x: auto;
-            overflow-y: visible;
+        .table-wrapper {
 
             width: 100%;
+
+            overflow: auto;
+
+            background: rgba(255,255,255,0.95);
+
+            border: 1px solid var(--border);
+            border-radius: 22px;
+
+            box-shadow: var(--shadow);
+
         }
+
 
         table {
-            border-collapse: collapse;
 
             width: 100%;
 
-            min-width: 1000px;
+            border-collapse: separate;
+            border-spacing: 0;
 
-            font-size: 14.5px;
+            min-width: 900px;
+
         }
+
 
         th {
-            background: #1c3577;
-
-            color: white;
-
-            padding: 11px 10px;
-
-            border: 1px solid rgba(255, 255, 255, .12);
-
-            font-weight: 600;
-
-            text-align: center;
-
-            white-space: nowrap;
-        }
-
-        th.student-column {
-            text-align: left;
-            padding-left: 18px;
-
-            min-width: 270px;
-
-            width: 270px;
 
             position: sticky;
-
-            left: 0;
-
-            z-index: 10;
-        }
-
-        td {
-            border: 1px solid #e7ebf2;
-
-            text-align: center;
-
-            padding: 7px;
-
-            transition: background .15s ease;
-        }
-
-        td.student-cell {
-            background: white;
-
-            text-align: left;
-            padding-left: 18px;
-
-            position: sticky;
-
-            left: 0;
-
+            top: 0;
             z-index: 5;
 
-            min-width: 270px;
+            padding: 15px 10px;
 
-            width: 270px;
+            background: #f8fafc;
 
-            box-shadow: 2px 0 6px -2px rgba(15, 23, 42, .06);
+            border-bottom: 1px solid var(--border);
+
+            color: #4b5563;
+
+            font-size: 12px;
+            font-weight: 800;
+
+            text-align: center;
+
         }
 
-        tbody tr:hover td.student-cell {
-            background: #fafbff;
+
+        th:first-child {
+
+            position: sticky;
+            left: 0;
+            z-index: 10;
+
+            width: 300px;
+
+            text-align: left;
+
+            padding-left: 20px;
+
+            background: #f8fafc;
+
         }
 
-        tbody tr:hover td:not(.student-cell):not(.present):not(.absent) {
-            background: #fafbff;
+
+        .lesson-header {
+
+            cursor: pointer;
+
+            transition: 0.2s ease;
+
+            user-select: none;
+
         }
 
-        .student-wrapper {
-            display: flex;
 
+        .lesson-header:hover {
+
+            color: var(--blue);
+            background: #eff6ff;
+
+        }
+
+
+        .lesson-number {
+
+            display: inline-flex;
             align-items: center;
+            justify-content: center;
 
-            gap: 10px;
-
-            white-space: nowrap;
-        }
-
-        .student-number {
-            width: 30px;
+            min-width: 30px;
             height: 30px;
 
-            border-radius: 50%;
+            padding: 0 8px;
 
-            background: var(--primary-light);
-            color: var(--primary);
+            border-radius: 10px;
 
-            display: flex;
+            background: var(--blue-light);
+            color: var(--blue);
+
+            font-size: 12px;
+            font-weight: 900;
+
+        }
+
+
+        .lesson-short-name {
+
+            display: block;
+
+            max-width: 110px;
+
+            margin: 6px auto 0;
+
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+
+            color: #6b7280;
+
+            font-size: 10px;
+            font-weight: 600;
+
+        }
+
+
+        td {
+
+            padding: 10px;
+
+            border-bottom: 1px solid #eef0f4;
+
+            text-align: center;
+
+            background: white;
+
+        }
+
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+
+        td:first-child {
+
+            position: sticky;
+            left: 0;
+            z-index: 4;
+
+            width: 300px;
+
+            text-align: left;
+
+            padding-left: 20px;
+
+            background: white;
+
+        }
+
+
+        tr:hover td {
+            background: #fbfdff;
+        }
+
+
+        tr:hover td:first-child {
+            background: #fbfdff;
+        }
+
+
+        .student-name {
+
+            font-weight: 700;
+
+            color: var(--text);
+
+            white-space: nowrap;
+
+        }
+
+
+        .student-number {
+
+            display: inline-flex;
+
+            width: 30px;
+            height: 30px;
 
             align-items: center;
             justify-content: center;
 
-            font-weight: 700;
-            font-size: 13px;
-
-            flex-shrink: 0;
-        }
-
-        .student-name {
-            font-size: 14.5px;
-            font-weight: 600;
-
-            white-space: nowrap;
-        }
-
-        /* =====================================
-           DAYS
-        ===================================== */
-
-        .day-header {
-            min-width: 100px;
-        }
-
-        .day-name {
-            font-weight: 700;
-        }
-
-        .day-date {
-            font-size: 11.5px;
-
-            margin-top: 3px;
-
-            opacity: .85;
-            font-weight: 400;
-        }
-
-        /* =====================================
-           LESSON CELLS
-        ===================================== */
-
-        .lesson-cell {
-            min-width: 55px;
-
-            height: 45px;
-
-            cursor: pointer;
-
-            transition:
-                transform .12s ease,
-                box-shadow .12s ease;
-        }
-
-        .lesson-cell:hover {
-            background: var(--primary-light);
-            box-shadow: inset 0 0 0 1.5px rgba(36, 84, 232, .3);
-        }
-
-        .present {
-            color: #0a7a3d;
-
-            background: #eafbf1;
-
-            font-size: 18px;
-
-            font-weight: 700;
-        }
-
-        .absent {
-            color: #c0272d;
-
-            background: #fdedee;
-
-            font-size: 17px;
-
-            font-weight: 700;
-        }
-
-        .empty-mark {
-            color: var(--text-light);
-        }
-
-        /* =====================================
-           REPORT COLUMNS
-        ===================================== */
-
-        th.report-col {
-            min-width: 68px;
-        }
-
-        th.report-note-col,
-        td.report-note-col {
-            min-width: 180px;
-            max-width: 260px;
-        }
-
-        td.report-col {
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        td.report-total {
-            background: var(--slate-light);
-            color: var(--text);
-        }
-
-        td.report-uv {
-            background: var(--teal-light);
-            color: var(--teal);
-        }
-
-        td.report-neuv {
-            background: var(--red-light);
-            color: var(--red);
-        }
-
-        td.report-note-col {
-            font-weight: 400;
-            font-size: 13px;
-            text-align: left;
-            padding-left: 10px;
-            color: var(--text-secondary);
-            white-space: normal;
-        }
-
-        tr.total-row td {
-            background: var(--primary-light);
-            font-weight: 700;
-        }
-
-        tr.total-row td.student-cell {
-            color: var(--primary-dark);
-        }
-
-        tr.total-row td.report-uv {
-            background: var(--teal-light);
-            color: var(--teal);
-        }
-
-        tr.total-row td.report-neuv {
-            background: var(--red-light);
-            color: var(--red);
-        }
-
-        /* =====================================
-           POPUP
-        ===================================== */
-
-        .info-popup {
-            position: fixed;
-
-            display: none;
-
-            background: white;
-
-            padding: 16px;
-
-            border-radius: 12px;
-
-            border: 1px solid var(--border);
-
-            box-shadow: var(--shadow-lg);
-
-            width: 290px;
-
-            z-index: 1000;
-
-            animation: rise .2s var(--ease) both;
-        }
-
-        .popup-title {
-            font-weight: 700;
-
-            font-size: 16.5px;
-
-            margin-bottom: 11px;
-        }
-
-        .popup-row {
-            margin-bottom: 7px;
-
-            font-size: 13.5px;
-            color: var(--text-secondary);
-        }
-
-        .popup-reason {
-            background: var(--slate-light);
-
-            padding: 10px 11px;
-
-            border-radius: 11px;
-
-            margin-top: 10px;
-
-            font-size: 13.5px;
-            line-height: 1.5;
-        }
-
-        .popup-reason strong {
-            color: var(--text);
-        }
-
-        /* =====================================
-           EMPTY
-        ===================================== */
-
-        .empty {
-            text-align: center;
-
-            padding: 55px;
-
-            color: var(--text-secondary);
-
-            font-size: 15.5px;
-        }
-
-        /* =====================================
-           STATUS
-        ===================================== */
-
-        .status {
-            position: fixed;
-
-            right: 20px;
-            bottom: 20px;
-
-            background: #101a30;
-
-            color: white;
-
-            padding: 12px 18px;
+            margin-right: 9px;
 
             border-radius: 10px;
 
-            font-size: 13.5px;
-            font-weight: 600;
+            background: var(--blue-light);
+            color: var(--blue);
 
-            box-shadow: var(--shadow-lg);
+            font-size: 11px;
+            font-weight: 800;
+
+        }
+
+
+        /* =========================================================
+           ATTENDANCE
+        ========================================================= */
+
+        .attendance-cell {
+
+            width: 70px;
+            height: 58px;
+
+            padding: 0;
+
+            cursor: pointer;
+            user-select: none;
+
+            transition: 0.15s ease;
+
+        }
+
+
+        .attendance-cell:hover {
+            background: #f8fbff;
+        }
+
+
+        .status {
+
+            min-width: 42px;
+            width: fit-content;
+
+            padding: 0 4px;
+            height: 42px;
+
+            margin: auto;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 13px;
+
+            font-size: 15px;
+            font-weight: 900;
+
+            transition: 0.18s ease;
+
+        }
+
+
+        .status-absent { font-size: 12.5px; }
+
+
+        .status-empty {
+            background: #f3f4f6;
+            color: #9ca3af;
+        }
+
+
+        .status-present {
+            background: var(--green-light);
+            color: var(--green-dark);
+        }
+
+
+        .status-absent {
+            background: var(--red-light);
+            color: var(--red-dark);
+        }
+
+
+        .attendance-cell:hover .status {
+            transform: scale(1.08);
+        }
+
+
+        .quick-panel.active .attendance-cell {
+            cursor: crosshair;
+        }
+
+
+        /* =========================================================
+           LOADING / EMPTY
+        ========================================================= */
+
+        .loading {
+            padding: 60px 20px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+
+        .spinner {
+
+            width: 38px;
+            height: 38px;
+
+            margin: 0 auto 14px;
+
+            border-radius: 50%;
+
+            border: 4px solid #e5e7eb;
+            border-top-color: var(--blue);
+
+            animation: spin 0.8s linear infinite;
+
+        }
+
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+
+        .empty {
+            padding: 65px 20px;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+
+        .empty-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+
+        .empty-title {
+            font-size: 19px;
+            font-weight: 800;
+            color: #374151;
+            margin-bottom: 6px;
+        }
+
+
+        /* =========================================================
+           CHOICE MENU
+        ========================================================= */
+
+        .menu-overlay {
+
+            position: fixed;
+            inset: 0;
+            z-index: 500;
 
             display: none;
+            align-items: center;
+            justify-content: center;
 
-            z-index: 3000;
+            padding: 20px;
+
+            background: rgba(15,23,42,0.45);
+
+            backdrop-filter: blur(6px);
+
         }
 
-        .status.show {
-            display: block;
-            animation: rise .25s var(--ease) both;
+
+        .menu-overlay.active { display: flex; }
+
+
+        .choice-menu {
+
+            width: 410px;
+
+            background: white;
+            border-radius: 24px;
+
+            padding: 24px;
+
+            box-shadow:
+                0 25px 70px
+                rgba(15,23,42,0.25);
+
+            animation: popupIn 0.2s ease;
+
         }
 
-        @keyframes rise {
+
+        @keyframes popupIn {
+
             from {
                 opacity: 0;
-                transform: translateY(10px);
+                transform: scale(0.94) translateY(10px);
             }
 
             to {
                 opacity: 1;
-                transform: translateY(0);
+                transform: scale(1) translateY(0);
             }
+
         }
 
-        /* =====================================
-           MOBILE VIEW
-        ===================================== */
 
-        .mobile-only { display: none; }
-
-        @media (max-width: 860px) {
-
-            html, body {
-                min-width: 0;
-                zoom: 100%;
-                overflow-x: hidden;
-            }
-
-            header {
-                min-width: 0;
-                padding: 12px 16px;
-            }
-
-            .header-logo { width: 36px; height: 36px; }
-            .header-logo svg { width: 19px; height: 19px; }
-            .title { font-size: 17px; }
-            .subtitle { font-size: 11.5px; }
-            .clock { display: none; }
-
-            .container {
-                width: 100%;
-                min-width: 0;
-                margin: 0 auto 24px;
-                padding: 0;
-            }
-
-            .week-panel,
-            .table-container,
-            .print-header {
-                display: none !important;
-            }
-
-            .mobile-only { display: block; }
-
-            /* ---- top bar ---- */
-
-            .mobile-topbar {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 12px 14px;
-                background: white;
-                border-bottom: 1px solid var(--border);
-                position: sticky;
-                top: 0;
-                z-index: 40;
-            }
-
-            .mobile-group-select {
-                flex: 1;
-                height: 38px;
-                padding: 0 10px;
-                border-radius: 9px;
-                border: 1px solid var(--border);
-                background: var(--slate-light);
-                color: var(--text);
-                font-size: 13.5px;
-                font-weight: 700;
-            }
-
-            .mobile-group-static {
-                flex: 1;
-                font-size: 14.5px;
-                font-weight: 700;
-                color: var(--text);
-            }
-
-            .mobile-icon-btn {
-                width: 38px;
-                height: 38px;
-                flex-shrink: 0;
-                border: 1px solid var(--border);
-                background: var(--slate-light);
-                border-radius: 9px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: var(--text-secondary);
-                cursor: pointer;
-            }
-
-            .mobile-icon-btn svg { width: 18px; height: 18px; }
-
-            /* ---- week nav ---- */
-
-            .mobile-week-nav {
-                display: flex;
-                align-items: center;
-                justify-content: space-between;
-                gap: 8px;
-                padding: 10px 14px;
-                background: white;
-                border-bottom: 1px solid var(--border);
-            }
-
-            .mobile-week-range {
-                font-size: 13px;
-                font-weight: 600;
-                color: var(--text-secondary);
-                text-align: center;
-                flex: 1;
-            }
-
-            /* ---- day tabs ---- */
-
-            .mobile-day-tabs {
-                display: flex;
-                gap: 6px;
-                padding: 10px 14px;
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-                background: white;
-                border-bottom: 1px solid var(--border);
-            }
-
-            .mobile-day-tabs::-webkit-scrollbar { display: none; }
-
-            .mobile-day-tab {
-                flex-shrink: 0;
-                min-width: 52px;
-                border: 1px solid var(--border);
-                background: var(--slate-light);
-                border-radius: 10px;
-                padding: 7px 4px;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 2px;
-                cursor: pointer;
-            }
-
-            .mobile-day-tab .mdt-name {
-                font-size: 12px;
-                font-weight: 700;
-                color: var(--text-secondary);
-                text-transform: uppercase;
-            }
-
-            .mobile-day-tab .mdt-date {
-                font-size: 10.5px;
-                color: var(--text-light);
-            }
-
-            .mobile-day-tab.active {
-                background: var(--primary);
-                border-color: var(--primary);
-            }
-
-            .mobile-day-tab.active .mdt-name,
-            .mobile-day-tab.active .mdt-date {
-                color: white;
-            }
-
-            /* ---- lesson chips ---- */
-
-            .mobile-lesson-chips {
-                display: flex;
-                gap: 7px;
-                padding: 10px 14px;
-                overflow-x: auto;
-                background: #f7f8fc;
-            }
-
-            .mobile-lesson-chips::-webkit-scrollbar { display: none; }
-
-            .mobile-lesson-chip {
-                flex-shrink: 0;
-                width: 34px;
-                height: 34px;
-                border-radius: 50%;
-                border: 1px solid var(--border);
-                background: white;
-                color: var(--text);
-                font-weight: 700;
-                font-size: 13.5px;
-                cursor: pointer;
-            }
-
-            .mobile-lesson-chip.active {
-                background: var(--primary);
-                border-color: var(--primary);
-                color: white;
-            }
-
-            .mobile-no-lessons {
-                padding: 4px 2px;
-                color: var(--text-light);
-                font-size: 13px;
-            }
-
-            /* ---- student list ---- */
-
-            .mobile-student-list {
-                padding: 6px 14px 90px;
-            }
-
-            .mobile-student-row {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 11px 4px;
-                border-bottom: 1px solid #eef1f7;
-            }
-
-            .mobile-student-name {
-                flex: 1;
-                font-size: 14px;
-                font-weight: 600;
-                color: var(--text);
-            }
-
-            .mobile-attendance-buttons {
-                display: flex;
-                gap: 8px;
-                flex-shrink: 0;
-            }
-
-            .mob-btn {
-                width: 38px;
-                height: 38px;
-                border-radius: 10px;
-                border: 1.5px solid var(--border);
-                background: white;
-                color: var(--text-light);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                cursor: pointer;
-                transition: transform .12s ease, background .15s ease, border-color .15s ease, color .15s ease;
-            }
-
-            .mob-btn:active { transform: scale(.92); }
-
-            .mob-btn svg { width: 18px; height: 18px; }
-
-            .mob-btn.mob-present.active {
-                background: var(--teal);
-                border-color: var(--teal);
-                color: white;
-            }
-
-            .mob-btn.mob-absent.active {
-                background: var(--red);
-                border-color: var(--red);
-                color: white;
-            }
-
-            /* ---- bottom sheet ---- */
-
-            .mobile-sheet-backdrop {
-                position: fixed;
-                inset: 0;
-                background: rgba(15, 23, 42, .4);
-                z-index: 200;
-                display: none;
-            }
-
-            .mobile-sheet-backdrop.show { display: block; }
-
-            .mobile-sheet {
-                position: fixed;
-                left: 0;
-                right: 0;
-                bottom: 0;
-                z-index: 201;
-                background: white;
-                border-radius: 16px 16px 0 0;
-                padding: 10px 18px 22px;
-                transform: translateY(100%);
-                transition: transform .25s var(--ease);
-                box-shadow: var(--shadow-lg);
-            }
-
-            .mobile-sheet.show { transform: translateY(0); }
-
-            .mobile-sheet-handle {
-                width: 38px;
-                height: 4px;
-                border-radius: 3px;
-                background: var(--border);
-                margin: 6px auto 14px;
-            }
-
-            .mobile-sheet button.sheet-action {
-                width: 100%;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                border: none;
-                background: none;
-                padding: 13px 4px;
-                font-size: 14.5px;
-                font-weight: 600;
-                color: var(--text);
-                text-align: left;
-                border-bottom: 1px solid #eef1f7;
-                cursor: pointer;
-            }
-
-            .mobile-sheet button.sheet-action:last-of-type { border-bottom: none; }
-
-            .mobile-sheet button.sheet-action svg {
-                width: 18px;
-                height: 18px;
-                color: var(--primary);
-                flex-shrink: 0;
-            }
-
-            .mobile-sheet .sheet-danger { color: var(--red); }
-            .mobile-sheet .sheet-danger svg { color: var(--red); }
-
-            .mobile-curator-field {
-                padding: 10px 4px 4px;
-            }
-
-            .mobile-curator-field label {
-                display: block;
-                font-size: 12px;
-                font-weight: 600;
-                color: var(--text-secondary);
-                margin-bottom: 6px;
-            }
-
-            .mobile-curator-field input {
-                width: 100%;
-                height: 40px;
-                padding: 0 12px;
-                border-radius: 9px;
-                border: 1px solid var(--border);
-                font-size: 13.5px;
-                font-weight: 600;
-            }
-
-            .mobile-curator-field input:disabled {
-                background: var(--slate-light);
-                color: var(--text-secondary);
-            }
-
-            /* week list reused as a centered modal on mobile */
-
-            .week-list.show {
-                position: fixed;
-                left: 14px;
-                right: 14px;
-                top: 50%;
-                transform: translateY(-50%);
-                z-index: 220;
-                max-height: 70vh;
-            }
+        .menu-title {
+            font-size: 21px;
+            font-weight: 800;
+            margin-bottom: 5px;
         }
 
-        /* =====================================
-           PRINT
-        ===================================== */
 
-        .print-only {
+        .menu-student {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 18px;
+        }
+
+
+        .choice-button {
+
+            width: 100%;
+
+            display: flex;
+            align-items: center;
+            gap: 13px;
+
+            padding: 14px;
+            margin-bottom: 10px;
+
+            border: 1px solid var(--border);
+            border-radius: 15px;
+
+            background: white;
+
+            cursor: pointer;
+            text-align: left;
+
+            transition: 0.2s ease;
+
+        }
+
+
+        .choice-button:hover {
+
+            transform: translateY(-2px);
+
+            border-color: var(--blue);
+            background: #f8fbff;
+
+            box-shadow:
+                0 8px 22px
+                rgba(37,99,235,0.08);
+
+        }
+
+
+        .choice-icon {
+
+            width: 44px;
+            height: 44px;
+
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border-radius: 13px;
+
+            font-size: 20px;
+            font-weight: 900;
+
+        }
+
+
+        .present-icon {
+            background: var(--green-light);
+            color: var(--green-dark);
+        }
+
+
+        .absent-icon {
+            background: var(--red-light);
+            color: var(--red-dark);
+        }
+
+
+        .whole-day-icon {
+            background: var(--orange-light);
+            color: #d97706;
+        }
+
+
+        .delete-icon {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+
+        .choice-text strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+
+        .choice-text span {
+            color: var(--text-secondary);
+            font-size: 11px;
+        }
+
+
+        .cancel-button {
+
+            width: 100%;
+
+            margin-top: 4px;
+            padding: 12px;
+
+            border: none;
+            border-radius: 13px;
+
+            background: #f3f4f6;
+            color: #4b5563;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+        }
+
+
+        .cancel-button:hover { background: #e5e7eb; }
+
+
+        /* =========================================================
+           REASON MODAL
+        ========================================================= */
+
+        .modal-overlay {
+
+            position: fixed;
+            inset: 0;
+            z-index: 600;
+
             display: none;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+
+            background: rgba(15,23,42,0.48);
+
+            backdrop-filter: blur(6px);
+
         }
 
-        .print-header {
+
+        .modal-overlay.active { display: flex; }
+
+
+        .modal {
+
+            width: 480px;
+
+            background: white;
+            border-radius: 24px;
+
+            padding: 25px;
+
+            box-shadow:
+                0 25px 70px
+                rgba(15,23,42,0.25);
+
+            animation: popupIn 0.2s ease;
+
+        }
+
+
+        .modal-header {
+
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+
+            margin-bottom: 18px;
+
+        }
+
+
+        .modal-title {
+            font-size: 21px;
+            font-weight: 800;
+        }
+
+
+        .close-button {
+
+            width: 35px;
+            height: 35px;
+
+            border: none;
+            border-radius: 10px;
+
+            background: #f3f4f6;
+
+            cursor: pointer;
+
+            font-size: 17px;
+
+            transition: 0.2s;
+
+        }
+
+
+        .close-button:hover {
+            background: #e5e7eb;
+            transform: rotate(5deg);
+        }
+
+
+        .modal-info {
+
+            padding: 14px;
+            margin-bottom: 17px;
+
+            border-radius: 14px;
+
+            background: #f8fafc;
+
+        }
+
+
+        .modal-info-row {
+
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+
+            padding: 5px 0;
+
+            font-size: 13px;
+
+        }
+
+
+        .modal-info-row span:first-child {
+            color: var(--text-secondary);
+        }
+
+
+        .modal-info-row span:last-child {
+            font-weight: 700;
+            text-align: right;
+        }
+
+
+        .absent-type-label {
+
+            display: block;
+            margin-bottom: 8px;
+
+            font-size: 13px;
+            font-weight: 700;
+
+        }
+
+
+        .absent-type-group {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+
+        .absent-type-btn {
+
+            flex: 1;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+
+            padding: 10px 6px;
+
+            border: 2px solid #e5e7eb;
+            border-radius: 13px;
+
+            background: #f8fafc;
+
+            cursor: pointer;
+
+            transition: 0.15s ease;
+
+        }
+
+
+        .absent-type-btn:hover {
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+
+
+        .absent-type-btn strong {
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+
+        .absent-type-btn span {
+            font-size: 10.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
             text-align: center;
-            font-family: "Times New Roman", Times, "Liberation Serif", serif;
-            font-size: 12pt;
-            line-height: 3.6mm;
-            height: 7.8mm;
-            box-sizing: border-box;
-            padding-left: 5.1mm;
-            margin: 0;
-            color: #000;
-            white-space: pre;
-            page-break-after: avoid;
-            break-after: avoid;
         }
 
-        .print-header .ph-main {
-            font-weight: bold;
+
+        .absent-type-btn[data-type="neuv"].active {
+            border-color: var(--red);
+            background: var(--red-light);
         }
 
-        .print-header .ph-range {
-            font-weight: normal;
-            text-decoration: underline;
+
+        .absent-type-btn[data-type="neuv"].active strong {
+            color: var(--red-dark);
         }
 
-        .print-footer {
-            display: none;
+
+        .absent-type-btn[data-type="uv"].active {
+            border-color: var(--green);
+            background: var(--green-light);
         }
 
-        @media print {
 
-            @page {
-                size: A4 landscape;
-                margin: 10mm 10mm 5mm 4.9mm;
-            }
-
-            html,
-            body {
-                min-width: 0 !important;
-                zoom: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: #fff !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            header,
-            .week-panel,
-            .table-container,
-            .info-popup,
-            .status {
-                display: none !important;
-            }
-
-            .print-only {
-                display: block !important;
-            }
-
-            .container {
-                width: auto;
-                min-width: 0;
-                margin: 0;
-                padding: 0;
-            }
-
-            #printSheet {
-                font-family: "Times New Roman", Times, "Liberation Serif", serif;
-                color: #000;
-                width: 281.9mm;
-                page-break-inside: avoid;
-                break-inside: avoid;
-                page-break-after: avoid;
-                break-after: avoid;
-            }
-
-            #printSheet table.pt {
-                width: 281.9mm;
-                min-width: 0;
-                margin-left: 0;
-                border-collapse: separate;
-                border-spacing: 0;
-                table-layout: fixed;
-                background: #fff;
-                box-shadow: 0 0 0 0.25pt #000;
-                page-break-inside: avoid;
-                break-inside: avoid;
-                page-break-after: avoid;
-                break-after: avoid;
-            }
-
-            #printSheet table.pt th,
-            #printSheet table.pt td {
-                background: none;
-                color: #000;
-                border: 0;
-                box-shadow: inset 0 0 0 0.25pt #000;
-                padding: 0;
-                font-weight: normal;
-                white-space: normal;
-                text-align: center;
-                vertical-align: top;
-                line-height: normal;
-                overflow: visible;
-                position: static;
-                min-width: 0;
-                transition: none;
-            }
-
-            #printSheet table.pt td.c-num {
-                text-align: left;
-                padding: 0 1.9mm;
-            }
-
-            #printSheet table.pt td.c-name {
-                text-align: left;
-                padding: 0 1.9mm;
-            }
-
-            #printSheet table.pt td.c-note {
-                text-align: left;
-                padding: 0 1mm;
-                overflow-wrap: anywhere;
-            }
-
-            #printSheet table.pt td.c-signature {
-                text-align: left;
-                font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
-                font-weight: normal;
-                padding: 3mm 0 0 42.6mm;
-                border: none !important;
-                box-shadow: none !important;
-                white-space: nowrap;
-                vertical-align: bottom;
-                line-height: normal;
-            }
-
-            #printSheet table.pt td.c-signature .pf-name {
-                text-decoration: underline;
-            }
-
-            /* Шапка НЕ повторяется на второй странице */
-            #printSheet table.pt thead {
-                display: table-row-group;
-            }
-
-            /* Подпись не переносится */
-            #printSheet table.pt tbody tr:last-child {
-                page-break-after: avoid;
-                break-after: avoid;
-            }
-
-            .print-footer {
-                display: none !important;
-            }
+        .absent-type-btn[data-type="uv"].active strong {
+            color: var(--green-dark);
         }
+
+
+        .absent-type-btn[data-type="bolezn"].active {
+            border-color: var(--purple);
+            background: var(--purple-light);
+        }
+
+
+        .absent-type-btn[data-type="bolezn"].active strong {
+            color: var(--purple);
+        }
+
+
+        .reason-label {
+
+            display: block;
+            margin-bottom: 8px;
+
+            font-size: 13px;
+            font-weight: 700;
+
+        }
+
+
+        .reason-input {
+
+            width: 100%;
+            min-height: 100px;
+
+            resize: vertical;
+
+            padding: 12px;
+
+            border: 1px solid #dbe1ea;
+            border-radius: 13px;
+
+            outline: none;
+
+            font-size: 14px;
+
+        }
+
+
+        .reason-input:focus {
+
+            border-color: var(--blue);
+
+            box-shadow:
+                0 0 0 3px
+                rgba(37,99,235,0.10);
+
+        }
+
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+
+
+        .modal-actions button {
+
+            flex: 1;
+
+            padding: 13px;
+
+            border: none;
+            border-radius: 13px;
+
+            cursor: pointer;
+
+            font-weight: 800;
+
+        }
+
+
+        .save-button {
+            background: var(--blue);
+            color: white;
+        }
+
+
+        .save-button:hover { background: var(--blue-dark); }
+
+
+        .modal-cancel {
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+
+
+        /* =========================================================
+           LESSON INFO
+        ========================================================= */
+
+        .lesson-info-modal {
+
+            width: 440px;
+
+            background: white;
+            border-radius: 25px;
+
+            padding: 25px;
+
+            box-shadow:
+                0 25px 70px
+                rgba(15,23,42,0.25);
+
+            animation: popupIn 0.2s ease;
+
+        }
+
+
+        .lesson-big-icon {
+
+            width: 58px;
+            height: 58px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            margin-bottom: 14px;
+
+            border-radius: 18px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #eff6ff,
+                    #eef2ff
+                );
+
+            font-size: 26px;
+
+        }
+
+
+        .lesson-info-title {
+            font-size: 23px;
+            font-weight: 850;
+            margin-bottom: 5px;
+        }
+
+
+        .lesson-info-subtitle {
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+
+
+        .lesson-info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+
+        .lesson-info-item {
+            padding: 14px;
+            border-radius: 15px;
+            background: #f8fafc;
+        }
+
+
+        .lesson-info-label {
+            color: var(--text-secondary);
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
+
+
+        .lesson-info-value {
+            font-size: 14px;
+            font-weight: 800;
+        }
+
+
+        .lesson-close {
+
+            width: 100%;
+
+            margin-top: 18px;
+            padding: 13px;
+
+            border: none;
+            border-radius: 13px;
+
+            background: #f3f4f6;
+            color: #374151;
+
+            font-weight: 800;
+
+            cursor: pointer;
+
+        }
+
+
+        /* =========================================================
+           TOAST
+        ========================================================= */
+
+        .toast {
+
+            position: fixed;
+
+            left: 50%;
+            bottom: 25px;
+
+            z-index: 1000;
+
+            transform:
+                translate(-50%, 100px);
+
+            padding: 13px 18px;
+
+            border-radius: 14px;
+
+            color: white;
+
+            background: #111827;
+
+            font-size: 13px;
+            font-weight: 700;
+
+            box-shadow:
+                0 10px 30px
+                rgba(0,0,0,0.18);
+
+            opacity: 0;
+
+            pointer-events: none;
+
+            transition: 0.3s ease;
+
+        }
+
+
+        .toast.show {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+
+        .toast.success { background: #15803d; }
+        .toast.error { background: #dc2626; }
+        .toast.warning { background: #d97706; }
 
     </style>
 
 </head>
 
-<body class="auth-pending">
 
-<div id="authGuardOverlay">
-    <div class="auth-spinner"></div>
-    <div class="auth-guard-text">Проверка авторизации…</div>
-</div>
+<body>
 
-<header>
 
-    <div class="header-brand">
+    <!-- ЗАГРУЗКА -->
 
-        <div class="header-logo">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 20V11"/>
-                <path d="M10.5 20V4"/>
-                <path d="M17 20v-8"/>
-                <path d="M3 20h18"/>
-            </svg>
-        </div>
+    <div class="page-loader" id="pageLoader">
 
-        <div>
+        <div class="loader-content">
 
-            <div class="title">
-                Посещаемость
-            </div>
+            <div class="loader-logo">📚</div>
 
-            <div
-                class="subtitle"
-                id="semesterInfo"
-            >
-                Загрузка...
-            </div>
+            <div class="loader-text">Загрузка системы...</div>
+
+            <div class="loader-progress"></div>
 
         </div>
 
     </div>
 
-    <div class="clock">
 
-        <div
-            class="time"
-            id="currentTime"
-        >
-            --:--:--
-        </div>
+    <!-- BACKGROUND -->
 
-        <div
-            class="date"
-            id="currentDate"
-        >
-            --.--.----
-        </div>
+    <div class="background-orb orb-1"></div>
+    <div class="background-orb orb-2"></div>
 
-    </div>
 
-</header>
+    <!-- HEADER -->
 
-<div class="container">
+    <header>
 
-    <div class="week-panel">
+        <div class="header-left">
 
-        <div class="week-title">
+            <button class="back-button" onclick="goBack()">←</button>
 
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3.5" y="5" width="17" height="16" rx="3"/>
-                <path d="M8 3v4M16 3v4M3.5 10h17"/>
-            </svg>
+            <div class="header-brand">
 
-            Посещаемость за неделю
+                <div class="header-title">Посещаемость</div>
 
-        </div>
+                <div class="header-subtitle">Отметка посещаемости студентов</div>
 
-        <div class="group-panel" id="groupPanel">
-
-            <div class="group-field">
-                <span class="group-field-label">Группа:</span>
-                <span id="groupSwitcherSlot"><span class="group-static">Загрузка...</span></span>
-            </div>
-
-            <div class="group-field">
-                <span class="group-field-label">Классный руководитель (для печати):</span>
-                <input
-                    type="text"
-                    id="curatorPrintName"
-                    class="curator-name-input"
-                    placeholder="ФИО куратора"
-                    disabled
-                    oninput="onCuratorNameEdited()"
-                >
             </div>
 
         </div>
 
-        <div class="week-controls">
+        <div class="header-right">
 
-            <button
-                class="previous"
-                onclick="previousWeek()"
-            >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m15 6-6 6 6 6"/>
-                </svg>
-                Предыдущая неделя
-            </button>
+            <div class="online-status">
+                <span class="online-dot"></span>
+                Система работает
+            </div>
 
-            <button
-                class="current"
-                onclick="currentWeek()"
-            >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="8.5"/>
-                    <path d="M12 7.5V12l3 2"/>
-                </svg>
-                Текущая неделя
-            </button>
+        </div>
 
-            <button
-                class="next"
-                onclick="nextWeek()"
-            >
-                Следующая неделя
+    </header>
 
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m9 6 6 6-6 6"/>
-                </svg>
 
-            </button>
+    <!-- MAIN -->
 
-            <button
-                class="list-button"
-                onclick="toggleWeekList()"
-            >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M8 6h13M8 12h13M8 18h13"/>
-                    <path d="M3 6h.01M3 12h.01M3 18h.01"/>
-                </svg>
-                Список
-            </button>
+    <main class="container">
 
-            <button
-                class="print-button"
-                onclick="printReport()"
-            >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M6 9V3h12v6"/>
-                    <path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/>
-                    <path d="M6 14h12v8H6z"/>
-                </svg>
-                Печать отчёта
-            </button>
+        <section class="page-hero">
 
-            <button
-                class="back"
-                onclick="goBack()"
-            >
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 12H5M11 6l-6 6 6 6"/>
-                </svg>
-                Главное меню
+            <div class="hero-content">
+
+                <div class="hero-badge">✨ Панель администратора</div>
+
+                <h1>Отметка посещаемости</h1>
+
+                <p>
+                    Выберите дату и отметьте присутствующих
+                    или отсутствующих студентов по каждой паре.
+                </p>
+
+            </div>
+
+            <div class="hero-clock">
+
+                <div class="hero-clock-time" id="clock">00:00:00</div>
+
+                <div class="hero-clock-date" id="clockDate">Загрузка даты...</div>
+
+            </div>
+
+        </section>
+
+
+        <section class="top-panel">
+
+            <div class="info-card">
+
+                <div class="info-label">👥 Группа</div>
+
+                <select id="groupSelect" class="date-input">
+                    <option value="">Загрузка...</option>
+                </select>
+
+                <div class="group-hint" id="groupHint">
+                    Загрузка данных о доступе...
+                </div>
+
+            </div>
+
+            <div class="info-card">
+
+                <div class="info-label">📅 Выбранная дата</div>
+
+                <input type="date" id="datePicker" class="date-input">
+
+            </div>
+
+            <div class="info-card">
+
+                <div class="info-label">📚 День недели</div>
+
+                <div class="info-value" id="dayName">—</div>
+
+            </div>
+
+            <div class="info-card">
+
+                <div class="info-label">📝 Учебный период</div>
+
+                <div class="info-value" id="periodInfo">—</div>
+
+            </div>
+
+        </section>
+
+
+        <section class="quick-panel" id="quickPanel">
+
+            <div class="quick-left">
+
+                <div class="quick-icon">⚡</div>
+
+                <div>
+
+                    <div class="quick-title">Быстрая отметка</div>
+
+                    <div class="quick-description">
+                        Выберите режим и отмечайте студентов прямо в таблице
+                    </div>
+
+                </div>
+
+                <div class="quick-mode-label" id="quickModeLabel">
+                    Режим не выбран
+                </div>
+
+            </div>
+
+            <div class="quick-actions">
+
+                <button class="quick-button quick-present"
+                        onclick="enableQuickMode('present')">
+                    ✓ Присутствие
+                </button>
+
+                <button class="quick-button quick-absent"
+                        onclick="enableQuickMode('absent')">
+                    Н Отсутствие
+                </button>
+
+                <button class="quick-button quick-cancel"
+                        onclick="disableQuickMode()">
+                    ✕ Отмена
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <div class="toolbar">
+
+            <div class="toolbar-left">
+
+                <div class="toolbar-title">Студенты</div>
+
+                <div class="day-badge" id="lessonCountBadge">0 пар</div>
+
+            </div>
+
+            <button class="refresh-button" onclick="reloadData()">
+                🔄 Обновить
             </button>
 
         </div>
 
-        <div
-            id="weekList"
-            class="week-list"
-        ></div>
 
-        <div
-            class="week-range"
-            id="weekRange"
-        >
-            —
+        <div class="table-wrapper">
+
+            <div id="tableContainer" class="loading">
+
+                <div class="spinner"></div>
+                Загрузка данных...
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- CHOICE MENU -->
+
+    <div class="menu-overlay" id="choiceOverlay" onclick="closeChoiceOutside(event)">
+
+        <div class="choice-menu">
+
+            <div class="menu-title">Отметить посещаемость</div>
+
+            <div class="menu-student" id="choiceStudent">—</div>
+
+            <button class="choice-button" onclick="choosePresent()">
+
+                <div class="choice-icon present-icon">✓</div>
+
+                <div class="choice-text">
+                    <strong>Присутствовал</strong>
+                    <span>Студент присутствовал на паре</span>
+                </div>
+
+            </button>
+
+            <button class="choice-button" onclick="chooseAbsent()">
+
+                <div class="choice-icon absent-icon">Н</div>
+
+                <div class="choice-text">
+                    <strong>Отсутствовал</strong>
+                    <span>Указать причину отсутствия</span>
+                </div>
+
+            </button>
+
+            <button class="choice-button" onclick="chooseWholeDay()">
+
+                <div class="choice-icon whole-day-icon">📅</div>
+
+                <div class="choice-text">
+                    <strong>Весь день</strong>
+                    <span>Отметить Н на всех парах этого дня</span>
+                </div>
+
+            </button>
+
+            <button class="choice-button" id="deleteButton" onclick="deleteAttendance()">
+
+                <div class="choice-icon delete-icon">🗑️</div>
+
+                <div class="choice-text">
+                    <strong>Удалить отметку</strong>
+                    <span>Очистить текущую отметку посещаемости</span>
+                </div>
+
+            </button>
+
+            <button class="cancel-button" onclick="closeChoice()">Отмена</button>
+
         </div>
 
     </div>
 
-    <div class="table-container">
 
-        <div id="tableWrapper">
+    <!-- REASON MODAL -->
 
-            <div class="empty">
-                Загрузка посещаемости...
+    <div class="modal-overlay" id="reasonOverlay">
+
+        <div class="modal">
+
+            <div class="modal-header">
+
+                <div class="modal-title">Причина отсутствия</div>
+
+                <button class="close-button" onclick="closeReason()">✕</button>
+
+            </div>
+
+            <div class="modal-info">
+
+                <div class="modal-info-row">
+                    <span>Студент</span>
+                    <span id="modalStudent">—</span>
+                </div>
+
+                <div class="modal-info-row">
+                    <span>Дата</span>
+                    <span id="modalDate">—</span>
+                </div>
+
+                <div class="modal-info-row">
+                    <span>Пара</span>
+                    <span id="modalLesson">—</span>
+                </div>
+
+            </div>
+
+            <label class="absent-type-label">Статус отсутствия:</label>
+
+            <div class="absent-type-group" id="absentTypeGroup">
+
+                <button type="button" class="absent-type-btn"
+                        data-type="neuv" onclick="selectAbsentType('neuv')">
+                    <strong>Н</strong>
+                    <span>Неуважит.</span>
+                </button>
+
+                <button type="button" class="absent-type-btn"
+                        data-type="uv" onclick="selectAbsentType('uv')">
+                    <strong>Н/У</strong>
+                    <span>Уважит.</span>
+                </button>
+
+                <button type="button" class="absent-type-btn"
+                        data-type="bolezn" onclick="selectAbsentType('bolezn')">
+                    <strong>Н/Б</strong>
+                    <span>Болезнь</span>
+                </button>
+
+            </div>
+
+            <label class="reason-label" for="reasonInput">
+                Отсутствовал по причине:
+            </label>
+
+            <textarea id="reasonInput" class="reason-input"
+                      placeholder="Например: болезнь, семейные обстоятельства..."></textarea>
+
+            <div class="modal-actions">
+
+                <button class="modal-cancel" onclick="closeReason()">Отмена</button>
+
+                <button class="save-button" onclick="saveAbsent()">💾 Сохранить</button>
+
             </div>
 
         </div>
 
     </div>
 
-    <div
-        class="print-header print-only"
-        id="printHeader"
-    >
-        <span class="ph-main">Информация о ежедневной посещаемости занятий <span id="printGroupName">—</span>    группы</span><span class="ph-gap">       </span><span class="ph-range" id="printHeaderRange">—</span>
-    </div>
 
-    <div
-        class="print-only"
-        id="printSheet"
-    ></div>
+    <!-- LESSON INFO -->
 
-</div>
+    <div class="modal-overlay" id="lessonInfoOverlay">
 
-<div class="mobile-only" id="mobileView">
+        <div class="lesson-info-modal">
 
-    <div class="mobile-topbar">
-        <span id="mobileGroupSlot"><span class="mobile-group-static">Загрузка...</span></span>
-        <button class="mobile-icon-btn" onclick="toggleMobileMenu()" aria-label="Меню">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="5" r="1.4"/>
-                <circle cx="12" cy="12" r="1.4"/>
-                <circle cx="12" cy="19" r="1.4"/>
-            </svg>
-        </button>
-    </div>
+            <div class="lesson-big-icon">📚</div>
 
-    <div class="mobile-week-nav">
-        <button class="mobile-icon-btn" onclick="previousWeek()" aria-label="Предыдущая неделя">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
-        </button>
-        <div class="mobile-week-range" id="mobileWeekRange">—</div>
-        <button class="mobile-icon-btn" onclick="nextWeek()" aria-label="Следующая неделя">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
-        </button>
-    </div>
+            <div class="lesson-info-title" id="lessonInfoTitle">1 пара</div>
 
-    <div class="mobile-day-tabs" id="mobileDayTabs"></div>
+            <div class="lesson-info-subtitle" id="lessonInfoSubtitle">
+                Информация о занятии
+            </div>
 
-    <div class="mobile-lesson-chips" id="mobileLessonChips"></div>
+            <div class="lesson-info-grid">
 
-    <div class="mobile-student-list" id="mobileStudentList">
-        <div class="empty">Загрузка...</div>
-    </div>
+                <div class="lesson-info-item">
+                    <div class="lesson-info-label">Дисциплина</div>
+                    <div class="lesson-info-value" id="lessonDiscipline">—</div>
+                </div>
 
-</div>
+                <div class="lesson-info-item">
+                    <div class="lesson-info-label">Время</div>
+                    <div class="lesson-info-value" id="lessonTime">—</div>
+                </div>
 
-<div class="mobile-sheet-backdrop" id="mobileSheetBackdrop" onclick="closeMobileMenu()"></div>
+                <div class="lesson-info-item">
+                    <div class="lesson-info-label">Начало</div>
+                    <div class="lesson-info-value" id="lessonStart">—</div>
+                </div>
 
-<div class="mobile-sheet" id="mobileSheet">
+                <div class="lesson-info-item">
+                    <div class="lesson-info-label">Окончание</div>
+                    <div class="lesson-info-value" id="lessonEnd">—</div>
+                </div>
 
-    <div class="mobile-sheet-handle"></div>
+            </div>
 
-    <button class="sheet-action" onclick="closeMobileMenu(); currentWeek()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
-        Текущая неделя
-    </button>
+            <button class="lesson-close" onclick="closeLessonInfo()">Закрыть</button>
 
-    <button class="sheet-action" onclick="closeMobileMenu(); toggleWeekList()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13"/><path d="M3 6h.01M3 12h.01M3 18h.01"/></svg>
-        Выбрать неделю из списка
-    </button>
-
-    <button class="sheet-action" onclick="closeMobileMenu(); printReport()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/><path d="M6 14h12v8H6z"/></svg>
-        Печать отчёта
-    </button>
-
-    <div class="mobile-curator-field">
-        <label for="mobileCuratorInput">Классный руководитель (для печати)</label>
-        <input type="text" id="mobileCuratorInput" placeholder="ФИО куратора" disabled oninput="onMobileCuratorNameEdited(this.value)">
-    </div>
-
-    <button class="sheet-action" onclick="goBack()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 6l-6 6 6 6"/></svg>
-        Главное меню
-    </button>
-
-</div>
-
-<div
-    id="infoPopup"
-    class="info-popup"
->
-
-    <div
-        class="popup-title"
-        id="popupTitle"
-    >
-        —
-    </div>
-
-    <div
-        class="popup-row"
-        id="popupStudent"
-    >
-        —
-    </div>
-
-    <div
-        class="popup-row"
-        id="popupDate"
-    >
-        —
-    </div>
-
-    <div
-        class="popup-row"
-        id="popupLesson"
-    >
-        —
-    </div>
-
-    <div class="popup-reason">
-
-        <strong>
-            Причина:
-        </strong>
-
-        <div id="popupReason">
-            —
         </div>
 
     </div>
 
-</div>
 
-<div
-    id="status"
-    class="status"
-></div>
+    <!-- TOAST -->
 
-<script type="module">
+    <div class="toast" id="toast"></div>
 
-    // =========================================
-    // FIREBASE
-    // =========================================
 
-    import {
-        initializeApp
-    }
-    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    <!-- FIREBASE -->
 
-    import {
-        getAuth,
-        onAuthStateChanged
-    }
-    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+    <script type="module">
 
-    import {
-        getFirestore,
-        collection,
-        getDocs,
-        doc,
-        getDoc,
-        query,
-        where,
-        addDoc,
-        updateDoc,
-        deleteField
-    }
-    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+        import { initializeApp }
+            from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 
+        import { getAuth, onAuthStateChanged }
+            from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 
-    const firebaseConfig = {
+        import {
+            getFirestore,
+            collection,
+            getDocs,
+            doc,
+            getDoc,
+            setDoc
+        } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-        apiKey:
-            "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
 
-        authDomain:
-            "othets-1aa03.firebaseapp.com",
+        /* =====================================================
+           FIREBASE CONFIG
+        ===================================================== */
 
-        projectId:
-            "othets-1aa03",
-
-        storageBucket:
-            "othets-1aa03.firebasestorage.app",
-
-        messagingSenderId:
-            "528392191591",
-
-        appId:
-            "1:528392191591:web:1e97790e6f9f0a6e175ec2",
-
-        measurementId:
-            "G-F50WVZRXZJ"
-
-    };
-
-
-    const app =
-        initializeApp(
-            firebaseConfig
-        );
-
-
-    const auth =
-        getAuth(
-            app
-        );
-
-
-    const db =
-        getFirestore(
-            app
-        );
-
-
-    // =========================================
-    // VARIABLES
-    // =========================================
-
-    let students = [];
-
-    let settings = {};
-
-    let attendance = {};
-
-    let weekStart;
-
-
-    let currentUid = null;
-
-    let userRole = null;
-
-    let userGroups = [];
-
-    let currentGroupId = null;
-
-    let curatorNameManuallyEdited = false;
-
-
-    let mobileDayIndex = 0;
-
-    let mobileLesson = 1;
-
-
-    const days = [
-
-        "Понедельник",
-        "Вторник",
-        "Среда",
-        "Четверг",
-        "Пятница",
-        "Суббота"
-
-    ];
-
-
-    const HOURS_PER_LESSON = 2;
-
-
-    // =========================================
-    // CLOCK
-    // =========================================
-
-    function updateClock() {
-
-        const now = new Date();
-
-        document.getElementById("currentTime").textContent =
-            now.toLocaleTimeString("ru-RU", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit"
-            });
-
-        document.getElementById("currentDate").textContent =
-            now.toLocaleDateString("ru-RU", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric"
-            });
-    }
-
-    updateClock();
-    setInterval(updateClock, 1000);
-
-
-    // =========================================
-    // DATE FORMAT
-    // =========================================
-
-    function formatDate(date) {
-
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-
-        return `${year}-${month}-${day}`;
-    }
-
-
-    function normalizeDate(value) {
-
-        if (!value) return "";
-
-        if (typeof value === "object" && typeof value.toDate === "function") {
-            return formatDate(value.toDate());
-        }
-
-        if (value instanceof Date) {
-            return formatDate(value);
-        }
-
-        const string = String(value).trim();
-
-        if (/^\d{4}-\d{2}-\d{2}$/.test(string)) {
-            return string;
-        }
-
-        const ruMatch = string.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-
-        if (ruMatch) {
-            return `${ruMatch[3]}-${ruMatch[2]}-${ruMatch[1]}`;
-        }
-
-        return "";
-    }
-
-
-    function formatDateRu(dateString) {
-
-        const normalized = normalizeDate(dateString);
-
-        if (!normalized) return "—";
-
-        const date = new Date(normalized + "T00:00:00");
-
-        return date.toLocaleDateString("ru-RU", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric"
-        });
-    }
-
-
-    function getMonday(date) {
-
-        const result = new Date(date);
-        result.setHours(0, 0, 0, 0);
-
-        let day = result.getDay();
-        if (day === 0) day = 7;
-
-        result.setDate(result.getDate() - day + 1);
-
-        return result;
-    }
-
-
-    // =========================================
-    // RBAC / ГРУППЫ
-    // =========================================
-
-    function toShortFio(fullName) {
-
-        const parts = String(fullName || "")
-            .trim()
-            .split(/\s+/)
-            .filter(Boolean);
-
-        if (parts.length === 0) return "";
-
-        const surname =
-            parts[0].charAt(0).toUpperCase() +
-            parts[0].slice(1).toLowerCase();
-
-        const initials = parts
-            .slice(1, 3)
-            .map(w => w.charAt(0).toUpperCase());
-
-        return initials.length
-            ? `${surname} ${initials.join(".")}`
-            : surname;
-    }
-
-
-    function getCurrentGroup() {
-        return userGroups.find(g => g.id === currentGroupId) || null;
-    }
-
-
-    function groupsFromSnapshot(snapshot) {
-        return snapshot.docs.map(d => ({
-            id: d.id,
-            ...d.data()
-        }));
-    }
-
-
-    async function loadUserAndGroups() {
-
-        currentUid = auth.currentUser ? auth.currentUser.uid : null;
-
-        if (!currentUid) {
-            userRole = null;
-            userGroups = [];
-            currentGroupId = null;
-            return;
-        }
-
-        const userSnap = await getDoc(doc(db, "users", currentUid));
-
-        const userData = userSnap.exists() ? userSnap.data() : {};
-
-        userRole = userData.role || "starosta";
-
-        let groupsMap = new Map();
-
-        if (userRole === "admin") {
-
-            const snapshot = await getDocs(collection(db, "groups"));
-
-            groupsFromSnapshot(snapshot)
-                .filter(g => g.active !== false)
-                .forEach(g => groupsMap.set(g.id, g));
-
-        }
-        else if (userRole === "curator") {
-
-            const snapshot = await getDocs(
-                query(
-                    collection(db, "groups"),
-                    where("curatorId", "==", currentUid)
-                )
-            );
-
-            groupsFromSnapshot(snapshot)
-                .filter(g => g.active !== false)
-                .forEach(g => groupsMap.set(g.id, g));
-
-        }
-        else {
-
-            const [snapA, snapB] = await Promise.all([
-                getDocs(
-                    query(
-                        collection(db, "groups"),
-                        where("starostaId", "==", currentUid)
-                    )
-                ),
-                getDocs(
-                    query(
-                        collection(db, "groups"),
-                        where("leaderId", "==", currentUid)
-                    )
-                )
-            ]);
-
-            [...groupsFromSnapshot(snapA), ...groupsFromSnapshot(snapB)]
-                .filter(g => g.active !== false)
-                .forEach(g => groupsMap.set(g.id, g));
-        }
-
-        userGroups = Array.from(groupsMap.values())
-            .sort((a, b) =>
-                String(a.name || "").localeCompare(String(b.name || ""), "ru")
-            );
-
-        const remembered = sessionStorage.getItem("selectedGroupId");
-
-        if (remembered && userGroups.some(g => g.id === remembered)) {
-            currentGroupId = remembered;
-        }
-        else {
-            currentGroupId =
-                userGroups.length > 0 ? userGroups[0].id : null;
-        }
-    }
-
-
-    function renderGroupSwitcher() {
-
-        const slot = document.getElementById("groupSwitcherSlot");
-        const mobileSlot = document.getElementById("mobileGroupSlot");
-        const curatorInput = document.getElementById("curatorPrintName");
-
-        if (userGroups.length === 0) {
-
-            slot.innerHTML =
-                '<span class="empty-groups">Нет доступных групп</span>';
-
-            if (mobileSlot) {
-                mobileSlot.innerHTML =
-                    '<span class="mobile-group-static">Нет групп</span>';
-            }
-
-            curatorInput.value = "";
-            curatorInput.disabled = true;
-            return;
-        }
-
-        const showDropdown =
-            userRole === "admin" ||
-            userGroups.length > 1;
-
-        if (showDropdown) {
-
-            const optionsHtml = userGroups
-                .map(g =>
-                    `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name || g.id)}</option>`
-                )
-                .join("");
-
-            slot.innerHTML =
-                `<select class="group-select" id="groupSelect" onchange="switchGroup(this.value)">${optionsHtml}</select>`;
-
-            document.getElementById("groupSelect").value = currentGroupId;
-
-            if (mobileSlot) {
-
-                mobileSlot.innerHTML =
-                    `<select class="mobile-group-select" id="mobileGroupSelect" onchange="switchGroup(this.value)">${optionsHtml}</select>`;
-
-                document.getElementById("mobileGroupSelect").value = currentGroupId;
-            }
-
-        }
-        else {
-
-            const group = getCurrentGroup();
-            const groupLabel = escapeHtml(group ? (group.name || group.id) : "—");
-
-            slot.innerHTML =
-                `<span class="group-static">${groupLabel}</span>`;
-
-            if (mobileSlot) {
-                mobileSlot.innerHTML =
-                    `<span class="mobile-group-static">${groupLabel}</span>`;
-            }
-
-        }
-
-        updateCuratorNameField();
-    }
-
-
-    function updateCuratorNameField() {
-
-        const curatorInput = document.getElementById("curatorPrintName");
-        const mobileCuratorInput = document.getElementById("mobileCuratorInput");
-        const group = getCurrentGroup();
-
-        const dbCuratorName = group
-            ? toShortFio(group.curatorName || "")
-            : "";
-
-        if (userRole === "admin") {
-            curatorInput.disabled = false;
-            if (mobileCuratorInput) mobileCuratorInput.disabled = false;
-            if (!curatorNameManuallyEdited) {
-                curatorInput.value = dbCuratorName;
-                if (mobileCuratorInput) mobileCuratorInput.value = dbCuratorName;
-            }
-        }
-        else {
-            curatorInput.disabled = true;
-            curatorInput.value = dbCuratorName;
-            if (mobileCuratorInput) {
-                mobileCuratorInput.disabled = true;
-                mobileCuratorInput.value = dbCuratorName;
-            }
-        }
-    }
-
-
-    window.onCuratorNameEdited = function () {
-        curatorNameManuallyEdited = true;
-    };
-
-
-    window.onMobileCuratorNameEdited = function (value) {
-        curatorNameManuallyEdited = true;
-        const curatorInput = document.getElementById("curatorPrintName");
-        if (curatorInput) curatorInput.value = value;
-    };
-
-
-    window.switchGroup = async function (groupId) {
-
-        if (!groupId || groupId === currentGroupId) return;
-
-        currentGroupId = groupId;
-        curatorNameManuallyEdited = false;
-
-        sessionStorage.setItem("selectedGroupId", groupId);
-
-        try {
-
-            showStatus("Загрузка группы...");
-
-            await loadSettings();
-            await loadStudents();
-            await loadAttendance();
-
-            updateWeekRange();
-            renderTable();
-            renderWeekList();
-            updateCuratorNameField();
-            renderMobileAll();
-
-        }
-        catch (error) {
-            console.error("Ошибка переключения группы:", error);
-            showStatus("Не удалось загрузить данные группы");
-        }
-    };
-
-
-    // =========================================
-    // LOAD SETTINGS
-    // =========================================
-
-    async function loadSettings() {
-
-        settings = {
-            schedule: {},
-            disciplines: {},
-            bells: {},
-            semester1: {},
-            semester2: {}
+        const firebaseConfig = {
+            apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+            authDomain: "othets-1aa03.firebaseapp.com",
+            projectId: "othets-1aa03",
+            storageBucket: "othets-1aa03.firebasestorage.app",
+            messagingSenderId: "528392191591",
+            appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+            measurementId: "G-F50WVZRXZJ"
         };
 
-        if (!currentGroupId) return;
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
-        try {
 
-            const snapshot = await getDoc(
-                doc(db, "groupSettings", currentGroupId)
+        /* =====================================================
+           ROLE / HOME PAGE
+        ===================================================== */
+
+        let homePage = "home.html";
+
+        async function resolveHomePage(user) {
+
+            try {
+                const snapshot = await getDoc(doc(db, "users", user.uid));
+                const role = snapshot.exists() ? snapshot.data().role : null;
+                return role === "admin" ? "adminhome.html" : "home.html";
+            } catch (error) {
+                console.error("Ошибка чтения роли:", error);
+                return "home.html";
+            }
+        }
+
+        let currentUser = null;
+        let authResolved = false;
+        let resolveAuthReady;
+        const authReady = new Promise(resolve => { resolveAuthReady = resolve; });
+
+        onAuthStateChanged(auth, async user => {
+
+            currentUser = user;
+
+            if (user) {
+                homePage = await resolveHomePage(user);
+            } else {
+                homePage = "home.html";
+            }
+
+            if (!authResolved) {
+                authResolved = true;
+                resolveAuthReady();
+            }
+        });
+
+
+        /* =====================================================
+           STATE
+        ===================================================== */
+
+        let students = [];
+        let allStudents = [];
+        let allGroupsData = [];
+        let userGroups = [];
+        let userRole = null;
+        let selectedGroupId = "";
+        let settings = {};
+        let attendance = {};
+        let selectedDate = "";
+        let selectedStudent = null;
+        let selectedLesson = null;
+        let selectedAction = null;
+        let selectedAbsentType = "neuv";
+        let quickMode = null;
+
+        const days = [
+            "Понедельник",
+            "Вторник",
+            "Среда",
+            "Четверг",
+            "Пятница",
+            "Суббота"
+        ];
+
+        const dayNames = [
+            "Воскресенье",
+            "Понедельник",
+            "Вторник",
+            "Среда",
+            "Четверг",
+            "Пятница",
+            "Суббота"
+        ];
+
+        const datePicker = document.getElementById("datePicker");
+        const tableContainer = document.getElementById("tableContainer");
+
+
+        /* =====================================================
+           DATE
+        ===================================================== */
+
+        function formatDate(date) {
+
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+
+            return `${year}-${month}-${day}`;
+        }
+
+
+        function formatDateRu(dateString) {
+
+            if (!dateString) return "—";
+
+            const parts = dateString.split("-");
+            if (parts.length !== 3) return dateString;
+
+            return `${parts[2]}.${parts[1]}.${parts[0]}`;
+        }
+
+
+        function parseDate(dateString) {
+
+            const parts = dateString.split("-");
+
+            return new Date(
+                Number(parts[0]),
+                Number(parts[1]) - 1,
+                Number(parts[2])
             );
-
-            if (snapshot.exists()) {
-
-                const data = snapshot.data() || {};
-
-                settings = {
-                    schedule: data.schedule || {},
-                    disciplines: data.disciplines || {},
-                    bells: data.bells || {},
-                    semester1: data.semester1 || {},
-                    semester2: data.semester2 || {}
-                };
-
-                console.log("📥 groupSettings загружены:", currentGroupId, settings);
-
-            }
-            else {
-                console.warn("⚠ groupSettings не найдены для", currentGroupId);
-            }
-
         }
-        catch (error) {
-            console.error("Ошибка загрузки настроек:", error);
-            showStatus("Не удалось загрузить настройки");
+
+
+        function getDayIndex(dateString) {
+            return parseDate(dateString).getDay();
         }
-    }
 
 
-    // =========================================
-    // LOAD STUDENTS
-    // =========================================
-
-    async function loadStudents() {
-
-        try {
-
-            students = [];
-
-            if (!currentGroupId) return;
-
-            const group = getCurrentGroup();
-
-            const explicitIds =
-                group && Array.isArray(group.studentIds)
-                    ? group.studentIds.map(String)
-                    : [];
+        function getDayName(dateString) {
+            return dayNames[getDayIndex(dateString)];
+        }
 
 
-            let byGroupId = [];
+        /* =====================================================
+           === ИЗМЕНЕНО ===
+           LESSON COUNT из groupSettings
+           schedule: { "Понедельник": 5, ... }
+        ===================================================== */
+
+        function getLessonCount(dayIndex) {
+
+            if (dayIndex < 1 || dayIndex > 6) return 0;
+
+            const day = days[dayIndex - 1];
+
+            const value = settings?.schedule?.[day];
+
+            if (value === undefined || value === null) return 0;
+
+            if (Array.isArray(value)) return value.length;
+
+            if (typeof value === "object") {
+                if (Array.isArray(value.lessons)) return value.lessons.length;
+                if (typeof value.count !== "undefined") return Number(value.count);
+            }
+
+            return Number(value) || 0;
+        }
+
+
+        /* =====================================================
+           === ИЗМЕНЕНО ===
+           LESSON CONFIG из groupSettings
+        ===================================================== */
+
+        function getLessonConfig(dayIndex, lesson) {
+
+            if (dayIndex < 1 || dayIndex > 6) return {};
+
+            const day = days[dayIndex - 1];
+
+            let result = {};
+
+
+            /* --- disciplines (основной формат из settings.html) --- */
+
+            const disciplines = settings?.disciplines?.[day];
+
+            if (Array.isArray(disciplines)) {
+
+                const item = disciplines[lesson - 1];
+
+                if (typeof item === "object" && item) {
+                    result = { ...result, ...item };
+                } else if (item) {
+                    result.discipline = item;
+                }
+
+            } else if (disciplines && typeof disciplines === "object") {
+
+                const item =
+                    disciplines[String(lesson)] ??
+                    disciplines[lesson];
+
+                if (typeof item === "object" && item) {
+                    result = { ...result, ...item };
+                } else if (item) {
+                    result.discipline = item;
+                }
+            }
+
+
+            /* --- bells (время) --- */
+
+            const bells = settings?.bells;
+
+            if (bells) {
+
+                const bell =
+                    Array.isArray(bells)
+                        ? bells[lesson - 1]
+                        : bells[String(lesson)] ?? bells[lesson];
+
+                if (bell && typeof bell === "object") {
+                    result = { ...result, ...bell };
+                }
+            }
+
+
+            /* --- доп. форматы (на всякий случай) --- */
+
+            const lessons = settings?.lessons?.[day];
+            if (lessons) {
+                const item = Array.isArray(lessons)
+                    ? lessons[lesson - 1]
+                    : lessons[String(lesson)] ?? lessons[lesson];
+                if (item && typeof item === "object") {
+                    result = { ...result, ...item };
+                }
+            }
+
+            const scheduleDay = settings?.schedule?.[day];
+            if (Array.isArray(scheduleDay)) {
+                const item = scheduleDay[lesson - 1];
+                if (item && typeof item === "object") {
+                    result = { ...result, ...item };
+                }
+            }
+
+            return result;
+        }
+
+
+        function firstValue(object, keys) {
+
+            if (!object) return "";
+
+            for (const key of keys) {
+                if (
+                    object[key] !== undefined &&
+                    object[key] !== null &&
+                    object[key] !== ""
+                ) {
+                    return object[key];
+                }
+            }
+
+            return "";
+        }
+
+
+        /* =====================================================
+           === ИЗМЕНЕНО ===
+           DISCIPLINE
+        ===================================================== */
+
+        function getDiscipline(dayIndex, lesson) {
+
+            const config = getLessonConfig(dayIndex, lesson);
+
+            const value = firstValue(config, [
+                "discipline",
+                "subject",
+                "name",
+                "title",
+                "lessonName"
+            ]);
+
+            return value || "Дисциплина не настроена";
+        }
+
+
+        /* =====================================================
+           === ИЗМЕНЕНО ===
+           TIME из bells
+        ===================================================== */
+
+        function getLessonTime(dayIndex, lesson) {
+
+            const config = getLessonConfig(dayIndex, lesson);
+
+            let start = firstValue(config, [
+                "start",
+                "startTime",
+                "timeStart",
+                "from",
+                "begin"
+            ]);
+
+            let end = firstValue(config, [
+                "end",
+                "endTime",
+                "timeEnd",
+                "to",
+                "finish"
+            ]);
+
+            const bells = settings?.bells;
+
+            if (bells) {
+
+                const bell =
+                    Array.isArray(bells)
+                        ? bells[lesson - 1]
+                        : bells[String(lesson)] ?? bells[lesson];
+
+                if (bell && typeof bell === "object") {
+
+                    if (!start) {
+                        start = firstValue(bell, [
+                            "start",
+                            "startTime",
+                            "from",
+                            "begin"
+                        ]);
+                    }
+
+                    if (!end) {
+                        end = firstValue(bell, [
+                            "end",
+                            "endTime",
+                            "to",
+                            "finish"
+                        ]);
+                    }
+                }
+            }
+
+            if (start && end) {
+                return { start: String(start), end: String(end), text: `${start} — ${end}` };
+            }
+
+            if (start) {
+                return { start: String(start), end: "—", text: String(start) };
+            }
+
+            return { start: "—", end: "—", text: "Время не настроено" };
+        }
+
+
+        /* =====================================================
+           === ИЗМЕНЕНО ===
+           SEMESTER / ATTESTATION из groupSettings
+        ===================================================== */
+
+        function getAttestationInfo(dateString) {
+
+            const date = parseDate(dateString);
+
+            function inside(period) {
+
+                if (!period?.start || !period?.end) return false;
+
+                const start = parseDate(period.start);
+                const end = parseDate(period.end);
+
+                return date >= start && date <= end;
+            }
+
+            if (inside(settings?.semester1?.attestation1)) {
+                return { semester: "1 семестр", attestation: "Аттестация 1" };
+            }
+
+            if (inside(settings?.semester1?.attestation2)) {
+                return { semester: "1 семестр", attestation: "Аттестация 2" };
+            }
+
+            if (inside(settings?.semester2?.attestation1)) {
+                return { semester: "2 семестр", attestation: "Аттестация 1" };
+            }
+
+            if (inside(settings?.semester2?.attestation2)) {
+                return { semester: "2 семестр", attestation: "Аттестация 2" };
+            }
+
+            const month = date.getMonth();
+            const semester = month >= 8 || month <= 0 ? "1 семестр" : "2 семестр";
+
+            return { semester, attestation: "—" };
+        }
+
+
+        /* =====================================================
+           GROUPS & ACCESS
+        ===================================================== */
+
+        async function loadGroupsAndRole() {
+
+            userRole = null;
+            allGroupsData = [];
+            userGroups = [];
+
+            if (!currentUser) return;
 
             try {
 
-                const snapshot = await getDocs(
-                    query(
-                        collection(db, "students"),
-                        where("groupId", "==", currentGroupId)
-                    )
-                );
+                const userSnap = await getDoc(doc(db, "users", currentUser.uid));
 
-                byGroupId = snapshot.docs.map(d => ({
-                    id: d.id,
-                    ...d.data()
+                userRole = userSnap.exists()
+                    ? (userSnap.data().role || null)
+                    : null;
+
+            } catch (error) {
+                console.error("Ошибка чтения роли пользователя:", error);
+                userRole = null;
+            }
+
+            try {
+
+                const groupsSnap = await getDocs(collection(db, "groups"));
+
+                allGroupsData = groupsSnap.docs.map(item => ({
+                    id: item.id,
+                    ...item.data()
                 }));
 
-            }
-            catch (e) {
-                console.warn("Фильтр students по groupId не сработал:", e);
-                byGroupId = [];
-            }
+                allGroupsData.sort((a, b) =>
+                    String(a.name || "").localeCompare(String(b.name || ""), "ru")
+                );
 
-
-            let byExplicit = [];
-
-            if (explicitIds.length > 0) {
-
-                const fullSnap = await getDocs(collection(db, "students"));
-
-                byExplicit = fullSnap.docs
-                    .filter(d => explicitIds.includes(String(d.id)))
-                    .map(d => ({
-                        id: d.id,
-                        ...d.data()
-                    }));
+            } catch (error) {
+                console.error("Ошибка загрузки групп:", error);
+                allGroupsData = [];
             }
 
+            if (userRole === "admin") {
+                userGroups = allGroupsData;
+            } else {
+                userGroups = allGroupsData.filter(group =>
+                    group.curatorId === currentUser.uid ||
+                    group.starostaId === currentUser.uid ||
+                    group.leaderId === currentUser.uid
+                );
+            }
+        }
 
-            const map = new Map();
 
-            [...byGroupId, ...byExplicit].forEach(s => map.set(s.id, s));
+        /* =====================================================
+           GROUP SELECT UI
+        ===================================================== */
 
-            students = Array.from(map.values());
+        const groupSelect = document.getElementById("groupSelect");
+        const groupHint = document.getElementById("groupHint");
+
+
+        function populateGroupSelect() {
+
+            const previousValue = selectedGroupId;
+
+            if (!userGroups.length) {
+
+                groupSelect.innerHTML =
+                    `<option value="">Нет доступных групп</option>`;
+
+                groupSelect.disabled = true;
+                selectedGroupId = "";
+
+                groupHint.textContent =
+                    userRole === "admin"
+                        ? "В системе пока нет ни одной группы"
+                        : "Вам не назначена ни одна группа. Обратитесь к администратору.";
+
+                return;
+            }
+
+            groupSelect.innerHTML = userGroups.map(group =>
+                `<option value="${escapeHtml(group.id)}">` +
+                `${escapeHtml(group.name || "Без названия")}` +
+                `${group.active === false ? " (архив)" : ""}` +
+                `</option>`
+            ).join("");
+
+            const stillValid = userGroups.some(group => group.id === previousValue);
+
+            selectedGroupId = stillValid ? previousValue : userGroups[0].id;
+            groupSelect.value = selectedGroupId;
+
+            if (userRole !== "admin" && userGroups.length === 1) {
+                groupSelect.disabled = true;
+                groupHint.textContent = "Группа закреплена за вами";
+            } else {
+                groupSelect.disabled = false;
+                groupHint.textContent =
+                    userRole === "admin"
+                        ? "Доступны все группы в системе"
+                        : "Выберите одну из закреплённых за вами групп";
+            }
+        }
+
+
+        groupSelect.addEventListener("change", async function() {
+
+            selectedGroupId = this.value;
+
+            applyGroupFilter();
+
+            /* === ИЗМЕНЕНО: перечитываем настройки группы === */
+            await loadSettings();
+
+            render();
+        });
+
+
+        /* =====================================================
+           GROUP FILTER
+        ===================================================== */
+
+        function applyGroupFilter() {
+
+            if (!selectedGroupId) {
+                students = [];
+                return;
+            }
+
+            const group = allGroupsData.find(item => item.id === selectedGroupId);
+
+            const explicitIds =
+                group && Array.isArray(group.studentIds)
+                    ? group.studentIds
+                    : [];
+
+            const explicitSet = new Set(explicitIds);
+
+            students = allStudents.filter(student =>
+                student.groupId === selectedGroupId ||
+                explicitSet.has(student.id)
+            );
 
             students.sort((a, b) =>
-                String(a.name || "").localeCompare(String(b.name || ""), "ru")
+                String(a.name || a.fullName || a.fio || "")
+                    .localeCompare(
+                        String(b.name || b.fullName || b.fio || ""),
+                        "ru"
+                    )
             );
-
-            console.log(
-                "📥 Студентов загружено:",
-                students.length,
-                "| по groupId:", byGroupId.length,
-                "| по studentIds группы:", byExplicit.length
-            );
-
-        }
-        catch (error) {
-
-            console.error("Ошибка студентов:", error);
-            showStatus("Ошибка загрузки студентов");
-
-        }
-    }
-
-
-    function getStudentName(studentId) {
-
-        const student = students.find(
-            item => String(item.id) === String(studentId)
-        );
-
-        return student ? (student.name || "Без имени") : "Неизвестный студент";
-    }
-
-
-    // =========================================
-    // NORMALIZE STATUS
-    // =========================================
-
-    function normalizeStatus(status) {
-
-        if (status === null || status === undefined) return "";
-
-        const value = String(status).trim().toLowerCase();
-
-        if (
-            value === "present" ||
-            value === "присутствовал" ||
-            value === "присутствует" ||
-            value === "присутствие" ||
-            value === "п" ||
-            value === "✓"
-        ) {
-            return "present";
         }
 
-        if (
-            value === "absent" ||
-            value === "отсутствовал" ||
-            value === "отсутствует" ||
-            value === "отсутствие" ||
-            value === "н"
-        ) {
-            return "absent";
+
+        /* =====================================================
+           === ИЗМЕНЕНО ===
+           LOAD SETTINGS из groupSettings/{selectedGroupId}
+        ===================================================== */
+
+        async function loadSettings() {
+
+            settings = {
+                schedule: {},
+                disciplines: {},
+                bells: {},
+                semester1: {},
+                semester2: {}
+            };
+
+            if (!selectedGroupId) return;
+
+            try {
+
+                const ref = doc(db, "groupSettings", selectedGroupId);
+                const snapshot = await getDoc(ref);
+
+                if (snapshot.exists()) {
+
+                    const data = snapshot.data() || {};
+
+                    settings = {
+                        schedule: data.schedule || {},
+                        disciplines: data.disciplines || {},
+                        bells: data.bells || {},
+                        semester1: data.semester1 || {},
+                        semester2: data.semester2 || {}
+                    };
+
+                    console.log("📥 groupSettings загружены:", selectedGroupId, settings);
+
+                } else {
+
+                    console.warn("⚠ groupSettings не найдены для", selectedGroupId);
+
+                }
+
+            } catch (error) {
+
+                console.error("Ошибка загрузки groupSettings:", error);
+
+            }
         }
 
-        return "";
-    }
+
+        /* =====================================================
+           LOAD STUDENTS
+        ===================================================== */
+
+        async function loadStudents() {
+
+            const snapshot = await getDocs(collection(db, "students"));
+
+            allStudents = snapshot.docs.map(item => ({
+                id: item.id,
+                ...item.data()
+            }));
+
+            applyGroupFilter();
+        }
 
 
-    // =========================================
-    // LOAD ATTENDANCE
-    // =========================================
+        /* =====================================================
+           === ИЗМЕНЕНО ===
+           LOAD ATTENDANCE
 
-    async function loadAttendance() {
+           Новая структура в базе:
+           attendance/{date} = {
+               date: "2026-09-25",
+               groupId: "...",
+               students: {
+                   "studentId1": { studentId, studentName, lessons },
+                   "studentId2": { ... }
+               }
+           }
 
-        try {
+           Старая структура (для совместимости):
+           attendance/{date}_{studentId} = { date, studentId, lessons }
+        ===================================================== */
+
+        async function loadAttendance() {
 
             attendance = {};
 
-            if (!currentGroupId) return;
-
-            if (students.length === 0) {
-                console.warn("⚠ Нет студентов — attendance не загружаем");
-                return;
-            }
-
-            const studentIdsSet = new Set(students.map(s => String(s.id)));
-
-            console.log(
-                "🔎 Ищем attendance для студентов:",
-                studentIdsSet.size
-            );
-
-
             const snapshot = await getDocs(collection(db, "attendance"));
 
-            console.log(
-                "📦 Всего документов attendance:",
-                snapshot.docs.length
-            );
+            snapshot.forEach(docItem => {
 
-            let matched = 0;
+                const data = docItem.data();
 
-            snapshot.forEach(attendanceDoc => {
+                /* --- Новый формат: 1 документ на дату с объектом students --- */
 
-                const data = attendanceDoc.data();
+                if (data.students && typeof data.students === "object") {
 
-                if (!data.date || !data.studentId) return;
+                    Object.values(data.students).forEach(studentRecord => {
 
-                const studentId = String(data.studentId);
+                        if (!data.date || !studentRecord.studentId) return;
 
-                if (!studentIdsSet.has(studentId)) return;
+                        const key = `${data.date}_${studentRecord.studentId}`;
 
-                matched++;
+                        attendance[key] = {
+                            studentId: studentRecord.studentId,
+                            studentName: studentRecord.studentName || "",
+                            date: data.date,
+                            groupId: data.groupId || "",
+                            lessons: studentRecord.lessons || {},
+                            semester: data.semester || "",
+                            attestation: data.attestation || ""
+                        };
+                    });
 
-                const date = normalizeDate(data.date);
-                if (!date) return;
-
-                const studentName =
-                    data.studentName || getStudentName(studentId);
-
-                const lessons = data.lessons || {};
-
-                Object.entries(lessons).forEach(([lessonNumber, lessonData]) => {
-
-                    if (!lessonData) return;
-
-                    const status = normalizeStatus(lessonData.status);
-                    if (!status) return;
-
-                    const reason =
-                        lessonData.reason ||
-                        lessonData.comment ||
-                        lessonData.description ||
-                        "";
-
-                    const absentType = String(lessonData.absentType || "")
-                        .trim()
-                        .toLowerCase();
-
-                    const key = `${date}_${studentId}_${lessonNumber}`;
-
-                    attendance[key] = {
-                        id: attendanceDoc.id,
-                        documentId: attendanceDoc.id,
-                        date: date,
-                        studentId: studentId,
-                        studentName: studentName,
-                        lesson: String(lessonNumber),
-                        status: status,
-                        absentType: absentType,
-                        reason: String(reason),
-                        semester: data.semester || "",
-                        attestation: data.attestation || "",
-                        updatedAt: data.updatedAt || ""
-                    };
-                });
-            });
-
-            console.log(
-                "✅ Совпало документов attendance:",
-                matched,
-                "| ключей собрано:",
-                Object.keys(attendance).length
-            );
-
-        }
-        catch (error) {
-            console.error("Ошибка загрузки посещаемости:", error);
-            showStatus("Ошибка загрузки посещаемости");
-        }
-    }
-
-
-    // =========================================
-    // GET LESSON COUNT
-    // =========================================
-
-    function getLessonCount(dayIndex) {
-
-        const schedule = settings.schedule || {};
-        const day = days[dayIndex];
-        const value = schedule[day];
-
-        if (value === undefined || value === null) return 0;
-
-        if (Array.isArray(value)) return value.length;
-
-        if (typeof value === "object") {
-            if (Array.isArray(value.lessons)) return value.lessons.length;
-            if (typeof value.count !== "undefined") return Number(value.count) || 0;
-        }
-
-        return Number(value) || 0;
-    }
-
-
-    // =========================================
-    // GET WEEK DATES
-    // =========================================
-
-    function getWeekDates() {
-
-        const result = [];
-
-        for (let i = 0; i < 6; i++) {
-            const date = new Date(weekStart);
-            date.setDate(date.getDate() + i);
-            result.push(date);
-        }
-
-        return result;
-    }
-
-
-    function updateWeekRange() {
-
-        const dates = getWeekDates();
-
-        const first = formatDateRu(formatDate(dates[0]));
-        const last = formatDateRu(formatDate(dates[5]));
-
-        document.getElementById("weekRange").textContent =
-            `Период: ${first} — ${last}`;
-    }
-
-
-    // =========================================
-    // RENDER TABLE
-    // =========================================
-
-    function renderTable() {
-
-        const wrapper = document.getElementById("tableWrapper");
-
-        if (students.length === 0) {
-
-            wrapper.innerHTML = `
-                <div class="empty">
-                    Студентов пока нет.
-                    <br><br>
-                    Добавьте студентов в разделе «Студенты»
-                    или проверьте, что группа выбрана правильно.
-                </div>
-            `;
-
-            const printSheet = document.getElementById("printSheet");
-            if (printSheet) printSheet.innerHTML = "";
-
-            return;
-        }
-
-
-        const weekDates = getWeekDates();
-
-
-        let html = `
-            <table>
-                <thead>
-                    <tr>
-                        <th class="student-column" rowspan="2">
-                            Список обучающихся
-                        </th>
-        `;
-
-
-        weekDates.forEach((date, index) => {
-
-            const count = getLessonCount(index);
-
-            html += `
-                <th class="day-header" colspan="${Math.max(count, 1)}">
-                    <div class="day-name">${days[index]}</div>
-                    <div class="day-date">${formatDateRu(formatDate(date))}</div>
-                </th>
-            `;
-        });
-
-
-        html += `
-                    <th class="day-header report-col" rowspan="2">
-                        <div class="day-name">Все Н, ч</div>
-                    </th>
-                    <th class="day-header report-col report-uv" rowspan="2">
-                        <div class="day-name">УВ Н, ч</div>
-                    </th>
-                    <th class="day-header report-col report-neuv" rowspan="2">
-                        <div class="day-name">Неув Н, ч</div>
-                    </th>
-                    <th class="day-header report-col report-note-col" rowspan="2">
-                        <div class="day-name">Примечание</div>
-                    </th>
-                    </tr>
-                    <tr>
-        `;
-
-
-        weekDates.forEach((date, dayIndex) => {
-
-            const count = getLessonCount(dayIndex);
-
-            if (count === 0) {
-                html += `<th>—</th>`;
-                return;
-            }
-
-            for (let lesson = 1; lesson <= count; lesson++) {
-                html += `<th>${lesson}</th>`;
-            }
-        });
-
-
-        html += `
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-
-        let groupAll = 0;
-        let groupUv = 0;
-        let groupNeuv = 0;
-
-
-        students.forEach((student, studentIndex) => {
-
-            let studentAll = 0;
-            let studentUv = 0;
-            let studentNeuv = 0;
-            const studentReasons = [];
-
-
-            html += `
-                <tr>
-                    <td class="student-cell">
-                        <div class="student-wrapper">
-                            <div class="student-number">${studentIndex + 1}</div>
-                            <div class="student-name">${escapeHtml(student.name || "Без имени")}</div>
-                        </div>
-                    </td>
-            `;
-
-
-            weekDates.forEach((date, dayIndex) => {
-
-                const dateString = formatDate(date);
-                const lessonCount = getLessonCount(dayIndex);
-
-                if (lessonCount === 0) {
-                    html += `<td class="lesson-cell empty-mark">—</td>`;
                     return;
                 }
 
+                /* --- Старый формат (совместимость) --- */
+
+                if (data.date && data.studentId) {
+
+                    const key = `${data.date}_${data.studentId}`;
+                    attendance[key] = data;
+                }
+            });
+        }
+
+
+        /* =====================================================
+           STUDENT DAY
+        ===================================================== */
+
+        function getStudentDay(studentId) {
+
+            const key = `${selectedDate}_${studentId}`;
+
+            return attendance[key] || {
+                studentId,
+                date: selectedDate,
+                lessons: {}
+            };
+        }
+
+
+        function getLessonData(studentId, lesson) {
+
+            const dayData = getStudentDay(studentId);
+
+            return dayData.lessons?.[String(lesson)] || {
+                status: "",
+                absentType: "",
+                reason: ""
+            };
+        }
+
+
+        /* =====================================================
+           === ИЗМЕНЕНО ===
+           SAVE
+
+           Теперь сохраняем 1 документ на дату:
+           attendance/{selectedDate} = {
+               date, groupId, semester, attestation,
+               students: { [studentId]: { studentId, studentName, lessons } }
+           }
+
+           Используем merge: true, чтобы не затереть других студентов.
+        ===================================================== */
+
+        async function saveStudentDay(student, lessons) {
+
+            const period = getAttestationInfo(selectedDate);
+
+            /* ID документа = дата. Например: "2026-09-25" */
+            const documentId = selectedDate;
+
+            /* Данные конкретного студента */
+            const studentRecord = {
+                studentId: student.id,
+                studentName: student.name || "",
+                lessons: lessons,
+                updatedAt: new Date().toISOString()
+            };
+
+            /* Формируем объект для точечного обновления:
+               students.{studentId} = studentRecord */
+            const updateData = {
+                date: selectedDate,
+                groupId: selectedGroupId,
+                semester: period.semester,
+                attestation: period.attestation,
+                [`students.${student.id}`]: studentRecord
+            };
+
+            await setDoc(
+                doc(db, "attendance", documentId),
+                updateData,
+                { merge: true } // ВАЖНО: сохраняем других студентов!
+            );
+
+            /* Обновляем локальный кэш, чтобы интерфейс сразу увидел изменения */
+            const cacheKey = `${selectedDate}_${student.id}`;
+
+            attendance[cacheKey] = {
+                studentId: student.id,
+                studentName: student.name || "",
+                date: selectedDate,
+                groupId: selectedGroupId,
+                lessons: lessons,
+                semester: period.semester,
+                attestation: period.attestation
+            };
+        }
+
+
+        /* =====================================================
+           DELETE ATTENDANCE
+        ===================================================== */
+
+        async function deleteAttendance() {
+
+            if (!selectedStudent || !selectedLesson) return;
+
+            closeChoice();
+
+            try {
+
+                showToast("Удаление отметки...");
+
+                const dayData = getStudentDay(selectedStudent.id);
+                const lessons = { ...(dayData.lessons || {}) };
+
+                const key = String(selectedLesson);
+
+                if (!lessons[key]) {
+                    showToast("Отметки нет", "warning");
+                    return;
+                }
+
+                delete lessons[key];
+
+                await saveStudentDay(selectedStudent, lessons);
+
+                render();
+
+                showToast("✓ Отметка удалена", "success");
+
+            } catch (error) {
+
+                console.error(error);
+                showToast("Ошибка удаления", "error");
+            }
+        }
+
+        window.deleteAttendance = deleteAttendance;
+
+
+        /* =====================================================
+           QUICK MODE
+        ===================================================== */
+
+        function enableQuickMode(mode) {
+
+            quickMode = mode;
+
+            const panel = document.getElementById("quickPanel");
+            const label = document.getElementById("quickModeLabel");
+
+            panel.classList.add("active");
+
+            if (mode === "present") label.textContent = "✓ Режим присутствия";
+            if (mode === "absent") label.textContent = "Н Режим отсутствия";
+
+            showToast(
+                mode === "present"
+                    ? "✓ Режим присутствия включён"
+                    : "Н Режим отсутствия включён",
+                "success"
+            );
+        }
+
+        window.enableQuickMode = enableQuickMode;
+
+
+        function disableQuickMode() {
+
+            quickMode = null;
+
+            document.getElementById("quickPanel").classList.remove("active");
+            document.getElementById("quickModeLabel").textContent = "Режим не выбран";
+
+            showToast("Режим быстрой отметки выключен");
+        }
+
+        window.disableQuickMode = disableQuickMode;
+
+
+        /* =====================================================
+           QUICK PRESENT
+        ===================================================== */
+
+        async function quickPresent(student, lesson) {
+
+            try {
+
+                const dayData = getStudentDay(student.id);
+                const lessons = { ...(dayData.lessons || {}) };
+
+                lessons[String(lesson)] = { status: "present", reason: "" };
+
+                await saveStudentDay(student, lessons);
+
+                render();
+
+                showToast(`✓ ${student.name} — ${lesson} пара`, "success");
+
+            } catch (error) {
+
+                console.error(error);
+                showToast("Ошибка сохранения", "error");
+            }
+        }
+
+
+        /* =====================================================
+           QUICK ABSENT
+        ===================================================== */
+
+        function quickAbsent(student, lesson) {
+
+            selectedStudent = student;
+            selectedLesson = lesson;
+            selectedAction = "single";
+
+            document.getElementById("modalStudent").textContent = student.name;
+            document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
+            document.getElementById("modalLesson").textContent =
+                `${lesson} пара • ${getDiscipline(getDayIndex(selectedDate), lesson)}`;
+
+            const oldData = getLessonData(student.id, lesson);
+
+            document.getElementById("reasonInput").value = oldData.reason || "";
+
+            selectedAbsentType = oldData.absentType || "neuv";
+            updateAbsentTypeButtons();
+
+            document.getElementById("reasonOverlay").classList.add("active");
+
+            setTimeout(() => {
+                document.getElementById("reasonInput").focus();
+            }, 100);
+        }
+
+
+        /* =====================================================
+           RENDER
+        ===================================================== */
+
+        function render() {
+
+            if (!selectedDate) return;
+
+            const dayIndex = getDayIndex(selectedDate);
+            const lessonCount = getLessonCount(dayIndex);
+
+            document.getElementById("dayName").textContent = getDayName(selectedDate);
+
+            document.getElementById("lessonCountBadge").textContent =
+                `${lessonCount} ${
+                    lessonCount === 1
+                        ? "пара"
+                        : lessonCount >= 2 && lessonCount <= 4
+                            ? "пары"
+                            : "пар"
+                }`;
+
+            const period = getAttestationInfo(selectedDate);
+
+            document.getElementById("periodInfo").textContent =
+                `${period.semester} • ${period.attestation}`;
+
+            if (dayIndex === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">🌴</div>
+                        <div class="empty-title">Воскресенье</div>
+                        <div>В воскресенье занятий нет.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (lessonCount <= 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">📚</div>
+                        <div class="empty-title">Нет занятий</div>
+                        <div>Для этого дня не настроено расписание.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (!selectedGroupId) {
+                tableContainer.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">🔒</div>
+                        <div class="empty-title">Группа недоступна</div>
+                        <div>${
+                            userRole === "admin"
+                                ? "В системе пока нет ни одной группы."
+                                : "Вам не назначена ни одна группа. Обратитесь к администратору."
+                        }</div>
+                    </div>
+                `;
+                return;
+            }
+
+            if (students.length === 0) {
+                tableContainer.innerHTML = `
+                    <div class="empty">
+                        <div class="empty-icon">👨‍🎓</div>
+                        <div class="empty-title">Студентов пока нет</div>
+                        <div>В этой группе пока нет ни одного студента.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Студент</th>
+            `;
+
+            for (let lesson = 1; lesson <= lessonCount; lesson++) {
+
+                const discipline = getDiscipline(dayIndex, lesson);
+
+                html += `
+                    <th class="lesson-header"
+                        title="Нажмите, чтобы посмотреть информацию"
+                        onclick="window.openLessonInfo(${lesson})">
+
+                        <span class="lesson-number">${lesson}</span>
+
+                        <span class="lesson-short-name">
+                            ${escapeHtml(discipline)}
+                        </span>
+
+                    </th>
+                `;
+            }
+
+            html += `
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            students.forEach((student, studentIndex) => {
+
+                html += `
+                    <tr>
+                        <td>
+                            <span class="student-number">${studentIndex + 1}</span>
+                            <span class="student-name">${escapeHtml(student.name || "Без имени")}</span>
+                        </td>
+                `;
+
                 for (let lesson = 1; lesson <= lessonCount; lesson++) {
 
-                    const key = `${dateString}_${student.id}_${lesson}`;
-                    const record = attendance[key];
+                    const data = getLessonData(student.id, lesson);
 
-                    let mark = "—";
-                    let className = "empty-mark";
+                    let statusClass = "status-empty";
+                    let statusText = "—";
 
-                    if (record && record.status === "present") {
-                        mark = "✓";
-                        className = "present";
+                    if (data.status === "present") {
+                        statusClass = "status-present";
+                        statusText = "✓";
                     }
 
-                    if (record && record.status === "absent") {
-
-                        mark = "Н";
-                        className = "absent";
-
-                        studentAll += HOURS_PER_LESSON;
-
-                        const reasonText = String(record.reason || "").trim();
-                        const absentType = record.absentType || "";
-
-                        const isExcused =
-                            absentType === "uv" ||
-                            absentType === "bolezn" ||
-                            (!absentType && Boolean(reasonText));
-
-                        if (isExcused) {
-
-                            studentUv += HOURS_PER_LESSON;
-
-                            if (reasonText && !studentReasons.includes(reasonText)) {
-                                studentReasons.push(reasonText);
-                            }
-
-                        }
-                        else {
-                            studentNeuv += HOURS_PER_LESSON;
-                        }
+                    if (data.status === "absent") {
+                        statusClass = "status-absent";
+                        statusText =
+                            data.absentType === "uv" ? "Н/У"
+                            : data.absentType === "bolezn" ? "Н/Б"
+                            : "Н";
                     }
-
 
                     html += `
-                        <td class="lesson-cell ${className}" data-record-key="${escapeHtml(key)}">
-                            ${mark}
+                        <td class="attendance-cell"
+                            onclick="window.openCell('${escapeJs(student.id)}', ${lesson})">
+                            <div class="status ${statusClass}">${statusText}</div>
                         </td>
                     `;
                 }
+
+                html += `</tr>`;
             });
 
+            html += `</tbody></table>`;
 
-            groupAll += studentAll;
-            groupUv += studentUv;
-            groupNeuv += studentNeuv;
-
-
-            html += `
-                    <td class="report-col report-total">${studentAll}</td>
-                    <td class="report-col report-uv">${studentUv}</td>
-                    <td class="report-col report-neuv">${studentNeuv}</td>
-                    <td class="report-col report-note-col ${studentReasons.length ? "" : "empty-mark"}">
-                        ${studentReasons.length ? escapeHtml(studentReasons.join("; ")) : "—"}
-                    </td>
-                </tr>
-            `;
-        });
+            tableContainer.innerHTML = html;
+        }
 
 
-        html += `
-                <tr class="total-row">
-                    <td class="student-cell"><strong>Итого по группе</strong></td>
-        `;
+        /* =====================================================
+           OPEN CELL
+        ===================================================== */
+
+        window.openCell = async function(studentId, lesson) {
+
+            const student = students.find(item => item.id === studentId);
+            if (!student) return;
+
+            if (quickMode === "present") {
+                await quickPresent(student, lesson);
+                return;
+            }
+
+            if (quickMode === "absent") {
+                quickAbsent(student, lesson);
+                return;
+            }
+
+            selectedStudent = student;
+            selectedLesson = lesson;
+
+            const data = getLessonData(student.id, lesson);
+
+            document.getElementById("choiceStudent").textContent =
+                `${student.name} • ${lesson} пара`;
+
+            const deleteButton = document.getElementById("deleteButton");
+
+            if (data.status === "present" || data.status === "absent") {
+                deleteButton.style.display = "flex";
+            } else {
+                deleteButton.style.display = "none";
+            }
+
+            document.getElementById("choiceOverlay").classList.add("active");
+        };
 
 
-        weekDates.forEach((date, dayIndex) => {
+        /* =====================================================
+           CLOSE CHOICE
+        ===================================================== */
 
-            const count = getLessonCount(dayIndex);
-            const slots = Math.max(count, 1);
+        function closeChoice() {
+            document.getElementById("choiceOverlay").classList.remove("active");
+        }
 
-            for (let i = 0; i < slots; i++) {
-                html += `<td class="empty-mark">—</td>`;
+        window.closeChoice = closeChoice;
+
+
+        function closeChoiceOutside(event) {
+            if (event.target === document.getElementById("choiceOverlay")) {
+                closeChoice();
+            }
+        }
+
+        window.closeChoiceOutside = closeChoiceOutside;
+
+
+        /* =====================================================
+           PRESENT
+        ===================================================== */
+
+        async function choosePresent() {
+
+            if (!selectedStudent) return;
+
+            closeChoice();
+
+            try {
+
+                showToast("Сохранение...");
+
+                const dayData = getStudentDay(selectedStudent.id);
+                const lessons = { ...(dayData.lessons || {}) };
+
+                lessons[String(selectedLesson)] = { status: "present", reason: "" };
+
+                await saveStudentDay(selectedStudent, lessons);
+
+                render();
+
+                showToast("✓ Присутствие сохранено", "success");
+
+            } catch (error) {
+
+                console.error(error);
+                showToast("Ошибка сохранения", "error");
+            }
+        }
+
+        window.choosePresent = choosePresent;
+
+
+        /* =====================================================
+           ABSENT TYPE
+        ===================================================== */
+
+        function selectAbsentType(type) {
+            selectedAbsentType = type;
+            updateAbsentTypeButtons();
+        }
+
+        window.selectAbsentType = selectAbsentType;
+
+
+        function updateAbsentTypeButtons() {
+
+            document.querySelectorAll("#absentTypeGroup .absent-type-btn")
+                .forEach(button => {
+                    button.classList.toggle(
+                        "active",
+                        button.dataset.type === selectedAbsentType
+                    );
+                });
+        }
+
+
+        /* =====================================================
+           ABSENT
+        ===================================================== */
+
+        function chooseAbsent() {
+
+            if (!selectedStudent) return;
+
+            closeChoice();
+
+            const data = getLessonData(selectedStudent.id, selectedLesson);
+
+            document.getElementById("modalStudent").textContent = selectedStudent.name;
+            document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
+            document.getElementById("modalLesson").textContent =
+                `${selectedLesson} пара • ${getDiscipline(getDayIndex(selectedDate), selectedLesson)}`;
+
+            document.getElementById("reasonInput").value = data.reason || "";
+
+            selectedAbsentType = data.absentType || "neuv";
+            updateAbsentTypeButtons();
+
+            selectedAction = "single";
+
+            document.getElementById("reasonOverlay").classList.add("active");
+
+            setTimeout(() => {
+                document.getElementById("reasonInput").focus();
+            }, 100);
+        }
+
+        window.chooseAbsent = chooseAbsent;
+
+
+        /* =====================================================
+           WHOLE DAY
+        ===================================================== */
+
+        function chooseWholeDay() {
+
+            if (!selectedStudent) return;
+
+            closeChoice();
+
+            document.getElementById("modalStudent").textContent = selectedStudent.name;
+            document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
+            document.getElementById("modalLesson").textContent = "📅 Весь день";
+
+            document.getElementById("reasonInput").value = "";
+
+            selectedAbsentType = "neuv";
+            updateAbsentTypeButtons();
+
+            selectedAction = "wholeDay";
+
+            document.getElementById("reasonOverlay").classList.add("active");
+
+            setTimeout(() => {
+                document.getElementById("reasonInput").focus();
+            }, 100);
+        }
+
+        window.chooseWholeDay = chooseWholeDay;
+
+
+        /* =====================================================
+           SAVE ABSENT
+        ===================================================== */
+
+        async function saveAbsent() {
+
+            if (!selectedStudent || !selectedAction) return;
+
+            const reason = document.getElementById("reasonInput").value.trim();
+
+            try {
+
+                showToast("Сохранение...");
+
+                const dayData = getStudentDay(selectedStudent.id);
+                const lessons = { ...(dayData.lessons || {}) };
+
+                const dayIndex = getDayIndex(selectedDate);
+                const lessonCount = getLessonCount(dayIndex);
+
+                if (selectedAction === "single") {
+                    lessons[String(selectedLesson)] = {
+                        status: "absent",
+                        absentType: selectedAbsentType,
+                        reason: reason
+                    };
+                }
+
+                if (selectedAction === "wholeDay") {
+                    for (let lesson = 1; lesson <= lessonCount; lesson++) {
+                        lessons[String(lesson)] = {
+                            status: "absent",
+                            absentType: selectedAbsentType,
+                            reason: reason
+                        };
+                    }
+                }
+
+                await saveStudentDay(selectedStudent, lessons);
+
+                closeReason();
+                render();
+
+                showToast(
+                    selectedAction === "wholeDay"
+                        ? "✓ Н сохранено на весь день"
+                        : "✓ Отсутствие сохранено",
+                    "success"
+                );
+
+            } catch (error) {
+
+                console.error(error);
+                showToast("Ошибка сохранения", "error");
+            }
+        }
+
+        window.saveAbsent = saveAbsent;
+
+
+        /* =====================================================
+           CLOSE REASON
+        ===================================================== */
+
+        function closeReason() {
+            document.getElementById("reasonOverlay").classList.remove("active");
+            selectedAction = null;
+        }
+
+        window.closeReason = closeReason;
+
+
+        /* =====================================================
+           LESSON INFO
+        ===================================================== */
+
+        function openLessonInfo(lesson) {
+
+            const dayIndex = getDayIndex(selectedDate);
+
+            const discipline = getDiscipline(dayIndex, lesson);
+            const time = getLessonTime(dayIndex, lesson);
+
+            document.getElementById("lessonInfoTitle").textContent = `${lesson} пара`;
+
+            document.getElementById("lessonInfoSubtitle").textContent =
+                `${getDayName(selectedDate)} • ${formatDateRu(selectedDate)}`;
+
+            document.getElementById("lessonDiscipline").textContent = discipline;
+            document.getElementById("lessonTime").textContent = time.text;
+            document.getElementById("lessonStart").textContent = time.start;
+            document.getElementById("lessonEnd").textContent = time.end;
+
+            document.getElementById("lessonInfoOverlay").classList.add("active");
+        }
+
+        window.openLessonInfo = openLessonInfo;
+
+
+        function closeLessonInfo() {
+            document.getElementById("lessonInfoOverlay").classList.remove("active");
+        }
+
+        window.closeLessonInfo = closeLessonInfo;
+
+
+        /* =====================================================
+           ESC
+        ===================================================== */
+
+        document.addEventListener("keydown", event => {
+
+            if (event.key === "Escape") {
+                closeChoice();
+                closeReason();
+                closeLessonInfo();
             }
         });
 
 
-        html += `
-                    <td class="report-col report-total">${groupAll}</td>
-                    <td class="report-col report-uv">${groupUv}</td>
-                    <td class="report-col report-neuv">${groupNeuv}</td>
-                    <td class="report-col report-note-col empty-mark">—</td>
-                </tr>
-                </tbody>
-            </table>
-        `;
+        /* =====================================================
+           DATE CHANGE
+        ===================================================== */
 
+        datePicker.addEventListener("change", async function() {
 
-        wrapper.innerHTML = html;
-
-
-        wrapper.querySelectorAll(".lesson-cell").forEach(cell => {
-            cell.addEventListener("click", event => {
-                showRecordInfo(event, cell);
-            });
+            selectedDate = this.value;
+            await reloadData();
         });
 
-    }
 
+        /* =====================================================
+           RELOAD
+        ===================================================== */
 
-    // =========================================
-    // MOBILE VIEW
-    // =========================================
+        async function reloadData() {
 
-    function renderMobileAll() {
-
-        renderMobileWeekRange();
-        renderMobileDayTabs();
-        renderMobileLessonChips();
-        renderMobileStudentList();
-    }
-
-
-    function renderMobileWeekRange() {
-
-        const el = document.getElementById("mobileWeekRange");
-        if (!el) return;
-
-        const dates = getWeekDates();
-
-        el.textContent =
-            `${formatShortDate(dates[0], false)} — ${formatShortDate(dates[5], false)}`;
-    }
-
-
-    function renderMobileDayTabs() {
-
-        const wrap = document.getElementById("mobileDayTabs");
-        if (!wrap) return;
-
-        const weekDates = getWeekDates();
-
-        wrap.innerHTML = weekDates.map((date, i) => {
-
-            const active = i === mobileDayIndex ? " active" : "";
-
-            return `
-                <button class="mobile-day-tab${active}" data-day="${i}">
-                    <span class="mdt-name">${days[i].slice(0, 2)}</span>
-                    <span class="mdt-date">${formatShortDate(date, false)}</span>
-                </button>
-            `;
-        }).join("");
-
-        wrap.querySelectorAll(".mobile-day-tab").forEach(btn => {
-            btn.addEventListener("click", () => {
-                mobileDayIndex = Number(btn.dataset.day);
-                renderMobileDayTabs();
-                renderMobileLessonChips();
-                renderMobileStudentList();
-            });
-        });
-    }
-
-
-    function renderMobileLessonChips() {
-
-        const wrap = document.getElementById("mobileLessonChips");
-        if (!wrap) return;
-
-        const count = getLessonCount(mobileDayIndex);
-
-        if (count === 0) {
-            wrap.innerHTML = '<div class="mobile-no-lessons">В этот день пар нет</div>';
-            return;
-        }
-
-        if (mobileLesson > count) mobileLesson = 1;
-
-        let html = "";
-
-        for (let lesson = 1; lesson <= count; lesson++) {
-            html += `<button class="mobile-lesson-chip${lesson === mobileLesson ? " active" : ""}" data-lesson="${lesson}">${lesson}</button>`;
-        }
-
-        wrap.innerHTML = html;
-
-        wrap.querySelectorAll(".mobile-lesson-chip").forEach(btn => {
-            btn.addEventListener("click", () => {
-                mobileLesson = Number(btn.dataset.lesson);
-                renderMobileLessonChips();
-                renderMobileStudentList();
-            });
-        });
-    }
-
-
-    function renderMobileStudentList() {
-
-        const wrap = document.getElementById("mobileStudentList");
-        if (!wrap) return;
-
-        if (students.length === 0) {
-            wrap.innerHTML = '<div class="empty">Студентов пока нет</div>';
-            return;
-        }
-
-        const count = getLessonCount(mobileDayIndex);
-
-        if (count === 0) {
-            wrap.innerHTML = '<div class="empty">В этот день занятий нет</div>';
-            return;
-        }
-
-        const weekDates = getWeekDates();
-        const dateString = formatDate(weekDates[mobileDayIndex]);
-
-        const checkIcon =
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
-
-        const crossIcon =
-            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-
-        let html = "";
-
-        students.forEach((student, idx) => {
-
-            const key = `${dateString}_${student.id}_${mobileLesson}`;
-            const record = attendance[key];
-            const status = record ? record.status : "";
-
-            html += `
-                <div class="mobile-student-row">
-                    <div class="student-number">${idx + 1}</div>
-                    <div class="mobile-student-name">${escapeHtml(student.name || "Без имени")}</div>
-                    <div class="mobile-attendance-buttons">
-                        <button class="mob-btn mob-present${status === "present" ? " active" : ""}" data-student="${escapeHtml(String(student.id))}" data-status="present" aria-label="Присутствовал">${checkIcon}</button>
-                        <button class="mob-btn mob-absent${status === "absent" ? " active" : ""}" data-student="${escapeHtml(String(student.id))}" data-status="absent" aria-label="Отсутствовал">${crossIcon}</button>
-                    </div>
+            tableContainer.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Загрузка данных...
                 </div>
             `;
-        });
 
-        wrap.innerHTML = html;
+            try {
 
-        wrap.querySelectorAll(".mob-btn").forEach(btn => {
-            btn.addEventListener("click", () => {
+                await authReady;
 
-                const studentId = btn.dataset.student;
-                const tappedStatus = btn.dataset.status;
+                await loadGroupsAndRole();
 
-                const student = students.find(s => String(s.id) === studentId);
-                const studentName = student ? (student.name || "") : "";
+                populateGroupSelect();
 
-                toggleMobileStatus(studentId, studentName, dateString, mobileLesson, tappedStatus);
-            });
-        });
-    }
+                /* === ИЗМЕНЕНО: сначала группа, потом настройки группы === */
+                await loadSettings();
 
+                await loadStudents();
 
-    async function toggleMobileStatus(studentId, studentName, dateString, lessonNumber, tappedStatus) {
+                await loadAttendance();
 
-        const key = `${dateString}_${studentId}_${lessonNumber}`;
-        const existing = attendance[key];
+                render();
 
-        const newStatus = (existing && existing.status === tappedStatus)
-            ? null
-            : tappedStatus;
+            } catch (error) {
 
-        try {
+                console.error(error);
 
-            await writeAttendanceStatus(studentId, studentName, dateString, lessonNumber, newStatus);
-
-            if (newStatus === null) {
-                delete attendance[key];
-            }
-            else {
-                attendance[key] = {
-                    id: existing ? existing.id : "",
-                    documentId: existing ? existing.documentId : "",
-                    date: dateString,
-                    studentId: String(studentId),
-                    studentName: studentName,
-                    lesson: String(lessonNumber),
-                    status: newStatus,
-                    absentType: newStatus === "absent" ? "neuv" : "",
-                    reason: "",
-                    semester: existing ? existing.semester : "",
-                    attestation: existing ? existing.attestation : "",
-                    updatedAt: new Date().toISOString()
-                };
-            }
-
-            renderMobileStudentList();
-            renderTable();
-
-            showStatus(
-                newStatus === null
-                    ? "Отметка удалена"
-                    : (newStatus === "present" ? "Отмечено: присутствовал" : "Отмечено: отсутствовал")
-            );
-
-        }
-        catch (error) {
-            console.error("Ошибка сохранения отметки:", error);
-            showStatus("Не удалось сохранить отметку");
-        }
-    }
-
-
-    async function writeAttendanceStatus(studentId, studentName, dateString, lessonNumber, newStatus) {
-
-        const existingSnap = await getDocs(
-            query(
-                collection(db, "attendance"),
-                where("date", "==", dateString),
-                where("studentId", "==", String(studentId))
-            )
-        );
-
-        const lessonField = `lessons.${lessonNumber}`;
-
-        if (!existingSnap.empty) {
-
-            const docRef = doc(db, "attendance", existingSnap.docs[0].id);
-
-            if (newStatus === null) {
-                await updateDoc(docRef, {
-                    [lessonField]: deleteField(),
-                    updatedAt: new Date().toISOString()
-                });
-            }
-            else {
-                await updateDoc(docRef, {
-                    [lessonField]: {
-                        status: newStatus === "present" ? "присутствовал" : "отсутствовал",
-                        reason: "",
-                        absentType: newStatus === "absent" ? "neuv" : ""
-                    },
-                    updatedAt: new Date().toISOString()
-                });
-            }
-
-            return;
-        }
-
-        if (newStatus === null) return;
-
-        await addDoc(collection(db, "attendance"), {
-            date: dateString,
-            studentId: String(studentId),
-            studentName: studentName,
-            lessons: {
-                [lessonNumber]: {
-                    status: newStatus === "present" ? "присутствовал" : "отсутствовал",
-                    reason: "",
-                    absentType: newStatus === "absent" ? "neuv" : ""
-                }
-            },
-            updatedAt: new Date().toISOString()
-        });
-    }
-
-
-    window.toggleMobileMenu = function () {
-
-        document.getElementById("mobileSheet").classList.add("show");
-        document.getElementById("mobileSheetBackdrop").classList.add("show");
-    };
-
-
-    window.closeMobileMenu = function () {
-
-        document.getElementById("mobileSheet").classList.remove("show");
-        document.getElementById("mobileSheetBackdrop").classList.remove("show");
-    };
-
-
-    // =========================================
-    // SHOW RECORD
-    // =========================================
-
-    function showRecordInfo(event, cell) {
-
-        const key = cell.dataset.recordKey;
-        const record = attendance[key];
-
-        if (!record) {
-            hidePopup();
-            return;
-        }
-
-        const popup = document.getElementById("infoPopup");
-
-        const popupTitleEl = document.getElementById("popupTitle");
-        if (record.status === "absent") {
-            popupTitleEl.textContent = "Отсутствие";
-            popupTitleEl.style.color = "var(--red)";
-        }
-        else {
-            popupTitleEl.textContent = "Присутствие";
-            popupTitleEl.style.color = "var(--teal)";
-        }
-
-        document.getElementById("popupStudent").textContent =
-            "ФИО: " + record.studentName;
-
-        document.getElementById("popupDate").textContent =
-            "Дата: " + formatDateRu(record.date);
-
-        document.getElementById("popupLesson").textContent =
-            "Пара: " + record.lesson;
-
-        document.getElementById("popupReason").textContent =
-            record.reason ||
-            (record.status === "absent"
-                ? "Причина не указана"
-                : "Студент присутствовал");
-
-        popup.style.display = "block";
-
-        const rect = cell.getBoundingClientRect();
-
-        let left = rect.left;
-        let top = rect.bottom + 5;
-
-        if (left + 290 > window.innerWidth) left = window.innerWidth - 300;
-        if (top + 190 > window.innerHeight) top = rect.top - 195;
-        if (left < 5) left = 5;
-        if (top < 5) top = 5;
-
-        popup.style.left = left + "px";
-        popup.style.top = top + "px";
-
-        event.stopPropagation();
-    }
-
-
-    function hidePopup() {
-        document.getElementById("infoPopup").style.display = "none";
-    }
-
-
-    document.addEventListener("click", event => {
-
-        const popup = document.getElementById("infoPopup");
-
-        if (!popup.contains(event.target)) {
-            hidePopup();
-        }
-    });
-
-
-    // =========================================
-    // WEEK NAVIGATION
-    // =========================================
-
-    window.previousWeek = function () {
-        weekStart.setDate(weekStart.getDate() - 7);
-        updateWeekRange();
-        renderTable();
-        renderWeekList();
-        renderMobileAll();
-    };
-
-
-    window.nextWeek = function () {
-        weekStart.setDate(weekStart.getDate() + 7);
-        updateWeekRange();
-        renderTable();
-        renderWeekList();
-        renderMobileAll();
-    };
-
-
-    window.currentWeek = function () {
-        weekStart = getMonday(new Date());
-        updateWeekRange();
-        renderTable();
-        renderWeekList();
-        renderMobileAll();
-    };
-
-
-    window.toggleWeekList = function () {
-
-        const list = document.getElementById("weekList");
-
-        list.classList.toggle("show");
-
-        if (list.classList.contains("show")) {
-            renderWeekList();
-        }
-    };
-
-
-    function renderWeekList() {
-
-        const list = document.getElementById("weekList");
-
-        list.innerHTML = "";
-
-        const currentMonday = getMonday(new Date());
-
-        for (let i = -20; i <= 20; i++) {
-
-            const monday = new Date(currentMonday);
-            monday.setDate(monday.getDate() + i * 7);
-
-            const saturday = new Date(monday);
-            saturday.setDate(saturday.getDate() + 5);
-
-            const mondayText = formatDateRu(formatDate(monday));
-            const saturdayText = formatDateRu(formatDate(saturday));
-
-            const button = document.createElement("button");
-
-            button.className = "week-option";
-
-            if (formatDate(monday) === formatDate(weekStart)) {
-                button.classList.add("selected");
-            }
-
-            if (i === 0) button.classList.add("current-week");
-
-            button.textContent = i === 0
-                ? `Текущая неделя — ${mondayText} — ${saturdayText}`
-                : `${mondayText} — ${saturdayText}`;
-
-            button.addEventListener("click", () => selectWeek(monday));
-
-            list.appendChild(button);
-        }
-    }
-
-
-    function selectWeek(date) {
-
-        weekStart = getMonday(date);
-
-        updateWeekRange();
-        renderTable();
-        renderMobileAll();
-
-        document.getElementById("weekList").classList.remove("show");
-
-        renderWeekList();
-    }
-
-
-    // =========================================
-    // PRINT
-    // =========================================
-
-    function formatShortDate(date, withYear) {
-
-        const dd = String(date.getDate()).padStart(2, "0");
-        const mm = String(date.getMonth() + 1).padStart(2, "0");
-
-        if (!withYear) return `${dd}.${mm}`;
-
-        const yy = String(date.getFullYear()).slice(-2);
-        return `${dd}.${mm}.${yy}`;
-    }
-
-
-    // =========================================
-    // BUILD PRINT SHEET
-    // =========================================
-
-    function buildPrintSheet(scaleFactor) {
-
-        const sheet = document.getElementById("printSheet");
-        if (!sheet) return;
-
-        const group = getCurrentGroup();
-
-        const printGroupNameEl = document.getElementById("printGroupName");
-        if (printGroupNameEl) {
-            printGroupNameEl.textContent = group ? (group.name || group.id) : "—";
-        }
-
-        const curatorInputEl = document.getElementById("curatorPrintName");
-
-        const table = document.querySelector("#tableWrapper table");
-
-        if (!table || students.length === 0) {
-            sheet.innerHTML = "";
-            return;
-        }
-
-        const weekDates = getWeekDates();
-        const lessonCounts = weekDates.map((date, index) => getLessonCount(index));
-
-        const rows = Array.from(
-            table.querySelectorAll("tbody tr:not(.total-row)")
-        );
-
-        const s = scaleFactor || 1.0;
-
-        const baseRowHeight  = 7.5;
-        const baseHeadHeight = 7.0;
-        const baseSignHeight = 14;
-
-        const rowHeight  = baseRowHeight  * s;
-        const headHeight = baseHeadHeight * s;
-        const signHeight = baseSignHeight * s;
-
-        const fontBody  = (11  * s).toFixed(2);
-        const fontName  = (11  * s).toFixed(2);
-        const fontNum   = (12  * s).toFixed(2);
-        const fontSmall = (10  * s).toFixed(2);
-        const fontNote  = (9   * s).toFixed(2);
-        const fontHead  = (10  * s).toFixed(2);
-        const fontLineH = (14.5 * s).toFixed(2);
-
-        let cols =
-            '<col style="width:10.92mm">' +
-            '<col style="width:59.07mm">';
-
-        lessonCounts.forEach(count => {
-            if (count === 0) {
-                cols += '<col style="width:21mm">';
-            } else {
-                cols += "<col>".repeat(count);
-            }
-        });
-
-        cols +=
-            '<col style="width:10.65mm">' +
-            '<col style="width:6.83mm">' +
-            '<col style="width:10.04mm">' +
-            '<col style="width:24.02mm">';
-
-        let head1 = '<th rowspan="2"></th><th rowspan="2">Ф.И.О.</th>';
-        let head2 = "";
-
-        weekDates.forEach((date, index) => {
-            const count = lessonCounts[index];
-            head1 +=
-                `<th colspan="${Math.max(count, 1)}">` +
-                `${days[index]}<br>${formatShortDate(date, false)}</th>`;
-
-            if (count === 0) {
-                head2 += "<th>—</th>";
-            } else {
-                for (let lesson = 1; lesson <= count; lesson++) {
-                    head2 += `<th>${lesson}</th>`;
-                }
-            }
-        });
-
-        head1 +=
-            '<th class="sm">Всего</th>' +
-            "<th>Ув</th>" +
-            '<th class="sm">Неув</th>' +
-            "<th>Примечания</th>";
-
-        head2 += "<th></th><th></th><th></th><th></th>";
-
-        let body = "";
-
-        rows.forEach((row, rowIndex) => {
-
-            const nameElement = row.querySelector(".student-name");
-            const name = nameElement ? nameElement.textContent.trim() : "";
-
-            let cells = "";
-            row.querySelectorAll(".lesson-cell").forEach(cell => {
-                const mark = cell.classList.contains("absent") ? "Н" : "";
-                cells += `<td class="c-l">${mark}</td>`;
-            });
-
-            const readCell = selector => {
-                const cell = row.querySelector(selector);
-                return cell ? cell.textContent.trim() : "";
-            };
-
-            const noteCell = row.querySelector("td.report-note-col");
-            const note = (noteCell && !noteCell.classList.contains("empty-mark"))
-                ? noteCell.textContent.trim()
-                : "";
-
-            body +=
-                `<tr style="height:${rowHeight}mm">` +
-                `<td class="c-num" style="height:${rowHeight}mm">${rowIndex + 1}.</td>` +
-                `<td class="c-name">${escapeHtml(name)}</td>` +
-                cells +
-                `<td class="c-t">${escapeHtml(readCell("td.report-total"))}</td>` +
-                `<td class="c-t">${escapeHtml(readCell("td.report-uv"))}</td>` +
-                `<td class="c-t">${escapeHtml(readCell("td.report-neuv"))}</td>` +
-                `<td class="c-note">${escapeHtml(note)}</td>` +
-                `</tr>`;
-        });
-
-        const totalCols =
-            2 + lessonCounts.reduce((s, c) => s + Math.max(c, 1), 0) + 4;
-
-        const curatorName = (curatorInputEl && curatorInputEl.value.trim())
-            ? curatorInputEl.value.trim()
-            : "________________";
-
-        const signatureRow = `
-            <tr style="height:${signHeight}mm">
-                <td colspan="${totalCols}" class="c-signature">
-                    Классный руководитель&nbsp;&nbsp;&nbsp;&nbsp;______________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="pf-name">${escapeHtml(curatorName)}</span>
-                </td>
-            </tr>
-        `;
-
-        const oldStyle = document.getElementById("ptDynamicStyle");
-        if (oldStyle) oldStyle.remove();
-
-        sheet.innerHTML =
-            `<table class="pt">` +
-                `<colgroup>${cols}</colgroup>` +
-                `<thead>
-                    <tr style="height:${headHeight}mm">${head1}</tr>
-                    <tr style="height:${headHeight}mm">${head2}</tr>
-                </thead>` +
-                `<tbody>${body}${signatureRow}</tbody>` +
-            `</table>`;
-
-        const styleTag = document.createElement("style");
-        styleTag.id = "ptDynamicStyle";
-        styleTag.textContent = `
-            #printSheet table.pt { font-size: ${fontBody}pt; }
-            #printSheet table.pt thead th { font-size: ${fontHead}pt; }
-            #printSheet table.pt thead th.sm { font-size: ${fontSmall}pt; }
-            #printSheet table.pt td.c-num { font-size: ${fontNum}pt; }
-            #printSheet table.pt td.c-name { font-size: ${fontName}pt; line-height: ${fontLineH}pt; }
-            #printSheet table.pt td.c-l { font-size: ${fontSmall}pt; }
-            #printSheet table.pt td.c-t { font-size: ${fontSmall}pt; }
-            #printSheet table.pt td.c-note { font-size: ${fontNote}pt; }
-            #printSheet table.pt td.c-signature { font-size: ${fontBody}pt; }
-        `;
-        document.head.appendChild(styleTag);
-    }
-
-
-    // =========================================
-    // PRINT REPORT — РАСЧЁТ МАСШТАБА ЗАРАНЕЕ
-    // =========================================
-
-    function printReport() {
-
-        const dates = getWeekDates();
-
-        const rangeText =
-            `с ${formatShortDate(dates[0], true)}` +
-            ` - ${formatShortDate(dates[5], true)}гг`;
-
-        document.getElementById("printHeaderRange").textContent = rangeText;
-
-        // ============================================================
-        // Доступная высота таблицы (A4 landscape 210мм):
-        //   210 - 10 (верх) - 5 (низ) - 8 (заголовок) - 9 (запас) = 178мм
-        //
-        // Расход при scale=1.0:
-        //   - шапка таблицы (2 строки)  ≈ 14мм
-        //   - строка подписи            ≈ 14мм
-        //   - N строк студентов × 7.5мм
-        // ============================================================
-
-        const AVAILABLE_MM = 178;
-        const HEAD_MM  = 14;
-        const SIGN_MM  = 14;
-        const ROW_MM   = 7.5;
-
-        const studentCount = students.length;
-        const neededMm = HEAD_MM + SIGN_MM + studentCount * ROW_MM;
-
-        let scale = 1.0;
-
-        if (neededMm > AVAILABLE_MM) {
-            scale = AVAILABLE_MM / neededMm;
-        }
-
-        if (scale < 0.55) scale = 0.55;
-
-        console.log(
-            "🖨 Студентов:", studentCount,
-            "| нужно:", neededMm.toFixed(1), "мм",
-            "| доступно:", AVAILABLE_MM, "мм",
-            "| масштаб:", scale.toFixed(3)
-        );
-
-        buildPrintSheet(scale);
-
-        setTimeout(() => {
-            window.print();
-        }, 150);
-    }
-
-
-    window.printReport = printReport;
-
-
-    // =========================================
-    // MAIN MENU
-    // =========================================
-
-    window.goBack = async function () {
-
-        try {
-
-            const user = auth.currentUser;
-
-            if (!user) {
-                window.location.href = "login.html";
-                return;
-            }
-
-            const userDoc = await getDoc(doc(db, "users", user.uid));
-
-            if (userDoc.exists() && userDoc.data().role === "admin") {
-                window.location.href = "adminhome.html";
-                return;
-            }
-
-            window.location.href = "home.html";
-
-        }
-        catch (error) {
-
-            console.error("Ошибка определения роли:", error);
-            window.location.href = "home.html";
-        }
-    };
-
-
-    // =========================================
-    // ESCAPE HTML
-    // =========================================
-
-    function escapeHtml(text) {
-
-        const div = document.createElement("div");
-        div.textContent = String(text ?? "");
-        return div.innerHTML;
-    }
-
-
-    // =========================================
-    // STATUS
-    // =========================================
-
-    function showStatus(message) {
-
-        const status = document.getElementById("status");
-
-        status.textContent = message;
-        status.classList.add("show");
-
-        setTimeout(() => {
-            status.classList.remove("show");
-        }, 2500);
-    }
-
-
-    // =========================================
-    // START
-    // =========================================
-
-    async function start() {
-
-        try {
-
-            weekStart = getMonday(new Date());
-
-            const todayIndex = new Date().getDay();
-            mobileDayIndex = (todayIndex >= 1 && todayIndex <= 6) ? todayIndex - 1 : 0;
-
-            await loadUserAndGroups();
-
-            renderGroupSwitcher();
-
-            if (!currentGroupId) {
-
-                document.getElementById("tableWrapper").innerHTML = `
+                tableContainer.innerHTML = `
                     <div class="empty">
-                        Вам не назначена ни одна группа.
-                        <br><br>
-                        Обратитесь к администратору для назначения
-                        группы (куратор / староста).
+                        <div class="empty-icon">⚠️</div>
+                        <div class="empty-title">Ошибка загрузки</div>
+                        <div>Не удалось получить данные из Firebase.</div>
                     </div>
                 `;
 
-                const mobileList = document.getElementById("mobileStudentList");
-                if (mobileList) {
-                    mobileList.innerHTML = `
-                        <div class="empty">
-                            Вам не назначена ни одна группа.
-                        </div>
-                    `;
-                }
+                showToast("Ошибка подключения к Firebase", "error");
 
-                return;
-            }
-
-            await loadSettings();
-            await loadStudents();
-            await loadAttendance();
-
-            updateWeekRange();
-            renderTable();
-            renderWeekList();
-            renderMobileAll();
-
-            const today = formatDate(new Date());
-            const info = getAttestationInfo(today);
-
-            if (info) {
-                document.getElementById("semesterInfo").textContent =
-                    `${info.semester} семестр • Аттестация №${info.attestation}`;
-            }
-            else {
-                document.getElementById("semesterInfo").textContent =
-                    "Семестр / аттестация не определены";
-            }
-
-        }
-        catch (error) {
-
-            console.error("Ошибка запуска:", error);
-
-            document.getElementById("tableWrapper").innerHTML = `
-                <div class="empty">
-                    Ошибка загрузки данных.
-                    <br><br>
-                    Откройте консоль браузера (F12 → Console) для подробностей.
-                </div>
-            `;
-        }
-    }
-
-
-    // =========================================
-    // ATTESTATION
-    // =========================================
-
-    function getAttestationInfo(dateString) {
-
-        const date = new Date(dateString + "T00:00:00");
-
-        const periods = [
-            { semester: 1, attestation: 1, period: settings.semester1?.attestation1 },
-            { semester: 1, attestation: 2, period: settings.semester1?.attestation2 },
-            { semester: 2, attestation: 1, period: settings.semester2?.attestation1 },
-            { semester: 2, attestation: 2, period: settings.semester2?.attestation2 }
-        ];
-
-        for (const item of periods) {
-
-            if (!item.period?.start || !item.period?.end) continue;
-
-            const start = new Date(item.period.start + "T00:00:00");
-            const end = new Date(item.period.end + "T23:59:59");
-
-            if (date >= start && date <= end) {
-                return item;
+                throw error;
             }
         }
 
-        return null;
-    }
+        window.reloadData = reloadData;
 
 
-    // =========================================
-    // AUTH STATE
-    // =========================================
+        /* =====================================================
+           CLOCK
+        ===================================================== */
 
-    onAuthStateChanged(auth, user => {
+        function updateClock() {
 
-        if (!user) {
-            console.warn("Пользователь не авторизован. Перенаправление на login.html");
-            window.location.href = "login.html";
-            return;
+            const now = new Date();
+
+            document.getElementById("clock").textContent =
+                now.toLocaleTimeString("ru-RU");
+
+            const dateText = now.toLocaleDateString("ru-RU", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+            });
+
+            const formattedDate =
+                dateText.charAt(0).toUpperCase() + dateText.slice(1);
+
+            document.getElementById("clockDate").textContent = formattedDate;
         }
 
-        console.log("Авторизован:", user.uid);
 
-        document.body.classList.remove("auth-pending");
+        /* =====================================================
+           TOAST
+        ===================================================== */
 
-        const overlay = document.getElementById("authGuardOverlay");
-        if (overlay) overlay.remove();
+        let toastTimer;
+
+        function showToast(message, type = "") {
+
+            const toast = document.getElementById("toast");
+
+            toast.textContent = message;
+            toast.className = `toast show ${type}`;
+
+            clearTimeout(toastTimer);
+
+            toastTimer = setTimeout(() => {
+                toast.className = "toast";
+            }, 2500);
+        }
+
+
+        /* =====================================================
+           ESCAPE
+        ===================================================== */
+
+        function escapeHtml(value) {
+
+            return String(value ?? "")
+                .replaceAll("&", "&amp;")
+                .replaceAll("<", "&lt;")
+                .replaceAll(">", "&gt;")
+                .replaceAll('"', "&quot;")
+                .replaceAll("'", "&#039;");
+        }
+
+
+        function escapeJs(value) {
+
+            return String(value ?? "")
+                .replaceAll("\\", "\\\\")
+                .replaceAll("'", "\\'");
+        }
+
+
+        /* =====================================================
+           BACK
+        ===================================================== */
+
+        function goBack() {
+            window.location.replace(homePage);
+        }
+
+        window.goBack = goBack;
+
+
+        /* =====================================================
+           CLOSE MODALS OUTSIDE
+        ===================================================== */
+
+        document.getElementById("reasonOverlay").addEventListener("click", event => {
+            if (event.target.id === "reasonOverlay") closeReason();
+        });
+
+        document.getElementById("lessonInfoOverlay").addEventListener("click", event => {
+            if (event.target.id === "lessonInfoOverlay") closeLessonInfo();
+        });
+
+
+        /* =====================================================
+           START
+        ===================================================== */
+
+        async function start() {
+
+            const today = new Date();
+
+            selectedDate = formatDate(today);
+            datePicker.value = selectedDate;
+
+            updateClock();
+            setInterval(updateClock, 1000);
+
+            try {
+                await reloadData();
+            } catch (error) {
+                console.error("Ошибка запуска системы:", error);
+            }
+
+            setTimeout(() => {
+                const loader = document.getElementById("pageLoader");
+                if (loader) loader.classList.add("hidden");
+            }, 400);
+        }
 
         start();
-    });
 
-</script>
+    </script>
 
 </body>
 

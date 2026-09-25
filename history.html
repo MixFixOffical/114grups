@@ -5,691 +5,1062 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
-
-    <meta name="theme-color" content="#007AFF">
-
     <title>Посещаемость</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
 
-        *, *::before, *::after {
-            margin: 0; padding: 0;
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
+        * { box-sizing: border-box; }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            min-width: 1100px;
+            zoom: 90%;
         }
 
         :root {
+            --primary: #2454e8;
+            --primary-dark: #17348f;
+            --primary-light: #eef2ff;
+            --teal: #0d9488;
+            --teal-light: #ecfdf9;
+            --violet: #7c3aed;
+            --violet-light: #f4f0ff;
+            --amber: #d97706;
+            --amber-light: #fef8ec;
+            --red: #dc2626;
+            --red-light: #fef2f2;
+            --slate: #64748b;
+            --slate-light: #f1f5f9;
 
-            --blue: #007AFF;
-            --blue-hover: #0A84FF;
-            --blue-soft: rgba(0, 122, 255, 0.10);
-            --blue-ring: rgba(0, 122, 255, 0.28);
+            --text: #0f1729;
+            --text-secondary: #5b6478;
+            --text-light: #9aa3b5;
 
-            --green: #34C759;
-            --green-soft: rgba(52, 199, 89, 0.14);
-            --green-text: #1B7F3B;
+            --border: rgba(220, 226, 238, 0.9);
 
-            --red: #FF3B30;
-            --red-soft: rgba(255, 59, 48, 0.12);
-            --red-text: #C21C14;
+            --shadow-sm: 0 1px 2px rgba(15, 23, 42, .05), 0 1px 1px rgba(15, 23, 42, .03);
+            --shadow-md: 0 10px 24px -8px rgba(15, 23, 42, .10), 0 2px 6px rgba(15, 23, 42, .05);
+            --shadow-lg: 0 26px 50px -16px rgba(15, 23, 42, .18), 0 8px 18px -10px rgba(15, 23, 42, .09);
 
-            --orange-soft: rgba(255, 149, 0, 0.14);
-            --orange-text: #A85C00;
-
-            --purple: #AF52DE;
-            --purple-soft: rgba(175, 82, 222, 0.14);
-            --purple-text: #6E2F8E;
-
-            --text: #1C1C1E;
-            --text-2: #3A3A3C;
-            --text-3: #8E8E93;
-
-            --glass: rgba(255, 255, 255, 0.72);
-            --glass-border: rgba(255, 255, 255, 0.85);
-            --glass-divider: rgba(60, 60, 67, 0.10);
-
-            --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
-            --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.10), 0 2px 8px rgba(0, 0, 0, 0.05);
-            --shadow-blue: 0 6px 20px rgba(0, 122, 255, 0.30);
-
-            --r-sm: 8px;
-            --r-md: 12px;
-            --r-lg: 16px;
-            --r-xl: 20px;
-            --r-2xl: 24px;
-            --r-pill: 999px;
-
-            --blur: saturate(180%) blur(30px);
-        }
-
-        html, body {
-            min-height: 100%;
-            font-family: "Inter", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
-            font-size: 15px;
-            line-height: 1.5;
-            color: var(--text);
-            -webkit-font-smoothing: antialiased;
+            --ease: cubic-bezier(.22, 1, .36, 1);
         }
 
         body {
+            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background:
-                radial-gradient(circle at 15% 0%, rgba(0, 122, 255, 0.10), transparent 40%),
-                radial-gradient(circle at 85% 10%, rgba(88, 86, 214, 0.08), transparent 38%),
-                radial-gradient(circle at 50% 100%, rgba(52, 199, 89, 0.06), transparent 45%),
-                linear-gradient(180deg, #F5F8FF 0%, #EAF1FF 100%);
+                radial-gradient(circle at 6% 0%, rgba(36, 84, 232, .06), transparent 40%),
+                radial-gradient(circle at 96% 10%, rgba(124, 58, 237, .04), transparent 38%),
+                linear-gradient(160deg, #f9fafc 0%, #f4f6fb 45%, #eef1f9 100%);
             background-attachment: fixed;
-            overflow-x: hidden;
-        }
-
-        button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
-        button { cursor: pointer; border: none; background: none; }
-        input, select, textarea { -webkit-appearance: none; appearance: none; }
-
-
-        /* LOADER */
-
-        .loader {
-            position: fixed; inset: 0; z-index: 9999;
-            display: flex; align-items: center; justify-content: center;
-            background: linear-gradient(180deg, #F5F8FF, #EAF1FF);
-            transition: opacity .35s ease, visibility .35s ease;
-        }
-        .loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-        .loader-inner { text-align: center; }
-        .loader-logo {
-            width: 64px; height: 64px; margin: 0 auto 16px;
-            border-radius: 18px;
-            background: linear-gradient(135deg, var(--blue), #5856D6);
-            box-shadow: 0 12px 32px rgba(0, 122, 255, 0.35);
-            display: flex; align-items: center; justify-content: center;
-            color: #fff; font-size: 26px; font-weight: 700;
-            animation: floaty 1.8s ease-in-out infinite;
-        }
-        @keyframes floaty { 0%,100% { transform: translateY(0);} 50% { transform: translateY(-6px);} }
-        .loader-text { font-size: 14px; font-weight: 500; color: var(--text-3); }
-        .loader-bar {
-            width: 160px; height: 3px; margin: 16px auto 0;
-            border-radius: var(--r-pill); background: rgba(0, 122, 255, 0.12);
-            overflow: hidden;
-        }
-        .loader-bar::after {
-            content: ""; display: block; width: 40%; height: 100%;
-            background: var(--blue); border-radius: inherit;
-            animation: slide 1.2s ease-in-out infinite;
-        }
-        @keyframes slide { 0% { transform: translateX(-120%);} 100% { transform: translateX(400%);} }
-
-
-        /* HEADER */
-
-        header {
-            position: sticky; top: 0; z-index: 100;
-            height: 60px;
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 20px;
-            background: rgba(255, 255, 255, 0.65);
-            -webkit-backdrop-filter: var(--blur);
-            backdrop-filter: var(--blur);
-            border-bottom: 1px solid var(--glass-divider);
-        }
-
-        .header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-
-        .back-btn {
-            width: 36px; height: 36px; border-radius: var(--r-md);
-            display: inline-flex; align-items: center; justify-content: center;
-            color: var(--blue); transition: background .15s ease, transform .1s ease;
-        }
-        .back-btn:hover { background: var(--blue-soft); }
-        .back-btn:active { transform: scale(0.94); }
-        .back-btn svg { width: 20px; height: 20px; }
-
-        .header-title {
-            font-size: 17px; font-weight: 700; letter-spacing: -0.2px;
-            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-        }
-
-        .live-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            height: 28px; padding: 0 10px;
-            border-radius: var(--r-pill);
-            background: var(--green-soft);
-            font-size: 12px; font-weight: 600; color: var(--green-text);
-        }
-        .live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); position: relative; }
-        .live-dot::after {
-            content: ""; position: absolute; inset: -3px;
-            border-radius: 50%; background: var(--green); opacity: 0.4;
-            animation: pulseDot 2s infinite;
-        }
-        @keyframes pulseDot { 0%,100% { transform: scale(1); opacity: 0.4;} 50% { transform: scale(1.6); opacity: 0;} }
-
-
-        /* LAYOUT */
-
-        .page { max-width: 1200px; margin: 0 auto; padding: 20px 20px 140px; }
-
-        .glass {
-            background: var(--glass);
-            -webkit-backdrop-filter: var(--blur);
-            backdrop-filter: var(--blur);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--r-2xl);
-            box-shadow: var(--shadow-md);
-        }
-
-
-        /* HERO */
-
-        .hero {
-            display: flex; align-items: flex-end; justify-content: space-between;
-            gap: 20px; margin-bottom: 20px; padding: 4px 4px 0;
-        }
-        .hero-title { font-size: 28px; font-weight: 800; letter-spacing: -0.6px; line-height: 1.15; }
-        .hero-subtitle { margin-top: 4px; font-size: 14px; color: var(--text-3); font-weight: 500; }
-        .hero-clock { text-align: right; flex-shrink: 0; }
-        .clock-time {
-            font-size: 22px; font-weight: 700;
-            font-variant-numeric: tabular-nums; letter-spacing: -0.3px;
-        }
-        .clock-date { font-size: 12.5px; font-weight: 500; color: var(--text-3); margin-top: 2px; }
-
-
-        /* FILTERS */
-
-        .filters {
-            padding: 16px; margin-bottom: 16px;
-            display: grid;
-            grid-template-columns: minmax(0, 1.2fr) 200px 160px 200px;
-            gap: 12px; align-items: end;
-        }
-        .field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-        .field-label { font-size: 12px; font-weight: 600; color: var(--text-3); padding-left: 2px; }
-
-        .input, .select {
-            height: 46px; width: 100%; padding: 0 14px;
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(60, 60, 67, 0.10);
-            border-radius: var(--r-md);
-            font-size: 15px; font-weight: 500; color: var(--text);
-            outline: none;
-            transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
-        }
-        .input:hover, .select:hover { background: #fff; }
-        .input:focus, .select:focus { border-color: var(--blue); box-shadow: 0 0 0 4px var(--blue-ring); background: #fff; }
-        .input:disabled, .select:disabled { background: rgba(120, 120, 128, 0.08); color: var(--text-3); cursor: not-allowed; }
-
-        .input-static {
-            height: 46px; display: flex; align-items: center; padding: 0 14px;
-            border-radius: var(--r-md);
-            background: rgba(120, 120, 128, 0.08);
-            border: 1px solid rgba(60, 60, 67, 0.06);
-            font-size: 15px; font-weight: 500; color: var(--text-2);
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-        .field-hint { font-size: 11.5px; color: var(--text-3); padding-left: 2px; margin-top: 2px; }
-
-
-        /* TABLE CARD */
-
-        .table-card { overflow: hidden; }
-        .table-header {
-            display: flex; align-items: center; justify-content: space-between;
-            gap: 12px; padding: 14px 18px;
-            border-bottom: 1px solid var(--glass-divider);
-        }
-        .table-header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
-        .table-title { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
-        .chip {
-            display: inline-flex; align-items: center; gap: 6px;
-            height: 26px; padding: 0 10px;
-            border-radius: var(--r-pill);
-            background: var(--blue-soft); color: var(--blue);
-            font-size: 12px; font-weight: 600; white-space: nowrap;
-        }
-        .quick-actions { display: flex; gap: 8px; flex-shrink: 0; }
-
-
-        /* BUTTONS */
-
-        .btn {
-            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-            height: 38px; padding: 0 14px;
-            border-radius: var(--r-md);
-            font-size: 14px; font-weight: 600; letter-spacing: -0.1px;
-            white-space: nowrap;
-            transition: transform .1s ease, background .15s ease, box-shadow .15s ease;
-        }
-        .btn svg { width: 16px; height: 16px; }
-        .btn:active { transform: scale(0.96); }
-        .btn-primary { background: var(--blue); color: #fff; box-shadow: var(--shadow-blue); }
-        .btn-primary:hover { background: var(--blue-hover); }
-        .btn-success { background: var(--green-soft); color: var(--green-text); }
-        .btn-success:hover { background: rgba(52, 199, 89, 0.22); }
-        .btn-danger { background: var(--red-soft); color: var(--red-text); }
-        .btn-danger:hover { background: rgba(255, 59, 48, 0.18); }
-        .btn-ghost { background: rgba(120, 120, 128, 0.10); color: var(--text-2); }
-        .btn-ghost:hover { background: rgba(120, 120, 128, 0.16); }
-
-
-        /* DESKTOP TABLE — БЕЗ sticky, чтобы не перекрывать первую строку */
-
-        .table-scroll {
+            color: var(--text);
             overflow-x: auto;
-            overflow-y: visible;
         }
 
-        table {
-            width: 100%; border-collapse: separate; border-spacing: 0;
-            min-width: 780px;
+        h1, h2, .title, .week-title, .student-name, .popup-title {
+            font-family: "Plus Jakarta Sans", "Inter", sans-serif;
         }
 
-        thead th {
-            padding: 12px 14px;
-            background: rgba(250, 250, 252, 0.95);
-            border-bottom: 1px solid var(--glass-divider);
-            font-size: 12px; font-weight: 700;
-            color: var(--text-3);
-            text-transform: uppercase; letter-spacing: 0.4px;
-            text-align: center; white-space: nowrap;
+        button {
+            font-family: inherit;
         }
 
-        thead th.col-student {
-            text-align: left; padding-left: 20px;
-            width: 280px; min-width: 280px;
-        }
-
-        thead th.col-lesson { cursor: pointer; transition: background .15s ease, color .15s ease; }
-        thead th.col-lesson:hover { background: var(--blue-soft); color: var(--blue); }
-
-        .lesson-num {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 24px; height: 24px; padding: 0 7px;
-            border-radius: var(--r-sm);
-            background: var(--blue-soft); color: var(--blue);
-            font-size: 12px; font-weight: 700; margin-right: 6px;
-        }
-        .lesson-name {
-            display: block; margin-top: 6px;
-            font-size: 10.5px; font-weight: 500; color: var(--text-3);
-            text-transform: none; letter-spacing: 0;
-            max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-            margin-left: auto; margin-right: auto;
-        }
-
-        tbody td {
-            padding: 0;
-            border-bottom: 1px solid var(--glass-divider);
-            background: rgba(255, 255, 255, 0.55);
-            text-align: center; height: 60px;
-        }
-        tbody tr:last-child td { border-bottom: none; }
-
-        tbody td.col-student {
-            text-align: left; padding: 0 20px;
-            background: rgba(255, 255, 255, 0.72);
-        }
-
-        tbody tr:hover td { background: rgba(0, 122, 255, 0.05); }
-        tbody tr:hover td.col-student { background: rgba(0, 122, 255, 0.06); }
-
-        .student-cell { display: flex; align-items: center; gap: 12px; min-height: 60px; }
-        .student-index {
-            width: 28px; height: 28px; border-radius: 50%;
-            background: rgba(120, 120, 128, 0.10);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 12.5px; font-weight: 700; color: var(--text-2);
-            flex-shrink: 0; font-variant-numeric: tabular-nums;
-        }
-        .student-name {
-            font-size: 15px; font-weight: 600;
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-        }
-
-
-        /* MARK */
-
-        .att-cell {
-            width: 66px; height: 60px;
-            cursor: pointer; user-select: none;
-            transition: background .12s ease;
-        }
-        .att-cell:hover { background: var(--blue-soft) !important; }
-        .att-cell:active { background: rgba(0, 122, 255, 0.16) !important; }
-
-        .mark {
-            display: inline-flex; align-items: center; justify-content: center;
-            min-width: 34px; height: 34px; padding: 0 8px;
-            border-radius: 12px;
-            font-size: 13px; font-weight: 700; letter-spacing: -0.2px;
-            transition: transform .12s ease;
-        }
-        .mark.empty { background: rgba(120, 120, 128, 0.10); color: var(--text-3); font-weight: 500; }
-        .mark.present { background: var(--green-soft); color: var(--green-text); }
-        .mark.absent { background: var(--red-soft); color: var(--red-text); }
-        .att-cell:hover .mark { transform: scale(1.06); }
-
-
-        /* STATE */
-
-        .state { padding: 60px 20px; text-align: center; color: var(--text-3); }
-        .state-icon {
-            width: 56px; height: 56px; margin: 0 auto 14px;
-            border-radius: 18px; background: rgba(120, 120, 128, 0.10);
-            display: flex; align-items: center; justify-content: center;
-        }
-        .state-icon svg { width: 26px; height: 26px; }
-        .state-title { font-size: 16px; font-weight: 700; margin-bottom: 4px; }
-        .state-text { font-size: 14px; max-width: 340px; margin: 0 auto; }
-        .spinner {
-            width: 32px; height: 32px; margin: 0 auto 16px;
-            border-radius: 50%; border: 3px solid rgba(0, 122, 255, 0.15);
-            border-top-color: var(--blue); animation: spin .7s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-
-
-        /* MODALS */
-
-        .overlay {
-            position: fixed; inset: 0; z-index: 500;
-            display: none; align-items: center; justify-content: center;
-            padding: 20px;
-            background: rgba(0, 0, 0, 0.35);
-            -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
-        }
-        .overlay.active { display: flex; animation: fadeIn .2s ease; }
-        @keyframes fadeIn { from { opacity: 0;} to { opacity: 1;} }
-
-        .modal {
-            width: 100%; max-width: 440px;
-            background: rgba(255, 255, 255, 0.94);
-            -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
-            border: 1px solid var(--glass-border);
-            border-radius: var(--r-2xl);
-            box-shadow: var(--shadow-lg); overflow: hidden;
-            animation: modalIn .25s cubic-bezier(.2, 1, .4, 1);
-        }
-        @keyframes modalIn {
-            from { opacity: 0; transform: translateY(12px) scale(0.97);}
-            to { opacity: 1; transform: translateY(0) scale(1);}
-        }
-
-        .modal-header { padding: 20px 22px 8px; }
-        .modal-title { font-size: 18px; font-weight: 700; letter-spacing: -0.3px; }
-        .modal-subtitle { font-size: 13.5px; color: var(--text-3); margin-top: 4px; font-weight: 500; }
-        .modal-body { padding: 14px 14px 8px; }
-        .modal-footer { padding: 12px 20px 20px; }
-        .modal-footer .btn { width: 100%; height: 48px; font-size: 16px; }
-
-        .menu-item {
-            display: flex; align-items: center; gap: 14px;
-            width: 100%; padding: 12px 14px;
-            border-radius: var(--r-md); text-align: left;
-            transition: background .12s ease, transform .1s ease;
-        }
-        .menu-item:hover { background: rgba(120, 120, 128, 0.10); }
-        .menu-item:active { transform: scale(0.99); background: rgba(120, 120, 128, 0.16); }
-
-        .menu-item-icon {
-            width: 40px; height: 40px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
-        .menu-item-icon svg { width: 18px; height: 18px; }
-
-        .icon-present { background: var(--green-soft); color: var(--green-text); }
-        .icon-absent { background: var(--red-soft); color: var(--red-text); }
-        .icon-day { background: var(--orange-soft); color: var(--orange-text); }
-        .icon-delete { background: rgba(120, 120, 128, 0.12); color: var(--text-2); }
-
-        .menu-item-text strong { display: block; font-size: 15px; font-weight: 600; }
-        .menu-item-text span { display: block; font-size: 12.5px; color: var(--text-3); margin-top: 1px; }
-
-
-        /* FORM */
-
-        .form-info {
-            padding: 14px 16px;
-            background: rgba(120, 120, 128, 0.08);
-            border-radius: var(--r-md); margin-bottom: 16px;
-        }
-        .form-info-row {
-            display: flex; justify-content: space-between; gap: 12px;
-            padding: 5px 0; font-size: 13.5px;
-        }
-        .form-info-row span:first-child { color: var(--text-3); font-weight: 500; }
-        .form-info-row span:last-child { font-weight: 600; text-align: right; }
-
-        .form-label {
-            display: block; font-size: 13px; font-weight: 600;
-            color: var(--text-2); margin-bottom: 8px; padding-left: 2px;
-        }
-
-        .status-options {
-            display: grid; grid-template-columns: repeat(3, 1fr);
-            gap: 8px; margin-bottom: 16px;
-        }
-        .status-option {
-            display: flex; flex-direction: column; align-items: center; gap: 4px;
-            padding: 12px 6px;
-            border: 2px solid rgba(60, 60, 67, 0.12);
-            border-radius: var(--r-md);
-            background: rgba(255, 255, 255, 0.7);
-            transition: all .15s ease;
-        }
-        .status-option:active { transform: scale(0.97); }
-        .status-option strong { font-size: 15px; font-weight: 800; }
-        .status-option span { font-size: 11px; color: var(--text-3); font-weight: 500; }
-        .status-option[data-type="neuv"].active { border-color: var(--red); background: var(--red-soft); }
-        .status-option[data-type="neuv"].active strong { color: var(--red-text); }
-        .status-option[data-type="uv"].active { border-color: var(--green); background: var(--green-soft); }
-        .status-option[data-type="uv"].active strong { color: var(--green-text); }
-        .status-option[data-type="bolezn"].active { border-color: var(--purple); background: var(--purple-soft); }
-        .status-option[data-type="bolezn"].active strong { color: var(--purple-text); }
-
-        .textarea {
-            width: 100%; min-height: 92px; padding: 12px 14px;
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(60, 60, 67, 0.10);
-            border-radius: var(--r-md);
-            font-size: 15px; line-height: 1.5;
-            resize: vertical; outline: none;
-            transition: border-color .15s ease, box-shadow .15s ease;
-        }
-        .textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 4px var(--blue-ring); background: #fff; }
-
-        .lesson-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .lesson-item { background: rgba(120, 120, 128, 0.08); border-radius: var(--r-md); padding: 12px 14px; }
-        .lesson-item-label {
-            font-size: 11px; font-weight: 600; color: var(--text-3);
-            text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px;
-        }
-        .lesson-item-value { font-size: 14.5px; font-weight: 700; }
-
-
-        /* MOBILE BAR (hidden by default) */
-        .mobile-bar { display: none; }
-
-
-        /* TOAST */
-
-        .toast {
-            position: fixed; left: 50%; bottom: 32px; z-index: 1000;
-            transform: translate(-50%, 100px);
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 12px 18px;
-            background: rgba(28, 28, 30, 0.94);
-            color: #fff; border-radius: var(--r-pill);
-            box-shadow: var(--shadow-lg);
-            font-size: 14px; font-weight: 600;
-            opacity: 0; pointer-events: none;
-            transition: opacity .25s ease, transform .25s ease;
-        }
-        .toast.show { opacity: 1; transform: translate(-50%, 0); }
-        .toast.success { background: rgba(27, 127, 59, 0.95); }
-        .toast.error   { background: rgba(194, 28, 20, 0.95); }
-        .toast.warning { background: rgba(168, 92, 0, 0.95); }
-
-
-        /* MOBILE */
-
-        @media (max-width: 768px) {
-
-            html, body { font-size: 16px; }
-
-            header { height: 56px; padding: 0 12px; }
-            .header-title { font-size: 16px; }
-            .live-badge span { display: none; }
-            .live-badge { padding: 0 8px; }
-
-            .page { padding: 16px 12px 140px; }
-
-            .hero { flex-direction: column; align-items: flex-start; gap: 6px; margin-bottom: 16px; }
-            .hero-title { font-size: 22px; letter-spacing: -0.4px; }
-            .hero-subtitle { font-size: 13px; }
-            .hero-clock { text-align: left; display: flex; gap: 8px; align-items: baseline; }
-            .clock-time { font-size: 17px; }
-            .clock-date { font-size: 12px; margin-top: 0; }
-
-            .filters { grid-template-columns: 1fr; gap: 10px; padding: 14px; border-radius: var(--r-xl); }
-            .input, .select, .input-static { height: 48px; font-size: 16px; }
-            .field-hint { font-size: 12px; }
-
-            .table-header { padding: 14px; flex-wrap: wrap; gap: 10px; }
-            .table-title { font-size: 15px; }
-            .quick-actions { display: none; }
-
-            /* Скрываем десктопную таблицу на мобильном */
-            .table-scroll { overflow: visible; }
-            .table-scroll > table { display: none; }
-
-            .mobile-lesson-tabs {
-                display: flex; gap: 8px; overflow-x: auto;
-                padding: 12px 14px;
-                border-bottom: 1px solid var(--glass-divider);
-                scrollbar-width: none;
-            }
-            .mobile-lesson-tabs::-webkit-scrollbar { display: none; }
-
-            .lesson-tab {
-                flex-shrink: 0; min-width: 52px; height: 40px; padding: 0 14px;
-                border-radius: var(--r-md);
-                background: rgba(120, 120, 128, 0.10);
-                color: var(--text-2);
-                font-size: 14px; font-weight: 700;
-                display: inline-flex; align-items: center; justify-content: center;
-                transition: background .15s ease, color .15s ease, transform .1s ease;
-            }
-            .lesson-tab:active { transform: scale(0.95); }
-            .lesson-tab.active { background: var(--blue); color: #fff; box-shadow: var(--shadow-blue); }
-
-            .mobile-list { display: block; padding: 8px 12px 16px; }
-
-            .student-row {
-                display: flex; align-items: center; gap: 10px;
-                padding: 10px 12px;
-                background: rgba(255, 255, 255, 0.72);
-                border-radius: var(--r-lg);
-                margin-bottom: 8px;
-                transition: background .15s ease, transform .1s ease;
-            }
-            .student-row.present { background: var(--green-soft); }
-            .student-row.absent { background: var(--red-soft); }
-
-            .student-row-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-            .student-row-name {
-                font-size: 15px; font-weight: 600;
-                overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-            }
-
-            .student-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
-
-            .row-btn {
-                width: 42px; height: 44px;
-                border-radius: 12px;
-                display: inline-flex; align-items: center; justify-content: center;
-                background: rgba(120, 120, 128, 0.10);
-                color: var(--text-2);
-                transition: background .15s ease, transform .1s ease;
-            }
-            .row-btn svg { width: 20px; height: 20px; }
-            .row-btn:active { transform: scale(0.9); }
-            .row-btn.present { background: var(--green-soft); color: var(--green-text); }
-            .row-btn.absent { background: var(--red-soft); color: var(--red-text); }
-            .row-btn.active { box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.06), 0 0 0 4px rgba(0, 122, 255, 0.25); }
-            .row-btn-more { width: 34px; background: rgba(120, 120, 128, 0.08); color: var(--text-3); }
-
-            .mobile-bar {
-                display: flex;
-                position: fixed; left: 12px; right: 12px;
-                bottom: max(12px, env(safe-area-inset-bottom));
-                z-index: 90; gap: 8px; padding: 8px;
-                background: rgba(255, 255, 255, 0.80);
-                -webkit-backdrop-filter: var(--blur); backdrop-filter: var(--blur);
-                border: 1px solid var(--glass-border);
-                border-radius: var(--r-2xl);
-                box-shadow: var(--shadow-lg);
-            }
-            .mobile-bar .mb-btn {
-                flex: 1; height: 56px; border-radius: var(--r-lg);
-                display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-                font-size: 15px; font-weight: 700; letter-spacing: -0.2px;
-                transition: transform .1s ease, background .15s ease;
-            }
-            .mobile-bar .mb-btn svg { width: 20px; height: 20px; }
-            .mobile-bar .mb-btn:active { transform: scale(0.96); }
-            .mb-present { background: var(--green-soft); color: var(--green-text); }
-            .mb-present.active { background: var(--green); color: #fff; box-shadow: 0 6px 20px rgba(52, 199, 89, 0.35); }
-            .mb-absent { background: var(--red-soft); color: var(--red-text); }
-            .mb-absent.active { background: var(--red); color: #fff; box-shadow: 0 6px 20px rgba(255, 59, 48, 0.35); }
-            .mb-refresh { flex: 0 0 56px; background: rgba(120, 120, 128, 0.10); color: var(--text-2); }
-
-            .overlay { align-items: flex-end; padding: 0; }
-            .modal {
-                max-width: 100%; width: 100%;
-                border-radius: var(--r-2xl) var(--r-2xl) 0 0;
-                animation: sheetIn .3s cubic-bezier(.2, 1, .4, 1);
-                padding-bottom: env(safe-area-inset-bottom);
-            }
-            @keyframes sheetIn { from { transform: translateY(100%);} to { transform: translateY(0);} }
-
-            .modal-header { padding: 20px 20px 8px; }
-            .modal-header::before {
-                content: ""; display: block;
-                width: 40px; height: 4px; margin: 0 auto 12px;
-                border-radius: 999px;
-                background: rgba(60, 60, 67, 0.20);
-            }
-            .modal-title { font-size: 19px; text-align: center; }
-            .modal-subtitle { text-align: center; }
-            .menu-item { padding: 14px; border-radius: var(--r-lg); }
-            .menu-item-icon { width: 44px; height: 44px; }
-            .status-option { padding: 14px 8px; }
-            .status-option strong { font-size: 17px; }
-            .status-option span { font-size: 12px; }
-            .toast { bottom: 88px; font-size: 14.5px; }
-        }
-
-        @media (max-width: 400px) {
-            .hero-title { font-size: 20px; }
-            .student-row-name { font-size: 14.5px; }
-            .row-btn { width: 40px; height: 42px; }
-            .row-btn-more { width: 32px; }
-            .mobile-bar .mb-btn { height: 52px; font-size: 14px; }
-            .mobile-bar .mb-btn span { display: none; }
+        :focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
+            border-radius: 6px;
         }
 
         @media (prefers-reduced-motion: reduce) {
             *, *::before, *::after {
-                animation-duration: 0.001ms !important;
-                transition-duration: 0.001ms !important;
+                animation-duration: .001ms !important;
+                transition-duration: .001ms !important;
+            }
+        }
+
+        svg.icon-inline {
+            width: 1em;
+            height: 1em;
+            vertical-align: -0.14em;
+            margin-right: 2px;
+        }
+
+        /* =====================================
+           AUTH GUARD OVERLAY
+        ===================================== */
+
+        #authGuardOverlay {
+            position: fixed;
+            inset: 0;
+            z-index: 99999;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+
+            background: linear-gradient(160deg, #f9fafc 0%, #f4f6fb 45%, #eef1f9 100%);
+        }
+
+        #authGuardOverlay .auth-spinner {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 4px solid var(--primary-light);
+            border-top-color: var(--primary);
+            animation: authSpin .8s linear infinite;
+        }
+
+        #authGuardOverlay .auth-guard-text {
+            font-family: "Inter", sans-serif;
+            font-size: 14.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        @keyframes authSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        body.auth-pending > header,
+        body.auth-pending > .container {
+            display: none !important;
+        }
+
+        /* =====================================
+           HEADER
+        ===================================== */
+
+        header {
+            background: linear-gradient(120deg, #17348f 0%, #2454e8 60%, #3b5fea 100%);
+            color: white;
+            padding: 18px 28px;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            width: 100%;
+            min-width: 1100px;
+
+            position: sticky;
+            top: 0;
+            z-index: 50;
+
+            box-shadow: 0 12px 30px -12px rgba(36, 84, 232, .38);
+        }
+
+        .header-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .header-logo {
+            width: 42px;
+            height: 42px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 13px;
+            background: rgba(255, 255, 255, .14);
+            border: 1px solid rgba(255, 255, 255, .2);
+        }
+
+        .header-logo svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .title {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -.3px;
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .subtitle {
+            margin-top: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, .78);
+        }
+
+        .clock {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+        .time {
+            font-size: 21px;
+            font-weight: 700;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .date {
+            font-size: 13px;
+            margin-top: 3px;
+            color: rgba(255, 255, 255, .78);
+        }
+
+        /* =====================================
+           CONTAINER
+        ===================================== */
+
+        .container {
+            width: 1500px;
+            min-width: 1500px;
+
+            margin: 24px auto 40px;
+            padding: 0 20px;
+        }
+
+        /* =====================================
+           WEEK PANEL
+        ===================================== */
+
+        .week-panel {
+            background: rgba(255, 255, 255, .92);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+
+            padding: 20px 22px;
+
+            box-shadow: var(--shadow-sm);
+
+            margin-bottom: 20px;
+
+            min-width: 1100px;
+        }
+
+        .week-title {
+            font-size: 19px;
+            font-weight: 700;
+            letter-spacing: -.3px;
+
+            margin-bottom: 16px;
+
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .week-title svg {
+            width: 20px;
+            height: 20px;
+            color: var(--primary);
+        }
+
+        .week-controls {
+            display: flex;
+            align-items: center;
+
+            gap: 10px;
+
+            flex-wrap: nowrap;
+
+            min-width: 1100px;
+        }
+
+        .week-controls button {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+
+            border: 1px solid transparent;
+
+            padding: 11px 18px;
+
+            border-radius: 12px;
+
+            cursor: pointer;
+
+            font-size: 14.5px;
+            font-weight: 600;
+
+            transition:
+                transform .2s var(--ease),
+                background .2s ease,
+                box-shadow .2s ease;
+
+            white-space: nowrap;
+
+            flex-shrink: 0;
+        }
+
+        .week-controls button svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .week-controls button:hover {
+            transform: translateY(-1px);
+        }
+
+        .week-controls button:active {
+            transform: translateY(0) scale(.97);
+        }
+
+        .previous,
+        .next {
+            background: var(--slate-light);
+            color: var(--text);
+            border-color: var(--border);
+        }
+
+        .previous:hover,
+        .next:hover {
+            background: #e6eaf2;
+        }
+
+        .current {
+            background: var(--primary);
+            color: white;
+            box-shadow: 0 8px 18px -6px rgba(36, 84, 232, .45);
+        }
+
+        .current:hover {
+            background: var(--primary-dark);
+        }
+
+        .list-button {
+            background: var(--violet-light);
+            color: var(--violet);
+        }
+
+        .list-button:hover {
+            background: #e9e0ff;
+        }
+
+        .print-button {
+            background: var(--teal-light);
+            color: var(--teal);
+        }
+
+        .print-button:hover {
+            background: #d9f5ef;
+        }
+
+        .back {
+            margin-left: auto;
+            background: var(--slate-light);
+            color: var(--text-secondary);
+        }
+
+        .back:hover {
+            background: #e6eaf2;
+            color: var(--text);
+        }
+
+        /* =====================================
+           WEEK LIST
+        ===================================== */
+
+        .week-list {
+            display: none;
+
+            margin-top: 15px;
+
+            background: #f7f8fc;
+
+            border: 1px solid var(--border);
+
+            border-radius: 16px;
+
+            padding: 8px;
+
+            max-height: 320px;
+
+            overflow-y: auto;
+        }
+
+        .week-list.show {
+            display: block;
+            animation: rise .25s var(--ease) both;
+        }
+
+        .week-option {
+            width: 100%;
+
+            border: none;
+
+            background: white;
+
+            padding: 12px 15px;
+
+            margin-bottom: 5px;
+
+            border-radius: 11px;
+
+            cursor: pointer;
+
+            text-align: left;
+
+            font-size: 14.5px;
+            font-weight: 500;
+
+            transition:
+                background .15s ease,
+                transform .15s ease;
+        }
+
+        .week-option:hover {
+            background: var(--primary-light);
+        }
+
+        .week-option.selected {
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .week-option.current-week {
+            border-left: 4px solid var(--teal);
+        }
+
+        .week-range {
+            margin-top: 14px;
+
+            color: var(--text-secondary);
+
+            font-size: 14.5px;
+            font-weight: 500;
+        }
+
+        /* =====================================
+           GROUP SWITCHER / CURATOR SIGNATURE
+        ===================================== */
+
+        .group-panel {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+
+            border-bottom: 1px solid var(--border);
+        }
+
+        .group-field {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .group-field-label {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .group-select {
+            height: 40px;
+            padding: 0 12px;
+            border-radius: 11px;
+            border: 1px solid var(--border);
+            background: var(--slate-light);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .group-select:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 1px;
+        }
+
+        .group-static {
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 14px;
+            border-radius: 11px;
+            background: var(--primary-light);
+            color: var(--primary-dark);
+            font-size: 14px;
+            font-weight: 700;
+        }
+
+        .curator-name-input {
+            height: 40px;
+            width: 230px;
+            padding: 0 12px;
+            border-radius: 11px;
+            border: 1px solid var(--border);
+            background: white;
+            color: var(--text);
+            font-size: 13.5px;
+            font-weight: 600;
+        }
+
+        .curator-name-input:disabled {
+            background: var(--slate-light);
+            color: var(--text-secondary);
+            cursor: not-allowed;
+        }
+
+        .curator-name-input:focus {
+            outline: 2px solid var(--primary);
+            outline-offset: 1px;
+        }
+
+        .group-panel .empty-groups {
+            color: var(--red);
+            font-size: 13.5px;
+            font-weight: 600;
+        }
+
+        /* =====================================
+           TABLE
+        ===================================== */
+
+        .table-container {
+            background: white;
+
+            border: 1px solid var(--border);
+            border-radius: 22px;
+
+            box-shadow: var(--shadow-sm);
+
+            overflow-x: auto;
+            overflow-y: visible;
+
+            width: 100%;
+        }
+
+        table {
+            border-collapse: collapse;
+
+            width: 100%;
+
+            min-width: 1000px;
+
+            font-size: 14.5px;
+        }
+
+        th {
+            background: linear-gradient(160deg, #2454e8, #1a3aa8);
+
+            color: white;
+
+            padding: 12px 10px;
+
+            border: 1px solid rgba(255, 255, 255, .12);
+
+            font-weight: 600;
+
+            text-align: center;
+
+            white-space: nowrap;
+        }
+
+        th.student-column {
+            text-align: left;
+            padding-left: 18px;
+
+            min-width: 270px;
+
+            width: 270px;
+
+            position: sticky;
+
+            left: 0;
+
+            z-index: 10;
+        }
+
+        td {
+            border: 1px solid #e7ebf2;
+
+            text-align: center;
+
+            padding: 7px;
+
+            transition: background .15s ease;
+        }
+
+        td.student-cell {
+            background: white;
+
+            text-align: left;
+            padding-left: 18px;
+
+            position: sticky;
+
+            left: 0;
+
+            z-index: 5;
+
+            min-width: 270px;
+
+            width: 270px;
+
+            box-shadow: 2px 0 6px -2px rgba(15, 23, 42, .06);
+        }
+
+        tbody tr:hover td.student-cell {
+            background: #fafbff;
+        }
+
+        tbody tr:hover td:not(.student-cell):not(.present):not(.absent) {
+            background: #fafbff;
+        }
+
+        .student-wrapper {
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            white-space: nowrap;
+        }
+
+        .student-number {
+            width: 30px;
+            height: 30px;
+
+            border-radius: 50%;
+
+            background: var(--primary-light);
+            color: var(--primary);
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            font-weight: 700;
+            font-size: 13px;
+
+            flex-shrink: 0;
+        }
+
+        .student-name {
+            font-size: 14.5px;
+            font-weight: 600;
+
+            white-space: nowrap;
+        }
+
+        /* =====================================
+           DAYS
+        ===================================== */
+
+        .day-header {
+            min-width: 100px;
+        }
+
+        .day-name {
+            font-weight: 700;
+        }
+
+        .day-date {
+            font-size: 11.5px;
+
+            margin-top: 3px;
+
+            opacity: .85;
+            font-weight: 400;
+        }
+
+        /* =====================================
+           LESSON CELLS
+        ===================================== */
+
+        .lesson-cell {
+            min-width: 55px;
+
+            height: 45px;
+
+            cursor: pointer;
+
+            transition:
+                transform .12s ease,
+                box-shadow .12s ease;
+        }
+
+        .lesson-cell:hover {
+            background: var(--primary-light);
+            box-shadow: inset 0 0 0 1.5px rgba(36, 84, 232, .3);
+        }
+
+        .present {
+            color: #0a7a3d;
+
+            background: #eafbf1;
+
+            font-size: 18px;
+
+            font-weight: 700;
+        }
+
+        .absent {
+            color: #c0272d;
+
+            background: #fdedee;
+
+            font-size: 17px;
+
+            font-weight: 700;
+        }
+
+        .empty-mark {
+            color: var(--text-light);
+        }
+
+        /* =====================================
+           REPORT COLUMNS
+        ===================================== */
+
+        th.report-col {
+            min-width: 68px;
+        }
+
+        th.report-note-col,
+        td.report-note-col {
+            min-width: 180px;
+            max-width: 260px;
+        }
+
+        td.report-col {
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        td.report-total {
+            background: var(--slate-light);
+            color: var(--text);
+        }
+
+        td.report-uv {
+            background: var(--teal-light);
+            color: var(--teal);
+        }
+
+        td.report-neuv {
+            background: var(--red-light);
+            color: var(--red);
+        }
+
+        td.report-note-col {
+            font-weight: 400;
+            font-size: 13px;
+            text-align: left;
+            padding-left: 10px;
+            color: var(--text-secondary);
+            white-space: normal;
+        }
+
+        tr.total-row td {
+            background: var(--primary-light);
+            font-weight: 700;
+        }
+
+        tr.total-row td.student-cell {
+            color: var(--primary-dark);
+        }
+
+        tr.total-row td.report-uv {
+            background: var(--teal-light);
+            color: var(--teal);
+        }
+
+        tr.total-row td.report-neuv {
+            background: var(--red-light);
+            color: var(--red);
+        }
+
+        /* =====================================
+           POPUP
+        ===================================== */
+
+        .info-popup {
+            position: fixed;
+
+            display: none;
+
+            background: white;
+
+            padding: 18px;
+
+            border-radius: 16px;
+
+            border: 1px solid var(--border);
+
+            box-shadow: var(--shadow-lg);
+
+            width: 290px;
+
+            z-index: 1000;
+
+            animation: rise .2s var(--ease) both;
+        }
+
+        .popup-title {
+            font-weight: 700;
+
+            font-size: 16.5px;
+
+            margin-bottom: 11px;
+        }
+
+        .popup-row {
+            margin-bottom: 7px;
+
+            font-size: 13.5px;
+            color: var(--text-secondary);
+        }
+
+        .popup-reason {
+            background: var(--slate-light);
+
+            padding: 10px 11px;
+
+            border-radius: 11px;
+
+            margin-top: 10px;
+
+            font-size: 13.5px;
+            line-height: 1.5;
+        }
+
+        .popup-reason strong {
+            color: var(--text);
+        }
+
+        /* =====================================
+           EMPTY
+        ===================================== */
+
+        .empty {
+            text-align: center;
+
+            padding: 55px;
+
+            color: var(--text-secondary);
+
+            font-size: 15.5px;
+        }
+
+        /* =====================================
+           STATUS
+        ===================================== */
+
+        .status {
+            position: fixed;
+
+            right: 20px;
+            bottom: 20px;
+
+            background: #101a30;
+
+            color: white;
+
+            padding: 13px 19px;
+
+            border-radius: 14px;
+
+            font-size: 13.5px;
+            font-weight: 600;
+
+            box-shadow: var(--shadow-lg);
+
+            display: none;
+
+            z-index: 3000;
+        }
+
+        .status.show {
+            display: block;
+            animation: rise .25s var(--ease) both;
+        }
+
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* =====================================
+           PRINT
+        ===================================== */
+
+        .print-only {
+            display: none;
+        }
+
+        .print-header {
+            text-align: center;
+            font-family: "Times New Roman", Times, "Liberation Serif", serif;
+            font-size: 12pt;
+            line-height: 3.6mm;
+            height: 7.8mm;
+            box-sizing: border-box;
+            padding-left: 5.1mm;
+            margin: 0;
+            color: #000;
+            white-space: pre;
+            page-break-after: avoid;
+            break-after: avoid;
+        }
+
+        .print-header .ph-main {
+            font-weight: bold;
+        }
+
+        .print-header .ph-range {
+            font-weight: normal;
+            text-decoration: underline;
+        }
+
+        .print-footer {
+            display: none;
+        }
+
+        @media print {
+
+            @page {
+                size: A4 landscape;
+                margin: 10mm 10mm 5mm 4.9mm;
+            }
+
+            html,
+            body {
+                min-width: 0 !important;
+                zoom: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: #fff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+
+            header,
+            .week-panel,
+            .table-container,
+            .info-popup,
+            .status {
+                display: none !important;
+            }
+
+            .print-only {
+                display: block !important;
+            }
+
+            .container {
+                width: auto;
+                min-width: 0;
+                margin: 0;
+                padding: 0;
+            }
+
+            #printSheet {
+                font-family: "Times New Roman", Times, "Liberation Serif", serif;
+                color: #000;
+                width: 281.9mm;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            #printSheet table.pt {
+                width: 281.9mm;
+                min-width: 0;
+                margin-left: 0;
+                border-collapse: separate;
+                border-spacing: 0;
+                table-layout: fixed;
+                background: #fff;
+                box-shadow: 0 0 0 0.25pt #000;
+                page-break-inside: avoid;
+                break-inside: avoid;
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            #printSheet table.pt th,
+            #printSheet table.pt td {
+                background: none;
+                color: #000;
+                border: 0;
+                box-shadow: inset 0 0 0 0.25pt #000;
+                padding: 0;
+                font-weight: normal;
+                white-space: normal;
+                text-align: center;
+                vertical-align: top;
+                line-height: normal;
+                overflow: visible;
+                position: static;
+                min-width: 0;
+                transition: none;
+            }
+
+            #printSheet table.pt td.c-num {
+                text-align: left;
+                padding: 0 1.9mm;
+            }
+
+            #printSheet table.pt td.c-name {
+                text-align: left;
+                padding: 0 1.9mm;
+            }
+
+            #printSheet table.pt td.c-note {
+                text-align: left;
+                padding: 0 1mm;
+                overflow-wrap: anywhere;
+            }
+
+            #printSheet table.pt td.c-signature {
+                text-align: left;
+                font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+                font-weight: normal;
+                padding: 3mm 0 0 42.6mm;
+                border: none !important;
+                box-shadow: none !important;
+                white-space: nowrap;
+                vertical-align: bottom;
+                line-height: normal;
+            }
+
+            #printSheet table.pt td.c-signature .pf-name {
+                text-decoration: underline;
+            }
+
+            /* Шапка НЕ повторяется на второй странице */
+            #printSheet table.pt thead {
+                display: table-row-group;
+            }
+
+            /* Подпись не переносится */
+            #printSheet table.pt tbody tr:last-child {
+                page-break-after: avoid;
+                break-after: avoid;
+            }
+
+            .print-footer {
+                display: none !important;
             }
         }
 
@@ -697,1195 +1068,1863 @@
 
 </head>
 
+<body class="auth-pending">
 
-<body>
+<div id="authGuardOverlay">
+    <div class="auth-spinner"></div>
+    <div class="auth-guard-text">Проверка авторизации…</div>
+</div>
 
-    <div class="loader" id="pageLoader">
-        <div class="loader-inner">
-            <div class="loader-logo">А</div>
-            <div class="loader-text">Загрузка…</div>
-            <div class="loader-bar"></div>
+<header>
+
+    <div class="header-brand">
+
+        <div class="header-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 20V11"/>
+                <path d="M10.5 20V4"/>
+                <path d="M17 20v-8"/>
+                <path d="M3 20h18"/>
+            </svg>
         </div>
+
+        <div>
+
+            <div class="title">
+                Посещаемость
+            </div>
+
+            <div
+                class="subtitle"
+                id="semesterInfo"
+            >
+                Загрузка...
+            </div>
+
+        </div>
+
     </div>
 
+    <div class="clock">
 
-    <header>
-        <div class="header-left">
-            <button class="back-btn" onclick="goBack()" aria-label="Назад">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M15 18l-6-6 6-6"/>
+        <div
+            class="time"
+            id="currentTime"
+        >
+            --:--:--
+        </div>
+
+        <div
+            class="date"
+            id="currentDate"
+        >
+            --.--.----
+        </div>
+
+    </div>
+
+</header>
+
+<div class="container">
+
+    <div class="week-panel">
+
+        <div class="week-title">
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3.5" y="5" width="17" height="16" rx="3"/>
+                <path d="M8 3v4M16 3v4M3.5 10h17"/>
+            </svg>
+
+            Посещаемость за неделю
+
+        </div>
+
+        <div class="group-panel" id="groupPanel">
+
+            <div class="group-field">
+                <span class="group-field-label">Группа:</span>
+                <span id="groupSwitcherSlot"><span class="group-static">Загрузка...</span></span>
+            </div>
+
+            <div class="group-field">
+                <span class="group-field-label">Классный руководитель (для печати):</span>
+                <input
+                    type="text"
+                    id="curatorPrintName"
+                    class="curator-name-input"
+                    placeholder="ФИО куратора"
+                    disabled
+                    oninput="onCuratorNameEdited()"
+                >
+            </div>
+
+        </div>
+
+        <div class="week-controls">
+
+            <button
+                class="previous"
+                onclick="previousWeek()"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m15 6-6 6 6 6"/>
                 </svg>
+                Предыдущая неделя
             </button>
-            <div class="header-title">Посещаемость</div>
+
+            <button
+                class="current"
+                onclick="currentWeek()"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="8.5"/>
+                    <path d="M12 7.5V12l3 2"/>
+                </svg>
+                Текущая неделя
+            </button>
+
+            <button
+                class="next"
+                onclick="nextWeek()"
+            >
+                Следующая неделя
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m9 6 6 6-6 6"/>
+                </svg>
+
+            </button>
+
+            <button
+                class="list-button"
+                onclick="toggleWeekList()"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M8 6h13M8 12h13M8 18h13"/>
+                    <path d="M3 6h.01M3 12h.01M3 18h.01"/>
+                </svg>
+                Список
+            </button>
+
+            <button
+                class="print-button"
+                onclick="printReport()"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 9V3h12v6"/>
+                    <path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/>
+                    <path d="M6 14h12v8H6z"/>
+                </svg>
+                Печать отчёта
+            </button>
+
+            <button
+                class="back"
+                onclick="goBack()"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M19 12H5M11 6l-6 6 6 6"/>
+                </svg>
+                Главное меню
+            </button>
+
         </div>
-        <div class="live-badge">
-            <span class="live-dot"></span>
-            <span>Онлайн</span>
+
+        <div
+            id="weekList"
+            class="week-list"
+        ></div>
+
+        <div
+            class="week-range"
+            id="weekRange"
+        >
+            —
         </div>
-    </header>
 
-
-    <main class="page">
-
-        <section class="hero">
-            <div>
-                <h1 class="hero-title">Отметка посещаемости</h1>
-                <p class="hero-subtitle">Выберите группу и дату, отметьте студентов</p>
-            </div>
-            <div class="hero-clock">
-                <div class="clock-time" id="clock">--:--:--</div>
-                <div class="clock-date" id="clockDate">—</div>
-            </div>
-        </section>
-
-
-        <section class="filters glass">
-            <div class="field">
-                <label class="field-label" for="groupSelect">Группа</label>
-                <select id="groupSelect" class="select">
-                    <option value="">Загрузка…</option>
-                </select>
-                <div class="field-hint" id="groupHint">—</div>
-            </div>
-            <div class="field">
-                <label class="field-label" for="datePicker">Дата</label>
-                <input type="date" id="datePicker" class="input">
-            </div>
-            <div class="field">
-                <label class="field-label">День</label>
-                <div class="input-static" id="dayName">—</div>
-            </div>
-            <div class="field">
-                <label class="field-label">Период</label>
-                <div class="input-static" id="periodInfo">—</div>
-            </div>
-        </section>
-
-
-        <section class="table-card glass">
-            <div class="table-header">
-                <div class="table-header-left">
-                    <div class="table-title">Студенты</div>
-                    <span class="chip" id="lessonCountBadge">0 пар</span>
-                </div>
-                <div class="quick-actions">
-                    <button class="btn btn-success" onclick="enableQuickMode('present')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 6 9 17l-5-5"/>
-                        </svg>
-                        Присутствие
-                    </button>
-                    <button class="btn btn-danger" onclick="enableQuickMode('absent')">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 6 6 18M6 6l12 12"/>
-                        </svg>
-                        Отсутствие
-                    </button>
-                </div>
-            </div>
-            <div id="tableContainer" class="table-scroll">
-                <div class="state">
-                    <div class="spinner"></div>
-                    <div class="state-text">Загрузка данных…</div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-
-    <div class="mobile-bar" id="mobileBar">
-        <button class="mb-btn mb-present" id="mbPresent" onclick="toggleMobileMode('present')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 6 9 17l-5-5"/>
-            </svg>
-            <span>Присутствие</span>
-        </button>
-        <button class="mb-btn mb-absent" id="mbAbsent" onclick="toggleMobileMode('absent')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M18 6 6 18M6 6l12 12"/>
-            </svg>
-            <span>Отсутствие</span>
-        </button>
-        <button class="mb-btn mb-refresh" onclick="reloadData()" aria-label="Обновить">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
-                <path d="M21 3v5h-5"/>
-                <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
-                <path d="M3 21v-5h5"/>
-            </svg>
-        </button>
     </div>
 
+    <div class="table-container">
 
-    <!-- CHOICE MENU -->
+        <div id="tableWrapper">
 
-    <div class="overlay" id="choiceOverlay" onclick="closeChoiceOutside(event)">
-        <div class="modal" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <div class="modal-title">Отметить посещаемость</div>
-                <div class="modal-subtitle" id="choiceStudent">—</div>
+            <div class="empty">
+                Загрузка посещаемости...
             </div>
-            <div class="modal-body">
 
-                <button class="menu-item" onclick="choosePresent()">
-                    <div class="menu-item-icon icon-present">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M20 6 9 17l-5-5"/>
-                        </svg>
-                    </div>
-                    <div class="menu-item-text">
-                        <strong>Присутствовал</strong>
-                        <span>Отметить как «присутствует»</span>
-                    </div>
-                </button>
-
-                <button class="menu-item" onclick="chooseAbsent()">
-                    <div class="menu-item-icon icon-absent">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M18 6 6 18M6 6l12 12"/>
-                        </svg>
-                    </div>
-                    <div class="menu-item-text">
-                        <strong>Отсутствовал</strong>
-                        <span>Указать причину отсутствия</span>
-                    </div>
-                </button>
-
-                <button class="menu-item" onclick="chooseWholeDay()">
-                    <div class="menu-item-icon icon-day">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2"/>
-                            <path d="M16 2v4M8 2v4M3 10h18"/>
-                        </svg>
-                    </div>
-                    <div class="menu-item-text">
-                        <strong>Отсутствует весь день</strong>
-                        <span>Отметить «Н» на всех парах дня</span>
-                    </div>
-                </button>
-
-                <button class="menu-item" id="deleteButton" onclick="deleteAttendance()">
-                    <div class="menu-item-icon icon-delete">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2"/>
-                            <path d="m19 6-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
-                        </svg>
-                    </div>
-                    <div class="menu-item-text">
-                        <strong>Удалить отметку</strong>
-                        <span>Очистить отметку в этой паре</span>
-                    </div>
-                </button>
-
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="closeChoice()">Отмена</button>
-            </div>
         </div>
+
     </div>
 
-
-    <!-- REASON MODAL -->
-
-    <div class="overlay" id="reasonOverlay">
-        <div class="modal" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <div class="modal-title">Отметить отсутствие</div>
-                <div class="modal-subtitle">Укажите статус и причину</div>
-            </div>
-            <div class="modal-body">
-                <div class="form-info">
-                    <div class="form-info-row">
-                        <span>Студент</span><span id="modalStudent">—</span>
-                    </div>
-                    <div class="form-info-row">
-                        <span>Дата</span><span id="modalDate">—</span>
-                    </div>
-                    <div class="form-info-row">
-                        <span>Пара</span><span id="modalLesson">—</span>
-                    </div>
-                </div>
-
-                <label class="form-label">Статус отсутствия</label>
-                <div class="status-options" id="absentTypeGroup">
-                    <button type="button" class="status-option" data-type="neuv" onclick="selectAbsentType('neuv')">
-                        <strong>Н</strong><span>Неуваж.</span>
-                    </button>
-                    <button type="button" class="status-option" data-type="uv" onclick="selectAbsentType('uv')">
-                        <strong>Н/У</strong><span>Уваж.</span>
-                    </button>
-                    <button type="button" class="status-option" data-type="bolezn" onclick="selectAbsentType('bolezn')">
-                        <strong>Н/Б</strong><span>Болезнь</span>
-                    </button>
-                </div>
-
-                <label class="form-label" for="reasonInput">Причина</label>
-                <textarea id="reasonInput" class="textarea" placeholder="Например: болезнь, семейные обстоятельства…"></textarea>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" onclick="saveAbsent()">Сохранить</button>
-            </div>
-        </div>
+    <div
+        class="print-header print-only"
+        id="printHeader"
+    >
+        <span class="ph-main">Информация о ежедневной посещаемости занятий <span id="printGroupName">—</span>    группы</span><span class="ph-gap">       </span><span class="ph-range" id="printHeaderRange">—</span>
     </div>
 
+    <div
+        class="print-only"
+        id="printSheet"
+    ></div>
 
-    <!-- LESSON INFO MODAL -->
+</div>
 
-    <div class="overlay" id="lessonInfoOverlay">
-        <div class="modal" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <div class="modal-title" id="lessonInfoTitle">Пара</div>
-                <div class="modal-subtitle" id="lessonInfoSubtitle">Информация о занятии</div>
-            </div>
-            <div class="modal-body">
-                <div class="lesson-grid">
-                    <div class="lesson-item" style="grid-column: span 2;">
-                        <div class="lesson-item-label">Дисциплина</div>
-                        <div class="lesson-item-value" id="lessonDiscipline">—</div>
-                    </div>
-                    <div class="lesson-item">
-                        <div class="lesson-item-label">Начало</div>
-                        <div class="lesson-item-value" id="lessonStart">—</div>
-                    </div>
-                    <div class="lesson-item">
-                        <div class="lesson-item-label">Окончание</div>
-                        <div class="lesson-item-value" id="lessonEnd">—</div>
-                    </div>
-                    <div class="lesson-item" style="grid-column: span 2;">
-                        <div class="lesson-item-label">Полное время</div>
-                        <div class="lesson-item-value" id="lessonTime">—</div>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-ghost" onclick="closeLessonInfo()">Закрыть</button>
-            </div>
-        </div>
+<div
+    id="infoPopup"
+    class="info-popup"
+>
+
+    <div
+        class="popup-title"
+        id="popupTitle"
+    >
+        —
     </div>
 
+    <div
+        class="popup-row"
+        id="popupStudent"
+    >
+        —
+    </div>
 
-    <div class="toast" id="toast"></div>
+    <div
+        class="popup-row"
+        id="popupDate"
+    >
+        —
+    </div>
+
+    <div
+        class="popup-row"
+        id="popupLesson"
+    >
+        —
+    </div>
+
+    <div class="popup-reason">
+
+        <strong>
+            Причина:
+        </strong>
+
+        <div id="popupReason">
+            —
+        </div>
+
+    </div>
+
+</div>
+
+<div
+    id="status"
+    class="status"
+></div>
+
+<script type="module">
+
+    // =========================================
+    // FIREBASE
+    // =========================================
+
+    import {
+        initializeApp
+    }
+    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
+    import {
+        getAuth,
+        onAuthStateChanged
+    }
+    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+
+    import {
+        getFirestore,
+        collection,
+        getDocs,
+        doc,
+        getDoc,
+        query,
+        where
+    }
+    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 
-    <!-- FIREBASE -->
+    const firebaseConfig = {
 
-    <script type="module">
+        apiKey:
+            "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
 
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-        import {
-            getFirestore, collection, getDocs, doc, getDoc, setDoc
-        } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+        authDomain:
+            "othets-1aa03.firebaseapp.com",
+
+        projectId:
+            "othets-1aa03",
+
+        storageBucket:
+            "othets-1aa03.firebasestorage.app",
+
+        messagingSenderId:
+            "528392191591",
+
+        appId:
+            "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+
+        measurementId:
+            "G-F50WVZRXZJ"
+
+    };
 
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
-            authDomain: "othets-1aa03.firebaseapp.com",
-            projectId: "othets-1aa03",
-            storageBucket: "othets-1aa03.firebasestorage.app",
-            messagingSenderId: "528392191591",
-            appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2",
-            measurementId: "G-F50WVZRXZJ"
+    const app =
+        initializeApp(
+            firebaseConfig
+        );
+
+
+    const auth =
+        getAuth(
+            app
+        );
+
+
+    const db =
+        getFirestore(
+            app
+        );
+
+
+    // =========================================
+    // VARIABLES
+    // =========================================
+
+    let students = [];
+
+    let settings = {};
+
+    let attendance = {};
+
+    let weekStart;
+
+
+    let currentUid = null;
+
+    let userRole = null;
+
+    let userGroups = [];
+
+    let currentGroupId = null;
+
+    let curatorNameManuallyEdited = false;
+
+
+    const days = [
+
+        "Понедельник",
+        "Вторник",
+        "Среда",
+        "Четверг",
+        "Пятница",
+        "Суббота"
+
+    ];
+
+
+    const HOURS_PER_LESSON = 2;
+
+
+    // =========================================
+    // CLOCK
+    // =========================================
+
+    function updateClock() {
+
+        const now = new Date();
+
+        document.getElementById("currentTime").textContent =
+            now.toLocaleTimeString("ru-RU", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit"
+            });
+
+        document.getElementById("currentDate").textContent =
+            now.toLocaleDateString("ru-RU", {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric"
+            });
+    }
+
+    updateClock();
+    setInterval(updateClock, 1000);
+
+
+    // =========================================
+    // DATE FORMAT
+    // =========================================
+
+    function formatDate(date) {
+
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    }
+
+
+    function normalizeDate(value) {
+
+        if (!value) return "";
+
+        if (typeof value === "object" && typeof value.toDate === "function") {
+            return formatDate(value.toDate());
+        }
+
+        if (value instanceof Date) {
+            return formatDate(value);
+        }
+
+        const string = String(value).trim();
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(string)) {
+            return string;
+        }
+
+        const ruMatch = string.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+
+        if (ruMatch) {
+            return `${ruMatch[3]}-${ruMatch[2]}-${ruMatch[1]}`;
+        }
+
+        return "";
+    }
+
+
+    function formatDateRu(dateString) {
+
+        const normalized = normalizeDate(dateString);
+
+        if (!normalized) return "—";
+
+        const date = new Date(normalized + "T00:00:00");
+
+        return date.toLocaleDateString("ru-RU", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+        });
+    }
+
+
+    function getMonday(date) {
+
+        const result = new Date(date);
+        result.setHours(0, 0, 0, 0);
+
+        let day = result.getDay();
+        if (day === 0) day = 7;
+
+        result.setDate(result.getDate() - day + 1);
+
+        return result;
+    }
+
+
+    // =========================================
+    // RBAC / ГРУППЫ
+    // =========================================
+
+    function toShortFio(fullName) {
+
+        const parts = String(fullName || "")
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+
+        if (parts.length === 0) return "";
+
+        const surname =
+            parts[0].charAt(0).toUpperCase() +
+            parts[0].slice(1).toLowerCase();
+
+        const initials = parts
+            .slice(1, 3)
+            .map(w => w.charAt(0).toUpperCase());
+
+        return initials.length
+            ? `${surname} ${initials.join(".")}`
+            : surname;
+    }
+
+
+    function getCurrentGroup() {
+        return userGroups.find(g => g.id === currentGroupId) || null;
+    }
+
+
+    function groupsFromSnapshot(snapshot) {
+        return snapshot.docs.map(d => ({
+            id: d.id,
+            ...d.data()
+        }));
+    }
+
+
+    async function loadUserAndGroups() {
+
+        currentUid = auth.currentUser ? auth.currentUser.uid : null;
+
+        if (!currentUid) {
+            userRole = null;
+            userGroups = [];
+            currentGroupId = null;
+            return;
+        }
+
+        const userSnap = await getDoc(doc(db, "users", currentUid));
+
+        const userData = userSnap.exists() ? userSnap.data() : {};
+
+        userRole = userData.role || "starosta";
+
+        let groupsMap = new Map();
+
+        if (userRole === "admin") {
+
+            const snapshot = await getDocs(collection(db, "groups"));
+
+            groupsFromSnapshot(snapshot)
+                .filter(g => g.active !== false)
+                .forEach(g => groupsMap.set(g.id, g));
+
+        }
+        else if (userRole === "curator") {
+
+            const snapshot = await getDocs(
+                query(
+                    collection(db, "groups"),
+                    where("curatorId", "==", currentUid)
+                )
+            );
+
+            groupsFromSnapshot(snapshot)
+                .filter(g => g.active !== false)
+                .forEach(g => groupsMap.set(g.id, g));
+
+        }
+        else {
+
+            const [snapA, snapB] = await Promise.all([
+                getDocs(
+                    query(
+                        collection(db, "groups"),
+                        where("starostaId", "==", currentUid)
+                    )
+                ),
+                getDocs(
+                    query(
+                        collection(db, "groups"),
+                        where("leaderId", "==", currentUid)
+                    )
+                )
+            ]);
+
+            [...groupsFromSnapshot(snapA), ...groupsFromSnapshot(snapB)]
+                .filter(g => g.active !== false)
+                .forEach(g => groupsMap.set(g.id, g));
+        }
+
+        userGroups = Array.from(groupsMap.values())
+            .sort((a, b) =>
+                String(a.name || "").localeCompare(String(b.name || ""), "ru")
+            );
+
+        const remembered = sessionStorage.getItem("selectedGroupId");
+
+        if (remembered && userGroups.some(g => g.id === remembered)) {
+            currentGroupId = remembered;
+        }
+        else {
+            currentGroupId =
+                userGroups.length > 0 ? userGroups[0].id : null;
+        }
+    }
+
+
+    function renderGroupSwitcher() {
+
+        const slot = document.getElementById("groupSwitcherSlot");
+        const curatorInput = document.getElementById("curatorPrintName");
+
+        if (userGroups.length === 0) {
+
+            slot.innerHTML =
+                '<span class="empty-groups">Нет доступных групп</span>';
+
+            curatorInput.value = "";
+            curatorInput.disabled = true;
+            return;
+        }
+
+        const showDropdown =
+            userRole === "admin" ||
+            userGroups.length > 1;
+
+        if (showDropdown) {
+
+            slot.innerHTML =
+                '<select class="group-select" id="groupSelect" onchange="switchGroup(this.value)"></select>';
+
+            const select = document.getElementById("groupSelect");
+
+            select.innerHTML = userGroups
+                .map(g =>
+                    `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name || g.id)}</option>`
+                )
+                .join("");
+
+            select.value = currentGroupId;
+
+        }
+        else {
+
+            const group = getCurrentGroup();
+
+            slot.innerHTML =
+                `<span class="group-static">${escapeHtml(group ? (group.name || group.id) : "—")}</span>`;
+
+        }
+
+        updateCuratorNameField();
+    }
+
+
+    function updateCuratorNameField() {
+
+        const curatorInput = document.getElementById("curatorPrintName");
+        const group = getCurrentGroup();
+
+        const dbCuratorName = group
+            ? toShortFio(group.curatorName || "")
+            : "";
+
+        if (userRole === "admin") {
+            curatorInput.disabled = false;
+            if (!curatorNameManuallyEdited) {
+                curatorInput.value = dbCuratorName;
+            }
+        }
+        else {
+            curatorInput.disabled = true;
+            curatorInput.value = dbCuratorName;
+        }
+    }
+
+
+    window.onCuratorNameEdited = function () {
+        curatorNameManuallyEdited = true;
+    };
+
+
+    window.switchGroup = async function (groupId) {
+
+        if (!groupId || groupId === currentGroupId) return;
+
+        currentGroupId = groupId;
+        curatorNameManuallyEdited = false;
+
+        sessionStorage.setItem("selectedGroupId", groupId);
+
+        try {
+
+            showStatus("Загрузка группы...");
+
+            await loadSettings();
+            await loadStudents();
+            await loadAttendance();
+
+            updateWeekRange();
+            renderTable();
+            renderWeekList();
+            updateCuratorNameField();
+
+        }
+        catch (error) {
+            console.error("Ошибка переключения группы:", error);
+            showStatus("Не удалось загрузить данные группы");
+        }
+    };
+
+
+    // =========================================
+    // LOAD SETTINGS
+    // =========================================
+
+    async function loadSettings() {
+
+        settings = {
+            schedule: {},
+            disciplines: {},
+            bells: {},
+            semester1: {},
+            semester2: {}
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+        if (!currentGroupId) return;
 
+        try {
 
-        /* ============ STATE ============ */
-
-        let homePage = "home.html";
-        let currentUser = null;
-        let authResolved = false;
-        let resolveAuthReady;
-        const authReady = new Promise(resolve => { resolveAuthReady = resolve; });
-
-        let allStudents = [];
-        let allGroupsData = [];
-        let userGroups = [];
-        let userRole = null;
-        let selectedGroupId = "";
-        let students = [];
-        let settings = {};
-        let attendance = {};
-        let selectedDate = "";
-        let selectedStudent = null;
-        let selectedLesson = null;
-        let selectedAction = null;
-        let selectedAbsentType = "neuv";
-        let quickMode = null;
-        let activeMobileLesson = 1;
-
-        const days = ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
-        const dayNames = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"];
-
-        const datePicker = document.getElementById("datePicker");
-        const tableContainer = document.getElementById("tableContainer");
-
-
-        /* ============ AUTH ============ */
-
-        async function resolveHomePage(user) {
-            try {
-                const snap = await getDoc(doc(db, "users", user.uid));
-                const role = snap.exists() ? snap.data().role : null;
-                return role === "admin" ? "adminhome.html" : "home.html";
-            } catch {
-                return "home.html";
-            }
-        }
-
-        onAuthStateChanged(auth, async user => {
-            currentUser = user;
-            if (user) homePage = await resolveHomePage(user);
-            if (!authResolved) {
-                authResolved = true;
-                resolveAuthReady();
-            }
-        });
-
-
-        /* ============ HELPERS ============ */
-
-        function isMobile() { return window.matchMedia("(max-width: 768px)").matches; }
-
-        function formatDate(date) {
-            const y = date.getFullYear();
-            const m = String(date.getMonth() + 1).padStart(2, "0");
-            const d = String(date.getDate()).padStart(2, "0");
-            return `${y}-${m}-${d}`;
-        }
-
-        function formatDateRu(dateString) {
-            if (!dateString) return "—";
-            const p = dateString.split("-");
-            return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : dateString;
-        }
-
-        function parseDate(dateString) {
-            const p = dateString.split("-");
-            return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
-        }
-
-        function getDayIndex(dateString) { return parseDate(dateString).getDay(); }
-        function getDayName(dateString) { return dayNames[getDayIndex(dateString)]; }
-
-        function escapeHtml(value) {
-            return String(value ?? "")
-                .replaceAll("&", "&amp;").replaceAll("<", "&lt;")
-                .replaceAll(">", "&gt;").replaceAll('"', "&quot;")
-                .replaceAll("'", "&#039;");
-        }
-
-        function escapeJs(value) {
-            return String(value ?? "").replaceAll("\\", "\\\\").replaceAll("'", "\\'");
-        }
-
-
-        /* ============ LESSON CONFIG ============ */
-
-        function getLessonCount(dayIndex) {
-            if (dayIndex < 1 || dayIndex > 6) return 0;
-            const day = days[dayIndex - 1];
-            const value = settings?.schedule?.[day];
-            if (value === undefined || value === null) return 0;
-            if (Array.isArray(value)) return value.length;
-            if (typeof value === "object") {
-                if (Array.isArray(value.lessons)) return value.lessons.length;
-                if (typeof value.count !== "undefined") return Number(value.count);
-            }
-            return Number(value) || 0;
-        }
-
-        function getLessonConfig(dayIndex, lesson) {
-            if (dayIndex < 1 || dayIndex > 6) return {};
-            const day = days[dayIndex - 1];
-            let result = {};
-
-            const disciplines = settings?.disciplines?.[day];
-            if (Array.isArray(disciplines)) {
-                const item = disciplines[lesson - 1];
-                if (typeof item === "object" && item) result = { ...result, ...item };
-                else if (item) result.discipline = item;
-            } else if (disciplines && typeof disciplines === "object") {
-                const item = disciplines[String(lesson)] ?? disciplines[lesson];
-                if (typeof item === "object" && item) result = { ...result, ...item };
-                else if (item) result.discipline = item;
-            }
-
-            const bells = settings?.bells;
-            if (bells) {
-                const bell = Array.isArray(bells) ? bells[lesson - 1] : bells[String(lesson)] ?? bells[lesson];
-                if (bell && typeof bell === "object") result = { ...result, ...bell };
-            }
-
-            const lessons = settings?.lessons?.[day];
-            if (lessons) {
-                const item = Array.isArray(lessons) ? lessons[lesson - 1] : lessons[String(lesson)] ?? lessons[lesson];
-                if (item && typeof item === "object") result = { ...result, ...item };
-            }
-
-            const scheduleDay = settings?.schedule?.[day];
-            if (Array.isArray(scheduleDay)) {
-                const item = scheduleDay[lesson - 1];
-                if (item && typeof item === "object") result = { ...result, ...item };
-            }
-
-            return result;
-        }
-
-        function firstValue(obj, keys) {
-            if (!obj) return "";
-            for (const k of keys) {
-                if (obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
-            }
-            return "";
-        }
-
-        function getDiscipline(dayIndex, lesson) {
-            const config = getLessonConfig(dayIndex, lesson);
-            const value = firstValue(config, ["discipline", "subject", "name", "title", "lessonName"]);
-            return value || "Дисциплина не настроена";
-        }
-
-        function getLessonTime(dayIndex, lesson) {
-            const config = getLessonConfig(dayIndex, lesson);
-            let start = firstValue(config, ["start", "startTime", "timeStart", "from", "begin"]);
-            let end = firstValue(config, ["end", "endTime", "timeEnd", "to", "finish"]);
-
-            const bells = settings?.bells;
-            if (bells) {
-                const bell = Array.isArray(bells) ? bells[lesson - 1] : bells[String(lesson)] ?? bells[lesson];
-                if (bell && typeof bell === "object") {
-                    if (!start) start = firstValue(bell, ["start", "startTime", "from", "begin"]);
-                    if (!end) end = firstValue(bell, ["end", "endTime", "to", "finish"]);
-                }
-            }
-
-            if (start && end) return { start: String(start), end: String(end), text: `${start} — ${end}` };
-            if (start) return { start: String(start), end: "—", text: String(start) };
-            return { start: "—", end: "—", text: "Время не настроено" };
-        }
-
-        function getAttestationInfo(dateString) {
-            const date = parseDate(dateString);
-            const inside = period => {
-                if (!period?.start || !period?.end) return false;
-                return date >= parseDate(period.start) && date <= parseDate(period.end);
-            };
-
-            if (inside(settings?.semester1?.attestation1)) return { semester: "1 семестр", attestation: "Аттестация 1" };
-            if (inside(settings?.semester1?.attestation2)) return { semester: "1 семестр", attestation: "Аттестация 2" };
-            if (inside(settings?.semester2?.attestation1)) return { semester: "2 семестр", attestation: "Аттестация 1" };
-            if (inside(settings?.semester2?.attestation2)) return { semester: "2 семестр", attestation: "Аттестация 2" };
-
-            const month = date.getMonth();
-            return {
-                semester: (month >= 8 || month <= 0) ? "1 семестр" : "2 семестр",
-                attestation: "—"
-            };
-        }
-
-
-        /* ============ LOAD GROUPS ============ */
-
-        async function loadGroupsAndRole() {
-            userRole = null; allGroupsData = []; userGroups = [];
-            if (!currentUser) return;
-
-            try {
-                const snap = await getDoc(doc(db, "users", currentUser.uid));
-                userRole = snap.exists() ? (snap.data().role || null) : null;
-            } catch (e) { console.error(e); }
-
-            try {
-                const snap = await getDocs(collection(db, "groups"));
-                allGroupsData = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-                allGroupsData.sort((a, b) =>
-                    String(a.name || "").localeCompare(String(b.name || ""), "ru")
-                );
-            } catch (e) { console.error(e); }
-
-            if (userRole === "admin") userGroups = allGroupsData;
-            else userGroups = allGroupsData.filter(g =>
-                g.curatorId === currentUser.uid ||
-                g.starostaId === currentUser.uid ||
-                g.leaderId === currentUser.uid
+            const snapshot = await getDoc(
+                doc(db, "groupSettings", currentGroupId)
             );
+
+            if (snapshot.exists()) {
+
+                const data = snapshot.data() || {};
+
+                settings = {
+                    schedule: data.schedule || {},
+                    disciplines: data.disciplines || {},
+                    bells: data.bells || {},
+                    semester1: data.semester1 || {},
+                    semester2: data.semester2 || {}
+                };
+
+                console.log("📥 groupSettings загружены:", currentGroupId, settings);
+
+            }
+            else {
+                console.warn("⚠ groupSettings не найдены для", currentGroupId);
+            }
+
+        }
+        catch (error) {
+            console.error("Ошибка загрузки настроек:", error);
+            showStatus("Не удалось загрузить настройки");
+        }
+    }
+
+
+    // =========================================
+    // LOAD STUDENTS
+    // =========================================
+
+    async function loadStudents() {
+
+        try {
+
+            students = [];
+
+            if (!currentGroupId) return;
+
+            const group = getCurrentGroup();
+
+            const explicitIds =
+                group && Array.isArray(group.studentIds)
+                    ? group.studentIds.map(String)
+                    : [];
+
+
+            let byGroupId = [];
+
+            try {
+
+                const snapshot = await getDocs(
+                    query(
+                        collection(db, "students"),
+                        where("groupId", "==", currentGroupId)
+                    )
+                );
+
+                byGroupId = snapshot.docs.map(d => ({
+                    id: d.id,
+                    ...d.data()
+                }));
+
+            }
+            catch (e) {
+                console.warn("Фильтр students по groupId не сработал:", e);
+                byGroupId = [];
+            }
+
+
+            let byExplicit = [];
+
+            if (explicitIds.length > 0) {
+
+                const fullSnap = await getDocs(collection(db, "students"));
+
+                byExplicit = fullSnap.docs
+                    .filter(d => explicitIds.includes(String(d.id)))
+                    .map(d => ({
+                        id: d.id,
+                        ...d.data()
+                    }));
+            }
+
+
+            const map = new Map();
+
+            [...byGroupId, ...byExplicit].forEach(s => map.set(s.id, s));
+
+            students = Array.from(map.values());
+
+            students.sort((a, b) =>
+                String(a.name || "").localeCompare(String(b.name || ""), "ru")
+            );
+
+            console.log(
+                "📥 Студентов загружено:",
+                students.length,
+                "| по groupId:", byGroupId.length,
+                "| по studentIds группы:", byExplicit.length
+            );
+
+        }
+        catch (error) {
+
+            console.error("Ошибка студентов:", error);
+            showStatus("Ошибка загрузки студентов");
+
+        }
+    }
+
+
+    function getStudentName(studentId) {
+
+        const student = students.find(
+            item => String(item.id) === String(studentId)
+        );
+
+        return student ? (student.name || "Без имени") : "Неизвестный студент";
+    }
+
+
+    // =========================================
+    // NORMALIZE STATUS
+    // =========================================
+
+    function normalizeStatus(status) {
+
+        if (status === null || status === undefined) return "";
+
+        const value = String(status).trim().toLowerCase();
+
+        if (
+            value === "present" ||
+            value === "присутствовал" ||
+            value === "присутствует" ||
+            value === "присутствие" ||
+            value === "п" ||
+            value === "✓"
+        ) {
+            return "present";
         }
 
+        if (
+            value === "absent" ||
+            value === "отсутствовал" ||
+            value === "отсутствует" ||
+            value === "отсутствие" ||
+            value === "н"
+        ) {
+            return "absent";
+        }
 
-        const groupSelect = document.getElementById("groupSelect");
-        const groupHint = document.getElementById("groupHint");
+        return "";
+    }
 
-        function populateGroupSelect() {
-            const prev = selectedGroupId;
 
-            if (!userGroups.length) {
-                groupSelect.innerHTML = `<option value="">Нет доступных групп</option>`;
-                groupSelect.disabled = true;
-                selectedGroupId = "";
-                groupHint.textContent = userRole === "admin" ? "В системе пока нет групп" : "Вам не назначена ни одна группа";
+    // =========================================
+    // LOAD ATTENDANCE
+    // =========================================
+
+    async function loadAttendance() {
+
+        try {
+
+            attendance = {};
+
+            if (!currentGroupId) return;
+
+            if (students.length === 0) {
+                console.warn("⚠ Нет студентов — attendance не загружаем");
                 return;
             }
 
-            groupSelect.innerHTML = userGroups.map(g =>
-                `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name || "Без названия")}${g.active === false ? " (архив)" : ""}</option>`
-            ).join("");
+            const studentIdsSet = new Set(students.map(s => String(s.id)));
 
-            const stillValid = userGroups.some(g => g.id === prev);
-            selectedGroupId = stillValid ? prev : userGroups[0].id;
-            groupSelect.value = selectedGroupId;
+            console.log(
+                "🔎 Ищем attendance для студентов:",
+                studentIdsSet.size
+            );
 
-            if (userRole !== "admin" && userGroups.length === 1) {
-                groupSelect.disabled = true;
-                groupHint.textContent = "Группа закреплена за вами";
-            } else {
-                groupSelect.disabled = false;
-                groupHint.textContent = userRole === "admin" ? "Доступны все группы" : "Выберите группу";
-            }
+
+            const snapshot = await getDocs(collection(db, "attendance"));
+
+            console.log(
+                "📦 Всего документов attendance:",
+                snapshot.docs.length
+            );
+
+            let matched = 0;
+
+            snapshot.forEach(attendanceDoc => {
+
+                const data = attendanceDoc.data();
+
+                if (!data.date || !data.studentId) return;
+
+                const studentId = String(data.studentId);
+
+                if (!studentIdsSet.has(studentId)) return;
+
+                matched++;
+
+                const date = normalizeDate(data.date);
+                if (!date) return;
+
+                const studentName =
+                    data.studentName || getStudentName(studentId);
+
+                const lessons = data.lessons || {};
+
+                Object.entries(lessons).forEach(([lessonNumber, lessonData]) => {
+
+                    if (!lessonData) return;
+
+                    const status = normalizeStatus(lessonData.status);
+                    if (!status) return;
+
+                    const reason =
+                        lessonData.reason ||
+                        lessonData.comment ||
+                        lessonData.description ||
+                        "";
+
+                    const absentType = String(lessonData.absentType || "")
+                        .trim()
+                        .toLowerCase();
+
+                    const key = `${date}_${studentId}_${lessonNumber}`;
+
+                    attendance[key] = {
+                        id: attendanceDoc.id,
+                        documentId: attendanceDoc.id,
+                        date: date,
+                        studentId: studentId,
+                        studentName: studentName,
+                        lesson: String(lessonNumber),
+                        status: status,
+                        absentType: absentType,
+                        reason: String(reason),
+                        semester: data.semester || "",
+                        attestation: data.attestation || "",
+                        updatedAt: data.updatedAt || ""
+                    };
+                });
+            });
+
+            console.log(
+                "✅ Совпало документов attendance:",
+                matched,
+                "| ключей собрано:",
+                Object.keys(attendance).length
+            );
+
+        }
+        catch (error) {
+            console.error("Ошибка загрузки посещаемости:", error);
+            showStatus("Ошибка загрузки посещаемости");
+        }
+    }
+
+
+    // =========================================
+    // GET LESSON COUNT
+    // =========================================
+
+    function getLessonCount(dayIndex) {
+
+        const schedule = settings.schedule || {};
+        const day = days[dayIndex];
+        const value = schedule[day];
+
+        if (value === undefined || value === null) return 0;
+
+        if (Array.isArray(value)) return value.length;
+
+        if (typeof value === "object") {
+            if (Array.isArray(value.lessons)) return value.lessons.length;
+            if (typeof value.count !== "undefined") return Number(value.count) || 0;
         }
 
-        groupSelect.addEventListener("change", async function () {
-            selectedGroupId = this.value;
-            applyGroupFilter();
-            await loadSettings();
-            activeMobileLesson = 1;
-            render();
+        return Number(value) || 0;
+    }
+
+
+    // =========================================
+    // GET WEEK DATES
+    // =========================================
+
+    function getWeekDates() {
+
+        const result = [];
+
+        for (let i = 0; i < 6; i++) {
+            const date = new Date(weekStart);
+            date.setDate(date.getDate() + i);
+            result.push(date);
+        }
+
+        return result;
+    }
+
+
+    function updateWeekRange() {
+
+        const dates = getWeekDates();
+
+        const first = formatDateRu(formatDate(dates[0]));
+        const last = formatDateRu(formatDate(dates[5]));
+
+        document.getElementById("weekRange").textContent =
+            `Период: ${first} — ${last}`;
+    }
+
+
+    // =========================================
+    // RENDER TABLE
+    // =========================================
+
+    function renderTable() {
+
+        const wrapper = document.getElementById("tableWrapper");
+
+        if (students.length === 0) {
+
+            wrapper.innerHTML = `
+                <div class="empty">
+                    👨‍🎓 Студентов пока нет.
+                    <br><br>
+                    Добавьте студентов в разделе «Студенты»
+                    или проверьте, что группа выбрана правильно.
+                </div>
+            `;
+
+            const printSheet = document.getElementById("printSheet");
+            if (printSheet) printSheet.innerHTML = "";
+
+            return;
+        }
+
+
+        const weekDates = getWeekDates();
+
+
+        let html = `
+            <table>
+                <thead>
+                    <tr>
+                        <th class="student-column" rowspan="2">
+                            Список обучающихся
+                        </th>
+        `;
+
+
+        weekDates.forEach((date, index) => {
+
+            const count = getLessonCount(index);
+
+            html += `
+                <th class="day-header" colspan="${Math.max(count, 1)}">
+                    <div class="day-name">${days[index]}</div>
+                    <div class="day-date">${formatDateRu(formatDate(date))}</div>
+                </th>
+            `;
         });
 
 
-        function applyGroupFilter() {
-            if (!selectedGroupId) { students = []; return; }
-            const group = allGroupsData.find(g => g.id === selectedGroupId);
-            const explicitIds = group && Array.isArray(group.studentIds) ? group.studentIds : [];
-            const explicitSet = new Set(explicitIds);
-
-            students = allStudents.filter(s =>
-                s.groupId === selectedGroupId || explicitSet.has(s.id)
-            );
-            students.sort((a, b) =>
-                String(a.name || a.fullName || a.fio || "")
-                    .localeCompare(String(b.name || b.fullName || b.fio || ""), "ru")
-            );
-        }
-
-
-        async function loadSettings() {
-            settings = { schedule: {}, disciplines: {}, bells: {}, semester1: {}, semester2: {} };
-            if (!selectedGroupId) return;
-
-            try {
-                const snap = await getDoc(doc(db, "groupSettings", selectedGroupId));
-                if (snap.exists()) {
-                    const data = snap.data() || {};
-                    settings = {
-                        schedule: data.schedule || {},
-                        disciplines: data.disciplines || {},
-                        bells: data.bells || {},
-                        semester1: data.semester1 || {},
-                        semester2: data.semester2 || {}
-                    };
-                }
-            } catch (e) { console.error(e); }
-        }
+        html += `
+                    <th class="day-header report-col" rowspan="2">
+                        <div class="day-name">Все Н, ч</div>
+                    </th>
+                    <th class="day-header report-col report-uv" rowspan="2">
+                        <div class="day-name">УВ Н, ч</div>
+                    </th>
+                    <th class="day-header report-col report-neuv" rowspan="2">
+                        <div class="day-name">Неув Н, ч</div>
+                    </th>
+                    <th class="day-header report-col report-note-col" rowspan="2">
+                        <div class="day-name">Примечание</div>
+                    </th>
+                    </tr>
+                    <tr>
+        `;
 
 
-        async function loadStudents() {
-            const snap = await getDocs(collection(db, "students"));
-            allStudents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-            applyGroupFilter();
-        }
+        weekDates.forEach((date, dayIndex) => {
+
+            const count = getLessonCount(dayIndex);
+
+            if (count === 0) {
+                html += `<th>—</th>`;
+                return;
+            }
+
+            for (let lesson = 1; lesson <= count; lesson++) {
+                html += `<th>${lesson}</th>`;
+            }
+        });
 
 
-        async function loadAttendance() {
-            attendance = {};
-            const snap = await getDocs(collection(db, "attendance"));
+        html += `
+                    </tr>
+                </thead>
+                <tbody>
+        `;
 
-            snap.forEach(docItem => {
-                const data = docItem.data();
 
-                if (data.students && typeof data.students === "object") {
-                    Object.values(data.students).forEach(rec => {
-                        if (!data.date || !rec.studentId) return;
-                        const key = `${data.date}_${rec.studentId}`;
-                        attendance[key] = {
-                            studentId: rec.studentId,
-                            studentName: rec.studentName || "",
-                            date: data.date,
-                            groupId: data.groupId || "",
-                            lessons: rec.lessons || {},
-                            semester: data.semester || "",
-                            attestation: data.attestation || ""
-                        };
-                    });
+        let groupAll = 0;
+        let groupUv = 0;
+        let groupNeuv = 0;
+
+
+        students.forEach((student, studentIndex) => {
+
+            let studentAll = 0;
+            let studentUv = 0;
+            let studentNeuv = 0;
+            const studentReasons = [];
+
+
+            html += `
+                <tr>
+                    <td class="student-cell">
+                        <div class="student-wrapper">
+                            <div class="student-number">${studentIndex + 1}</div>
+                            <div class="student-name">${escapeHtml(student.name || "Без имени")}</div>
+                        </div>
+                    </td>
+            `;
+
+
+            weekDates.forEach((date, dayIndex) => {
+
+                const dateString = formatDate(date);
+                const lessonCount = getLessonCount(dayIndex);
+
+                if (lessonCount === 0) {
+                    html += `<td class="lesson-cell empty-mark">—</td>`;
                     return;
                 }
 
-                if (data.date && data.studentId) {
-                    const key = `${data.date}_${data.studentId}`;
-                    attendance[key] = data;
-                }
-            });
-        }
-
-
-        function getStudentDay(studentId) {
-            const key = `${selectedDate}_${studentId}`;
-            return attendance[key] || { studentId, date: selectedDate, lessons: {} };
-        }
-
-        function getLessonData(studentId, lesson) {
-            const dayData = getStudentDay(studentId);
-            return dayData.lessons?.[String(lesson)] || { status: "", absentType: "", reason: "" };
-        }
-
-
-        /* ============ SAVE (единая точка) ============ */
-
-        async function setAttendanceMark(studentId, lesson, payload) {
-
-            const student = students.find(s => s.id === studentId);
-            if (!student) {
-                console.warn("Студент не найден:", studentId);
-                return;
-            }
-
-            const dayData = getStudentDay(studentId);
-            const lessons = { ...(dayData.lessons || {}) };
-
-            if (payload === null) {
-                delete lessons[String(lesson)];
-            } else {
-                lessons[String(lesson)] = payload;
-            }
-
-            const period = getAttestationInfo(selectedDate);
-
-            const studentRecord = {
-                studentId: student.id,
-                studentName: student.name || "",
-                lessons: lessons,
-                updatedAt: new Date().toISOString()
-            };
-
-            const updateData = {
-                date: selectedDate,
-                groupId: selectedGroupId,
-                semester: period.semester,
-                attestation: period.attestation,
-                [`students.${student.id}`]: studentRecord
-            };
-
-            await setDoc(doc(db, "attendance", selectedDate), updateData, { merge: true });
-
-            // локальный кэш
-            const cacheKey = `${selectedDate}_${student.id}`;
-            attendance[cacheKey] = {
-                studentId: student.id,
-                studentName: student.name || "",
-                date: selectedDate,
-                groupId: selectedGroupId,
-                lessons: lessons,
-                semester: period.semester,
-                attestation: period.attestation
-            };
-
-            render();
-        }
-
-
-        /* ============ QUICK MODE ============ */
-
-        function enableQuickMode(mode) {
-            quickMode = mode;
-            updateMobileBar();
-            showToast(mode === "present" ? "Режим: присутствие" : "Режим: отсутствие");
-        }
-        window.enableQuickMode = enableQuickMode;
-
-        function disableQuickMode() {
-            quickMode = null;
-            updateMobileBar();
-            showToast("Режим отключён");
-        }
-        window.disableQuickMode = disableQuickMode;
-
-        function toggleMobileMode(mode) {
-            quickMode = (quickMode === mode) ? null : mode;
-            updateMobileBar();
-            showToast(quickMode ? (mode === "present" ? "Режим: присутствие" : "Режим: отсутствие") : "Режим отключён");
-        }
-        window.toggleMobileMode = toggleMobileMode;
-
-        function updateMobileBar() {
-            document.getElementById("mbPresent").classList.toggle("active", quickMode === "present");
-            document.getElementById("mbAbsent").classList.toggle("active", quickMode === "absent");
-        }
-
-
-        /* ============ КЛИК ПО ЯЧЕЙКЕ (десктоп) ============ */
-
-        window.onCellClick = async function (studentId, lesson) {
-
-            // Режим быстрой отметки
-            if (quickMode === "present") {
-                await setAttendanceMark(studentId, lesson, { status: "present", reason: "" });
-                showToast("✓ Присутствие");
-                return;
-            }
-
-            if (quickMode === "absent") {
-                openReasonModal(studentId, lesson);
-                return;
-            }
-
-            // Иначе — меню выбора
-            openChoiceMenu(studentId, lesson);
-        };
-
-
-        window.onMobilePresent = async function (studentId, lesson) {
-            await setAttendanceMark(studentId, lesson, { status: "present", reason: "" });
-        };
-
-        window.onMobileAbsent = function (studentId, lesson) {
-            openReasonModal(studentId, lesson);
-        };
-
-        window.onMobileMore = function (studentId, lesson) {
-            openChoiceMenu(studentId, lesson);
-        };
-
-
-        window.onLessonTabClick = function (lesson) {
-            activeMobileLesson = lesson;
-            render();
-        };
-
-
-        /* ============ МЕНЮ ВЫБОРА ============ */
-
-        function openChoiceMenu(studentId, lesson) {
-            const student = students.find(s => s.id === studentId);
-            if (!student) return;
-
-            selectedStudent = student;
-            selectedLesson = lesson;
-
-            const data = getLessonData(student.id, lesson);
-
-            document.getElementById("choiceStudent").textContent =
-                `${student.name} · пара ${lesson}`;
-
-            const del = document.getElementById("deleteButton");
-            del.style.display = (data.status === "present" || data.status === "absent") ? "flex" : "none";
-
-            document.getElementById("choiceOverlay").classList.add("active");
-        }
-
-
-        function openReasonModal(studentId, lesson) {
-            const student = students.find(s => s.id === studentId);
-            if (!student) return;
-
-            selectedStudent = student;
-            selectedLesson = lesson;
-            selectedAction = "single";
-
-            const oldData = getLessonData(studentId, lesson);
-
-            document.getElementById("modalStudent").textContent = student.name;
-            document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
-            document.getElementById("modalLesson").textContent =
-                `${lesson} пара · ${getDiscipline(getDayIndex(selectedDate), lesson)}`;
-
-            document.getElementById("reasonInput").value = oldData.reason || "";
-
-            selectedAbsentType = oldData.absentType || "neuv";
-            updateAbsentTypeButtons();
-
-            document.getElementById("reasonOverlay").classList.add("active");
-            setTimeout(() => document.getElementById("reasonInput").focus(), 100);
-        }
-
-
-        window.choosePresent = async function () {
-            if (!selectedStudent) return;
-            closeChoice();
-            await setAttendanceMark(selectedStudent.id, selectedLesson, { status: "present", reason: "" });
-            showToast("✓ Присутствие сохранено", "success");
-        };
-
-        window.chooseAbsent = function () {
-            if (!selectedStudent) return;
-            closeChoice();
-            openReasonModal(selectedStudent.id, selectedLesson);
-        };
-
-        window.chooseWholeDay = function () {
-            if (!selectedStudent) return;
-            closeChoice();
-
-            document.getElementById("modalStudent").textContent = selectedStudent.name;
-            document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
-            document.getElementById("modalLesson").textContent = "Весь день";
-
-            document.getElementById("reasonInput").value = "";
-
-            selectedAbsentType = "neuv";
-            updateAbsentTypeButtons();
-
-            selectedAction = "wholeDay";
-            document.getElementById("reasonOverlay").classList.add("active");
-            setTimeout(() => document.getElementById("reasonInput").focus(), 100);
-        };
-
-
-        window.deleteAttendance = async function () {
-            if (!selectedStudent || !selectedLesson) return;
-            closeChoice();
-            await setAttendanceMark(selectedStudent.id, selectedLesson, null);
-            showToast("Отметка удалена", "success");
-        };
-
-
-        window.selectAbsentType = function (type) {
-            selectedAbsentType = type;
-            updateAbsentTypeButtons();
-        };
-
-        function updateAbsentTypeButtons() {
-            document.querySelectorAll("#absentTypeGroup .status-option").forEach(btn => {
-                btn.classList.toggle("active", btn.dataset.type === selectedAbsentType);
-            });
-        }
-
-
-        window.saveAbsent = async function () {
-            if (!selectedStudent || !selectedAction) return;
-
-            const reason = document.getElementById("reasonInput").value.trim();
-            const dayIndex = getDayIndex(selectedDate);
-            const lessonCount = getLessonCount(dayIndex);
-
-            if (selectedAction === "single") {
-                await setAttendanceMark(selectedStudent.id, selectedLesson, {
-                    status: "absent",
-                    absentType: selectedAbsentType,
-                    reason: reason
-                });
-            } else if (selectedAction === "wholeDay") {
                 for (let lesson = 1; lesson <= lessonCount; lesson++) {
-                    await setAttendanceMark(selectedStudent.id, lesson, {
-                        status: "absent",
-                        absentType: selectedAbsentType,
-                        reason: reason
-                    });
-                }
-            }
 
-            closeReason();
-            showToast("Отсутствие сохранено", "success");
-        };
+                    const key = `${dateString}_${student.id}_${lesson}`;
+                    const record = attendance[key];
 
+                    let mark = "—";
+                    let className = "empty-mark";
 
-        window.closeChoice = function () {
-            document.getElementById("choiceOverlay").classList.remove("active");
-        };
-
-        window.closeChoiceOutside = function (e) {
-            if (e.target.id === "choiceOverlay") closeChoice();
-        };
-
-        window.closeReason = function () {
-            document.getElementById("reasonOverlay").classList.remove("active");
-            selectedAction = null;
-        };
-
-        window.closeLessonInfo = function () {
-            document.getElementById("lessonInfoOverlay").classList.remove("active");
-        };
-
-
-        window.openLessonInfo = function (lesson) {
-            const dayIndex = getDayIndex(selectedDate);
-            const discipline = getDiscipline(dayIndex, lesson);
-            const time = getLessonTime(dayIndex, lesson);
-
-            document.getElementById("lessonInfoTitle").textContent = `Пара ${lesson}`;
-            document.getElementById("lessonInfoSubtitle").textContent =
-                `${getDayName(selectedDate)} · ${formatDateRu(selectedDate)}`;
-            document.getElementById("lessonDiscipline").textContent = discipline;
-            document.getElementById("lessonTime").textContent = time.text;
-            document.getElementById("lessonStart").textContent = time.start;
-            document.getElementById("lessonEnd").textContent = time.end;
-
-            document.getElementById("lessonInfoOverlay").classList.add("active");
-        };
-
-
-        document.addEventListener("keydown", e => {
-            if (e.key === "Escape") {
-                closeChoice();
-                closeReason();
-                closeLessonInfo();
-            }
-        });
-
-        document.getElementById("reasonOverlay").addEventListener("click", e => {
-            if (e.target.id === "reasonOverlay") closeReason();
-        });
-
-        document.getElementById("lessonInfoOverlay").addEventListener("click", e => {
-            if (e.target.id === "lessonInfoOverlay") closeLessonInfo();
-        });
-
-
-        datePicker.addEventListener("change", async function () {
-            selectedDate = this.value;
-            await reloadData();
-        });
-
-
-        /* ============ RENDER ============ */
-
-        function render() {
-            if (!selectedDate) return;
-
-            const dayIndex = getDayIndex(selectedDate);
-            const lessonCount = getLessonCount(dayIndex);
-
-            document.getElementById("dayName").textContent = getDayName(selectedDate);
-            document.getElementById("lessonCountBadge").textContent =
-                `${lessonCount} ${lessonCount === 1 ? "пара" : (lessonCount >= 2 && lessonCount <= 4) ? "пары" : "пар"}`;
-
-            const period = getAttestationInfo(selectedDate);
-            document.getElementById("periodInfo").textContent =
-                `${period.semester} · ${period.attestation}`;
-
-            if (dayIndex === 0) return renderEmpty("Выходной", "В воскресенье занятий нет.");
-            if (lessonCount <= 0) return renderEmpty("Нет занятий", "Для этого дня не задано расписание.");
-            if (!selectedGroupId) return renderEmpty("Группа недоступна", userRole === "admin" ? "В системе пока нет групп." : "Вам не назначена группа.");
-            if (students.length === 0) return renderEmpty("Студентов нет", "В группе нет ни одного студента.");
-
-            if (isMobile()) renderMobile(dayIndex, lessonCount);
-            else renderDesktop(dayIndex, lessonCount);
-        }
-
-
-        function renderDesktop(dayIndex, lessonCount) {
-            let html = `<table><thead><tr><th class="col-student">Студент</th>`;
-
-            for (let lesson = 1; lesson <= lessonCount; lesson++) {
-                const discipline = getDiscipline(dayIndex, lesson);
-                html += `<th class="col-lesson" onclick="window.openLessonInfo(${lesson})">
-                    <span class="lesson-num">${lesson}</span>
-                    <span class="lesson-name">${escapeHtml(discipline)}</span>
-                </th>`;
-            }
-
-            html += `</tr></thead><tbody>`;
-
-            students.forEach((student, idx) => {
-                html += `<tr>
-                    <td class="col-student">
-                        <div class="student-cell">
-                            <span class="student-index">${idx + 1}</span>
-                            <span class="student-name">${escapeHtml(student.name || "Без имени")}</span>
-                        </div>
-                    </td>`;
-
-                for (let lesson = 1; lesson <= lessonCount; lesson++) {
-                    const data = getLessonData(student.id, lesson);
-                    let cls = "empty", text = "·";
-
-                    if (data.status === "present") { cls = "present"; text = "✓"; }
-                    if (data.status === "absent") {
-                        cls = "absent";
-                        text = data.absentType === "uv" ? "Н/У"
-                             : data.absentType === "bolezn" ? "Н/Б" : "Н";
+                    if (record && record.status === "present") {
+                        mark = "✓";
+                        className = "present";
                     }
 
-                    html += `<td class="att-cell" onclick="window.onCellClick('${escapeJs(student.id)}', ${lesson})">
-                        <span class="mark ${cls}">${text}</span>
-                    </td>`;
+                    if (record && record.status === "absent") {
+
+                        mark = "Н";
+                        className = "absent";
+
+                        studentAll += HOURS_PER_LESSON;
+
+                        const reasonText = String(record.reason || "").trim();
+                        const absentType = record.absentType || "";
+
+                        const isExcused =
+                            absentType === "uv" ||
+                            absentType === "bolezn" ||
+                            (!absentType && Boolean(reasonText));
+
+                        if (isExcused) {
+
+                            studentUv += HOURS_PER_LESSON;
+
+                            if (reasonText && !studentReasons.includes(reasonText)) {
+                                studentReasons.push(reasonText);
+                            }
+
+                        }
+                        else {
+                            studentNeuv += HOURS_PER_LESSON;
+                        }
+                    }
+
+
+                    html += `
+                        <td class="lesson-cell ${className}" data-record-key="${escapeHtml(key)}">
+                            ${mark}
+                        </td>
+                    `;
                 }
-
-                html += `</tr>`;
             });
 
-            html += `</tbody></table>`;
-            tableContainer.innerHTML = html;
-        }
+
+            groupAll += studentAll;
+            groupUv += studentUv;
+            groupNeuv += studentNeuv;
 
 
-        function renderMobile(dayIndex, lessonCount) {
-
-            if (activeMobileLesson > lessonCount) activeMobileLesson = 1;
-            const lesson = activeMobileLesson;
-            const discipline = getDiscipline(dayIndex, lesson);
-
-            let tabs = `<div class="mobile-lesson-tabs">`;
-            for (let i = 1; i <= lessonCount; i++) {
-                tabs += `<button class="lesson-tab ${i === lesson ? "active" : ""}"
-                            onclick="window.onLessonTabClick(${i})">${i}</button>`;
-            }
-            tabs += `</div>`;
-
-            const lessonTitle = `<div style="padding:14px 18px 8px;font-size:13px;color:#8E8E93;font-weight:500;">
-                ${escapeHtml(discipline)}
-            </div>`;
-
-            let rows = `<div class="mobile-list">`;
-
-            students.forEach((student, idx) => {
-                const data = getLessonData(student.id, lesson);
-
-                let rowCls = "";
-                if (data.status === "present") rowCls = "present";
-                if (data.status === "absent") rowCls = "absent";
-
-                const isPresent = data.status === "present";
-                const isAbsent = data.status === "absent";
-                const absentLabel =
-                    data.absentType === "uv" ? "Н/У"
-                    : data.absentType === "bolezn" ? "Н/Б" : "Н";
-
-                rows += `<div class="student-row ${rowCls}">
-                    <div class="student-row-left">
-                        <span class="student-index">${idx + 1}</span>
-                        <span class="student-row-name">${escapeHtml(student.name || "Без имени")}</span>
-                    </div>
-                    <div class="student-row-actions">
-                        <button class="row-btn ${isPresent ? "present active" : ""}"
-                                onclick="window.onMobilePresent('${escapeJs(student.id)}', ${lesson})">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M20 6 9 17l-5-5"/>
-                            </svg>
-                        </button>
-                        <button class="row-btn ${isAbsent ? "absent active" : ""}"
-                                onclick="window.onMobileAbsent('${escapeJs(student.id)}', ${lesson})">
-                            ${isAbsent
-                                ? `<span style="font-size:12px;font-weight:800;">${absentLabel}</span>`
-                                : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M18 6 6 18M6 6l12 12"/>
-                                   </svg>`}
-                        </button>
-                        <button class="row-btn row-btn-more"
-                                onclick="window.onMobileMore('${escapeJs(student.id)}', ${lesson})">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="5" cy="12" r="1"/>
-                                <circle cx="12" cy="12" r="1"/>
-                                <circle cx="19" cy="12" r="1"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>`;
-            });
-
-            rows += `</div>`;
-
-            tableContainer.innerHTML = tabs + lessonTitle + rows;
-        }
-
-
-        function renderEmpty(title, text) {
-            tableContainer.innerHTML = `
-                <div class="state">
-                    <div class="state-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="9"/>
-                            <path d="M12 8v4M12 16h.01"/>
-                        </svg>
-                    </div>
-                    <div class="state-title">${escapeHtml(title)}</div>
-                    <div class="state-text">${escapeHtml(text)}</div>
-                </div>`;
-        }
-
-
-        /* ============ RELOAD ============ */
-
-        window.reloadData = async function () {
-            tableContainer.innerHTML = `
-                <div class="state">
-                    <div class="spinner"></div>
-                    <div class="state-text">Загрузка данных…</div>
-                </div>`;
-
-            try {
-                await authReady;
-                await loadGroupsAndRole();
-                populateGroupSelect();
-                await loadSettings();
-                await loadStudents();
-                await loadAttendance();
-                render();
-            } catch (e) {
-                console.error(e);
-                renderEmpty("Ошибка загрузки", "Не удалось получить данные из Firebase.");
-                showToast("Ошибка подключения", "error");
-            }
-        };
-
-
-        /* ============ CLOCK / TOAST / BACK ============ */
-
-        function updateClock() {
-            const now = new Date();
-            document.getElementById("clock").textContent = now.toLocaleTimeString("ru-RU");
-            document.getElementById("clockDate").textContent = now.toLocaleDateString("ru-RU", {
-                day: "2-digit", month: "2-digit", year: "numeric"
-            });
-        }
-
-        let toastTimer;
-        function showToast(msg, type = "") {
-            const t = document.getElementById("toast");
-            t.textContent = msg;
-            t.className = `toast show ${type}`;
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => { t.className = "toast"; }, 2200);
-        }
-
-        window.goBack = function () { window.location.replace(homePage); };
-
-
-        /* ============ RESIZE ============ */
-
-        let resizeTimer;
-        window.addEventListener("resize", () => {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(() => {
-                if (selectedDate) render();
-            }, 200);
+            html += `
+                    <td class="report-col report-total">${studentAll}</td>
+                    <td class="report-col report-uv">${studentUv}</td>
+                    <td class="report-col report-neuv">${studentNeuv}</td>
+                    <td class="report-col report-note-col ${studentReasons.length ? "" : "empty-mark"}">
+                        ${studentReasons.length ? escapeHtml(studentReasons.join("; ")) : "—"}
+                    </td>
+                </tr>
+            `;
         });
 
 
-        /* ============ START ============ */
+        html += `
+                <tr class="total-row">
+                    <td class="student-cell"><strong>Итого по группе</strong></td>
+        `;
 
-        async function start() {
-            const today = new Date();
-            selectedDate = formatDate(today);
-            datePicker.value = selectedDate;
 
-            updateClock();
-            setInterval(updateClock, 1000);
-            updateMobileBar();
+        weekDates.forEach((date, dayIndex) => {
 
-            try { await reloadData(); } catch (e) { console.error(e); }
+            const count = getLessonCount(dayIndex);
+            const slots = Math.max(count, 1);
 
-            setTimeout(() => {
-                document.getElementById("pageLoader").classList.add("hidden");
-            }, 300);
+            for (let i = 0; i < slots; i++) {
+                html += `<td class="empty-mark">—</td>`;
+            }
+        });
+
+
+        html += `
+                    <td class="report-col report-total">${groupAll}</td>
+                    <td class="report-col report-uv">${groupUv}</td>
+                    <td class="report-col report-neuv">${groupNeuv}</td>
+                    <td class="report-col report-note-col empty-mark">—</td>
+                </tr>
+                </tbody>
+            </table>
+        `;
+
+
+        wrapper.innerHTML = html;
+
+
+        wrapper.querySelectorAll(".lesson-cell").forEach(cell => {
+            cell.addEventListener("click", event => {
+                showRecordInfo(event, cell);
+            });
+        });
+
+    }
+
+
+    // =========================================
+    // SHOW RECORD
+    // =========================================
+
+    function showRecordInfo(event, cell) {
+
+        const key = cell.dataset.recordKey;
+        const record = attendance[key];
+
+        if (!record) {
+            hidePopup();
+            return;
         }
 
-        start();
+        const popup = document.getElementById("infoPopup");
 
-    </script>
+        if (record.status === "absent") {
+            document.getElementById("popupTitle").textContent = "⚠️ Отсутствие";
+        }
+        else {
+            document.getElementById("popupTitle").textContent = "✓ Присутствие";
+        }
+
+        document.getElementById("popupStudent").textContent =
+            "ФИО: " + record.studentName;
+
+        document.getElementById("popupDate").textContent =
+            "Дата: " + formatDateRu(record.date);
+
+        document.getElementById("popupLesson").textContent =
+            "Пара: " + record.lesson;
+
+        document.getElementById("popupReason").textContent =
+            record.reason ||
+            (record.status === "absent"
+                ? "Причина не указана"
+                : "Студент присутствовал");
+
+        popup.style.display = "block";
+
+        const rect = cell.getBoundingClientRect();
+
+        let left = rect.left;
+        let top = rect.bottom + 5;
+
+        if (left + 290 > window.innerWidth) left = window.innerWidth - 300;
+        if (top + 190 > window.innerHeight) top = rect.top - 195;
+        if (left < 5) left = 5;
+        if (top < 5) top = 5;
+
+        popup.style.left = left + "px";
+        popup.style.top = top + "px";
+
+        event.stopPropagation();
+    }
+
+
+    function hidePopup() {
+        document.getElementById("infoPopup").style.display = "none";
+    }
+
+
+    document.addEventListener("click", event => {
+
+        const popup = document.getElementById("infoPopup");
+
+        if (!popup.contains(event.target)) {
+            hidePopup();
+        }
+    });
+
+
+    // =========================================
+    // WEEK NAVIGATION
+    // =========================================
+
+    window.previousWeek = function () {
+        weekStart.setDate(weekStart.getDate() - 7);
+        updateWeekRange();
+        renderTable();
+        renderWeekList();
+    };
+
+
+    window.nextWeek = function () {
+        weekStart.setDate(weekStart.getDate() + 7);
+        updateWeekRange();
+        renderTable();
+        renderWeekList();
+    };
+
+
+    window.currentWeek = function () {
+        weekStart = getMonday(new Date());
+        updateWeekRange();
+        renderTable();
+        renderWeekList();
+    };
+
+
+    window.toggleWeekList = function () {
+
+        const list = document.getElementById("weekList");
+
+        list.classList.toggle("show");
+
+        if (list.classList.contains("show")) {
+            renderWeekList();
+        }
+    };
+
+
+    function renderWeekList() {
+
+        const list = document.getElementById("weekList");
+
+        list.innerHTML = "";
+
+        const currentMonday = getMonday(new Date());
+
+        for (let i = -20; i <= 20; i++) {
+
+            const monday = new Date(currentMonday);
+            monday.setDate(monday.getDate() + i * 7);
+
+            const saturday = new Date(monday);
+            saturday.setDate(saturday.getDate() + 5);
+
+            const mondayText = formatDateRu(formatDate(monday));
+            const saturdayText = formatDateRu(formatDate(saturday));
+
+            const button = document.createElement("button");
+
+            button.className = "week-option";
+
+            if (formatDate(monday) === formatDate(weekStart)) {
+                button.classList.add("selected");
+            }
+
+            if (i === 0) button.classList.add("current-week");
+
+            button.textContent = i === 0
+                ? `⭐ Текущая неделя — ${mondayText} — ${saturdayText}`
+                : `${mondayText} — ${saturdayText}`;
+
+            button.addEventListener("click", () => selectWeek(monday));
+
+            list.appendChild(button);
+        }
+    }
+
+
+    function selectWeek(date) {
+
+        weekStart = getMonday(date);
+
+        updateWeekRange();
+        renderTable();
+
+        document.getElementById("weekList").classList.remove("show");
+
+        renderWeekList();
+    }
+
+
+    // =========================================
+    // PRINT
+    // =========================================
+
+    function formatShortDate(date, withYear) {
+
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+
+        if (!withYear) return `${dd}.${mm}`;
+
+        const yy = String(date.getFullYear()).slice(-2);
+        return `${dd}.${mm}.${yy}`;
+    }
+
+
+    // =========================================
+    // BUILD PRINT SHEET
+    // =========================================
+
+    function buildPrintSheet(scaleFactor) {
+
+        const sheet = document.getElementById("printSheet");
+        if (!sheet) return;
+
+        const group = getCurrentGroup();
+
+        const printGroupNameEl = document.getElementById("printGroupName");
+        if (printGroupNameEl) {
+            printGroupNameEl.textContent = group ? (group.name || group.id) : "—";
+        }
+
+        const curatorInputEl = document.getElementById("curatorPrintName");
+
+        const table = document.querySelector("#tableWrapper table");
+
+        if (!table || students.length === 0) {
+            sheet.innerHTML = "";
+            return;
+        }
+
+        const weekDates = getWeekDates();
+        const lessonCounts = weekDates.map((date, index) => getLessonCount(index));
+
+        const rows = Array.from(
+            table.querySelectorAll("tbody tr:not(.total-row)")
+        );
+
+        const s = scaleFactor || 1.0;
+
+        const baseRowHeight  = 7.5;
+        const baseHeadHeight = 7.0;
+        const baseSignHeight = 14;
+
+        const rowHeight  = baseRowHeight  * s;
+        const headHeight = baseHeadHeight * s;
+        const signHeight = baseSignHeight * s;
+
+        const fontBody  = (11  * s).toFixed(2);
+        const fontName  = (11  * s).toFixed(2);
+        const fontNum   = (12  * s).toFixed(2);
+        const fontSmall = (10  * s).toFixed(2);
+        const fontNote  = (9   * s).toFixed(2);
+        const fontHead  = (10  * s).toFixed(2);
+        const fontLineH = (14.5 * s).toFixed(2);
+
+        let cols =
+            '<col style="width:10.92mm">' +
+            '<col style="width:59.07mm">';
+
+        lessonCounts.forEach(count => {
+            if (count === 0) {
+                cols += '<col style="width:21mm">';
+            } else {
+                cols += "<col>".repeat(count);
+            }
+        });
+
+        cols +=
+            '<col style="width:10.65mm">' +
+            '<col style="width:6.83mm">' +
+            '<col style="width:10.04mm">' +
+            '<col style="width:24.02mm">';
+
+        let head1 = '<th rowspan="2"></th><th rowspan="2">Ф.И.О.</th>';
+        let head2 = "";
+
+        weekDates.forEach((date, index) => {
+            const count = lessonCounts[index];
+            head1 +=
+                `<th colspan="${Math.max(count, 1)}">` +
+                `${days[index]}<br>${formatShortDate(date, false)}</th>`;
+
+            if (count === 0) {
+                head2 += "<th>—</th>";
+            } else {
+                for (let lesson = 1; lesson <= count; lesson++) {
+                    head2 += `<th>${lesson}</th>`;
+                }
+            }
+        });
+
+        head1 +=
+            '<th class="sm">Всего</th>' +
+            "<th>Ув</th>" +
+            '<th class="sm">Неув</th>' +
+            "<th>Примечания</th>";
+
+        head2 += "<th></th><th></th><th></th><th></th>";
+
+        let body = "";
+
+        rows.forEach((row, rowIndex) => {
+
+            const nameElement = row.querySelector(".student-name");
+            const name = nameElement ? nameElement.textContent.trim() : "";
+
+            let cells = "";
+            row.querySelectorAll(".lesson-cell").forEach(cell => {
+                const mark = cell.classList.contains("absent") ? "Н" : "";
+                cells += `<td class="c-l">${mark}</td>`;
+            });
+
+            const readCell = selector => {
+                const cell = row.querySelector(selector);
+                return cell ? cell.textContent.trim() : "";
+            };
+
+            const noteCell = row.querySelector("td.report-note-col");
+            const note = (noteCell && !noteCell.classList.contains("empty-mark"))
+                ? noteCell.textContent.trim()
+                : "";
+
+            body +=
+                `<tr style="height:${rowHeight}mm">` +
+                `<td class="c-num" style="height:${rowHeight}mm">${rowIndex + 1}.</td>` +
+                `<td class="c-name">${escapeHtml(name)}</td>` +
+                cells +
+                `<td class="c-t">${escapeHtml(readCell("td.report-total"))}</td>` +
+                `<td class="c-t">${escapeHtml(readCell("td.report-uv"))}</td>` +
+                `<td class="c-t">${escapeHtml(readCell("td.report-neuv"))}</td>` +
+                `<td class="c-note">${escapeHtml(note)}</td>` +
+                `</tr>`;
+        });
+
+        const totalCols =
+            2 + lessonCounts.reduce((s, c) => s + Math.max(c, 1), 0) + 4;
+
+        const curatorName = (curatorInputEl && curatorInputEl.value.trim())
+            ? curatorInputEl.value.trim()
+            : "________________";
+
+        const signatureRow = `
+            <tr style="height:${signHeight}mm">
+                <td colspan="${totalCols}" class="c-signature">
+                    Классный руководитель&nbsp;&nbsp;&nbsp;&nbsp;______________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="pf-name">${escapeHtml(curatorName)}</span>
+                </td>
+            </tr>
+        `;
+
+        const oldStyle = document.getElementById("ptDynamicStyle");
+        if (oldStyle) oldStyle.remove();
+
+        sheet.innerHTML =
+            `<table class="pt">` +
+                `<colgroup>${cols}</colgroup>` +
+                `<thead>
+                    <tr style="height:${headHeight}mm">${head1}</tr>
+                    <tr style="height:${headHeight}mm">${head2}</tr>
+                </thead>` +
+                `<tbody>${body}${signatureRow}</tbody>` +
+            `</table>`;
+
+        const styleTag = document.createElement("style");
+        styleTag.id = "ptDynamicStyle";
+        styleTag.textContent = `
+            #printSheet table.pt { font-size: ${fontBody}pt; }
+            #printSheet table.pt thead th { font-size: ${fontHead}pt; }
+            #printSheet table.pt thead th.sm { font-size: ${fontSmall}pt; }
+            #printSheet table.pt td.c-num { font-size: ${fontNum}pt; }
+            #printSheet table.pt td.c-name { font-size: ${fontName}pt; line-height: ${fontLineH}pt; }
+            #printSheet table.pt td.c-l { font-size: ${fontSmall}pt; }
+            #printSheet table.pt td.c-t { font-size: ${fontSmall}pt; }
+            #printSheet table.pt td.c-note { font-size: ${fontNote}pt; }
+            #printSheet table.pt td.c-signature { font-size: ${fontBody}pt; }
+        `;
+        document.head.appendChild(styleTag);
+    }
+
+
+    // =========================================
+    // PRINT REPORT — РАСЧЁТ МАСШТАБА ЗАРАНЕЕ
+    // =========================================
+
+    function printReport() {
+
+        const dates = getWeekDates();
+
+        const rangeText =
+            `с ${formatShortDate(dates[0], true)}` +
+            ` - ${formatShortDate(dates[5], true)}гг`;
+
+        document.getElementById("printHeaderRange").textContent = rangeText;
+
+        // ============================================================
+        // Доступная высота таблицы (A4 landscape 210мм):
+        //   210 - 10 (верх) - 5 (низ) - 8 (заголовок) - 9 (запас) = 178мм
+        //
+        // Расход при scale=1.0:
+        //   - шапка таблицы (2 строки)  ≈ 14мм
+        //   - строка подписи            ≈ 14мм
+        //   - N строк студентов × 7.5мм
+        // ============================================================
+
+        const AVAILABLE_MM = 178;
+        const HEAD_MM  = 14;
+        const SIGN_MM  = 14;
+        const ROW_MM   = 7.5;
+
+        const studentCount = students.length;
+        const neededMm = HEAD_MM + SIGN_MM + studentCount * ROW_MM;
+
+        let scale = 1.0;
+
+        if (neededMm > AVAILABLE_MM) {
+            scale = AVAILABLE_MM / neededMm;
+        }
+
+        if (scale < 0.55) scale = 0.55;
+
+        console.log(
+            "🖨 Студентов:", studentCount,
+            "| нужно:", neededMm.toFixed(1), "мм",
+            "| доступно:", AVAILABLE_MM, "мм",
+            "| масштаб:", scale.toFixed(3)
+        );
+
+        buildPrintSheet(scale);
+
+        setTimeout(() => {
+            window.print();
+        }, 150);
+    }
+
+
+    window.printReport = printReport;
+
+
+    // =========================================
+    // MAIN MENU
+    // =========================================
+
+    window.goBack = async function () {
+
+        try {
+
+            const user = auth.currentUser;
+
+            if (!user) {
+                window.location.href = "login.html";
+                return;
+            }
+
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+
+            if (userDoc.exists() && userDoc.data().role === "admin") {
+                window.location.href = "adminhome.html";
+                return;
+            }
+
+            window.location.href = "home.html";
+
+        }
+        catch (error) {
+
+            console.error("Ошибка определения роли:", error);
+            window.location.href = "home.html";
+        }
+    };
+
+
+    // =========================================
+    // ESCAPE HTML
+    // =========================================
+
+    function escapeHtml(text) {
+
+        const div = document.createElement("div");
+        div.textContent = String(text ?? "");
+        return div.innerHTML;
+    }
+
+
+    // =========================================
+    // STATUS
+    // =========================================
+
+    function showStatus(message) {
+
+        const status = document.getElementById("status");
+
+        status.textContent = message;
+        status.classList.add("show");
+
+        setTimeout(() => {
+            status.classList.remove("show");
+        }, 2500);
+    }
+
+
+    // =========================================
+    // START
+    // =========================================
+
+    async function start() {
+
+        try {
+
+            weekStart = getMonday(new Date());
+
+            await loadUserAndGroups();
+
+            renderGroupSwitcher();
+
+            if (!currentGroupId) {
+
+                document.getElementById("tableWrapper").innerHTML = `
+                    <div class="empty">
+                        ⚠️ Вам не назначена ни одна группа.
+                        <br><br>
+                        Обратитесь к администратору для назначения
+                        группы (куратор / староста).
+                    </div>
+                `;
+
+                return;
+            }
+
+            await loadSettings();
+            await loadStudents();
+            await loadAttendance();
+
+            updateWeekRange();
+            renderTable();
+            renderWeekList();
+
+            const today = formatDate(new Date());
+            const info = getAttestationInfo(today);
+
+            if (info) {
+                document.getElementById("semesterInfo").textContent =
+                    `${info.semester} семестр • Аттестация №${info.attestation}`;
+            }
+            else {
+                document.getElementById("semesterInfo").textContent =
+                    "Семестр / аттестация не определены";
+            }
+
+        }
+        catch (error) {
+
+            console.error("Ошибка запуска:", error);
+
+            document.getElementById("tableWrapper").innerHTML = `
+                <div class="empty">
+                    ❌ Ошибка загрузки данных.
+                    <br><br>
+                    Откройте консоль браузера (F12 → Console) для подробностей.
+                </div>
+            `;
+        }
+    }
+
+
+    // =========================================
+    // ATTESTATION
+    // =========================================
+
+    function getAttestationInfo(dateString) {
+
+        const date = new Date(dateString + "T00:00:00");
+
+        const periods = [
+            { semester: 1, attestation: 1, period: settings.semester1?.attestation1 },
+            { semester: 1, attestation: 2, period: settings.semester1?.attestation2 },
+            { semester: 2, attestation: 1, period: settings.semester2?.attestation1 },
+            { semester: 2, attestation: 2, period: settings.semester2?.attestation2 }
+        ];
+
+        for (const item of periods) {
+
+            if (!item.period?.start || !item.period?.end) continue;
+
+            const start = new Date(item.period.start + "T00:00:00");
+            const end = new Date(item.period.end + "T23:59:59");
+
+            if (date >= start && date <= end) {
+                return item;
+            }
+        }
+
+        return null;
+    }
+
+
+    // =========================================
+    // AUTH STATE
+    // =========================================
+
+    onAuthStateChanged(auth, user => {
+
+        if (!user) {
+            console.warn("Пользователь не авторизован. Перенаправление на login.html");
+            window.location.href = "login.html";
+            return;
+        }
+
+        console.log("Авторизован:", user.uid);
+
+        document.body.classList.remove("auth-pending");
+
+        const overlay = document.getElementById("authGuardOverlay");
+        if (overlay) overlay.remove();
+
+        start();
+    });
+
+</script>
 
 </body>
 

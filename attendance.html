@@ -2999,7 +2999,21 @@
 
 
         /* =====================================================
+           === ИЗМЕНЕНО ===
            LOAD ATTENDANCE
+
+           Новая структура в базе:
+           attendance/{date} = {
+               date: "2026-09-25",
+               groupId: "...",
+               students: {
+                   "studentId1": { studentId, studentName, lessons },
+                   "studentId2": { ... }
+               }
+           }
+
+           Старая структура (для совместимости):
+           attendance/{date}_{studentId} = { date, studentId, lessons }
         ===================================================== */
 
         async function loadAttendance() {
@@ -3008,14 +3022,41 @@
 
             const snapshot = await getDocs(collection(db, "attendance"));
 
-            snapshot.forEach(item => {
+            snapshot.forEach(docItem => {
 
-                const data = item.data();
+                const data = docItem.data();
 
-                if (!data.date || !data.studentId) return;
+                /* --- Новый формат: 1 документ на дату с объектом students --- */
 
-                const key = `${data.date}_${data.studentId}`;
-                attendance[key] = data;
+                if (data.students && typeof data.students === "object") {
+
+                    Object.values(data.students).forEach(studentRecord => {
+
+                        if (!data.date || !studentRecord.studentId) return;
+
+                        const key = `${data.date}_${studentRecord.studentId}`;
+
+                        attendance[key] = {
+                            studentId: studentRecord.studentId,
+                            studentName: studentRecord.studentName || "",
+                            date: data.date,
+                            groupId: data.groupId || "",
+                            lessons: studentRecord.lessons || {},
+                            semester: data.semester || "",
+                            attestation: data.attestation || ""
+                        };
+                    });
+
+                    return;
+                }
+
+                /* --- Старый формат (совместимость) --- */
+
+                if (data.date && data.studentId) {
+
+                    const key = `${data.date}_${data.studentId}`;
+                    attendance[key] = data;
+                }
             });
         }
 
@@ -3048,38 +3089,62 @@
         }
 
 
-        function getAttendanceDocumentId(studentId) {
-            return `${selectedDate}_${studentId}`;
-        }
-
-
         /* =====================================================
+           === ИЗМЕНЕНО ===
            SAVE
+
+           Теперь сохраняем 1 документ на дату:
+           attendance/{selectedDate} = {
+               date, groupId, semester, attestation,
+               students: { [studentId]: { studentId, studentName, lessons } }
+           }
+
+           Используем merge: true, чтобы не затереть других студентов.
         ===================================================== */
 
         async function saveStudentDay(student, lessons) {
 
             const period = getAttestationInfo(selectedDate);
-            const documentId = getAttendanceDocumentId(student.id);
 
-            const data = {
+            /* ID документа = дата. Например: "2026-09-25" */
+            const documentId = selectedDate;
+
+            /* Данные конкретного студента */
+            const studentRecord = {
                 studentId: student.id,
                 studentName: student.name || "",
-                groupId: selectedGroupId,
+                lessons: lessons,
+                updatedAt: new Date().toISOString()
+            };
+
+            /* Формируем объект для точечного обновления:
+               students.{studentId} = studentRecord */
+            const updateData = {
                 date: selectedDate,
-                lessons,
+                groupId: selectedGroupId,
                 semester: period.semester,
                 attestation: period.attestation,
-                updatedAt: new Date().toISOString()
+                [`students.${student.id}`]: studentRecord
             };
 
             await setDoc(
                 doc(db, "attendance", documentId),
-                data,
-                { merge: false }
+                updateData,
+                { merge: true } // ВАЖНО: сохраняем других студентов!
             );
 
-            attendance[documentId] = data;
+            /* Обновляем локальный кэш, чтобы интерфейс сразу увидел изменения */
+            const cacheKey = `${selectedDate}_${student.id}`;
+
+            attendance[cacheKey] = {
+                studentId: student.id,
+                studentName: student.name || "",
+                date: selectedDate,
+                groupId: selectedGroupId,
+                lessons: lessons,
+                semester: period.semester,
+                attestation: period.attestation
+            };
         }
 
 

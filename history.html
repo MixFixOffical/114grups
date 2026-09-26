@@ -1940,7 +1940,29 @@
 
 
     // =========================================
+    // === ИЗМЕНЕНО ===
     // LOAD ATTENDANCE
+    //
+    // Поддерживает ДВА формата:
+    //
+    // 1) НОВЫЙ (1 документ на дату):
+    //    attendance/2026-09-25 = {
+    //        date: "2026-09-25",
+    //        groupId: "...",
+    //        semester, attestation, updatedAt,
+    //        students: {
+    //            "studentId1": { studentId, studentName, lessons },
+    //            "studentId2": { ... }
+    //        }
+    //    }
+    //
+    // 2) СТАРЫЙ (1 документ на студента-день):
+    //    attendance/2026-09-25_abc123 = {
+    //        date, studentId, studentName, lessons
+    //    }
+    //
+    // В обоих случаях данные приводятся к плоскому виду:
+    //    attendance["YYYY-MM-DD_studentId_lesson"] = { ... }
     // =========================================
 
     async function loadAttendance() {
@@ -1973,27 +1995,20 @@
 
             let matched = 0;
 
-            snapshot.forEach(attendanceDoc => {
 
-                const data = attendanceDoc.data();
+            /* Вспомогательная функция:
+               раскладывает один "студенто-день" в плоские ключи */
+            function pushStudentDay(date, studentId, studentName, lessons, meta) {
 
-                if (!data.date || !data.studentId) return;
+                if (!date || !studentId) return;
 
-                const studentId = String(data.studentId);
+                const sid = String(studentId);
 
-                if (!studentIdsSet.has(studentId)) return;
+                if (!studentIdsSet.has(sid)) return;
 
                 matched++;
 
-                const date = normalizeDate(data.date);
-                if (!date) return;
-
-                const studentName =
-                    data.studentName || getStudentName(studentId);
-
-                const lessons = data.lessons || {};
-
-                Object.entries(lessons).forEach(([lessonNumber, lessonData]) => {
+                Object.entries(lessons || {}).forEach(([lessonNumber, lessonData]) => {
 
                     if (!lessonData) return;
 
@@ -2010,27 +2025,83 @@
                         .trim()
                         .toLowerCase();
 
-                    const key = `${date}_${studentId}_${lessonNumber}`;
+                    const key = `${date}_${sid}_${lessonNumber}`;
 
                     attendance[key] = {
-                        id: attendanceDoc.id,
-                        documentId: attendanceDoc.id,
+                        id: meta.docId || "",
+                        documentId: meta.docId || "",
                         date: date,
-                        studentId: studentId,
-                        studentName: studentName,
+                        studentId: sid,
+                        studentName: studentName || getStudentName(sid),
                         lesson: String(lessonNumber),
                         status: status,
                         absentType: absentType,
                         reason: String(reason),
-                        semester: data.semester || "",
-                        attestation: data.attestation || "",
-                        updatedAt: data.updatedAt || ""
+                        semester: meta.semester || "",
+                        attestation: meta.attestation || "",
+                        updatedAt: meta.updatedAt || ""
                     };
                 });
+            }
+
+
+            snapshot.forEach(attendanceDoc => {
+
+                const data = attendanceDoc.data();
+
+                /* ---------- НОВЫЙ ФОРМАТ ---------- */
+
+                if (data.students && typeof data.students === "object") {
+
+                    const date = normalizeDate(data.date);
+
+                    if (!date) return;
+
+                    Object.values(data.students).forEach(studentRecord => {
+
+                        if (!studentRecord || !studentRecord.studentId) return;
+
+                        pushStudentDay(
+                            date,
+                            studentRecord.studentId,
+                            studentRecord.studentName,
+                            studentRecord.lessons,
+                            {
+                                docId: attendanceDoc.id,
+                                semester: data.semester,
+                                attestation: data.attestation,
+                                updatedAt:
+                                    studentRecord.updatedAt || data.updatedAt
+                            }
+                        );
+                    });
+
+                    return;
+                }
+
+                /* ---------- СТАРЫЙ ФОРМАТ ---------- */
+
+                if (data.date && data.studentId) {
+
+                    const date = normalizeDate(data.date);
+
+                    pushStudentDay(
+                        date,
+                        data.studentId,
+                        data.studentName,
+                        data.lessons,
+                        {
+                            docId: attendanceDoc.id,
+                            semester: data.semester,
+                            attestation: data.attestation,
+                            updatedAt: data.updatedAt
+                        }
+                    );
+                }
             });
 
             console.log(
-                "✅ Совпало документов attendance:",
+                "✅ Совпало записей:",
                 matched,
                 "| ключей собрано:",
                 Object.keys(attendance).length
@@ -2708,8 +2779,7 @@
         // Расход при scale=1.0:
         //   - шапка таблицы (2 строки)  ≈ 14мм
         //   - строка подписи            ≈ 14мм
-        //   - N строк студентов × 7.5мм
-        // ============================================================
+        //   - N строк студентов × 7.5мм        // ============================================================
 
         const AVAILABLE_MM = 178;
         const HEAD_MM  = 14;

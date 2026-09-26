@@ -2517,7 +2517,6 @@
 
 
         /* =====================================================
-           === ИЗМЕНЕНО ===
            LESSON COUNT из groupSettings
            schedule: { "Понедельник": 5, ... }
         ===================================================== */
@@ -2544,7 +2543,6 @@
 
 
         /* =====================================================
-           === ИЗМЕНЕНО ===
            LESSON CONFIG из groupSettings
         ===================================================== */
 
@@ -2645,7 +2643,6 @@
 
 
         /* =====================================================
-           === ИЗМЕНЕНО ===
            DISCIPLINE
         ===================================================== */
 
@@ -2666,7 +2663,6 @@
 
 
         /* =====================================================
-           === ИЗМЕНЕНО ===
            TIME из bells
         ===================================================== */
 
@@ -2734,7 +2730,6 @@
 
 
         /* =====================================================
-           === ИЗМЕНЕНО ===
            SEMESTER / ATTESTATION из groupSettings
         ===================================================== */
 
@@ -2889,8 +2884,9 @@
 
             applyGroupFilter();
 
-            /* === ИЗМЕНЕНО: перечитываем настройки группы === */
             await loadSettings();
+
+            await loadAttendance();
 
             render();
         });
@@ -2932,7 +2928,6 @@
 
 
         /* =====================================================
-           === ИЗМЕНЕНО ===
            LOAD SETTINGS из groupSettings/{selectedGroupId}
         ===================================================== */
 
@@ -2999,65 +2994,73 @@
 
 
         /* =====================================================
-           === ИЗМЕНЕНО ===
+           === ИСПРАВЛЕНО ===
            LOAD ATTENDANCE
 
-           Новая структура в базе:
-           attendance/{date} = {
-               date: "2026-09-25",
-               groupId: "...",
-               students: {
-                   "studentId1": { studentId, studentName, lessons },
-                   "studentId2": { ... }
-               }
-           }
-
-           Старая структура (для совместимости):
-           attendance/{date}_{studentId} = { date, studentId, lessons }
+           Теперь документ загружается НАПРЯМУЮ по ID = selectedDate.
+           Ключ строится от selectedDate, а не от data.date.
+           Это гарантирует, что после перезагрузки страницы
+           отметки "Н" корректно подтянутся.
         ===================================================== */
 
         async function loadAttendance() {
 
             attendance = {};
 
-            const snapshot = await getDocs(collection(db, "attendance"));
+            if (!selectedDate) return;
 
-            snapshot.forEach(docItem => {
+            try {
 
-                const data = docItem.data();
+                /* Загружаем ТОЛЬКО документ за нужную дату */
 
-                /* --- Новый формат: 1 документ на дату с объектом students --- */
+                const ref = doc(db, "attendance", selectedDate);
+                const snapshot = await getDoc(ref);
+
+                if (!snapshot.exists()) {
+                    console.log("ℹ Нет документа attendance за", selectedDate);
+                    return;
+                }
+
+                const data = snapshot.data() || {};
+
+                /* --- Новый формат: { date, groupId, students: { [id]: {...} } } --- */
 
                 if (data.students && typeof data.students === "object") {
 
                     Object.values(data.students).forEach(studentRecord => {
 
-                        if (!data.date || !studentRecord.studentId) return;
+                        if (!studentRecord || !studentRecord.studentId) return;
 
-                        const key = `${data.date}_${studentRecord.studentId}`;
+                        /* ВАЖНО: ключ строим от selectedDate */
+
+                        const key = `${selectedDate}_${studentRecord.studentId}`;
 
                         attendance[key] = {
                             studentId: studentRecord.studentId,
                             studentName: studentRecord.studentName || "",
-                            date: data.date,
+                            date: selectedDate,
                             groupId: data.groupId || "",
                             lessons: studentRecord.lessons || {},
                             semester: data.semester || "",
                             attestation: data.attestation || ""
                         };
                     });
-
-                    return;
                 }
 
-                /* --- Старый формат (совместимость) --- */
+                /* --- Старый формат (если документ назван как date_studentId) --- */
 
                 if (data.date && data.studentId) {
 
                     const key = `${data.date}_${data.studentId}`;
                     attendance[key] = data;
                 }
-            });
+
+                console.log("📥 attendance загружен:", selectedDate, attendance);
+
+            } catch (error) {
+
+                console.error("Ошибка загрузки attendance:", error);
+            }
         }
 
 
@@ -3090,16 +3093,15 @@
 
 
         /* =====================================================
-           === ИЗМЕНЕНО ===
            SAVE
 
-           Теперь сохраняем 1 документ на дату:
+           Сохраняем 1 документ на дату:
            attendance/{selectedDate} = {
                date, groupId, semester, attestation,
                students: { [studentId]: { studentId, studentName, lessons } }
            }
 
-           Используем merge: true, чтобы не затереть других студентов.
+           merge: true — не затираем других студентов.
         ===================================================== */
 
         async function saveStudentDay(student, lessons) {
@@ -3107,9 +3109,11 @@
             const period = getAttestationInfo(selectedDate);
 
             /* ID документа = дата. Например: "2026-09-25" */
+
             const documentId = selectedDate;
 
             /* Данные конкретного студента */
+
             const studentRecord = {
                 studentId: student.id,
                 studentName: student.name || "",
@@ -3117,8 +3121,8 @@
                 updatedAt: new Date().toISOString()
             };
 
-            /* Формируем объект для точечного обновления:
-               students.{studentId} = studentRecord */
+            /* Точечное обновление: students.{studentId} = studentRecord */
+
             const updateData = {
                 date: selectedDate,
                 groupId: selectedGroupId,
@@ -3130,10 +3134,11 @@
             await setDoc(
                 doc(db, "attendance", documentId),
                 updateData,
-                { merge: true } // ВАЖНО: сохраняем других студентов!
+                { merge: true }
             );
 
-            /* Обновляем локальный кэш, чтобы интерфейс сразу увидел изменения */
+            /* Обновляем локальный кэш */
+
             const cacheKey = `${selectedDate}_${student.id}`;
 
             attendance[cacheKey] = {
@@ -3776,7 +3781,6 @@
 
                 populateGroupSelect();
 
-                /* === ИЗМЕНЕНО: сначала группа, потом настройки группы === */
                 await loadSettings();
 
                 await loadStudents();

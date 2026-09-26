@@ -1102,9 +1102,6 @@
                         semester1: data.semester1 || {},
                         semester2: data.semester2 || {}
                     };
-                    console.log("📥 groupSettings:", selectedGroupId, settings);
-                } else {
-                    console.warn("⚠ groupSettings не найдены:", selectedGroupId);
                 }
             } catch (error) {
                 console.error("Ошибка groupSettings:", error);
@@ -1120,7 +1117,14 @@
 
 
         /* =====================================================
-           LOAD ATTENDANCE с логами
+           LOAD ATTENDANCE
+
+           Читает документ attendance/{selectedDate}.
+           Поддерживает ДВА формата:
+
+           1) Правильный: data.students = { [studentId]: {...} }
+           2) Кривой (старый): data["students.XXX"] = {...}
+              (поле с точкой в имени — так писал старый код)
         ===================================================== */
 
         async function loadAttendance() {
@@ -1129,23 +1133,15 @@
 
             if (!selectedDate) return;
 
-            console.log("=== 📥 loadAttendance ===");
-            console.log("selectedDate:", selectedDate);
-            console.log("selectedGroupId:", selectedGroupId);
-
             try {
                 const ref = doc(db, "attendance", selectedDate);
                 const snapshot = await getDoc(ref);
-
-                console.log("Документ существует:", snapshot.exists());
 
                 if (!snapshot.exists()) return;
 
                 const data = snapshot.data() || {};
 
-                console.log("data.groupId:", data.groupId);
-                console.log("data.date:", data.date);
-                console.log("data.students (keys):", Object.keys(data.students || {}));
+                /* --- 1) Правильный формат: data.students = { id: {...} } --- */
 
                 if (data.students && typeof data.students === "object") {
                     Object.values(data.students).forEach(studentRecord => {
@@ -1160,16 +1156,43 @@
                             semester: data.semester || "",
                             attestation: data.attestation || ""
                         };
-                        console.log("✅ Загружен ключ:", key, "lessons:", studentRecord.lessons);
                     });
                 }
+
+                /* --- 2) Кривой формат: поля вида "students.XXX" --- */
+
+                Object.keys(data).forEach(fieldName => {
+                    if (!fieldName.startsWith("students.")) return;
+
+                    const studentId = fieldName.slice("students.".length);
+                    const studentRecord = data[fieldName];
+
+                    if (!studentRecord || typeof studentRecord !== "object") return;
+                    if (!studentRecord.studentId) return;
+
+                    const key = `${selectedDate}_${studentId}`;
+
+                    /* не перезаписываем, если уже загружено из правильного формата */
+
+                    if (attendance[key]) return;
+
+                    attendance[key] = {
+                        studentId: studentId,
+                        studentName: studentRecord.studentName || "",
+                        date: selectedDate,
+                        groupId: data.groupId || "",
+                        lessons: studentRecord.lessons || {},
+                        semester: data.semester || "",
+                        attestation: data.attestation || ""
+                    };
+                });
+
+                /* --- 3) Совсем старый формат: data.date && data.studentId --- */
 
                 if (data.date && data.studentId) {
                     const key = `${data.date}_${data.studentId}`;
                     attendance[key] = data;
                 }
-
-                console.log("📦 Итоговый attendance:", attendance);
 
             } catch (error) {
                 console.error("Ошибка загрузки attendance:", error);
@@ -1189,29 +1212,53 @@
         }
 
 
-        async function saveStudentDay(student, lessons) {
-            const period = getAttestationInfo(selectedDate);
-            const documentId = selectedDate;
+        /* =====================================================
+           SAVE STUDENT DAY
 
-            const studentRecord = {
+           ВАЖНО: пишем students как НАСТОЯЩИЙ вложенный объект,
+           а не через точечный ключ "students.XXX".
+           Это гарантирует, что Firestore создаст map students,
+           а не поле с точкой в имени.
+        ===================================================== */
+
+        async function saveStudentDay(student, lessons) {
+
+            const period = getAttestationInfo(selectedDate);
+            const ref = doc(db, "attendance", selectedDate);
+
+            /* 1) Читаем текущий документ, чтобы не потерять других студентов */
+
+            const snapshot = await getDoc(ref);
+            const existing = snapshot.exists() ? snapshot.data() : {};
+
+            /* 2) Собираем map students из правильного формата */
+
+            const studentsMap = (existing.students && typeof existing.students === "object")
+                ? { ...existing.students }
+                : {};
+
+            /* 3) Добавляем/обновляем нашего студента */
+
+            studentsMap[student.id] = {
                 studentId: student.id,
                 studentName: student.name || "",
                 lessons: lessons,
                 updatedAt: new Date().toISOString()
             };
 
-            const updateData = {
+            /* 4) Записываем документ целиком (merge: true) */
+
+            await setDoc(ref, {
                 date: selectedDate,
                 groupId: selectedGroupId,
                 semester: period.semester,
                 attestation: period.attestation,
-                [`students.${student.id}`]: studentRecord
-            };
+                students: studentsMap
+            }, { merge: true });
 
-            await setDoc(doc(db, "attendance", documentId), updateData, { merge: true });
+            /* 5) Обновляем локальный кэш */
 
-            const cacheKey = `${selectedDate}_${student.id}`;
-            attendance[cacheKey] = {
+            attendance[`${selectedDate}_${student.id}`] = {
                 studentId: student.id,
                 studentName: student.name || "",
                 date: selectedDate,
@@ -1300,26 +1347,12 @@
         }
 
 
-        /* =====================================================
-           RENDER с логами
-        ===================================================== */
-
         function render() {
 
             if (!selectedDate) return;
 
             const dayIndex = getDayIndex(selectedDate);
             const lessonCount = getLessonCount(dayIndex);
-
-            /* === ДИАГНОСТИКА === */
-            console.log("=== 🎨 render ===");
-            console.log("selectedDate:", selectedDate);
-            console.log("selectedGroupId:", selectedGroupId);
-            console.log("students в таблице (id / name):",
-                students.map(s => ({ id: s.id, name: s.name }))
-            );
-            console.log("attendance keys:", Object.keys(attendance));
-            /* ================== */
 
             document.getElementById("dayName").textContent = getDayName(selectedDate);
 
@@ -1406,11 +1439,6 @@
                 for (let lesson = 1; lesson <= lessonCount; lesson++) {
 
                     const data = getLessonData(student.id, lesson);
-
-                    /* Диагностика по каждому студенту */
-                    const dayKey = `${selectedDate}_${student.id}`;
-                    console.log(`   ${student.name} (id=${student.id}) пара ${lesson}:`,
-                        "dayKey=", dayKey, "found=", !!attendance[dayKey], "data=", data);
 
                     let statusClass = "status-empty";
                     let statusText = "—";

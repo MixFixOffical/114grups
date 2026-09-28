@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<title>KURATOR — Авторизация</title>
+
+<style>
+/* =========================================
+   TOKENS
+========================================= */
+:root {
+    --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-200:#bfdbfe; --blue-300:#93c5fd;
+    --blue-400:#60a5fa; --blue-500:#3b82f6; --blue-600:#2563eb; --blue-700:#1d4ed8;
+    --violet-500:#8b5cf6; --cyan-400:#22d3ee;
+
+    --ink-900:#0b1220; --ink-800:#111827; --ink-700:#1f2937; --ink-600:#475569;
+    --ink-500:#64748b; --ink-400:#94a3b8; --ink-300:#cbd5e1; --ink-200:#e2e8f0;
+    --ink-100:#f1f5f9; --ink-50:#f8fafc;
+
+    --ok-500:#10b981; --ok-600:#047857; --ok-bg:#ecfdf5; --ok-bd:#a7f3d0;
+    --err-500:#ef4444; --err-600:#b91c1c; --err-bg:#fef2f2; --err-bd:#fecaca;
+    --warn-500:#f59e0b; --warn-600:#b45309; --warn-bg:#fffbeb; --warn-bd:#fde68a;
+
+    --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
+    --radius-xl:20px; --radius-2xl:26px;
+
+    --shadow-card:
+        0 1px 0 rgba(255,255,255,.95) inset,
+        0 24px 60px -20px rgba(15,23,42,.22),
+        0 12px 30px -14px rgba(37,99,235,.18);
+
+    --shadow-btn:
+        0 1px 0 rgba(255,255,255,.32) inset,
+        0 10px 22px -6px rgba(37,99,235,.5),
+        0 5px 12px -3px rgba(37,99,235,.35);
+
+    /* Более «мягкие» кривые для длинных анимаций */
+    --ease-out:cubic-bezier(.19,1,.22,1);
+    --ease-in-out:cubic-bezier(.45,.05,.55,.95);
+    --ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { width: 100%; min-height: 100%; height: 100%; }
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter",
+                 "SF Pro Display", Roboto, Arial, sans-serif;
+    color: var(--ink-800);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "ss01", "cv11", "tnum";
+
+    background:
+        radial-gradient(ellipse 760px 600px at 12% 15%, rgba(59,130,246,.17), transparent 55%),
+        radial-gradient(ellipse 840px 680px at 88% 85%, rgba(96,165,250,.15), transparent 55%),
+        radial-gradient(ellipse 600px 500px at 50% 50%, rgba(167,139,250,.09), transparent 60%),
+        linear-gradient(135deg, #f8fbff 0%, #eaf1ff 45%, #f8fbff 100%);
+
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body::before {
+    content: "";
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 0;
+    background-image:
+        linear-gradient(rgba(15,23,42,.026) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(15,23,42,.026) 1px, transparent 1px);
+    background-size: 40px 40px;
+    mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+}
+
+/* =========================================
+   BACKGROUND
+========================================= */
+.background {
+    position: fixed; inset: 0;
+    overflow: hidden; pointer-events: none; z-index: 0;
+}
+.orb {
+    position: absolute; border-radius: 50%;
+    filter: blur(85px); opacity: .6;
+    animation: floatOrb 22s ease-in-out infinite; /* 18s → 22s */
+    will-change: transform;
+}
+.orb.one { width: 300px; height: 300px; top: -100px; left: 40px;
+    background: radial-gradient(circle at 30% 30%, rgba(59,130,246,.40), transparent 70%); }
+.orb.two { width: 360px; height: 360px; right: 0; bottom: -130px;
+    background: radial-gradient(circle at 60% 40%, rgba(139,92,246,.28), transparent 70%);
+    animation-delay: -7s; }
+.orb.three { width: 220px; height: 220px; left: 46%; top: 6%;
+    background: radial-gradient(circle at 50% 50%, rgba(34,211,238,.22), transparent 70%);
+    animation-delay: -14s; }
+@keyframes floatOrb {
+    0%,100% { transform: translate3d(0,0,0) scale(1); }
+    50%     { transform: translate3d(28px,-32px,0) scale(1.10); }
+}
+
+.particles { position: absolute; inset: 0; pointer-events: none; }
+.particles span {
+    position: absolute; width: 3.5px; height: 3.5px; border-radius: 50%;
+    background: rgba(59,130,246,.5);
+    box-shadow: 0 0 10px rgba(59,130,246,.6);
+    animation: floatParticle 20s linear infinite; /* 14s → 20s */
+    opacity: 0;
+}
+.particles span:nth-child(1) { left: 12%; top: 80%; animation-delay: 0s; }
+.particles span:nth-child(2) { left: 22%; top: 90%; animation-delay: 2.5s; }
+.particles span:nth-child(3) { left: 36%; top: 85%; animation-delay: 5s; }
+.particles span:nth-child(4) { left: 58%; top: 92%; animation-delay: 7.5s; }
+.particles span:nth-child(5) { left: 72%; top: 88%; animation-delay: 10s; }
+.particles span:nth-child(6) { left: 84%; top: 82%; animation-delay: 12.5s; }
+.particles span:nth-child(7) { left: 92%; top: 90%; animation-delay: 15s; }
+.particles span:nth-child(8) { left: 46%; top: 95%; animation-delay: 6s; }
+@keyframes floatParticle {
+    0%   { transform: translateY(0) scale(.6); opacity: 0; }
+    15%  { opacity: .8; }
+    50%  { transform: translateY(-320px) scale(1.1); opacity: .55; }
+    85%  { opacity: .3; }
+    100% { transform: translateY(-640px) scale(.5); opacity: 0; }
+}
+
+/* =========================================
+   PAGE
+========================================= */
+.page {
+    position: relative; z-index: 1;
+    width: 100%; min-height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+    padding-top: calc(24px + env(safe-area-inset-top, 0px));
+}
+
+/* =========================================
+   CARD
+========================================= */
+.auth-card {
+    position: relative;
+    width: 100%;
+    max-width: 380px;
+    padding: 30px 26px 22px;
+    overflow: hidden;
+    border-radius: var(--radius-2xl);
+    background: linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(255,255,255,.90) 100%);
+    border: 1px solid rgba(255,255,255,1);
+    box-shadow: var(--shadow-card);
+    backdrop-filter: blur(30px) saturate(150%);
+    -webkit-backdrop-filter: blur(30px) saturate(150%);
+    transition: box-shadow .9s ease, transform 1s var(--ease-out);
+    will-change: transform;
+    animation: cardIn 1.4s var(--ease-out) both;
+}
+@keyframes cardIn {
+    from { opacity: 0; transform: translateY(28px) scale(.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.auth-card::before {
+    content: ""; position: absolute; top: 0; left: 15%; right: 15%; height: 1px;
+    background: linear-gradient(90deg, transparent, #fff, transparent);
+    opacity: .95; pointer-events: none; z-index: 3;
+}
+
+.auth-card::after {
+    content: ""; position: absolute; inset: -1px; border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(135deg,
+        rgba(59,130,246,.38), rgba(167,139,250,.24),
+        rgba(34,211,238,.30), rgba(59,130,246,.38));
+    background-size: 300% 300%;
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0; transition: opacity 1.2s ease;
+    animation: auraShift 9s ease-in-out infinite;
+    pointer-events: none; z-index: 2;
+}
+.auth-card:hover::after { opacity: 1; }
+@keyframes auraShift {
+    0%,100% { background-position: 0% 50%; }
+    50%     { background-position: 100% 50%; }
+}
+.auth-card:hover { transform: translateY(-3px); }
+
+.card-glow {
+    position: absolute; width: 240px; height: 240px;
+    top: -136px; right: -112px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(59,130,246,.30), transparent 70%);
+    filter: blur(28px); pointer-events: none;
+    animation: glowPulse 7s ease-in-out infinite;
+}
+@keyframes glowPulse {
+    0%,100% { opacity: .8; transform: scale(1); }
+    50%     { opacity: 1;  transform: scale(1.12); }
+}
+
+/* =========================================
+   LOGO
+========================================= */
+.logo {
+    position: relative;
+    width: 50px; height: 50px;
+    margin: 0 auto 16px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 16px;
+    color: #fff; font-size: 20px; font-weight: 800; letter-spacing: -.7px;
+    background: linear-gradient(145deg, #60a5fa 0%, #3b82f6 45%, #2563eb 100%);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.5) inset,
+        0 12px 26px -4px rgba(37,99,235,.45),
+        0 5px 12px -4px rgba(37,99,235,.3);
+    transition: transform 1.2s var(--ease-spring), box-shadow 1s ease;
+    overflow: hidden;
+}
+.logo::before {
+    content: ""; position: absolute; inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
+    transform: translateX(-100%);
+    animation: logoShimmer 6s ease-in-out infinite;
+}
+.logo::after {
+    content: ""; position: absolute; inset: 1px; border-radius: 15px;
+    border: 1px solid rgba(255,255,255,.35); pointer-events: none;
+}
+@keyframes logoShimmer {
+    0%,55% { transform: translateX(-100%); }
+    85%,100% { transform: translateX(100%); }
+}
+.auth-card:hover .logo { transform: translateY(-3px) scale(1.06) rotate(-3deg); }
+
+/* =========================================
+   HEADER
+========================================= */
+.header { text-align: center; margin-bottom: 22px; }
+.title {
+    font-size: 23px; line-height: 1.12; font-weight: 780; letter-spacing: -.8px;
+    background: linear-gradient(135deg, var(--ink-900) 0%, var(--ink-700) 100%);
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: opacity 1.2s ease, transform 1.4s var(--ease-out);
+}
+.subtitle {
+    margin-top: 7px; color: var(--ink-500);
+    font-size: 12px; line-height: 1.5; letter-spacing: .15px; font-weight: 480;
+    transition: opacity 1.2s ease, transform 1.4s var(--ease-out);
+}
+
+/* =========================================
+   TABS
+========================================= */
+.tabs {
+    position: relative;
+    display: grid; grid-template-columns: 1fr 1fr;
+    height: 42px; margin-bottom: 20px; padding: 3px;
+    border-radius: 13px;
+    background: linear-gradient(180deg, #eef2f7 0%, #e6ecf4 100%);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.95) inset,
+        0 1px 3px rgba(15,23,42,.06) inset;
+}
+.tab-indicator {
+    position: absolute; top: 3px; left: 3px;
+    width: calc(50% - 3px); height: calc(100% - 6px);
+    border-radius: 10px;
+    background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.95) inset,
+        0 3px 8px rgba(15,23,42,.08),
+        0 6px 16px -8px rgba(37,99,235,.22);
+    /* 0.68s → 1.15s, чуть мягче */
+    transition: transform 1.15s cubic-bezier(.34,1.3,.5,1);
+}
+.auth-card[data-mode="register"] .tab-indicator { transform: translateX(100%); }
+.tab {
+    position: relative; z-index: 2;
+    border: none; outline: none; background: transparent;
+    color: var(--ink-500); font-family: inherit;
+    font-size: 12.5px; font-weight: 660; letter-spacing: .15px;
+    cursor: pointer;
+    transition: color .7s ease, transform .55s var(--ease-spring);
+}
+.tab:hover { color: var(--blue-600); }
+.tab:active { transform: scale(.94); }
+.auth-card[data-mode="login"] .tab.login,
+.auth-card[data-mode="register"] .tab.register { color: var(--blue-600); }
+
+/* =========================================
+   VIEWPORT
+========================================= */
+.forms-viewport {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    /* 0.72s → 1.5s */
+    transition: height 1.5s cubic-bezier(.19,1,.22,1);
+}
+
+.form-panel {
+    position: absolute; top: 0; left: 0;
+    width: 100%;
+    opacity: 0;
+    transform: translateX(60px) translateY(8px) scale(.97);
+    filter: blur(8px);
+    pointer-events: none;
+    /* длиннее: 0.55s → 1.1s, transform 1.2s, blur 1.1s */
+    transition:
+        opacity 1.1s var(--ease-out),
+        transform 1.3s var(--ease-out),
+        filter 1.1s ease;
+}
+.form-panel.login-panel { transform: translateX(-60px) translateY(8px) scale(.97); }
+
+.auth-card[data-mode="login"] .login-panel,
+.auth-card[data-mode="register"] .register-panel {
+    opacity: 1;
+    transform: translateX(0) translateY(0) scale(1);
+    filter: blur(0);
+    pointer-events: auto;
+}
+
+/* =========================================
+   FIELDS
+========================================= */
+.field {
+    position: relative;
+    margin-bottom: 12px;
+    opacity: 0;
+    transform: translateY(14px);
+    /* медленнее: 0.5s → 1s, transform 1.2s */
+    transition: opacity 1s ease, transform 1.2s var(--ease-out);
+}
+/* Разносим задержки шире, чтобы поля всплывали по одному */
+.login-panel .field:nth-child(1) { transition-delay: .10s; }
+.login-panel .field:nth-child(2) { transition-delay: .25s; }
+.login-panel .login-options  { transition-delay: .40s; }
+.login-panel .submit-btn     { transition-delay: .55s; }
+
+.register-panel .field:nth-child(1) { transition-delay: .08s; }
+.register-panel .field:nth-child(2) { transition-delay: .20s; }
+.register-panel .field:nth-child(3) { transition-delay: .32s; }
+.register-panel .field:nth-child(4) { transition-delay: .44s; }
+.register-panel .field:nth-child(5) { transition-delay: .56s; }
+.register-panel .submit-btn         { transition-delay: .70s; }
+
+.auth-card[data-mode="login"] .login-panel .field,
+.auth-card[data-mode="login"] .login-panel .login-options,
+.auth-card[data-mode="login"] .login-panel .submit-btn,
+.auth-card[data-mode="register"] .register-panel .field,
+.auth-card[data-mode="register"] .register-panel .submit-btn {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.input-wrap { position: relative; }
+
+input {
+    width: 100%; height: 48px;
+    padding: 0 44px 0 15px;
+    border: 1px solid var(--ink-200);
+    border-radius: var(--radius-md);
+    outline: none;
+    background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+    color: var(--ink-900);
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 510;
+    letter-spacing: .1px;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.95) inset,
+        0 1px 2px rgba(15,23,42,.03);
+    /* медленнее фокус-переходы */
+    transition:
+        border-color .55s ease,
+        background .55s ease,
+        box-shadow .8s ease,
+        transform .8s var(--ease-out);
+    -webkit-appearance: none;
+    appearance: none;
+}
+input::placeholder { color: var(--ink-400); font-weight: 460; }
+input:hover { border-color: var(--ink-300); background: #fff; }
+input:focus {
+    border-color: var(--blue-400);
+    background: #fff;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.95) inset,
+        0 0 0 4px rgba(59,130,246,.13),
+        0 6px 18px -8px rgba(37,99,235,.3);
+    transform: translateY(-2px);
+}
+input[type="password"] { letter-spacing: 1px; }
+
+.input-icon {
+    position: absolute; right: 14px; top: 50%;
+    width: 17px; height: 17px; transform: translateY(-50%);
+    color: var(--ink-400); pointer-events: none;
+    transition: color .7s ease, transform .9s var(--ease-spring);
+}
+.input-wrap:focus-within .input-icon {
+    color: var(--blue-500);
+    transform: translateY(-50%) scale(1.15);
+}
+
+/* =========================================
+   PASSWORD TOGGLE
+========================================= */
+.password-toggle {
+    position: absolute; right: 8px; top: 50%;
+    width: 34px; height: 34px;
+    transform: translateY(-50%);
+    border: none; outline: none; border-radius: 9px;
+    background: transparent; color: var(--ink-400);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background .55s ease, color .55s ease, transform .6s var(--ease-spring);
+}
+.password-toggle svg { width: 17px; height: 17px; }
+.password-toggle:hover {
+    color: var(--blue-600);
+    background: var(--blue-50);
+    transform: translateY(-50%) scale(1.08);
+}
+.password-toggle:active { transform: translateY(-50%) scale(.9); }
+
+/* =========================================
+   OPTIONS
+========================================= */
+.login-options {
+    display: flex; align-items: center; justify-content: space-between;
+    margin: 4px 2px 18px;
+    opacity: 0; transform: translateY(14px);
+    transition: opacity 1s ease, transform 1.2s var(--ease-out);
+}
+.remember {
+    display: flex; align-items: center; gap: 8px;
+    color: var(--ink-600); font-size: 12px; font-weight: 510;
+    cursor: pointer; user-select: none;
+}
+.remember input {
+    width: 16px; height: 16px; padding: 0;
+    accent-color: var(--blue-600);
+    box-shadow: none; transform: none;
+    cursor: pointer; border-radius: 4px;
+    transition: transform .45s var(--ease-spring);
+}
+.remember input:active { transform: scale(.85); }
+.remember:hover { color: var(--ink-800); }
+.forgot {
+    border: none; background: transparent;
+    color: var(--blue-600); font-family: inherit;
+    font-size: 12px; font-weight: 660; letter-spacing: .1px;
+    cursor: pointer; padding: 6px 8px; border-radius: 7px;
+    transition: color .55s ease, background .55s ease, transform .45s var(--ease-spring);
+}
+.forgot:hover { color: var(--blue-700); background: var(--blue-50); }
+.forgot:active { transform: scale(.93); }
+
+/* =========================================
+   SUBMIT BUTTON
+========================================= */
+.submit-btn {
+    position: relative;
+    width: 100%; height: 48px;
+    border: none; border-radius: var(--radius-md);
+    color: #fff; font-family: inherit;
+    font-size: 14px; font-weight: 720; letter-spacing: .3px;
+    cursor: pointer; overflow: hidden;
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background-size: 200% 200%;
+    background-position: 0% 50%;
+    box-shadow: var(--shadow-btn);
+    opacity: 0; transform: translateY(14px);
+    transition:
+        opacity 1s ease,
+        transform 1.2s var(--ease-out),
+        box-shadow .8s ease,
+        background-position 1.6s ease,
+        filter .6s ease;
+}
+.submit-btn::before {
+    content: ""; position: absolute;
+    top: 0; left: -100%; width: 70%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.32), transparent);
+    transform: skewX(-20deg);
+    transition: left 1.4s ease;
+}
+.submit-btn:hover {
+    transform: translateY(-3px);
+    background-position: 100% 50%;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.4) inset,
+        0 14px 32px -6px rgba(37,99,235,.65),
+        0 6px 16px -3px rgba(37,99,235,.45);
+}
+.submit-btn:hover::before { left: 130%; }
+.submit-btn:active { transform: translateY(0) scale(.99); filter: brightness(.97); }
+.submit-btn:focus-visible { outline: 2px solid var(--blue-400); outline-offset: 3px; }
+.submit-btn.loading { pointer-events: none; opacity: .85; }
+.submit-btn.loading::after {
+    content: ""; position: absolute; right: 18px; top: 50%;
+    width: 14px; height: 14px; margin-top: -7px;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,.45);
+    border-top-color: #fff;
+    animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* =========================================
+   STRENGTH
+========================================= */
+.strength {
+    margin-top: -4px; margin-bottom: 14px;
+    opacity: 0; max-height: 0; overflow: hidden;
+    transform: translateY(-6px);
+    transition: opacity .9s ease, max-height 1.2s var(--ease-out), transform 1.2s ease;
+}
+.auth-card[data-mode="register"] .strength {
+    opacity: 1; max-height: 40px; transform: translateY(0);
+}
+.strength-track {
+    width: 100%; height: 5px; overflow: hidden;
+    border-radius: 10px; background: var(--ink-100);
+    box-shadow: 0 1px 2px rgba(15,23,42,.05) inset;
+}
+.strength-bar {
+    width: 0%; height: 100%;
+    border-radius: inherit; background: var(--ink-300);
+    transition: width 1.1s var(--ease-out), background 1s ease;
+    box-shadow: 0 1px 0 rgba(255,255,255,.4) inset;
+}
+.strength-text {
+    margin-top: 6px; font-size: 11px;
+    font-weight: 520; letter-spacing: .15px; color: var(--ink-500);
+    transition: color .8s ease;
+}
+
+/* =========================================
+   MESSAGE
+========================================= */
+.message {
+    position: relative;
+    min-height: 0;
+    margin-top: 14px;
+    padding: 0 14px;
+    border-radius: var(--radius-md);
+    font-size: 12px; line-height: 1.5;
+    font-weight: 510; letter-spacing: .1px;
+    overflow: hidden;
+    opacity: 0; max-height: 0;
+    transform: translateY(-6px);
+    transition:
+        opacity .9s ease,
+        max-height 1.1s var(--ease-out),
+        padding .9s ease,
+        margin .9s ease,
+        transform 1s var(--ease-out);
+}
+.message.show {
+    opacity: 1; max-height: 180px;
+    padding: 12px 14px 12px 38px;
+    transform: translateY(0);
+}
+.message.show::before {
+    content: ""; position: absolute; left: 12px; top: 50%;
+    width: 17px; height: 17px;
+    transform: translateY(-50%);
+    border-radius: 50%;
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 10px 10px;
+}
+.message.error { color: var(--err-600); background: var(--err-bg); border: 1px solid var(--err-bd); }
+.message.error.show::before {
+    background-color: var(--err-500);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'><path d='M12 8v5M12 16.5v.01'/></svg>");
+}
+.message.success { color: var(--ok-600); background: var(--ok-bg); border: 1px solid var(--ok-bd); }
+.message.success.show::before {
+    background-color: var(--ok-500);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='m5 12 5 5L20 7'/></svg>");
+}
+.message.warning { color: var(--warn-600); background: var(--warn-bg); border: 1px solid var(--warn-bd); }
+.message.warning.show::before {
+    background-color: var(--warn-500);
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'><path d='M12 8v5M12 16.5v.01'/></svg>");
+}
+
+/* =========================================
+   FOOTER
+========================================= */
+.footer {
+    margin-top: 20px; padding-top: 16px;
+    text-align: center; color: var(--ink-400);
+    font-size: 10.5px; letter-spacing: .4px;
+    position: relative;
+    opacity: 0; transform: translateY(6px);
+    animation: footerIn 1.6s .8s forwards var(--ease-out);
+}
+.footer::before {
+    content: ""; position: absolute; top: 0;
+    left: 22%; right: 22%; height: 1px;
+    background: linear-gradient(90deg, transparent, var(--ink-200), transparent);
+}
+@keyframes footerIn { to { opacity: 1; transform: translateY(0); } }
+.footer strong { color: var(--ink-600); font-weight: 720; letter-spacing: .6px; }
+
+/* =========================================
+   STATUS SCREEN
+========================================= */
+.status-screen {
+    position: absolute;
+    inset: 0;
+    padding: 40px 26px 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: center;
+    background: inherit;
+    opacity: 0;
+    visibility: hidden;
+    transform: scale(.94);
+    /* длиннее: 1.2s */
+    transition:
+        opacity 1.1s ease,
+        visibility 1.1s ease,
+        transform 1.3s var(--ease-out);
+    pointer-events: none;
+    z-index: 10;
+    border-radius: inherit;
+}
+.auth-card[data-state="loading"] .status-screen,
+.auth-card[data-state="success"] .status-screen,
+.auth-card[data-state="error"]   .status-screen,
+.auth-card[data-state="warning"] .status-screen {
+    opacity: 1;
+    visibility: visible;
+    transform: scale(1);
+    pointer-events: auto;
+}
+/* Скрытие формы при показе статуса — медленнее */
+.auth-card[data-state="loading"] .forms-viewport,
+.auth-card[data-state="loading"] .tabs,
+.auth-card[data-state="loading"] .header,
+.auth-card[data-state="loading"] .logo,
+.auth-card[data-state="loading"] .footer,
+.auth-card[data-state="success"] .forms-viewport,
+.auth-card[data-state="success"] .tabs,
+.auth-card[data-state="success"] .header,
+.auth-card[data-state="success"] .logo,
+.auth-card[data-state="success"] .footer,
+.auth-card[data-state="error"] .forms-viewport,
+.auth-card[data-state="error"] .tabs,
+.auth-card[data-state="error"] .header,
+.auth-card[data-state="error"] .logo,
+.auth-card[data-state="error"] .footer,
+.auth-card[data-state="warning"] .forms-viewport,
+.auth-card[data-state="warning"] .tabs,
+.auth-card[data-state="warning"] .header,
+.auth-card[data-state="warning"] .logo,
+.auth-card[data-state="warning"] .footer {
+    opacity: 0;
+    transform: translateY(-16px);
+    pointer-events: none;
+    transition: opacity .9s ease, transform 1.1s var(--ease-out);
+}
+
+.status-icon {
+    position: relative;
+    width: 96px;
+    height: 96px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* спиннер */
+.status-spinner {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 3px solid var(--blue-100);
+    border-top-color: var(--blue-600);
+    border-right-color: var(--blue-500);
+    /* медленнее и заметнее: 2.2s */
+    animation: statusSpin 2.2s linear infinite;
+    opacity: 0;
+    transform: scale(.7);
+    transition: opacity .9s ease, transform 1.2s var(--ease-spring);
+}
+.auth-card[data-state="loading"] .status-spinner {
+    opacity: 1;
+    transform: scale(1);
+}
+.status-spinner::after {
+    content: "";
+    position: absolute;
+    inset: 8px;
+    border-radius: 50%;
+    border: 2px dashed rgba(59,130,246,.35);
+    animation: statusSpin 11s linear infinite reverse;
+}
+@keyframes statusSpin { to { transform: rotate(360deg); } }
+
+.status-spinner-logo {
+    position: absolute;
+    width: 34px; height: 34px;
+    border-radius: 11px;
+    background: linear-gradient(145deg, #60a5fa, #2563eb);
+    color: #fff; font-size: 14px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 20px rgba(37,99,235,.4);
+    animation: loaderPulse 2.4s ease-in-out infinite;
+    opacity: 0;
+    transition: opacity .9s ease;
+}
+.auth-card[data-state="loading"] .status-spinner-logo { opacity: 1; }
+@keyframes loaderPulse {
+    0%,100% { transform: scale(1); opacity: 1; }
+    50%     { transform: scale(.88); opacity: .82; }
+}
+
+/* SVG-иконки */
+.status-svg {
+    position: absolute;
+    inset: 0;
+    width: 96px; height: 96px;
+    opacity: 0;
+    transform: scale(.4);
+    /* появление иконки — 1.6s */
+    transition: opacity 1.1s ease, transform 1.6s cubic-bezier(.34,1.4,.5,1);
+}
+.auth-card[data-state="success"] .status-svg.success,
+.auth-card[data-state="error"]   .status-svg.error,
+.auth-card[data-state="warning"] .status-svg.warning {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.status-svg circle {
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    stroke-dasharray: 290;
+    stroke-dashoffset: 290;
+    /* обводка круга — 2s */
+    transition: stroke-dashoffset 2s cubic-bezier(.65,0,.35,1);
+}
+.status-svg.success circle { stroke: var(--ok-500); }
+.status-svg.error   circle { stroke: var(--err-500); }
+.status-svg.warning circle { stroke: var(--warn-500); }
+
+.auth-card[data-state="success"] .status-svg.success circle,
+.auth-card[data-state="error"]   .status-svg.error   circle,
+.auth-card[data-state="warning"] .status-svg.warning circle {
+    stroke-dashoffset: 0;
+}
+
+/* галка / крестик / ! — рисуются после круга, 1.6s, задержка 1.3s */
+.status-svg path,
+.status-svg line {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-dasharray: 100;
+    stroke-dashoffset: 100;
+    transition: stroke-dashoffset 1.6s cubic-bezier(.65,0,.35,1) 1.3s;
+}
+.status-svg.success path { stroke: var(--ok-500); }
+.status-svg.error   path { stroke: var(--err-500); }
+.status-svg.error   line { stroke: var(--err-500); }
+.status-svg.warning line { stroke: var(--warn-500); }
+.status-svg.warning .dot {
+    stroke: none;
+    fill: var(--warn-500);
+    transform-origin: 48px 68px;
+    transform: scale(0);
+    transition: transform 1s var(--ease-spring) 2.2s;
+}
+.auth-card[data-state="success"] .status-svg.success path,
+.auth-card[data-state="error"]   .status-svg.error   path,
+.auth-card[data-state="error"]   .status-svg.error   line,
+.auth-card[data-state="warning"] .status-svg.warning line {
+    stroke-dashoffset: 0;
+}
+.auth-card[data-state="warning"] .status-svg.warning .dot {
+    transform: scale(1);
+}
+
+/* мягкая пульсация после рисования */
+.auth-card[data-state="success"] .status-svg.success,
+.auth-card[data-state="error"]   .status-svg.error,
+.auth-card[data-state="warning"] .status-svg.warning {
+    animation: iconPop 1.4s var(--ease-spring) 3s both;
+}
+@keyframes iconPop {
+    0%   { transform: scale(.4); }
+    55%  { transform: scale(1.06); }
+    100% { transform: scale(1); }
+}
+
+.status-title {
+    font-size: 19px;
+    font-weight: 780;
+    letter-spacing: -.5px;
+    color: var(--ink-900);
+    margin-bottom: 8px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1s ease .9s, transform 1.2s var(--ease-out) .9s;
+}
+.status-subtitle {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--ink-500);
+    font-weight: 490;
+    max-width: 300px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 1s ease 1.2s, transform 1.2s var(--ease-out) 1.2s;
+}
+.auth-card[data-state="loading"] .status-title,
+.auth-card[data-state="loading"] .status-subtitle,
+.auth-card[data-state="success"] .status-title,
+.auth-card[data-state="success"] .status-subtitle,
+.auth-card[data-state="error"]   .status-title,
+.auth-card[data-state="error"]   .status-subtitle,
+.auth-card[data-state="warning"] .status-title,
+.auth-card[data-state="warning"] .status-subtitle {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* точки под спиннером */
+.status-dots {
+    display: flex;
+    gap: 7px;
+    margin-top: 20px;
+    opacity: 0;
+    transition: opacity 1s ease .5s;
+}
+.auth-card[data-state="loading"] .status-dots { opacity: 1; }
+.status-dots span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--blue-300);
+    animation: dotPulse 2.1s ease-in-out infinite;
+}
+.status-dots span:nth-child(2) { animation-delay: .3s; }
+.status-dots span:nth-child(3) { animation-delay: .6s; }
+@keyframes dotPulse {
+    0%,100% { transform: scale(.8); background: var(--blue-200); }
+    50%     { transform: scale(1.25); background: var(--blue-500); }
+}
+
+/* retry */
+.retry-btn {
+    margin-top: 26px;
+    padding: 12px 22px;
+    border: none; border-radius: 12px;
+    background: var(--ink-100);
+    color: var(--ink-700);
+    font-family: inherit;
+    font-size: 13px; font-weight: 700;
+    cursor: pointer;
+    opacity: 0;
+    transform: translateY(10px);
+    transition:
+        opacity 1s ease 2.8s,
+        transform 1.2s var(--ease-out) 2.8s,
+        background .4s ease;
+    pointer-events: none;
+}
+.auth-card[data-state="error"] .retry-btn,
+.auth-card[data-state="warning"] .retry-btn {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+.retry-btn:hover { background: var(--ink-200); }
+.retry-btn:active { transform: scale(.95); }
+
+/* =========================================
+   LOADER СТРАНИЦЫ
+========================================= */
+.page-loader {
+    position: fixed; inset: 0; z-index: 9999;
+    display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle at 50% 50%, #fff 0%, #f6f9ff 55%, #eef4ff 100%);
+    transition: opacity 1.1s ease, visibility 1.1s ease;
+}
+.page-loader.hidden { opacity: 0; visibility: hidden; }
+.loader-content { display: flex; flex-direction: column; align-items: center; gap: 15px; }
+.loader-ring {
+    position: relative; width: 52px; height: 52px;
+    display: flex; align-items: center; justify-content: center;
+}
+.loader-ring::before,
+.loader-ring::after {
+    content: ""; position: absolute; inset: 0;
+    border-radius: 50%;
+    border: 2px solid transparent;
+    border-top-color: var(--blue-500);
+    animation: ringSpin 2s linear infinite;
+}
+.loader-ring::after {
+    inset: 7px;
+    border-top-color: var(--violet-500);
+    border-right-color: var(--violet-500);
+    animation-duration: 1.5s;
+    animation-direction: reverse;
+}
+@keyframes ringSpin { to { transform: rotate(360deg); } }
+.loader-logo {
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 11px; color: #fff;
+    font-size: 13px; font-weight: 800; letter-spacing: -.5px;
+    background: linear-gradient(145deg, #60a5fa, #2563eb);
+    box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 8px 18px rgba(37,99,235,.35);
+    animation: loaderPulse 2.4s ease-in-out infinite;
+    z-index: 1;
+}
+.loader-text { color: var(--ink-500); font-size: 11px; font-weight: 520; letter-spacing: .4px; }
+
+/* =========================================
+   SCROLLBAR
+========================================= */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+    background: rgba(100,116,139,.25);
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,.4); background-clip: content-box; }
+
+/* =========================================
+   MOBILE
+========================================= */
+@media (max-width: 480px) {
+    .page { padding: 16px 12px calc(16px + env(safe-area-inset-bottom, 0px)); }
+    .auth-card {
+        padding: 26px 20px 18px;
+        border-radius: 22px;
+        max-width: 100%;
+    }
+    .title { font-size: 21px; }
+    .subtitle { font-size: 11.5px; }
+    .logo { width: 46px; height: 46px; font-size: 18px; }
+    input { height: 50px; font-size: 16px; }
+    .submit-btn { height: 50px; font-size: 14.5px; }
+    .tabs { height: 44px; }
+    .tab { font-size: 13px; }
+    .status-icon { width: 88px; height: 88px; margin-bottom: 20px; }
+    .status-svg { width: 88px; height: 88px; }
+    .status-title { font-size: 18px; }
+    .status-subtitle { font-size: 12.5px; }
+}
+
+@media (max-width: 360px) {
+    .auth-card { padding: 22px 16px 16px; }
+    .title { font-size: 19px; }
+    input { height: 46px; font-size: 15px; }
+    .submit-btn { height: 46px; font-size: 13.5px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =========================================
+     PAGE LOADER
+========================================= -->
+<div class="page-loader" id="pageLoader">
+    <div class="loader-content">
+        <div class="loader-ring">
+            <div class="loader-logo">K</div>
+        </div>
+        <div class="loader-text">Загрузка системы…</div>
+    </div>
+</div>
+
+<!-- =========================================
+     BACKGROUND
+========================================= -->
+<div class="background">
+    <div class="orb one"></div>
+    <div class="orb two"></div>
+    <div class="orb three"></div>
+    <div class="particles">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
+    </div>
+</div>
+
+<!-- =========================================
+     PAGE
+========================================= -->
+<main class="page">
+
+    <section class="auth-card" id="authCard" data-mode="login" data-state="">
+
+        <div class="card-glow"></div>
+
+        <div class="logo">K</div>
+
+        <div class="header">
+            <h1 class="title" id="pageTitle">С возвращением</h1>
+            <p class="subtitle" id="pageSubtitle">Войдите в систему KURATOR</p>
+        </div>
+
+        <div class="tabs">
+            <div class="tab-indicator"></div>
+            <button class="tab login active" id="loginTab" type="button">Вход</button>
+            <button class="tab register" id="registerTab" type="button">Регистрация</button>
+        </div>
+
+        <div class="forms-viewport" id="formsViewport">
+
+            <!-- LOGIN -->
+            <div class="form-panel login-panel" id="loginPanel">
+                <form id="loginForm" autocomplete="on">
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="email" id="loginEmail" placeholder="Электронная почта"
+                                   autocomplete="email" inputmode="email" required>
+                            <div class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <rect x="3" y="5" width="18" height="14" rx="3"/>
+                                    <path d="m4 7 8 6 8-6"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="password" id="loginPassword" placeholder="Пароль"
+                                   autocomplete="current-password" required>
+                            <button type="button" class="password-toggle"
+                                    data-target="loginPassword" aria-label="Показать пароль">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
+                                    <circle cx="12" cy="12" r="2.5"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="login-options">
+                        <label class="remember">
+                            <input type="checkbox" id="rememberMe">
+                            <span>Запомнить меня</span>
+                        </label>
+                        <button type="button" class="forgot" id="forgotPassword">Забыли пароль?</button>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="loginButton">Войти в систему</button>
+                </form>
+            </div>
+
+            <!-- REGISTER -->
+            <div class="form-panel register-panel" id="registerPanel">
+                <form id="registerForm" autocomplete="on">
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="text" id="registerName" placeholder="Ваше ФИО"
+                                   autocomplete="name" required>
+                            <div class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <circle cx="12" cy="8" r="3.2"/>
+                                    <path d="M5 20c.8-3.4 3.2-5 7-5s6.2 1.6 7 5"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="email" id="registerEmail" placeholder="Электронная почта"
+                                   autocomplete="email" inputmode="email" required>
+                            <div class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <rect x="3" y="5" width="18" height="14" rx="3"/>
+                                    <path d="m4 7 8 6 8-6"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="password" id="registerPassword" placeholder="Пароль"
+                                   autocomplete="new-password" required>
+                            <button type="button" class="password-toggle"
+                                    data-target="registerPassword" aria-label="Показать пароль">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
+                                    <circle cx="12" cy="12" r="2.5"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="strength">
+                        <div class="strength-track">
+                            <div class="strength-bar" id="strengthBar"></div>
+                        </div>
+                        <div class="strength-text" id="strengthText">Введите пароль</div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="password" id="registerConfirmPassword" placeholder="Повторите пароль"
+                                   autocomplete="new-password" required>
+                            <button type="button" class="password-toggle"
+                                    data-target="registerConfirmPassword" aria-label="Показать пароль">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
+                                    <circle cx="12" cy="12" r="2.5"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="text" id="registerGroup" placeholder="Группа, например 114"
+                                   autocomplete="off" required>
+                            <div class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>
+                                    <circle cx="8" cy="6" r="1"/><circle cx="8" cy="12" r="1"/>
+                                    <circle cx="8" cy="18" r="1"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn" id="registerButton">Создать аккаунт</button>
+                </form>
+            </div>
+
+        </div>
+
+        <div class="message" id="message"></div>
+
+        <div class="footer">
+            Система управления <strong>KURATOR</strong>
+        </div>
+
+        <!-- STATUS SCREEN -->
+        <div class="status-screen" id="statusScreen" aria-live="polite">
+
+            <div class="status-icon">
+                <!-- Спиннер -->
+                <div class="status-spinner"></div>
+                <div class="status-spinner-logo">K</div>
+
+                <!-- Успех -->
+                <svg class="status-svg success" viewBox="0 0 96 96" fill="none">
+                    <circle cx="48" cy="48" r="44"/>
+                    <path d="M30 50 L43 63 L66 38"/>
+                </svg>
+
+                <!-- Ошибка -->
+                <svg class="status-svg error" viewBox="0 0 96 96" fill="none">
+                    <circle cx="48" cy="48" r="44"/>
+                    <line x1="34" y1="34" x2="62" y2="62"/>
+                    <line x1="62" y1="34" x2="34" y2="62"/>
+                </svg>
+
+                <!-- Предупреждение -->
+                <svg class="status-svg warning" viewBox="0 0 96 96" fill="none">
+                    <circle cx="48" cy="48" r="44"/>
+                    <line x1="48" y1="28" x2="48" y2="54"/>
+                    <circle class="dot" cx="48" cy="68" r="3.2"/>
+                </svg>
+            </div>
+
+            <div class="status-title" id="statusTitle">Проверяем данные…</div>
+            <div class="status-subtitle" id="statusSubtitle">Подождите пару секунд</div>
+
+            <div class="status-dots">
+                <span></span><span></span><span></span>
+            </div>
+
+            <button type="button" class="retry-btn" id="retryBtn">Попробовать снова</button>
+        </div>
+
+    </section>
+
+</main>
+
+<!-- =========================================
+     FIREBASE
+========================================= -->
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    sendPasswordResetEmail,
+    signOut,
+    setPersistence,
+    browserLocalPersistence,
+    browserSessionPersistence,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {
+    getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+    authDomain: "othets-1aa03.firebaseapp.com",
+    projectId: "othets-1aa03",
+    storageBucket: "othets-1aa03.firebasestorage.app",
+    messagingSenderId: "528392191591",
+    appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+    measurementId: "G-F50WVZRXZJ"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+/* =========================================
+   ELEMENTS
+========================================= */
+const authCard       = document.getElementById("authCard");
+const formsViewport  = document.getElementById("formsViewport");
+const loginPanel     = document.getElementById("loginPanel");
+const registerPanel  = document.getElementById("registerPanel");
+const loginTab       = document.getElementById("loginTab");
+const registerTab    = document.getElementById("registerTab");
+const pageTitle      = document.getElementById("pageTitle");
+const pageSubtitle   = document.getElementById("pageSubtitle");
+const messageEl      = document.getElementById("message");
+const pageLoader     = document.getElementById("pageLoader");
+const statusTitle    = document.getElementById("statusTitle");
+const statusSubtitle = document.getElementById("statusSubtitle");
+const retryBtn       = document.getElementById("retryBtn");
+
+/* =========================================
+   HELPERS
+========================================= */
+async function resolveHomePage(user) {
+    try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        const role = snap.exists() ? snap.data().role : null;
+        return role === "admin" ? "adminhome.html" : "home.html";
+    } catch (e) {
+        console.error("Ошибка чтения роли:", e);
+        return "home.html";
+    }
+}
+
+function showMessage(text, type = "error") {
+    messageEl.textContent = text;
+    messageEl.className = `message show ${type}`;
+}
+function clearMessage() {
+    messageEl.textContent = "";
+    messageEl.className = "message";
+}
+
+function firebaseError(error) {
+    switch (error.code) {
+        case "auth/invalid-email":         return "Введите корректную электронную почту.";
+        case "auth/user-not-found":        return "Пользователь с такой почтой не найден.";
+        case "auth/wrong-password":
+        case "auth/invalid-credential":    return "Неверная почта или пароль.";
+        case "auth/email-already-in-use":  return "Аккаунт с такой почтой уже существует.";
+        case "auth/weak-password":         return "Пароль слишком простой.";
+        case "auth/network-request-failed":return "Ошибка сети. Проверьте подключение.";
+        case "auth/too-many-requests":     return "Слишком много попыток. Попробуйте позже.";
+        default:                           return error.message || "Произошла неизвестная ошибка.";
+    }
+}
+
+/* =========================================
+   STATUS SCREEN
+   Тайминги продублированы в CSS, чтобы всё было согласовано.
+   REDIRECT_DELAY — сколько висит галочка перед редиректом.
+========================================= */
+const REDIRECT_DELAY = 3200; // 3.2 сек — успеваем рассмотреть галочку
+
+let statusActive = false;
+
+function showLoading(title = "Проверяем данные…", subtitle = "Подождите пару секунд") {
+    statusActive = true;
+    authCard.dataset.state = "loading";
+    statusTitle.textContent = title;
+    statusSubtitle.textContent = subtitle;
+    clearMessage();
+}
+
+function showSuccess(title = "Вход выполнен!", subtitle = "Открываем систему…") {
+    statusActive = true;
+    authCard.dataset.state = "success";
+    statusTitle.textContent = title;
+    statusSubtitle.textContent = subtitle;
+}
+
+function showError(title = "Не удалось войти", subtitle = "Проверьте логин и пароль") {
+    statusActive = true;
+    authCard.dataset.state = "error";
+    statusTitle.textContent = title;
+    statusSubtitle.textContent = subtitle;
+}
+
+function showWarning(title = "Ожидает подтверждения", subtitle = "Дождитесь одобрения администратора") {
+    statusActive = true;
+    authCard.dataset.state = "warning";
+    statusTitle.textContent = title;
+    statusSubtitle.textContent = subtitle;
+}
+
+function resetStatus() {
+    statusActive = false;
+    authCard.dataset.state = "";
+    const svgs = authCard.querySelectorAll(".status-svg");
+    svgs.forEach(svg => {
+        svg.style.animation = "none";
+        void svg.offsetWidth;
+        svg.style.animation = "";
+    });
+    setTimeout(() => {
+        const panel = currentMode === "login" ? loginPanel : registerPanel;
+        setViewportHeight(panel.scrollHeight);
+    }, 60);
+}
+
+retryBtn.addEventListener("click", () => {
+    resetStatus();
+    const emailInput = currentMode === "login"
+        ? document.getElementById("loginEmail")
+        : document.getElementById("registerEmail");
+    const passInput = currentMode === "login"
+        ? document.getElementById("loginPassword")
+        : document.getElementById("registerPassword");
+    if (passInput) passInput.value = "";
+    if (emailInput) emailInput.focus();
+});
+
+/* =========================================
+   MODE / HEIGHT
+========================================= */
+let currentMode = "login";
+let switching = false;
+
+function getPanelHeight(panel) { return panel.scrollHeight; }
+function setViewportHeight(h) { formsViewport.style.height = `${h}px`; }
+
+function initializeHeight() {
+    const panel = currentMode === "login" ? loginPanel : registerPanel;
+    setViewportHeight(getPanelHeight(panel));
+}
+
+async function switchMode(mode) {
+    if (mode === currentMode || switching || statusActive) return;
+    switching = true;
+    clearMessage();
+
+    const currentPanel = currentMode === "login" ? loginPanel : registerPanel;
+    const nextPanel    = mode === "login" ? loginPanel : registerPanel;
+
+    setViewportHeight(currentPanel.scrollHeight);
+    currentMode = mode;
+    authCard.dataset.mode = mode;
+
+    pageTitle.style.opacity = "0";
+    pageTitle.style.transform = "translateY(-6px)";
+    pageSubtitle.style.opacity = "0";
+    pageSubtitle.style.transform = "translateY(-6px)";
+
+    // заголовок меняется позже (после исчезновения)
+    setTimeout(() => {
+        if (mode === "login") {
+            pageTitle.textContent = "С возвращением";
+            pageSubtitle.textContent = "Войдите в систему KURATOR";
+        } else {
+            pageTitle.textContent = "Создание аккаунта";
+            pageSubtitle.textContent = "Зарегистрируйтесь в системе KURATOR";
+        }
+        pageTitle.style.opacity = "1";
+        pageTitle.style.transform = "translateY(0)";
+        pageSubtitle.style.opacity = "1";
+        pageSubtitle.style.transform = "translateY(0)";
+    }, 600); // 0.15s → 0.6s
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            setViewportHeight(getPanelHeight(nextPanel));
+        });
+    });
+
+    setTimeout(() => { switching = false; }, 1400); // 0.75s → 1.4s
+}
+
+loginTab.addEventListener("click", () => switchMode("login"));
+registerTab.addEventListener("click", () => switchMode("register"));
+
+/* =========================================
+   PASSWORD TOGGLE
+========================================= */
+document.querySelectorAll(".password-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const input = document.getElementById(btn.dataset.target);
+        input.type = input.type === "password" ? "text" : "password";
+    });
+});
+
+/* =========================================
+   LOGIN
+========================================= */
+document.getElementById("loginForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMessage();
+
+    const email    = document.getElementById("loginEmail").value.trim();
+    const password = document.getElementById("loginPassword").value;
+    const remember = document.getElementById("rememberMe").checked;
+
+    if (!email || !password) {
+        showMessage("Заполните все поля.");
+        return;
+    }
+
+    showLoading("Проверяем данные…", "Подождите пару секунд");
+
+    // Небольшая задержка перед фактическим Firebase-запросом,
+    // чтобы спиннер успел красиво раскрутиться и был заметен.
+    await new Promise(r => setTimeout(r, 700));
+
+    try {
+        await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+        await signInWithEmailAndPassword(auth, email, password);
+        // onAuthStateChanged → handleAuthUser
+    } catch (error) {
+        console.error(error);
+        // Дадим спиннеру ещё немного показаться перед появлением ошибки
+        await new Promise(r => setTimeout(r, 600));
+        showError("Не удалось войти", firebaseError(error));
+    }
+});
+
+/* =========================================
+   REGISTER
+========================================= */
+let registrationInProgress = false; // блокирует onAuthStateChanged, пока профиль не записан в Firestore
+
+document.getElementById("registerForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearMessage();
+
+    const name            = document.getElementById("registerName").value.trim();
+    const email           = document.getElementById("registerEmail").value.trim();
+    const password        = document.getElementById("registerPassword").value;
+    const confirmPassword = document.getElementById("registerConfirmPassword").value;
+    const group           = document.getElementById("registerGroup").value.trim();
+
+    if (!name || !email || !password || !confirmPassword || !group) {
+        showMessage("Заполните все поля.");
+        return;
+    }
+    if (password.length < 6) {
+        showMessage("Пароль должен содержать минимум 6 символов.");
+        return;
+    }
+    if (password !== confirmPassword) {
+        showMessage("Пароли не совпадают.");
+        return;
+    }
+
+    showLoading("Создаём аккаунт…", "Это займёт пару секунд");
+    await new Promise(r => setTimeout(r, 700));
+
+    registrationInProgress = true;
+    try {
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        const user = result.user;
+
+        await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            name,
+            email,
+            group,
+            role: "student",
+            reg: 0,
+            createdAt: serverTimestamp()
+        });
+
+        document.getElementById("registerForm").reset();
+        strengthBar.style.width = "0%";
+        strengthText.textContent = "Введите пароль";
+        strengthBar.style.background = "#cbd5e1";
+
+        await signOut(auth);
+
+        showWarning(
+            "Запрос отправлен!",
+            "Дождитесь, пока администратор разрешит вам зарегистрироваться."
+        );
+
+    } catch (error) {
+        console.error(error);
+        await new Promise(r => setTimeout(r, 600));
+        showError("Не удалось создать аккаунт", firebaseError(error));
+    } finally {
+        registrationInProgress = false;
+    }
+});
+
+/* =========================================
+   FORGOT PASSWORD
+========================================= */
+document.getElementById("forgotPassword").addEventListener("click", async () => {
+    const email = document.getElementById("loginEmail").value.trim();
+    if (!email) {
+        showMessage("Сначала введите свою электронную почту.");
+        document.getElementById("loginEmail").focus();
+        return;
+    }
+    try {
+        await sendPasswordResetEmail(auth, email);
+        showMessage("Письмо для восстановления пароля отправлено.", "success");
+    } catch (error) {
+        console.error(error);
+        showMessage(firebaseError(error));
+    }
+});
+
+/* =========================================
+   PASSWORD STRENGTH
+========================================= */
+const registerPassword = document.getElementById("registerPassword");
+const strengthBar      = document.getElementById("strengthBar");
+const strengthText     = document.getElementById("strengthText");
+
+registerPassword.addEventListener("input", () => {
+    const password = registerPassword.value;
+    let score = 0;
+    if (password.length >= 6) score++;
+    if (password.length >= 10) score++;
+    if (/[A-Z]/.test(password)) score++;
+    if (/[0-9]/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+
+    const percentage = Math.min(score * 20, 100);
+    strengthBar.style.width = `${percentage}%`;
+
+    if (!password) {
+        strengthText.textContent = "Введите пароль";
+        strengthBar.style.background = "#cbd5e1";
+        return;
+    }
+    if (score <= 1) {
+        strengthText.textContent = "Слабый пароль";
+        strengthBar.style.background = "linear-gradient(90deg, #ef4444, #f87171)";
+    } else if (score <= 3) {
+        strengthText.textContent = "Средний пароль";
+        strengthBar.style.background = "linear-gradient(90deg, #f59e0b, #fbbf24)";
+    } else {
+        strengthText.textContent = "Надёжный пароль";
+        strengthBar.style.background = "linear-gradient(90deg, #10b981, #22c55e)";
+    }
+});
+
+/* =========================================
+   HANDLE AUTHENTICATED USER
+========================================= */
+let authCheckInProgress = false;
+
+async function handleAuthUser(user) {
+    try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+
+        if (!snap.exists()) {
+            showError("Профиль не найден", "Обратитесь к администратору.");
+            await signOut(auth);
+            return;
+        }
+
+        const data = snap.data();
+        const reg  = data.reg;
+
+        if (reg === 0) {
+            showWarning(
+                "Ожидает подтверждения",
+                "Ваш запрос отправлен. Дождитесь, пока администратор разрешит регистрацию."
+            );
+            await signOut(auth);
+            return;
+        }
+
+        if (reg === 2) {
+            showError("В регистрации отказано", "Данные аккаунта будут удалены.");
+            try {
+                await deleteDoc(doc(db, "users", user.uid));
+                await user.delete();
+            } catch (e) { console.error(e); }
+            return;
+        }
+
+        showSuccess(
+            `Здравствуйте, ${data.name ? data.name.split(" ")[0] : "пользователь"}!`,
+            "Открываем систему…"
+        );
+
+        const homePage = await resolveHomePage(user);
+        setTimeout(() => { window.location.href = homePage; }, REDIRECT_DELAY);
+
+    } catch (error) {
+        console.error(error);
+        showError("Ошибка проверки", "Попробуйте снова или обратитесь к администратору.");
+        await signOut(auth);
+    }
+}
+
+/* =========================================
+   AUTH STATE
+========================================= */
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        if (registrationInProgress) return; // идёт регистрация — профиль ещё создаётся
+        if (authCheckInProgress) return;
+        authCheckInProgress = true;
+        handleAuthUser(user).finally(() => { authCheckInProgress = false; });
+    }
+});
+
+/* =========================================
+   INIT
+========================================= */
+window.addEventListener("load", () => {
+    requestAnimationFrame(() => {
+        initializeHeight();
+        setTimeout(() => pageLoader.classList.add("hidden"), 700);
+    });
+});
+
+window.addEventListener("resize", () => {
+    if (statusActive) return;
+    const panel = currentMode === "login" ? loginPanel : registerPanel;
+    setViewportHeight(panel.scrollHeight);
+});
+</script>
+
+</body>
+</html>

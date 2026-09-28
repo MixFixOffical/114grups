@@ -252,11 +252,11 @@ body::before {
 }
 
 /* =========================================
-   TABS  (теперь 3)
+   TABS  (2 вкладки)
 ========================================= */
 .tabs {
     position: relative;
-    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    display: grid; grid-template-columns: 1fr 1fr;
     height: 42px; margin-bottom: 20px; padding: 3px;
     border-radius: 13px;
     background: linear-gradient(180deg, #eef2f7 0%, #e6ecf4 100%);
@@ -266,7 +266,7 @@ body::before {
 }
 .tab-indicator {
     position: absolute; top: 3px; left: 3px;
-    width: calc(100% / 3 - 2px); height: calc(100% - 6px);
+    width: calc(50% - 3px); height: calc(100% - 6px);
     border-radius: 10px;
     background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
     box-shadow:
@@ -275,10 +275,8 @@ body::before {
         0 6px 16px -8px rgba(37,99,235,.22);
     transition: transform 1.15s cubic-bezier(.34,1.3,.5,1);
 }
-/* позиции индикатора */
 .auth-card[data-mode="login"]    .tab-indicator { transform: translateX(0%); }
 .auth-card[data-mode="register"] .tab-indicator { transform: translateX(100%); }
-.auth-card[data-mode="parent"]   .tab-indicator { transform: translateX(200%); }
 
 .tab {
     position: relative; z-index: 2;
@@ -291,8 +289,7 @@ body::before {
 .tab:hover { color: var(--blue-600); }
 .tab:active { transform: scale(.94); }
 .auth-card[data-mode="login"]    .tab.login,
-.auth-card[data-mode="register"] .tab.register,
-.auth-card[data-mode="parent"]   .tab.parent { color: var(--blue-600); }
+.auth-card[data-mode="register"] .tab.register { color: var(--blue-600); }
 
 /* =========================================
    VIEWPORT
@@ -317,11 +314,9 @@ body::before {
         filter 1.1s ease;
 }
 .form-panel.login-panel { transform: translateX(-60px) translateY(8px) scale(.97); }
-.form-panel.parent-panel { transform: translateX(60px) translateY(8px) scale(.97); }
 
 .auth-card[data-mode="login"] .login-panel,
-.auth-card[data-mode="register"] .register-panel,
-.auth-card[data-mode="parent"] .parent-panel {
+.auth-card[data-mode="register"] .register-panel {
     opacity: 1;
     transform: translateX(0) translateY(0) scale(1);
     filter: blur(0);
@@ -350,19 +345,11 @@ body::before {
 .register-panel .field:nth-child(5) { transition-delay: .56s; }
 .register-panel .submit-btn         { transition-delay: .70s; }
 
-.parent-panel .field:nth-child(1) { transition-delay: .10s; }
-.parent-panel .field:nth-child(2) { transition-delay: .25s; }
-.parent-panel .login-options      { transition-delay: .40s; }
-.parent-panel .submit-btn         { transition-delay: .55s; }
-
 .auth-card[data-mode="login"] .login-panel .field,
 .auth-card[data-mode="login"] .login-panel .login-options,
 .auth-card[data-mode="login"] .login-panel .submit-btn,
 .auth-card[data-mode="register"] .register-panel .field,
-.auth-card[data-mode="register"] .register-panel .submit-btn,
-.auth-card[data-mode="parent"] .parent-panel .field,
-.auth-card[data-mode="parent"] .parent-panel .login-options,
-.auth-card[data-mode="parent"] .parent-panel .submit-btn {
+.auth-card[data-mode="register"] .register-panel .submit-btn {
     opacity: 1;
     transform: translateY(0);
 }
@@ -492,20 +479,6 @@ input[type="password"] { letter-spacing: 1px; }
         background-position 1.6s ease,
         filter .6s ease;
 }
-/* кнопка родителя — фиолетовый градиент, чтобы визуально отличалась */
-.submit-btn.parent-btn {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
-    box-shadow:
-        0 1px 0 rgba(255,255,255,.32) inset,
-        0 10px 22px -6px rgba(109,40,217,.5),
-        0 5px 12px -3px rgba(109,40,217,.35);
-}
-.submit-btn.parent-btn:hover {
-    box-shadow:
-        0 1px 0 rgba(255,255,255,.4) inset,
-        0 14px 32px -6px rgba(109,40,217,.65),
-        0 6px 16px -3px rgba(109,40,217,.45);
-}
 .submit-btn::before {
     content: ""; position: absolute;
     top: 0; left: -100%; width: 70%; height: 100%;
@@ -516,6 +489,10 @@ input[type="password"] { letter-spacing: 1px; }
 .submit-btn:hover {
     transform: translateY(-3px);
     background-position: 100% 50%;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.4) inset,
+        0 14px 32px -6px rgba(37,99,235,.65),
+        0 6px 16px -3px rgba(37,99,235,.45);
 }
 .submit-btn:hover::before { left: 130%; }
 .submit-btn:active { transform: translateY(0) scale(.99); filter: brightness(.97); }
@@ -629,6 +606,223 @@ input[type="password"] { letter-spacing: 1px; }
 }
 @keyframes footerIn { to { opacity: 1; transform: translateY(0); } }
 .footer strong { color: var(--ink-600); font-weight: 720; letter-spacing: .6px; }
+
+/* =========================================
+   ROLE SELECT
+========================================= */
+.role-stage {
+    position: relative;
+    width: 100%;
+}
+.role-select {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: opacity .9s ease, transform 1.2s var(--ease-out), filter .9s ease;
+}
+.role-select.hidden {
+    opacity: 0;
+    transform: translateX(-50px) scale(.95);
+    filter: blur(8px);
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+}
+.role-select-title {
+    font-size: 16px;
+    font-weight: 780;
+    letter-spacing: -.5px;
+    text-align: center;
+    color: var(--ink-900);
+    line-height: 1.3;
+    margin-bottom: 2px;
+}
+.role-select-sub {
+    font-size: 11.5px;
+    color: var(--ink-500);
+    text-align: center;
+    margin-bottom: 8px;
+    font-weight: 490;
+    line-height: 1.5;
+}
+
+/* карточка роли */
+.role-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--ink-200);
+    background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
+    cursor: pointer;
+    overflow: hidden;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.95) inset,
+        0 1px 2px rgba(15,23,42,.04);
+    transition:
+        transform .7s var(--ease-spring),
+        border-color .6s ease,
+        box-shadow .8s ease,
+        background .8s ease;
+}
+.role-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--blue-300);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.95) inset,
+        0 10px 24px -10px rgba(37,99,235,.35),
+        0 4px 10px -4px rgba(15,23,42,.06);
+}
+.role-card:active { transform: translateY(0) scale(.985); }
+
+.role-icon {
+    flex-shrink: 0;
+    width: 42px; height: 42px;
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    background: linear-gradient(145deg, #60a5fa, #2563eb);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.4) inset,
+        0 8px 18px -6px rgba(37,99,235,.5);
+    transition: transform .7s var(--ease-spring);
+}
+.role-icon svg { width: 20px; height: 20px; }
+.role-card[data-role="curator"]  .role-icon { background: linear-gradient(145deg, #60a5fa, #2563eb); }
+.role-card[data-role="starosta"] .role-icon { background: linear-gradient(145deg, #a78bfa, #7c3aed); }
+.role-card[data-role="parent"]   .role-icon { background: linear-gradient(145deg, #34d399, #059669); }
+.role-card:hover .role-icon { transform: scale(1.08) rotate(-3deg); }
+
+.role-info { flex: 1; min-width: 0; }
+.role-name {
+    font-size: 14px;
+    font-weight: 720;
+    letter-spacing: -.2px;
+    color: var(--ink-900);
+    line-height: 1.2;
+}
+.role-desc {
+    margin-top: 3px;
+    font-size: 11.5px;
+    color: var(--ink-500);
+    font-weight: 490;
+    line-height: 1.4;
+}
+
+.role-arrow {
+    flex-shrink: 0;
+    width: 18px; height: 18px;
+    color: var(--ink-300);
+    transition: transform .6s var(--ease-spring), color .6s ease;
+}
+.role-card:hover .role-arrow {
+    color: var(--blue-500);
+    transform: translateX(3px);
+}
+
+/* зелёный ripple — «капелька» */
+.role-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+        rgba(16,185,129,.55) 0%,
+        rgba(16,185,129,.35) 40%,
+        rgba(16,185,129,0) 70%);
+    pointer-events: none;
+    transform: translate(-50%, -50%) scale(0);
+    animation: roleRipple .95s cubic-bezier(.19,1,.22,1) forwards;
+    z-index: 1;
+}
+@keyframes roleRipple {
+    0%   { transform: translate(-50%, -50%) scale(0);   opacity: .95; }
+    60%  { opacity: .55; }
+    100% { transform: translate(-50%, -50%) scale(1);   opacity: 0; }
+}
+
+/* зелёное свечение на карточке после нажатия */
+.role-card.picked {
+    border-color: var(--ok-500);
+    background: linear-gradient(180deg, #f0fdf9 0%, #ecfdf5 100%);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.95) inset,
+        0 0 0 4px rgba(16,185,129,.15),
+        0 10px 26px -10px rgba(16,185,129,.55);
+    animation: roleCardPulse 1s var(--ease-out) forwards;
+}
+@keyframes roleCardPulse {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(.985); }
+    100% { transform: scale(1); }
+}
+.role-card.picked .role-icon {
+    background: linear-gradient(145deg, #34d399, #059669);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.5) inset,
+        0 8px 20px -6px rgba(16,185,129,.6);
+}
+.role-card.picked .role-arrow { color: var(--ok-500); transform: translateX(3px); }
+
+/* форма регистрации (вторая сцена) */
+.register-form {
+    transition: opacity 1s ease, transform 1.2s var(--ease-out), filter 1s ease;
+}
+.register-form.hidden {
+    opacity: 0;
+    transform: translateX(50px) scale(.96);
+    filter: blur(8px);
+    pointer-events: none;
+    position: absolute;
+    inset: 0;
+}
+
+/* кнопка «назад» */
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 6px 10px 6px 6px;
+    border: none;
+    background: transparent;
+    color: var(--ink-500);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 620;
+    letter-spacing: .1px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: color .5s ease, background .5s ease, transform .5s var(--ease-spring);
+}
+.back-btn:hover { color: var(--blue-600); background: var(--blue-50); }
+.back-btn:active { transform: scale(.94); }
+.back-btn svg { width: 14px; height: 14px; }
+
+/* выбранная роль — бейдж над формой */
+.role-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ecfdf5 0%, #f0fdf9 100%);
+    border: 1px solid var(--ok-bd);
+    color: var(--ok-600);
+    font-size: 12px;
+    font-weight: 660;
+    letter-spacing: .1px;
+    animation: badgeIn 1s var(--ease-spring) both;
+}
+@keyframes badgeIn {
+    from { opacity: 0; transform: translateY(-6px) scale(.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.role-badge svg { width: 15px; height: 15px; }
+.role-badge span { color: var(--ok-600); }
 
 /* =========================================
    STATUS SCREEN
@@ -968,7 +1162,7 @@ input[type="password"] { letter-spacing: 1px; }
     input { height: 50px; font-size: 16px; }
     .submit-btn { height: 50px; font-size: 14.5px; }
     .tabs { height: 44px; }
-    .tab { font-size: 11.5px; }
+    .tab { font-size: 13px; }
     .status-icon { width: 88px; height: 88px; margin-bottom: 20px; }
     .status-svg { width: 88px; height: 88px; }
     .status-title { font-size: 18px; }
@@ -980,7 +1174,6 @@ input[type="password"] { letter-spacing: 1px; }
     .title { font-size: 19px; }
     input { height: 46px; font-size: 15px; }
     .submit-btn { height: 46px; font-size: 13.5px; }
-    .tab { font-size: 10.5px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1040,7 +1233,6 @@ input[type="password"] { letter-spacing: 1px; }
             <div class="tab-indicator"></div>
             <button class="tab login active" id="loginTab" type="button">Вход</button>
             <button class="tab register" id="registerTab" type="button">Регистрация</button>
-            <button class="tab parent" id="parentTab" type="button">Родитель</button>
         </div>
 
         <div class="forms-viewport" id="formsViewport">
@@ -1088,9 +1280,84 @@ input[type="password"] { letter-spacing: 1px; }
                 </form>
             </div>
 
-            <!-- REGISTER -->
+            <!-- REGISTER (две сцены: выбор роли → форма) -->
             <div class="form-panel register-panel" id="registerPanel">
-                <form id="registerForm" autocomplete="on">
+
+                <!-- Сцена 1: выбор роли -->
+                <div class="role-select" id="roleSelect">
+                    <div class="role-select-title">Ура! 🎉 Выберите, пожалуйста, кто вы?</div>
+                    <div class="role-select-sub">Это поможет нам настроить систему под вас</div>
+
+                    <div class="role-card" data-role="curator" tabindex="0" role="button">
+                        <div class="role-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 7l8-4 8 4-8 4-8-4Z"/>
+                                <path d="M4 7v6c0 1.5 3.6 3 8 3s8-1.5 8-3V7"/>
+                            </svg>
+                        </div>
+                        <div class="role-info">
+                            <div class="role-name">Куратор</div>
+                            <div class="role-desc">Управление группами и отчётами</div>
+                        </div>
+                        <svg class="role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m9 6 6 6-6 6"/>
+                        </svg>
+                    </div>
+
+                    <div class="role-card" data-role="starosta" tabindex="0" role="button">
+                        <div class="role-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="8" r="3.2"/>
+                                <path d="M5 20c.8-3.4 3.2-5 7-5s6.2 1.6 7 5"/>
+                                <path d="M17 5.5 18 7l2 .3-1.5 1.5.4 2-1.9-1-1.9 1 .4-2L14 7.3 16 7l1-1.5Z"/>
+                            </svg>
+                        </div>
+                        <div class="role-info">
+                            <div class="role-name">Староста</div>
+                            <div class="role-desc">Помощь куратору и ведение группы</div>
+                        </div>
+                        <svg class="role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m9 6 6 6-6 6"/>
+                        </svg>
+                    </div>
+
+                    <div class="role-card" data-role="parent" tabindex="0" role="button">
+                        <div class="role-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="8" cy="9" r="2.6"/>
+                                <circle cx="16" cy="9" r="2.6"/>
+                                <path d="M3 19c.6-2.6 2.5-4 5-4s4.4 1.4 5 4"/>
+                                <path d="M11 19c.6-2.6 2.5-4 5-4s4.4 1.4 5 4"/>
+                            </svg>
+                        </div>
+                        <div class="role-info">
+                            <div class="role-name">Родитель</div>
+                            <div class="role-desc">Просмотр успеваемости ребёнка</div>
+                        </div>
+                        <svg class="role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m9 6 6 6-6 6"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <!-- Сцена 2: форма регистрации -->
+                <form id="registerForm" class="register-form hidden" autocomplete="on">
+
+                    <button type="button" class="back-btn" id="backToRoles">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m15 6-6 6 6 6"/>
+                        </svg>
+                        Изменить роль
+                    </button>
+
+                    <div class="role-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m5 12 5 5L20 7"/>
+                        </svg>
+                        Роль: <span id="roleBadgeText">—</span>
+                    </div>
+
+                    <input type="hidden" id="registerRole" value="">
 
                     <div class="field">
                         <div class="input-wrap">
@@ -1169,51 +1436,7 @@ input[type="password"] { letter-spacing: 1px; }
 
                     <button type="submit" class="submit-btn" id="registerButton">Создать аккаунт</button>
                 </form>
-            </div>
 
-            <!-- PARENT LOGIN -->
-            <div class="form-panel parent-panel" id="parentPanel">
-                <form id="parentForm" autocomplete="on">
-
-                    <div class="field">
-                        <div class="input-wrap">
-                            <input type="email" id="parentEmail" placeholder="Электронная почта родителя"
-                                   autocomplete="email" inputmode="email" required>
-                            <div class="input-icon">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <rect x="3" y="5" width="18" height="14" rx="3"/>
-                                    <path d="m4 7 8 6 8-6"/>
-                                </svg>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="field">
-                        <div class="input-wrap">
-                            <input type="password" id="parentPassword" placeholder="Пароль"
-                                   autocomplete="current-password" required>
-                            <button type="button" class="password-toggle"
-                                    data-target="parentPassword" aria-label="Показать пароль">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
-                                    <circle cx="12" cy="12" r="2.5"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="login-options">
-                        <label class="remember">
-                            <input type="checkbox" id="parentRememberMe">
-                            <span>Запомнить меня</span>
-                        </label>
-                        <button type="button" class="forgot" id="parentForgotPassword">Забыли пароль?</button>
-                    </div>
-
-                    <button type="submit" class="submit-btn parent-btn" id="parentButton">
-                        Войти как родитель
-                    </button>
-                </form>
             </div>
 
         </div>
@@ -1305,10 +1528,8 @@ const authCard       = document.getElementById("authCard");
 const formsViewport  = document.getElementById("formsViewport");
 const loginPanel     = document.getElementById("loginPanel");
 const registerPanel  = document.getElementById("registerPanel");
-const parentPanel    = document.getElementById("parentPanel");
 const loginTab       = document.getElementById("loginTab");
 const registerTab    = document.getElementById("registerTab");
-const parentTab      = document.getElementById("parentTab");
 const pageTitle      = document.getElementById("pageTitle");
 const pageSubtitle   = document.getElementById("pageSubtitle");
 const messageEl      = document.getElementById("message");
@@ -1316,6 +1537,18 @@ const pageLoader     = document.getElementById("pageLoader");
 const statusTitle    = document.getElementById("statusTitle");
 const statusSubtitle = document.getElementById("statusSubtitle");
 const retryBtn       = document.getElementById("retryBtn");
+
+const roleSelect     = document.getElementById("roleSelect");
+const registerForm   = document.getElementById("registerForm");
+const registerRole   = document.getElementById("registerRole");
+const roleBadgeText  = document.getElementById("roleBadgeText");
+const backToRoles    = document.getElementById("backToRoles");
+
+const ROLE_LABELS = {
+    curator:  "Куратор",
+    starosta: "Староста",
+    parent:   "Родитель"
+};
 
 /* =========================================
    HELPERS
@@ -1360,7 +1593,6 @@ function firebaseError(error) {
    STATUS SCREEN
 ========================================= */
 const REDIRECT_DELAY = 3200;
-
 let statusActive = false;
 
 function showLoading(title = "Проверяем данные…", subtitle = "Подождите пару секунд") {
@@ -1370,28 +1602,24 @@ function showLoading(title = "Проверяем данные…", subtitle = "�
     statusSubtitle.textContent = subtitle;
     clearMessage();
 }
-
 function showSuccess(title = "Вход выполнен!", subtitle = "Открываем систему…") {
     statusActive = true;
     authCard.dataset.state = "success";
     statusTitle.textContent = title;
     statusSubtitle.textContent = subtitle;
 }
-
 function showError(title = "Не удалось войти", subtitle = "Проверьте логин и пароль") {
     statusActive = true;
     authCard.dataset.state = "error";
     statusTitle.textContent = title;
     statusSubtitle.textContent = subtitle;
 }
-
 function showWarning(title = "Ожидает подтверждения", subtitle = "Дождитесь одобрения администратора") {
     statusActive = true;
     authCard.dataset.state = "warning";
     statusTitle.textContent = title;
     statusSubtitle.textContent = subtitle;
 }
-
 function resetStatus() {
     statusActive = false;
     authCard.dataset.state = "";
@@ -1406,21 +1634,18 @@ function resetStatus() {
         setViewportHeight(panel.scrollHeight);
     }, 60);
 }
-
 retryBtn.addEventListener("click", () => {
     resetStatus();
-    const emailInput = currentMode === "login"
-        ? document.getElementById("loginEmail")
-        : currentMode === "register"
-            ? document.getElementById("registerEmail")
-            : document.getElementById("parentEmail");
-    const passInput = currentMode === "login"
-        ? document.getElementById("loginPassword")
-        : currentMode === "register"
-            ? document.getElementById("registerPassword")
-            : document.getElementById("parentPassword");
-    if (passInput) passInput.value = "";
-    if (emailInput) emailInput.focus();
+    const panel = getCurrentPanel();
+    if (currentMode === "login") {
+        const emailInput = document.getElementById("loginEmail");
+        const passInput  = document.getElementById("loginPassword");
+        if (passInput) passInput.value = "";
+        if (emailInput) emailInput.focus();
+    } else {
+        // регистрация: вернёмся к выбору роли
+        showRoleStage();
+    }
 });
 
 /* =========================================
@@ -1430,22 +1655,17 @@ let currentMode = "login";
 let switching = false;
 
 function getCurrentPanel() {
-    if (currentMode === "login")    return loginPanel;
-    if (currentMode === "register") return registerPanel;
-    return parentPanel;
+    return currentMode === "login" ? loginPanel : registerPanel;
 }
 function getPanelHeight(panel) { return panel.scrollHeight; }
 function setViewportHeight(h) { formsViewport.style.height = `${h}px`; }
-
 function initializeHeight() {
-    const panel = getCurrentPanel();
-    setViewportHeight(getPanelHeight(panel));
+    setViewportHeight(getPanelHeight(getCurrentPanel()));
 }
 
 const TITLES = {
     login:    { title: "С возвращением",     subtitle: "Войдите в систему KURATOR" },
-    register: { title: "Создание аккаунта",  subtitle: "Зарегистрируйтесь в системе KURATOR" },
-    parent:   { title: "Вход для родителей", subtitle: "Просмотр успеваемости вашего ребёнка" }
+    register: { title: "Создание аккаунта",  subtitle: "Зарегистрируйтесь в системе KURATOR" }
 };
 
 async function switchMode(mode) {
@@ -1454,13 +1674,16 @@ async function switchMode(mode) {
     clearMessage();
 
     const currentPanel = getCurrentPanel();
-    const nextPanel    = mode === "login" ? loginPanel
-                       : mode === "register" ? registerPanel
-                       : parentPanel;
+    const nextPanel    = mode === "login" ? loginPanel : registerPanel;
 
     setViewportHeight(currentPanel.scrollHeight);
     currentMode = mode;
     authCard.dataset.mode = mode;
+
+    // при переходе в register всегда начинаем с выбора роли
+    if (mode === "register") {
+        showRoleStage();
+    }
 
     pageTitle.style.opacity = "0";
     pageTitle.style.transform = "translateY(-6px)";
@@ -1487,7 +1710,95 @@ async function switchMode(mode) {
 
 loginTab.addEventListener("click", () => switchMode("login"));
 registerTab.addEventListener("click", () => switchMode("register"));
-parentTab.addEventListener("click", () => switchMode("parent"));
+
+/* =========================================
+   ROLE SELECT
+========================================= */
+let roleChosen = false;
+
+function showRoleStage() {
+    roleChosen = false;
+    registerRole.value = "";
+    roleBadgeText.textContent = "—";
+    roleSelect.classList.remove("hidden");
+    registerForm.classList.add("hidden");
+
+    // очистим "picked" у всех карточек
+    document.querySelectorAll(".role-card").forEach(c => c.classList.remove("picked"));
+
+    // дать высоте пересчитаться
+    setTimeout(() => {
+        if (currentMode === "register") {
+            setViewportHeight(registerPanel.scrollHeight);
+        }
+    }, 60);
+}
+
+function showFormStage() {
+    roleSelect.classList.add("hidden");
+    registerForm.classList.remove("hidden");
+    setTimeout(() => {
+        if (currentMode === "register") {
+            setViewportHeight(registerPanel.scrollHeight);
+        }
+        // фокус на первое поле
+        const nameInput = document.getElementById("registerName");
+        if (nameInput) nameInput.focus({ preventScroll: true });
+    }, 60);
+}
+
+backToRoles.addEventListener("click", () => {
+    clearMessage();
+    showRoleStage();
+});
+
+function spawnRipple(card, x, y) {
+    const rect = card.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height) * 2.4;
+
+    const ripple = document.createElement("span");
+    ripple.className = "role-ripple";
+    ripple.style.width  = `${size}px`;
+    ripple.style.height = `${size}px`;
+    ripple.style.left   = `${x - rect.left}px`;
+    ripple.style.top    = `${y - rect.top}px`;
+
+    card.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 1000);
+}
+
+function pickRole(card, x, y) {
+    if (roleChosen) return;
+    roleChosen = true;
+
+    const role = card.dataset.role;
+    registerRole.value = role;
+    roleBadgeText.textContent = ROLE_LABELS[role] || role;
+
+    spawnRipple(card, x, y);
+    card.classList.add("picked");
+
+    // мягкая задержка, чтобы успел проиграться зелёный эффект
+    setTimeout(() => {
+        showFormStage();
+    }, 900);
+}
+
+document.querySelectorAll(".role-card").forEach(card => {
+    card.addEventListener("click", (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = (e.clientX ?? rect.left + rect.width / 2);
+        const y = (e.clientY ?? rect.top + rect.height / 2);
+        pickRole(card, x, y);
+    });
+    card.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            const rect = card.getBoundingClientRect();
+            pickRole(card, rect.left + rect.width / 2, rect.top + rect.height / 2);
+        }
+    });
+});
 
 /* =========================================
    PASSWORD TOGGLE
@@ -1529,80 +1840,6 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 });
 
 /* =========================================
-   PARENT LOGIN
-========================================= */
-let parentLoginInProgress = false;
-
-document.getElementById("parentForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    clearMessage();
-
-    const email    = document.getElementById("parentEmail").value.trim();
-    const password = document.getElementById("parentPassword").value;
-    const remember = document.getElementById("parentRememberMe").checked;
-
-    if (!email || !password) {
-        showMessage("Заполните все поля.");
-        return;
-    }
-
-    showLoading("Проверяем данные…", "Подождите пару секунд");
-    await new Promise(r => setTimeout(r, 700));
-
-    parentLoginInProgress = true;
-    try {
-        await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-        const cred = await signInWithEmailAndPassword(auth, email, password);
-
-        // Проверяем, что это действительно родитель
-        const snap = await getDoc(doc(db, "users", cred.user.uid));
-        if (!snap.exists()) {
-            await signOut(auth);
-            await new Promise(r => setTimeout(r, 600));
-            showError("Профиль не найден", "Обратитесь к администратору.");
-            return;
-        }
-
-        const data = snap.data();
-        const isParent = data.role === "parent" || data.isParent === true;
-
-        if (!isParent) {
-            await signOut(auth);
-            await new Promise(r => setTimeout(r, 600));
-            showError(
-                "Доступ только для родителей",
-                "Этот аккаунт не является родительским. Войдите через обычный вход."
-            );
-            return;
-        }
-
-        if (data.reg === 0) {
-            await signOut(auth);
-            showWarning(
-                "Ожидает подтверждения",
-                "Ваш запрос ещё не одобрен администратором."
-            );
-            return;
-        }
-
-        showSuccess(
-            `Здравствуйте, ${data.name ? data.name.split(" ")[0] : "родитель"}!`,
-            "Открываем кабинет родителя…"
-        );
-
-        const homePage = await resolveHomePage(cred.user);
-        setTimeout(() => { window.location.href = homePage; }, REDIRECT_DELAY);
-
-    } catch (error) {
-        console.error(error);
-        await new Promise(r => setTimeout(r, 600));
-        showError("Не удалось войти", firebaseError(error));
-    } finally {
-        parentLoginInProgress = false;
-    }
-});
-
-/* =========================================
    REGISTER
 ========================================= */
 let registrationInProgress = false;
@@ -1611,12 +1848,18 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
     e.preventDefault();
     clearMessage();
 
+    const role            = registerRole.value;
     const name            = document.getElementById("registerName").value.trim();
     const email           = document.getElementById("registerEmail").value.trim();
     const password        = document.getElementById("registerPassword").value;
     const confirmPassword = document.getElementById("registerConfirmPassword").value;
     const group           = document.getElementById("registerGroup").value.trim();
 
+    if (!role) {
+        showMessage("Сначала выберите роль.");
+        showRoleStage();
+        return;
+    }
     if (!name || !email || !password || !confirmPassword || !group) {
         showMessage("Заполните все поля.");
         return;
@@ -1643,7 +1886,7 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
             name,
             email,
             group,
-            role: "student",
+            role,                  // curator | starosta | parent
             reg: 0,
             createdAt: serverTimestamp()
         });
@@ -1670,32 +1913,13 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
 });
 
 /* =========================================
-   FORGOT PASSWORD (логин)
+   FORGOT PASSWORD
 ========================================= */
 document.getElementById("forgotPassword").addEventListener("click", async () => {
     const email = document.getElementById("loginEmail").value.trim();
     if (!email) {
         showMessage("Сначала введите свою электронную почту.");
         document.getElementById("loginEmail").focus();
-        return;
-    }
-    try {
-        await sendPasswordResetEmail(auth, email);
-        showMessage("Письмо для восстановления пароля отправлено.", "success");
-    } catch (error) {
-        console.error(error);
-        showMessage(firebaseError(error));
-    }
-});
-
-/* =========================================
-   FORGOT PASSWORD (родитель)
-========================================= */
-document.getElementById("parentForgotPassword").addEventListener("click", async () => {
-    const email = document.getElementById("parentEmail").value.trim();
-    if (!email) {
-        showMessage("Сначала введите электронную почту родителя.");
-        document.getElementById("parentEmail").focus();
         return;
     }
     try {
@@ -1800,7 +2024,6 @@ async function handleAuthUser(user) {
 onAuthStateChanged(auth, (user) => {
     if (user) {
         if (registrationInProgress) return;
-        if (parentLoginInProgress) return; // родительский вход сам обрабатывает редирект
         if (authCheckInProgress) return;
         authCheckInProgress = true;
         handleAuthUser(user).finally(() => { authCheckInProgress = false; });

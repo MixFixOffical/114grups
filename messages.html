@@ -19,37 +19,31 @@
 *{margin:0;padding:0;box-sizing:border-box}
 
 :root{
-    /* Единый акцент */
     --accent:#4f7cff;
     --accent-2:#7c5cff;
     --accent-grad:linear-gradient(135deg,#4f7cff 0%,#7c5cff 100%);
     --accent-soft:rgba(79,124,255,.12);
     --accent-ring:rgba(79,124,255,.25);
 
-    /* Фоны */
     --bg-app:#f7f8fb;
     --bg-panel:#ffffff;
     --bg-panel-2:#f1f3f8;
     --bg-chat:linear-gradient(180deg,#eef2fa 0%,#e6ecf7 100%);
     --bg-chat-pattern:radial-gradient(rgba(79,124,255,.06) 1px,transparent 1px);
 
-    /* Пузыри */
     --bubble-out-1:#eaf1ff;
     --bubble-out-2:#dbe7ff;
     --bubble-out-border:#c9d9ff;
     --bubble-in:#ffffff;
     --bubble-in-border:#e9edf5;
 
-    /* Текст */
     --text:#0f1729;
     --text-secondary:#5b6478;
     --text-light:#9aa3b5;
 
-    /* Границы */
     --border:#e6ebf3;
     --border-soft:#eef2f7;
 
-    /* Статусы */
     --danger:#e53935;
     --danger-light:#ffebee;
     --success:#10b981;
@@ -59,16 +53,13 @@
     --violet:#7c3aed;
     --violet-light:#f4f0ff;
 
-    /* Размеры */
     --sidebar-w:264px;
     --topbar-h:60px;
 
-    /* Тени — 3 уровня */
     --shadow-sm:0 1px 2px rgba(20,30,60,.04), 0 1px 1px rgba(20,30,60,.03);
     --shadow-md:0 8px 24px -8px rgba(20,30,60,.12), 0 2px 6px rgba(20,30,60,.04);
     --shadow-lg:0 24px 60px -20px rgba(20,30,60,.25);
 
-    /* Анимации */
     --ease:cubic-bezier(.22,1,.36,1);
     --ease-spring:cubic-bezier(.34,1.56,.64,1);
 }
@@ -117,7 +108,6 @@ button{font-family:inherit}
 :focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-ring);border-radius:8px}
 ::selection{background:rgba(79,124,255,.25)}
 
-/* Тонкие скроллбары */
 *::-webkit-scrollbar{width:8px;height:8px}
 *::-webkit-scrollbar-track{background:transparent}
 *::-webkit-scrollbar-thumb{background:rgba(148,163,184,.3);border-radius:4px}
@@ -486,16 +476,52 @@ body.dark .status-card{color:#4ade80}
     box-shadow:0 4px 12px -4px rgba(20,30,60,.3);
 }
 
+/* ===== СООБЩЕНИЯ ===== */
 .msg-row{
     display:flex;align-items:flex-end;gap:8px;
     max-width:100%;
-    animation:msgIn .28s cubic-bezier(.34,1.4,.64,1) both;
+    animation:msgIn .32s cubic-bezier(.34,1.4,.64,1) both;
 }
 .msg-row.out{justify-content:flex-end}
 .msg-row.in{justify-content:flex-start}
+
 @keyframes msgIn{
-    from{opacity:0;transform:translateY(8px) scale(.96)}
+    from{opacity:0;transform:translateY(10px) scale(.92)}
     to{opacity:1;transform:translateY(0) scale(1)}
+}
+
+/* Анимация появления «из bubbles» — для исходящих */
+@keyframes msgOut{
+    0%{
+        opacity:0;
+        transform:translateY(14px) scale(.85) translateX(20px);
+    }
+    60%{
+        opacity:1;
+        transform:translateY(-2px) scale(1.01) translateX(0);
+    }
+    100%{
+        opacity:1;
+        transform:translateY(0) scale(1) translateX(0);
+    }
+}
+.msg-row.out{animation:msgOut .4s cubic-bezier(.34,1.4,.64,1) both}
+
+/* Анимация входящих — мягкое всплытие */
+@keyframes msgIncoming{
+    0%{opacity:0;transform:translateY(10px) scale(.94) translateX(-16px)}
+    100%{opacity:1;transform:translateY(0) scale(1) translateX(0)}
+}
+.msg-row.in{animation:msgIncoming .35s cubic-bezier(.34,1.4,.64,1) both}
+
+/* Пульсация "только что отправлено" */
+.msg-row.just-sent .msg-bubble{
+    animation:justSent 1.2s ease-out;
+}
+@keyframes justSent{
+    0%{box-shadow:0 0 0 0 rgba(79,124,255,.5)}
+    50%{box-shadow:0 0 0 8px rgba(79,124,255,.15)}
+    100%{box-shadow:0 0 0 0 rgba(79,124,255,0)}
 }
 
 .msg-avatar{
@@ -511,27 +537,38 @@ body.dark .status-card{color:#4ade80}
 .msg-avatar.role-student{background:linear-gradient(135deg,#34d399,#06b6d4)}
 .msg-avatar.role-parent {background:linear-gradient(135deg,#6ee7b7,#10b981)}
 
+/* Пузырь — адаптивный по контенту */
 .msg-bubble{
     position:relative;
-    max-width:min(560px,70%);
-    padding:9px 14px 8px;
+    /* ширина по контенту, но не более 55% контейнера */
+    width:fit-content;
+    max-width:min(520px, 62%);
+    min-width:64px;
+    padding:8px 13px 7px;
     border-radius:16px;
     font-size:13.5px;line-height:1.5;
     color:var(--text);
-    word-wrap:break-word;white-space:pre-wrap;
+    word-wrap:break-word;
+    overflow-wrap:break-word;
+    word-break:break-word;
+    white-space:pre-wrap;
     border:1px solid var(--bubble-in-border);
     background:var(--bubble-in);
     box-shadow:
         0 1px 2px rgba(20,30,60,.06),
         0 1px 1px rgba(20,30,60,.03);
-    transition:box-shadow .2s;
+    transition:box-shadow .2s, transform .2s;
 }
-.msg-bubble:hover{box-shadow:0 3px 10px -2px rgba(20,30,60,.12)}
-.msg-bubble.in{border-bottom-left-radius:4px}
+.msg-bubble:hover{box-shadow:0 4px 12px -2px rgba(20,30,60,.14)}
+
+/* Короткое сообщение — компактнее */
+.msg-bubble:has(> :only-child) { /* fallback */ }
+
+.msg-bubble.in{border-bottom-left-radius:6px}
 .msg-row.out .msg-bubble{
     background:linear-gradient(180deg,var(--bubble-out-1),var(--bubble-out-2));
     border-color:var(--bubble-out-border);
-    border-bottom-right-radius:4px;
+    border-bottom-right-radius:6px;
 }
 body.dark .msg-row.out .msg-bubble{
     background:linear-gradient(180deg,#2a3a6b,#1e2c55);
@@ -543,14 +580,37 @@ body.dark .msg-row.out .msg-bubble{
     font-style:italic;
     display:flex;align-items:center;gap:6px;
 }
+
+/* Текст внутри пузыря — обрезка очень длинных слов */
+.msg-bubble .msg-text{
+    display:inline;
+    hyphens:auto;
+    overflow-wrap:anywhere;
+    word-break:break-word;
+}
+
+/* Мета — плавающая внутри пузыря справа снизу */
 .msg-meta{
     display:flex;align-items:center;gap:5px;justify-content:flex-end;
     font-size:10.5px;color:var(--text-light);
     margin-top:2px;line-height:1;
+    float:right;
+    margin-left:8px;
+    margin-bottom:-2px;
+    position:relative;
+    top:3px;
 }
 body.dark .msg-row.out .msg-meta{color:rgba(230,235,245,.65)}
 .msg-meta .check{width:15px;height:15px}
 .msg-meta .check.read{color:var(--accent)}
+
+/* Невидимый распорник, чтобы текст не залезал под мету */
+.msg-bubble::after{
+    content:"";
+    display:inline-block;
+    width:0;
+    height:0;
+}
 
 /* Карточка рассылки */
 .broadcast-card{
@@ -653,23 +713,144 @@ body.dark .msg-row.out .msg-meta{color:rgba(230,235,245,.65)}
 .composer-count{
     font-size:10.5px;color:var(--text-light);font-weight:600;
     padding:0 4px 2px;align-self:flex-end;flex-shrink:0;
+    transition:color .2s;
 }
+.composer-count.warn{color:var(--amber)}
+.composer-count.danger{color:var(--danger)}
+
+/* Отправка — «толчок» composer */
+.composer.sent .composer-wrap{
+    animation:composerBounce .45s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes composerBounce{
+    0%{transform:scale(1)}
+    35%{transform:scale(.985) translateY(1px)}
+    100%{transform:scale(1) translateY(0)}
+}
+
 .send-btn{
     width:46px;height:46px;border-radius:50%;border:none;flex-shrink:0;
     background:var(--accent-grad);
     color:#fff;cursor:pointer;
     display:flex;align-items:center;justify-content:center;
+    position:relative;
+    overflow:hidden;
     box-shadow:
         0 8px 20px -6px rgba(79,124,255,.6),
         0 1px 0 rgba(255,255,255,.3) inset;
     transition:transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .2s, background .2s;
 }
-.send-btn svg{width:20px;height:20px}
+.send-btn svg{width:20px;height:20px;position:relative;z-index:2}
 .send-btn:hover:not(:disabled){transform:scale(1.08) rotate(-4deg)}
 .send-btn:active:not(:disabled){transform:scale(.96)}
 .send-btn:disabled{
     opacity:.45;cursor:not-allowed;box-shadow:none;
     background:var(--text-light);
+}
+
+/* Волна при клике */
+.send-btn::before{
+    content:"";
+    position:absolute;inset:0;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(255,255,255,.6) 0%, transparent 70%);
+    transform:scale(0);
+    opacity:0;
+    z-index:1;
+}
+.send-btn.clicked::before{
+    animation:sendRipple .6s ease-out;
+}
+@keyframes sendRipple{
+    0%{transform:scale(0);opacity:1}
+    100%{transform:scale(2.2);opacity:0}
+}
+
+/* Самолётик улетает */
+.send-btn.clicked svg{
+    animation:planeFly .7s cubic-bezier(.34,1.4,.64,1);
+}
+@keyframes planeFly{
+    0%{transform:translate(0,0) rotate(0);opacity:1}
+    40%{transform:translate(28px,-28px) rotate(20deg);opacity:0}
+    41%{transform:translate(-24px,24px) rotate(-15deg);opacity:0}
+    100%{transform:translate(0,0) rotate(0);opacity:1}
+}
+
+/* Пульсация при готовности к отправке */
+.send-btn:not(:disabled)::after{
+    content:"";
+    position:absolute;inset:-4px;
+    border-radius:50%;
+    border:2px solid var(--accent);
+    opacity:0;
+    animation:sendReady 2.4s ease-in-out infinite;
+    pointer-events:none;
+}
+@keyframes sendReady{
+    0%,100%{opacity:0;transform:scale(.95)}
+    50%{opacity:.4;transform:scale(1.05)}
+}
+
+/* ===== СТАТУСЫ ОТПРАВКИ ===== */
+/* Часики (sending) */
+.msg-meta .sending-clock{
+    width:12px;height:12px;
+    border:1.5px solid var(--text-light);
+    border-top-color:transparent;
+    border-radius:50%;
+    animation:spin .9s linear infinite;
+    display:inline-block;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Точка отправки */
+.msg-meta .sending-dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--accent);
+    box-shadow:0 0 8px var(--accent);
+    animation:sendingPulse 1.2s ease-in-out infinite;
+}
+@keyframes sendingPulse{
+    0%,100%{opacity:.4;transform:scale(.85)}
+    50%{opacity:1;transform:scale(1.15)}
+}
+
+/* Галочка прорисовывается */
+.msg-meta .check path{
+    stroke-dasharray:30;
+    stroke-dashoffset:30;
+    animation:checkDraw .5s cubic-bezier(.34,1.4,.64,1) forwards;
+}
+.msg-meta .check path:nth-child(2){
+    animation-delay:.08s;
+}
+@keyframes checkDraw{
+    to{stroke-dashoffset:0}
+}
+.msg-meta .check.read{
+    color:var(--accent);
+    animation:checkPop .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes checkPop{
+    0%{transform:scale(.7)}
+    60%{transform:scale(1.2)}
+    100%{transform:scale(1)}
+}
+
+/* «Только что отправлено» — световая волна */
+.msg-row.just-sent .msg-bubble::before{
+    content:"";
+    position:absolute;inset:-2px;
+    border-radius:inherit;
+    background:linear-gradient(135deg, rgba(79,124,255,.4), transparent 60%);
+    opacity:0;
+    animation:justSentGlow 1s ease-out;
+    pointer-events:none;
+}
+@keyframes justSentGlow{
+    0%{opacity:.7}
+    100%{opacity:0}
 }
 
 .placeholder{
@@ -923,6 +1104,15 @@ body.dark .page-loader{
 @keyframes loaderFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
 @keyframes glowPulse{0%,100%{transform:scale(1);opacity:.25}50%{transform:scale(1.15);opacity:.4}}
 body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibility:hidden}
+
+/* ===== АДАПТИВНОСТЬ ПУЗЫРЕЙ ===== */
+@media (max-width:1440px){
+    .msg-bubble{max-width:min(480px, 68%);font-size:13px;padding:8px 13px 7px}
+}
+@media (max-width:1180px){
+    .msg-bubble{max-width:min(440px, 76%);font-size:12.5px;padding:7px 12px 6px;border-radius:14px}
+    .messages{padding:20px 20px 14px}
+}
 </style>
 </head>
 
@@ -1191,6 +1381,7 @@ let messagesUnsub = null;
 let searchChatsQuery = "";
 let usersListenerStarted = false;
 let chatsListenerStarted = false;
+let pendingMessages = new Set(); // id временных пузырей
 
 /* Helpers */
 function esc(s){
@@ -1527,13 +1718,30 @@ function renderChatHead(c){
 function renderMessages(messages, chat){
     const container = document.getElementById("messagesContainer");
 
+    // Убираем оптимистичные пузыри, для которых уже пришли реальные
+    // (по совпадению текста и from === myUid)
+    if(pendingMessages.size){
+        const realTexts = new Set(messages.filter(m => m.from === myUid).map(m => m.text));
+        pendingMessages.forEach(id => {
+            const el = document.getElementById(id);
+            if(el){
+                // если есть реальное сообщение с таким же текстом — удаляем временный
+                if(realTexts.has(el.dataset.text)) el.remove();
+                pendingMessages.delete(id);
+            }
+        });
+    }
+
     if(!messages.length){
-        container.innerHTML = `
-            <div class="messages-empty">
-                <div class="ic">✉️</div>
-                <h3>Нет сообщений</h3>
-                <p>Напишите первое сообщение ниже</p>
-            </div>`;
+        // не перезаписываем, если есть временные пузыри
+        if(container.querySelectorAll(".msg-row.sending").length === 0){
+            container.innerHTML = `
+                <div class="messages-empty">
+                    <div class="ic">✉️</div>
+                    <h3>Нет сообщений</h3>
+                    <p>Напишите первое сообщение ниже</p>
+                </div>`;
+        }
         return;
     }
 
@@ -1558,6 +1766,10 @@ function renderMessages(messages, chat){
         container.scrollTop = container.scrollHeight;
         return;
     }
+
+    // Личный чат
+    // Собираем все временные пузыри, чтобы не потерять их при перерисовке
+    const tempNodes = Array.from(container.querySelectorAll(".msg-row.sending"));
 
     let html = "";
     let lastDay = "";
@@ -1586,10 +1798,7 @@ function renderMessages(messages, chat){
                     : `<div style="width:30px;flex-shrink:0"></div>`
                 ) : ""}
                 <div class="msg-bubble ${out ? "out" : "in"} ${deleted ? "deleted" : ""}">
-                    ${deleted
-                        ? `Сообщение удалено`
-                        : esc(m.text || "")
-                    }
+                    <span class="msg-text">${deleted ? "Сообщение удалено" : esc(m.text || "")}</span>
                     <div class="msg-meta">
                         <span>${esc(formatTimeFull(m.createdAt))}</span>
                         ${out && !deleted
@@ -1604,6 +1813,10 @@ function renderMessages(messages, chat){
     });
 
     container.innerHTML = html;
+
+    // Возвращаем временные пузыри обратно (если есть)
+    tempNodes.forEach(n => container.appendChild(n));
+
     container.scrollTop = container.scrollHeight;
 }
 
@@ -1614,6 +1827,7 @@ const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
 const composerWrap = document.getElementById("composerWrap");
 const composerCount = document.getElementById("composerCount");
+const composerEl = document.getElementById("composer");
 
 messageInput.addEventListener("input", () => { updateComposer(); autoGrow(); });
 messageInput.addEventListener("focus", () => composerWrap.classList.add("focused"));
@@ -1625,7 +1839,10 @@ messageInput.addEventListener("keydown", e => {
 function updateComposer(){
     const len = messageInput.value.trim().length;
     sendBtn.disabled = len === 0;
-    composerCount.textContent = `${messageInput.value.length}/2000`;
+    const total = messageInput.value.length;
+    composerCount.textContent = `${total}/2000`;
+    composerCount.classList.toggle("warn", total > 1800 && total <= 1950);
+    composerCount.classList.toggle("danger", total > 1950);
 }
 function autoGrow(){
     messageInput.style.height = "auto";
@@ -1642,6 +1859,45 @@ async function sendMessage(){
         showToast("Массовые рассылки нельзя дополнить. Создайте новую.", "error");
         return;
     }
+
+    // === Анимация кнопки «отправлено» ===
+    sendBtn.classList.add("clicked");
+    setTimeout(() => sendBtn.classList.remove("clicked"), 700);
+
+    // === «Толчок» composer ===
+    composerEl.classList.add("sent");
+    setTimeout(() => composerEl.classList.remove("sent"), 450);
+
+    // === Оптимистичный пузырь ===
+    const container = document.getElementById("messagesContainer");
+    const tempId = "temp_" + Date.now() + "_" + Math.random().toString(36).slice(2,7);
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("ru-RU", {hour:"2-digit", minute:"2-digit"});
+
+    // если чат был пустой — убираем empty-заглушку
+    const empty = container.querySelector(".messages-empty");
+    if(empty) empty.remove();
+
+    const tempRow = document.createElement("div");
+    tempRow.className = "msg-row out sending";
+    tempRow.id = tempId;
+    tempRow.dataset.text = text;
+    tempRow.innerHTML = `
+        <div class="msg-bubble out">
+            <span class="msg-text">${esc(text)}</span>
+            <div class="msg-meta">
+                <span>${timeStr}</span>
+                <span class="sending-clock"></span>
+            </div>
+        </div>
+    `;
+    container.appendChild(tempRow);
+    pendingMessages.add(tempId);
+
+    // скроллим к низу
+    requestAnimationFrame(() => {
+        container.scrollTop = container.scrollHeight;
+    });
 
     sendBtn.disabled = true;
     messageInput.value = "";
@@ -1686,9 +1942,42 @@ async function sendMessage(){
         }, { merge: true });
 
         await batch.commit();
+
+        // Подсветим пузырь — «только что отправлено»
+        tempRow.classList.add("just-sent");
+
+        // Через 2с если оптимистичный пузырь всё ещё висит (снапшот не пришёл) — удалим
+        setTimeout(() => {
+            if(document.getElementById(tempId)) {
+                // заменяем часики на галочку
+                const meta = document.getElementById(tempId).querySelector(".msg-meta");
+                if(meta){
+                    meta.innerHTML = `
+                        <span>${timeStr}</span>
+                        <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m1 13 4 4L15 7"/><path d="m9 13 4 4L23 7"/>
+                        </svg>`;
+                }
+            }
+        }, 2000);
+
+        // Полная очистка через 6с на случай, если снапшот так и не пришёл
+        setTimeout(() => {
+            const el = document.getElementById(tempId);
+            if(el){
+                el.remove();
+                pendingMessages.delete(tempId);
+            }
+        }, 6000);
+
     } catch(e){
         console.error(e);
         showToast("Ошибка: " + e.message, "error");
+        // убираем временный пузырь
+        const el = document.getElementById(tempId);
+        if(el) el.remove();
+        pendingMessages.delete(tempId);
+        // возвращаем текст
         messageInput.value = text;
         updateComposer();
     } finally {

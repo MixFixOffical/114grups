@@ -13,7 +13,10 @@
 :root {
     --blue-50:#eff6ff; --blue-100:#dbeafe; --blue-200:#bfdbfe; --blue-300:#93c5fd;
     --blue-400:#60a5fa; --blue-500:#3b82f6; --blue-600:#2563eb; --blue-700:#1d4ed8;
-    --violet-500:#8b5cf6; --cyan-400:#22d3ee;
+    --violet-400:#a78bfa; --violet-500:#8b5cf6; --violet-600:#7c3aed;
+    --cyan-400:#22d3ee; --cyan-500:#06b6d4;
+    --pink-500:#ec4899;
+    --emerald-500:#10b981; --emerald-600:#059669;
 
     --ink-900:#0b1220; --ink-800:#111827; --ink-700:#1f2937; --ink-600:#475569;
     --ink-500:#64748b; --ink-400:#94a3b8; --ink-300:#cbd5e1; --ink-200:#e2e8f0;
@@ -24,12 +27,14 @@
     --warn-500:#f59e0b; --warn-600:#b45309; --warn-bg:#fffbeb; --warn-bd:#fde68a;
 
     --radius-sm:8px; --radius-md:12px; --radius-lg:16px;
-    --radius-xl:20px; --radius-2xl:26px;
+    --radius-xl:20px; --radius-2xl:28px;
+
+    --grad-brand: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #8b5cf6 100%);
 
     --shadow-card:
         0 1px 0 rgba(255,255,255,.95) inset,
-        0 24px 60px -20px rgba(15,23,42,.22),
-        0 12px 30px -14px rgba(37,99,235,.18);
+        0 30px 70px -20px rgba(15,23,42,.25),
+        0 14px 34px -14px rgba(37,99,235,.22);
 
     --shadow-btn:
         0 1px 0 rgba(255,255,255,.32) inset,
@@ -39,11 +44,13 @@
     --ease-out:cubic-bezier(.19,1,.22,1);
     --ease-in-out:cubic-bezier(.45,.05,.55,.95);
     --ease-spring:cubic-bezier(.34,1.56,.64,1);
+    --ease-smooth:cubic-bezier(.4,0,.2,1);
+    --ease-back:cubic-bezier(.68,-.55,.27,1.55);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
-html, body { width: 100%; min-height: 100%; height: 100%; }
+html, body { width: 100%; min-height: 100%; }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter",
@@ -55,26 +62,34 @@ body {
     font-feature-settings: "ss01", "cv11", "tnum";
 
     background:
-        radial-gradient(ellipse 760px 600px at 12% 15%, rgba(59,130,246,.17), transparent 55%),
-        radial-gradient(ellipse 840px 680px at 88% 85%, rgba(96,165,250,.15), transparent 55%),
-        radial-gradient(ellipse 600px 500px at 50% 50%, rgba(167,139,250,.09), transparent 60%),
-        linear-gradient(135deg, #f8fbff 0%, #eaf1ff 45%, #f8fbff 100%);
+        radial-gradient(ellipse 900px 700px at 15% 20%, rgba(59,130,246,.22), transparent 55%),
+        radial-gradient(ellipse 900px 750px at 85% 80%, rgba(139,92,246,.20), transparent 55%),
+        radial-gradient(ellipse 700px 600px at 50% 50%, rgba(34,211,238,.12), transparent 60%),
+        linear-gradient(135deg, #f8fbff 0%, #eaf1ff 45%, #f5f0ff 100%);
 
     overflow-x: hidden;
     overflow-y: auto;
+    min-height: 100svh;
     -webkit-tap-highlight-color: transparent;
 }
 
-body::before {
+/* animated aurora overlay */
+body::after {
     content: "";
     position: fixed; inset: 0;
-    pointer-events: none; z-index: 0;
-    background-image:
-        linear-gradient(rgba(15,23,42,.026) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(15,23,42,.026) 1px, transparent 1px);
-    background-size: 40px 40px;
-    mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
-    -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 75%);
+    pointer-events: none; z-index: 1;
+    background:
+        radial-gradient(ellipse 500px 400px at 10% 30%, rgba(59,130,246,.10), transparent 60%),
+        radial-gradient(ellipse 600px 500px at 90% 70%, rgba(139,92,246,.08), transparent 60%),
+        radial-gradient(ellipse 400px 400px at 50% 50%, rgba(34,211,238,.06), transparent 60%);
+    background-size: 200% 200%, 200% 200%, 200% 200%;
+    animation: auroraShift 18s ease-in-out infinite;
+    mix-blend-mode: multiply;
+}
+
+@keyframes auroraShift {
+    0%,100% { background-position: 0% 0%, 100% 100%, 50% 50%; }
+    50%     { background-position: 100% 100%, 0% 0%, 30% 70%; }
 }
 
 /* =========================================
@@ -84,23 +99,77 @@ body::before {
     position: fixed; inset: 0;
     overflow: hidden; pointer-events: none; z-index: 0;
 }
+
+/* Aurora lines */
+.aurora-lines {
+    position: absolute; inset: 0;
+    opacity: .35;
+    background:
+        repeating-linear-gradient(90deg,
+            transparent 0,
+            transparent 100px,
+            rgba(59,130,246,.04) 100px,
+            rgba(59,130,246,.04) 101px);
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+    animation: linesDrift 40s linear infinite;
+}
+@keyframes linesDrift {
+    to { transform: translateX(101px); }
+}
+
 .orb {
     position: absolute; border-radius: 50%;
-    filter: blur(85px); opacity: .6;
-    animation: floatOrb 22s ease-in-out infinite;
+    filter: blur(90px); opacity: .65;
+    animation: floatOrb 24s ease-in-out infinite;
     will-change: transform;
 }
-.orb.one { width: 300px; height: 300px; top: -100px; left: 40px;
-    background: radial-gradient(circle at 30% 30%, rgba(59,130,246,.40), transparent 70%); }
-.orb.two { width: 360px; height: 360px; right: 0; bottom: -130px;
-    background: radial-gradient(circle at 60% 40%, rgba(139,92,246,.28), transparent 70%);
+.orb.one { width: 340px; height: 340px; top: -120px; left: 30px;
+    background: radial-gradient(circle at 30% 30%, rgba(59,130,246,.5), transparent 70%); }
+.orb.two { width: 400px; height: 400px; right: -50px; bottom: -150px;
+    background: radial-gradient(circle at 60% 40%, rgba(139,92,246,.36), transparent 70%);
     animation-delay: -7s; }
-.orb.three { width: 220px; height: 220px; left: 46%; top: 6%;
-    background: radial-gradient(circle at 50% 50%, rgba(34,211,238,.22), transparent 70%);
+.orb.three { width: 260px; height: 260px; left: 46%; top: 4%;
+    background: radial-gradient(circle at 50% 50%, rgba(34,211,238,.32), transparent 70%);
     animation-delay: -14s; }
+.orb.four { width: 220px; height: 220px; right: 12%; top: 20%;
+    background: radial-gradient(circle at 50% 50%, rgba(236,72,153,.24), transparent 70%);
+    animation-delay: -4s; }
+.orb.five { width: 300px; height: 300px; left: 10%; bottom: 5%;
+    background: radial-gradient(circle at 50% 50%, rgba(16,185,129,.18), transparent 70%);
+    animation-delay: -11s; }
+
 @keyframes floatOrb {
     0%,100% { transform: translate3d(0,0,0) scale(1); }
-    50%     { transform: translate3d(28px,-32px,0) scale(1.10); }
+    33%     { transform: translate3d(40px,-40px,0) scale(1.12); }
+    66%     { transform: translate3d(-30px,30px,0) scale(.94); }
+}
+
+/* Starfield */
+.starfield { position: absolute; inset: 0; overflow: hidden; }
+.starfield span {
+    position: absolute;
+    width: 2px; height: 2px; border-radius: 50%;
+    background: rgba(96,165,250,.65);
+    box-shadow: 0 0 6px rgba(96,165,250,.7);
+    animation: twinkle 4s ease-in-out infinite;
+}
+.starfield span:nth-child(1) { left: 8%;  top: 15%; animation-delay: 0s; }
+.starfield span:nth-child(2) { left: 22%; top: 35%; animation-delay: .6s; }
+.starfield span:nth-child(3) { left: 45%; top: 12%; animation-delay: 1.2s; }
+.starfield span:nth-child(4) { left: 68%; top: 42%; animation-delay: 1.8s; }
+.starfield span:nth-child(5) { left: 82%; top: 18%; animation-delay: 2.4s; }
+.starfield span:nth-child(6) { left: 92%; top: 62%; animation-delay: 3s; }
+.starfield span:nth-child(7) { left: 15%; top: 72%; animation-delay: 3.6s; }
+.starfield span:nth-child(8) { left: 38%; top: 85%; animation-delay: 4.2s; }
+.starfield span:nth-child(9) { left: 62%; top: 78%; animation-delay: 4.8s; }
+.starfield span:nth-child(10){ left: 88%; top: 88%; animation-delay: 5.4s; }
+.starfield span:nth-child(11){ left: 5%;  top: 52%; animation-delay: 1.5s; }
+.starfield span:nth-child(12){ left: 75%; top: 5%;  animation-delay: 2.7s; }
+
+@keyframes twinkle {
+    0%,100% { transform: scale(1); opacity: .3; }
+    50%     { transform: scale(1.8); opacity: 1; }
 }
 
 .particles { position: absolute; inset: 0; pointer-events: none; }
@@ -108,7 +177,7 @@ body::before {
     position: absolute; width: 3.5px; height: 3.5px; border-radius: 50%;
     background: rgba(59,130,246,.5);
     box-shadow: 0 0 10px rgba(59,130,246,.6);
-    animation: floatParticle 20s linear infinite;
+    animation: floatParticle 22s linear infinite;
     opacity: 0;
 }
 .particles span:nth-child(1) { left: 12%; top: 80%; animation-delay: 0s; }
@@ -119,6 +188,9 @@ body::before {
 .particles span:nth-child(6) { left: 84%; top: 82%; animation-delay: 12.5s; }
 .particles span:nth-child(7) { left: 92%; top: 90%; animation-delay: 15s; }
 .particles span:nth-child(8) { left: 46%; top: 95%; animation-delay: 6s; }
+.particles span:nth-child(9) { left: 8%;  top: 40%; animation-delay: 3s; }
+.particles span:nth-child(10){ left: 90%; top: 55%; animation-delay: 9s; }
+
 @keyframes floatParticle {
     0%   { transform: translateY(0) scale(.6); opacity: 0; }
     15%  { opacity: .8; }
@@ -131,11 +203,12 @@ body::before {
    PAGE
 ========================================= */
 .page {
-    position: relative; z-index: 1;
-    width: 100%; min-height: 100%;
+    position: relative; z-index: 2;
+    width: 100%; min-height: 100svh;
     display: flex; align-items: center; justify-content: center;
     padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 0px));
     padding-top: calc(24px + env(safe-area-inset-top, 0px));
+    perspective: 1400px;
 }
 
 /* =========================================
@@ -144,55 +217,69 @@ body::before {
 .auth-card {
     position: relative;
     width: 100%;
-    max-width: 380px;
-    padding: 30px 26px 22px;
+    max-width: 410px;
+    padding: 34px 30px 26px;
     overflow: hidden;
     border-radius: var(--radius-2xl);
-    background: linear-gradient(180deg, rgba(255,255,255,.98) 0%, rgba(255,255,255,.90) 100%);
+    background: linear-gradient(180deg, rgba(255,255,255,.99) 0%, rgba(255,255,255,.92) 100%);
     border: 1px solid rgba(255,255,255,1);
     box-shadow: var(--shadow-card);
     backdrop-filter: blur(30px) saturate(150%);
     -webkit-backdrop-filter: blur(30px) saturate(150%);
-    transition: box-shadow .9s ease, transform 1s var(--ease-out);
+    transition: box-shadow .9s ease, transform .6s var(--ease-out);
     will-change: transform;
+    transform-style: preserve-3d;
     animation: cardIn 1.4s var(--ease-out) both;
 }
 @keyframes cardIn {
-    from { opacity: 0; transform: translateY(28px) scale(.96); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
+    from { opacity: 0; transform: translateY(30px) scale(.94) rotateX(8deg); }
+    to   { opacity: 1; transform: translateY(0) scale(1) rotateX(0); }
 }
 
+/* inner ambient light */
 .auth-card::before {
     content: ""; position: absolute; top: 0; left: 15%; right: 15%; height: 1px;
     background: linear-gradient(90deg, transparent, #fff, transparent);
     opacity: .95; pointer-events: none; z-index: 3;
 }
 
+/* rotating conic border */
 .auth-card::after {
     content: ""; position: absolute; inset: -1px; border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(135deg,
-        rgba(59,130,246,.38), rgba(167,139,250,.24),
-        rgba(34,211,238,.30), rgba(59,130,246,.38));
-    background-size: 300% 300%;
+    background: conic-gradient(
+        from 0deg,
+        rgba(59,130,246,.65),
+        rgba(139,92,246,.55),
+        rgba(34,211,238,.6),
+        rgba(236,72,153,.5),
+        rgba(59,130,246,.65)
+    );
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor; mask-composite: exclude;
-    opacity: 0; transition: opacity 1.2s ease;
-    animation: auraShift 9s ease-in-out infinite;
+    opacity: 0; transition: opacity .8s ease;
+    animation: auraRotate 6s linear infinite;
     pointer-events: none; z-index: 2;
 }
-.auth-card:hover::after { opacity: 1; }
-@keyframes auraShift {
-    0%,100% { background-position: 0% 50%; }
-    50%     { background-position: 100% 50%; }
+.auth-card:hover::after,
+.auth-card:focus-within::after { opacity: 1; }
+@keyframes auraRotate { to { transform: rotate(360deg); } }
+
+/* success glow */
+.auth-card[data-state="success"] {
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.95) inset,
+        0 0 0 4px rgba(16,185,129,.18),
+        0 30px 80px -20px rgba(16,185,129,.4),
+        0 14px 40px -14px rgba(16,185,129,.35);
+    transition: box-shadow .8s ease;
 }
-.auth-card:hover { transform: translateY(-3px); }
 
 .card-glow {
-    position: absolute; width: 240px; height: 240px;
-    top: -136px; right: -112px; border-radius: 50%;
-    background: radial-gradient(circle, rgba(59,130,246,.30), transparent 70%);
-    filter: blur(28px); pointer-events: none;
+    position: absolute; width: 280px; height: 280px;
+    top: -156px; right: -132px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(59,130,246,.36), transparent 70%);
+    filter: blur(30px); pointer-events: none;
     animation: glowPulse 7s ease-in-out infinite;
 }
 @keyframes glowPulse {
@@ -201,64 +288,111 @@ body::before {
 }
 
 /* =========================================
-   LOGO
+   LOGO with orbiting dots
 ========================================= */
-.logo {
+.logo-wrap {
     position: relative;
-    width: 50px; height: 50px;
+    width: 64px; height: 64px;
     margin: 0 auto 16px;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 16px;
-    color: #fff; font-size: 20px; font-weight: 800; letter-spacing: -.7px;
+}
+
+.logo {
+    position: relative;
+    width: 54px; height: 54px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 17px;
+    color: #fff; font-size: 22px; font-weight: 800; letter-spacing: -.7px;
     background: linear-gradient(145deg, #60a5fa 0%, #3b82f6 45%, #2563eb 100%);
     box-shadow:
         0 1px 0 rgba(255,255,255,.5) inset,
         0 12px 26px -4px rgba(37,99,235,.45),
         0 5px 12px -4px rgba(37,99,235,.3);
-    transition: transform 1.2s var(--ease-spring), box-shadow 1s ease;
+    transition: transform .35s var(--ease-spring), box-shadow .5s ease;
     overflow: hidden;
+    will-change: transform;
+    z-index: 2;
 }
 .logo::before {
     content: ""; position: absolute; inset: 0;
-    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.55) 50%, transparent 70%);
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.6) 50%, transparent 70%);
     transform: translateX(-100%);
-    animation: logoShimmer 6s ease-in-out infinite;
+    animation: logoShimmer 4s ease-in-out infinite;
 }
 .logo::after {
-    content: ""; position: absolute; inset: 1px; border-radius: 15px;
+    content: ""; position: absolute; inset: 1px; border-radius: 16px;
     border: 1px solid rgba(255,255,255,.35); pointer-events: none;
 }
 @keyframes logoShimmer {
     0%,55% { transform: translateX(-100%); }
     85%,100% { transform: translateX(100%); }
 }
-.auth-card:hover .logo { transform: translateY(-3px) scale(1.06) rotate(-3deg); }
+.auth-card:hover .logo {
+    transform: translateY(-3px) scale(1.06) rotate(-3deg);
+}
+
+/* orbiting dots */
+.orbit {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    animation: orbitSpin 8s linear infinite;
+    pointer-events: none;
+}
+.orbit::before,
+.orbit::after {
+    content: ""; position: absolute;
+    width: 6px; height: 6px; border-radius: 50%;
+    box-shadow: 0 0 10px currentColor;
+}
+.orbit::before { top: 0; left: 50%; transform: translateX(-50%); background: var(--blue-500); color: var(--blue-500); }
+.orbit::after  { bottom: 0; left: 50%; transform: translateX(-50%); background: var(--violet-500); color: var(--violet-500); }
+.orbit.delayed { animation-duration: 12s; animation-direction: reverse; }
+.orbit.delayed::before { background: var(--cyan-400); color: var(--cyan-400); }
+.orbit.delayed::after  { background: var(--pink-500); color: var(--pink-500); }
+@keyframes orbitSpin { to { transform: rotate(360deg); } }
 
 /* =========================================
-   HEADER
+   HEADER with shimmer
 ========================================= */
 .header { text-align: center; margin-bottom: 22px; }
 .title {
-    font-size: 23px; line-height: 1.12; font-weight: 780; letter-spacing: -.8px;
+    position: relative;
+    font-size: 25px; line-height: 1.12; font-weight: 780; letter-spacing: -.8px;
     background: linear-gradient(135deg, var(--ink-900) 0%, var(--ink-700) 100%);
     -webkit-background-clip: text; background-clip: text;
     -webkit-text-fill-color: transparent;
-    transition: opacity 1.2s ease, transform 1.4s var(--ease-out);
+    transition: opacity .7s ease, transform .9s var(--ease-out);
+    display: inline-block;
+    overflow: hidden;
 }
+.title::after {
+    content: "";
+    position: absolute; top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(59,130,246,.35), transparent);
+    animation: titleShimmer 4s ease-in-out infinite;
+    pointer-events: none;
+}
+@keyframes titleShimmer {
+    0%,60% { left: -100%; }
+    100%   { left: 100%; }
+}
+
 .subtitle {
     margin-top: 7px; color: var(--ink-500);
-    font-size: 12px; line-height: 1.5; letter-spacing: .15px; font-weight: 480;
-    transition: opacity 1.2s ease, transform 1.4s var(--ease-out);
+    font-size: 12.5px; line-height: 1.5; letter-spacing: .15px; font-weight: 480;
+    transition: opacity .7s ease, transform .9s var(--ease-out);
 }
 
 /* =========================================
-   TABS  (2 вкладки)
+   TABS
 ========================================= */
 .tabs {
     position: relative;
     display: grid; grid-template-columns: 1fr 1fr;
-    height: 42px; margin-bottom: 20px; padding: 3px;
-    border-radius: 13px;
+    height: 44px; margin-bottom: 20px; padding: 3px;
+    border-radius: 14px;
     background: linear-gradient(180deg, #eef2f7 0%, #e6ecf4 100%);
     box-shadow:
         0 1px 0 rgba(255,255,255,.95) inset,
@@ -267,13 +401,13 @@ body::before {
 .tab-indicator {
     position: absolute; top: 3px; left: 3px;
     width: calc(50% - 3px); height: calc(100% - 6px);
-    border-radius: 10px;
+    border-radius: 11px;
     background: linear-gradient(180deg, #fff 0%, #fbfdff 100%);
     box-shadow:
         0 1px 0 rgba(255,255,255,.95) inset,
         0 3px 8px rgba(15,23,42,.08),
-        0 6px 16px -8px rgba(37,99,235,.22);
-    transition: transform 1.15s cubic-bezier(.34,1.3,.5,1);
+        0 6px 16px -8px rgba(37,99,235,.25);
+    transition: transform .55s cubic-bezier(.34,1.3,.5,1);
 }
 .auth-card[data-mode="login"]    .tab-indicator { transform: translateX(0%); }
 .auth-card[data-mode="register"] .tab-indicator { transform: translateX(100%); }
@@ -282,9 +416,9 @@ body::before {
     position: relative; z-index: 2;
     border: none; outline: none; background: transparent;
     color: var(--ink-500); font-family: inherit;
-    font-size: 12.5px; font-weight: 660; letter-spacing: .15px;
+    font-size: 13px; font-weight: 660; letter-spacing: .15px;
     cursor: pointer;
-    transition: color .7s ease, transform .55s var(--ease-spring);
+    transition: color .4s ease, transform .35s var(--ease-spring);
 }
 .tab:hover { color: var(--blue-600); }
 .tab:active { transform: scale(.94); }
@@ -292,13 +426,13 @@ body::before {
 .auth-card[data-mode="register"] .tab.register { color: var(--blue-600); }
 
 /* =========================================
-   VIEWPORT
+   FORMS VIEWPORT
 ========================================= */
 .forms-viewport {
     position: relative;
     width: 100%;
     overflow: hidden;
-    transition: height 1.5s cubic-bezier(.19,1,.22,1);
+    transition: height .55s cubic-bezier(.19,1,.22,1);
 }
 
 .form-panel {
@@ -309,9 +443,9 @@ body::before {
     filter: blur(8px);
     pointer-events: none;
     transition:
-        opacity 1.1s var(--ease-out),
-        transform 1.3s var(--ease-out),
-        filter 1.1s ease;
+        opacity .55s var(--ease-out),
+        transform .65s var(--ease-out),
+        filter .55s ease;
 }
 .form-panel.login-panel { transform: translateX(-60px) translateY(8px) scale(.97); }
 
@@ -328,22 +462,24 @@ body::before {
 ========================================= */
 .field {
     position: relative;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     opacity: 0;
     transform: translateY(14px);
-    transition: opacity 1s ease, transform 1.2s var(--ease-out);
+    transition: opacity .55s ease, transform .65s var(--ease-out);
 }
-.login-panel .field:nth-child(1) { transition-delay: .10s; }
-.login-panel .field:nth-child(2) { transition-delay: .25s; }
-.login-panel .login-options  { transition-delay: .40s; }
-.login-panel .submit-btn     { transition-delay: .55s; }
 
-.register-panel .field:nth-child(1) { transition-delay: .08s; }
-.register-panel .field:nth-child(2) { transition-delay: .20s; }
-.register-panel .field:nth-child(3) { transition-delay: .32s; }
-.register-panel .field:nth-child(4) { transition-delay: .44s; }
-.register-panel .field:nth-child(5) { transition-delay: .56s; }
-.register-panel .submit-btn         { transition-delay: .70s; }
+/* cascade delays */
+.auth-card[data-mode="login"] .login-panel .field:nth-child(1) { transition-delay: .10s; }
+.auth-card[data-mode="login"] .login-panel .field:nth-child(2) { transition-delay: .18s; }
+.auth-card[data-mode="login"] .login-panel .login-options  { transition-delay: .26s; }
+.auth-card[data-mode="login"] .login-panel .submit-btn     { transition-delay: .34s; }
+
+.auth-card[data-mode="register"] .register-panel .field:nth-of-type(1) { transition-delay: .08s; }
+.auth-card[data-mode="register"] .register-panel .field:nth-of-type(2) { transition-delay: .16s; }
+.auth-card[data-mode="register"] .register-panel .field:nth-of-type(3) { transition-delay: .24s; }
+.auth-card[data-mode="register"] .register-panel .field:nth-of-type(4) { transition-delay: .32s; }
+.auth-card[data-mode="register"] .register-panel .field:nth-of-type(5) { transition-delay: .40s; }
+.auth-card[data-mode="register"] .register-panel .submit-btn         { transition-delay: .50s; }
 
 .auth-card[data-mode="login"] .login-panel .field,
 .auth-card[data-mode="login"] .login-panel .login-options,
@@ -357,7 +493,7 @@ body::before {
 .input-wrap { position: relative; }
 
 input {
-    width: 100%; height: 48px;
+    width: 100%; height: 50px;
     padding: 0 44px 0 15px;
     border: 1px solid var(--ink-200);
     border-radius: var(--radius-md);
@@ -372,12 +508,14 @@ input {
         0 1px 0 rgba(255,255,255,.95) inset,
         0 1px 2px rgba(15,23,42,.03);
     transition:
-        border-color .55s ease,
-        background .55s ease,
-        box-shadow .8s ease,
-        transform .8s var(--ease-out);
+        border-color .35s ease,
+        background .35s ease,
+        box-shadow .5s ease,
+        transform .5s var(--ease-out);
     -webkit-appearance: none;
     appearance: none;
+    position: relative;
+    z-index: 1;
 }
 input::placeholder { color: var(--ink-400); font-weight: 460; }
 input:hover { border-color: var(--ink-300); background: #fff; }
@@ -387,20 +525,80 @@ input:focus {
     box-shadow:
         0 1px 0 rgba(255,255,255,.95) inset,
         0 0 0 4px rgba(59,130,246,.13),
-        0 6px 18px -8px rgba(37,99,235,.3);
+        0 6px 18px -8px rgba(37,99,235,.35);
     transform: translateY(-2px);
 }
 input[type="password"] { letter-spacing: 1px; }
+
+/* focus pulse ring */
+.input-wrap::after {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: calc(var(--radius-md) + 2px);
+    border: 2px solid transparent;
+    pointer-events: none;
+    transition: border-color .4s ease;
+}
+.input-wrap:focus-within::after {
+    border-color: rgba(59,130,246,.35);
+    animation: focusPulse 2s ease-out infinite;
+}
+@keyframes focusPulse {
+    0%   { transform: scale(1);    opacity: .6; }
+    100% { transform: scale(1.03); opacity: 0; }
+}
+
+/* shake */
+.field.error input {
+    border-color: var(--err-500);
+    box-shadow:
+        0 1px 0 rgba(255,255,255,.95) inset,
+        0 0 0 4px rgba(239,68,68,.13);
+    animation: shake .5s var(--ease-in-out);
+}
+@keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20%     { transform: translateX(-6px); }
+    40%     { transform: translateX(6px); }
+    60%     { transform: translateX(-4px); }
+    80%     { transform: translateX(4px); }
+}
 
 .input-icon {
     position: absolute; right: 14px; top: 50%;
     width: 17px; height: 17px; transform: translateY(-50%);
     color: var(--ink-400); pointer-events: none;
-    transition: color .7s ease, transform .9s var(--ease-spring);
+    transition: color .5s ease, transform .5s var(--ease-spring);
+    z-index: 2;
 }
 .input-wrap:focus-within .input-icon {
     color: var(--blue-500);
     transform: translateY(-50%) scale(1.15);
+}
+
+/* Caps Lock warning */
+.caps-warning {
+    position: absolute;
+    right: 46px;
+    top: 50%;
+    transform: translateY(-50%) scale(.85);
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-bd);
+    color: var(--warn-600);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .3px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s ease, transform .35s var(--ease-spring);
+    z-index: 3;
+}
+.caps-warning.show {
+    opacity: 1;
+    transform: translateY(-50%) scale(1);
 }
 
 /* =========================================
@@ -414,9 +612,15 @@ input[type="password"] { letter-spacing: 1px; }
     background: transparent; color: var(--ink-400);
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    transition: background .55s ease, color .55s ease, transform .6s var(--ease-spring);
+    transition: background .35s ease, color .35s ease, transform .4s var(--ease-spring);
+    z-index: 3;
 }
 .password-toggle svg { width: 17px; height: 17px; }
+.password-toggle svg .eye-open,
+.password-toggle svg .eye-closed { transition: opacity .25s ease, transform .35s var(--ease-spring); }
+.password-toggle svg .eye-closed { opacity: 0; transform: scale(.7); }
+.password-toggle.visible svg .eye-open { opacity: 0; transform: scale(.7); }
+.password-toggle.visible svg .eye-closed { opacity: 1; transform: scale(1); }
 .password-toggle:hover {
     color: var(--blue-600);
     background: var(--blue-50);
@@ -425,25 +629,28 @@ input[type="password"] { letter-spacing: 1px; }
 .password-toggle:active { transform: translateY(-50%) scale(.9); }
 
 /* =========================================
-   OPTIONS
+   LOGIN OPTIONS
 ========================================= */
 .login-options {
     display: flex; align-items: center; justify-content: space-between;
     margin: 4px 2px 18px;
     opacity: 0; transform: translateY(14px);
-    transition: opacity 1s ease, transform 1.2s var(--ease-out);
+    transition: opacity .55s ease, transform .65s var(--ease-out);
 }
 .remember {
     display: flex; align-items: center; gap: 8px;
     color: var(--ink-600); font-size: 12px; font-weight: 510;
     cursor: pointer; user-select: none;
+    padding: 6px 4px;
+    border-radius: 8px;
+    transition: color .35s ease;
 }
 .remember input {
     width: 16px; height: 16px; padding: 0;
     accent-color: var(--blue-600);
     box-shadow: none; transform: none;
     cursor: pointer; border-radius: 4px;
-    transition: transform .45s var(--ease-spring);
+    transition: transform .35s var(--ease-spring);
 }
 .remember input:active { transform: scale(.85); }
 .remember:hover { color: var(--ink-800); }
@@ -452,39 +659,39 @@ input[type="password"] { letter-spacing: 1px; }
     color: var(--blue-600); font-family: inherit;
     font-size: 12px; font-weight: 660; letter-spacing: .1px;
     cursor: pointer; padding: 6px 8px; border-radius: 7px;
-    transition: color .55s ease, background .55s ease, transform .45s var(--ease-spring);
+    transition: color .35s ease, background .35s ease, transform .35s var(--ease-spring);
 }
 .forgot:hover { color: var(--blue-700); background: var(--blue-50); }
 .forgot:active { transform: scale(.93); }
 
 /* =========================================
-   SUBMIT BUTTON
+   SUBMIT BUTTON with ripple
 ========================================= */
 .submit-btn {
     position: relative;
-    width: 100%; height: 48px;
+    width: 100%; height: 50px;
     border: none; border-radius: var(--radius-md);
     color: #fff; font-family: inherit;
-    font-size: 14px; font-weight: 720; letter-spacing: .3px;
+    font-size: 14.5px; font-weight: 720; letter-spacing: .3px;
     cursor: pointer; overflow: hidden;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #3b82f6 0%, #6366f1 50%, #2563eb 100%);
     background-size: 200% 200%;
     background-position: 0% 50%;
     box-shadow: var(--shadow-btn);
     opacity: 0; transform: translateY(14px);
     transition:
-        opacity 1s ease,
-        transform 1.2s var(--ease-out),
-        box-shadow .8s ease,
-        background-position 1.6s ease,
-        filter .6s ease;
+        opacity .55s ease,
+        transform .65s var(--ease-out),
+        box-shadow .5s ease,
+        background-position .8s ease,
+        filter .35s ease;
 }
 .submit-btn::before {
     content: ""; position: absolute;
     top: 0; left: -100%; width: 70%; height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,.32), transparent);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.4), transparent);
     transform: skewX(-20deg);
-    transition: left 1.4s ease;
+    transition: left .9s ease;
 }
 .submit-btn:hover {
     transform: translateY(-3px);
@@ -497,44 +704,72 @@ input[type="password"] { letter-spacing: 1px; }
 .submit-btn:hover::before { left: 130%; }
 .submit-btn:active { transform: translateY(0) scale(.99); filter: brightness(.97); }
 .submit-btn:focus-visible { outline: 2px solid var(--blue-400); outline-offset: 3px; }
-.submit-btn.loading { pointer-events: none; opacity: .85; }
+.submit-btn.loading { pointer-events: none; opacity: .9; }
 .submit-btn.loading::after {
     content: ""; position: absolute; right: 18px; top: 50%;
     width: 14px; height: 14px; margin-top: -7px;
     border-radius: 50%;
     border: 2px solid rgba(255,255,255,.45);
     border-top-color: #fff;
-    animation: spin 1s linear infinite;
+    animation: spin .8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ripple element */
+.btn-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.65) 0%, rgba(255,255,255,.3) 40%, transparent 70%);
+    transform: translate(-50%,-50%) scale(0);
+    pointer-events: none;
+    animation: btnRipple .7s cubic-bezier(.19,1,.22,1) forwards;
+    z-index: 1;
+}
+@keyframes btnRipple {
+    0%   { transform: translate(-50%,-50%) scale(0); opacity: 1; }
+    100% { transform: translate(-50%,-50%) scale(1); opacity: 0; }
+}
 
 /* =========================================
    STRENGTH
 ========================================= */
 .strength {
-    margin-top: -4px; margin-bottom: 14px;
+    margin-top: -6px; margin-bottom: 14px;
     opacity: 0; max-height: 0; overflow: hidden;
     transform: translateY(-6px);
-    transition: opacity .9s ease, max-height 1.2s var(--ease-out), transform 1.2s ease;
+    transition: opacity .5s ease, max-height .6s var(--ease-out), transform .6s ease;
 }
 .auth-card[data-mode="register"] .strength {
-    opacity: 1; max-height: 40px; transform: translateY(0);
+    opacity: 1; max-height: 44px; transform: translateY(0);
 }
 .strength-track {
     width: 100%; height: 5px; overflow: hidden;
     border-radius: 10px; background: var(--ink-100);
     box-shadow: 0 1px 2px rgba(15,23,42,.05) inset;
+    position: relative;
 }
 .strength-bar {
     width: 0%; height: 100%;
     border-radius: inherit; background: var(--ink-300);
-    transition: width 1.1s var(--ease-out), background 1s ease;
+    transition: width .55s var(--ease-out), background .5s ease;
     box-shadow: 0 1px 0 rgba(255,255,255,.4) inset;
+    position: relative;
+    overflow: hidden;
+}
+.strength-bar::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.5), transparent);
+    transform: translateX(-100%);
+    animation: barShimmer 1.8s ease-in-out infinite;
+}
+@keyframes barShimmer {
+    to { transform: translateX(100%); }
 }
 .strength-text {
     margin-top: 6px; font-size: 11px;
     font-weight: 520; letter-spacing: .15px; color: var(--ink-500);
-    transition: color .8s ease;
+    transition: color .35s ease;
 }
 
 /* =========================================
@@ -546,31 +781,42 @@ input[type="password"] { letter-spacing: 1px; }
     margin-top: 14px;
     padding: 0 14px;
     border-radius: var(--radius-md);
-    font-size: 12px; line-height: 1.5;
+    font-size: 12.5px; line-height: 1.5;
     font-weight: 510; letter-spacing: .1px;
     overflow: hidden;
     opacity: 0; max-height: 0;
     transform: translateY(-6px);
     transition:
-        opacity .9s ease,
-        max-height 1.1s var(--ease-out),
-        padding .9s ease,
-        margin .9s ease,
-        transform 1s var(--ease-out);
+        opacity .5s ease,
+        max-height .55s var(--ease-out),
+        padding .5s ease,
+        margin .5s ease,
+        transform .5s var(--ease-out);
 }
 .message.show {
     opacity: 1; max-height: 180px;
-    padding: 12px 14px 12px 38px;
+    padding: 12px 14px 12px 40px;
     transform: translateY(0);
+    animation: msgIn .5s var(--ease-spring);
+}
+@keyframes msgIn {
+    from { opacity: 0; transform: translateY(-6px) scale(.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 .message.show::before {
     content: ""; position: absolute; left: 12px; top: 50%;
-    width: 17px; height: 17px;
+    width: 18px; height: 18px;
     transform: translateY(-50%);
     border-radius: 50%;
     background-repeat: no-repeat;
     background-position: center;
     background-size: 10px 10px;
+    animation: iconBounce .5s var(--ease-spring);
+}
+@keyframes iconBounce {
+    0%   { transform: translateY(-50%) scale(0); }
+    60%  { transform: translateY(-50%) scale(1.15); }
+    100% { transform: translateY(-50%) scale(1); }
 }
 .message.error { color: var(--err-600); background: var(--err-bg); border: 1px solid var(--err-bd); }
 .message.error.show::before {
@@ -597,7 +843,7 @@ input[type="password"] { letter-spacing: 1px; }
     font-size: 10.5px; letter-spacing: .4px;
     position: relative;
     opacity: 0; transform: translateY(6px);
-    animation: footerIn 1.6s .8s forwards var(--ease-out);
+    animation: footerIn 1.2s .8s forwards var(--ease-out);
 }
 .footer::before {
     content: ""; position: absolute; top: 0;
@@ -610,15 +856,13 @@ input[type="password"] { letter-spacing: 1px; }
 /* =========================================
    ROLE SELECT
 ========================================= */
-.role-stage {
-    position: relative;
-    width: 100%;
-}
+.role-stage { position: relative; width: 100%; }
+
 .role-select {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    transition: opacity .9s ease, transform 1.2s var(--ease-out), filter .9s ease;
+    transition: opacity .55s ease, transform .65s var(--ease-out), filter .55s ease;
 }
 .role-select.hidden {
     opacity: 0;
@@ -636,6 +880,12 @@ input[type="password"] { letter-spacing: 1px; }
     color: var(--ink-900);
     line-height: 1.3;
     margin-bottom: 2px;
+    animation: titleWiggle .8s var(--ease-spring);
+}
+@keyframes titleWiggle {
+    0%,100% { transform: rotate(0); }
+    25%     { transform: rotate(-1.5deg); }
+    75%     { transform: rotate(1.5deg); }
 }
 .role-select-sub {
     font-size: 11.5px;
@@ -646,7 +896,6 @@ input[type="password"] { letter-spacing: 1px; }
     line-height: 1.5;
 }
 
-/* карточка роли */
 .role-card {
     position: relative;
     display: flex;
@@ -664,37 +913,83 @@ input[type="password"] { letter-spacing: 1px; }
         0 1px 0 rgba(255,255,255,.95) inset,
         0 1px 2px rgba(15,23,42,.04);
     transition:
-        transform .7s var(--ease-spring),
-        border-color .6s ease,
-        box-shadow .8s ease,
-        background .8s ease;
+        transform .5s var(--ease-spring),
+        border-color .4s ease,
+        box-shadow .5s ease,
+        background .5s ease;
+    opacity: 0;
+    animation: roleIn .55s var(--ease-out) forwards;
 }
+.role-card:nth-child(3) { animation-delay: .10s; }
+.role-card:nth-child(4) { animation-delay: .20s; }
+.role-card:nth-child(5) { animation-delay: .30s; }
+
+@keyframes roleIn {
+    from { opacity: 0; transform: translateY(14px) scale(.96); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.role-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(
+        from 0deg,
+        rgba(59,130,246,.6),
+        rgba(139,92,246,.55),
+        rgba(34,211,238,.6),
+        rgba(59,130,246,.6)
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: 0;
+    transition: opacity .5s ease;
+    animation: auraRotate 6s linear infinite;
+    pointer-events: none;
+}
+.role-card:hover::before { opacity: 1; }
+
 .role-card:hover {
-    transform: translateY(-2px);
-    border-color: var(--blue-300);
+    transform: translateY(-3px) scale(1.01);
+    border-color: transparent;
     box-shadow:
         0 1px 0 rgba(255,255,255,.95) inset,
-        0 10px 24px -10px rgba(37,99,235,.35),
-        0 4px 10px -4px rgba(15,23,42,.06);
+        0 12px 28px -10px rgba(37,99,235,.4),
+        0 4px 10px -4px rgba(15,23,42,.08);
 }
 .role-card:active { transform: translateY(0) scale(.985); }
 
 .role-icon {
     flex-shrink: 0;
-    width: 42px; height: 42px;
-    border-radius: 12px;
+    width: 44px; height: 44px;
+    border-radius: 13px;
     display: flex; align-items: center; justify-content: center;
     color: #fff;
     background: linear-gradient(145deg, #60a5fa, #2563eb);
     box-shadow:
         0 1px 0 rgba(255,255,255,.4) inset,
         0 8px 18px -6px rgba(37,99,235,.5);
-    transition: transform .7s var(--ease-spring);
+    transition: transform .5s var(--ease-spring);
+    position: relative;
+    overflow: hidden;
 }
-.role-icon svg { width: 20px; height: 20px; }
+.role-icon::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,.5) 50%, transparent 70%);
+    transform: translateX(-100%);
+    transition: transform .8s ease;
+}
+.role-card:hover .role-icon::before { transform: translateX(100%); }
+.role-icon svg { width: 20px; height: 20px; position: relative; z-index: 1; }
+
 .role-card[data-role="curator"]  .role-icon { background: linear-gradient(145deg, #60a5fa, #2563eb); }
 .role-card[data-role="starosta"] .role-icon { background: linear-gradient(145deg, #a78bfa, #7c3aed); }
 .role-card[data-role="parent"]   .role-icon { background: linear-gradient(145deg, #34d399, #059669); }
+
 .role-card:hover .role-icon { transform: scale(1.08) rotate(-3deg); }
 
 .role-info { flex: 1; min-width: 0; }
@@ -717,14 +1012,13 @@ input[type="password"] { letter-spacing: 1px; }
     flex-shrink: 0;
     width: 18px; height: 18px;
     color: var(--ink-300);
-    transition: transform .6s var(--ease-spring), color .6s ease;
+    transition: transform .5s var(--ease-spring), color .4s ease;
 }
 .role-card:hover .role-arrow {
     color: var(--blue-500);
     transform: translateX(3px);
 }
 
-/* зелёный ripple — «капелька» */
 .role-ripple {
     position: absolute;
     border-radius: 50%;
@@ -743,7 +1037,6 @@ input[type="password"] { letter-spacing: 1px; }
     100% { transform: translate(-50%, -50%) scale(1);   opacity: 0; }
 }
 
-/* зелёное свечение на карточке после нажатия */
 .role-card.picked {
     border-color: var(--ok-500);
     background: linear-gradient(180deg, #f0fdf9 0%, #ecfdf5 100%);
@@ -766,9 +1059,9 @@ input[type="password"] { letter-spacing: 1px; }
 }
 .role-card.picked .role-arrow { color: var(--ok-500); transform: translateX(3px); }
 
-/* форма регистрации (вторая сцена) */
+/* form stage */
 .register-form {
-    transition: opacity 1s ease, transform 1.2s var(--ease-out), filter 1s ease;
+    transition: opacity .55s ease, transform .65s var(--ease-out), filter .55s ease;
 }
 .register-form.hidden {
     opacity: 0;
@@ -779,7 +1072,7 @@ input[type="password"] { letter-spacing: 1px; }
     inset: 0;
 }
 
-/* кнопка «назад» */
+/* back btn */
 .back-btn {
     display: inline-flex;
     align-items: center;
@@ -795,13 +1088,12 @@ input[type="password"] { letter-spacing: 1px; }
     letter-spacing: .1px;
     cursor: pointer;
     border-radius: 8px;
-    transition: color .5s ease, background .5s ease, transform .5s var(--ease-spring);
+    transition: color .35s ease, background .35s ease, transform .35s var(--ease-spring);
 }
 .back-btn:hover { color: var(--blue-600); background: var(--blue-50); }
 .back-btn:active { transform: scale(.94); }
 .back-btn svg { width: 14px; height: 14px; }
 
-/* выбранная роль — бейдж над формой */
 .role-badge {
     display: flex;
     align-items: center;
@@ -815,7 +1107,7 @@ input[type="password"] { letter-spacing: 1px; }
     font-size: 12px;
     font-weight: 660;
     letter-spacing: .1px;
-    animation: badgeIn 1s var(--ease-spring) both;
+    animation: badgeIn .6s var(--ease-spring) both;
 }
 @keyframes badgeIn {
     from { opacity: 0; transform: translateY(-6px) scale(.96); }
@@ -830,7 +1122,7 @@ input[type="password"] { letter-spacing: 1px; }
 .status-screen {
     position: absolute;
     inset: 0;
-    padding: 40px 26px 22px;
+    padding: 46px 30px 26px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -841,12 +1133,14 @@ input[type="password"] { letter-spacing: 1px; }
     visibility: hidden;
     transform: scale(.94);
     transition:
-        opacity 1.1s ease,
-        visibility 1.1s ease,
-        transform 1.3s var(--ease-out);
+        opacity .6s ease,
+        visibility .6s ease,
+        transform .7s var(--ease-out);
     pointer-events: none;
     z-index: 10;
     border-radius: inherit;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
 }
 .auth-card[data-state="loading"] .status-screen,
 .auth-card[data-state="success"] .status-screen,
@@ -857,40 +1151,63 @@ input[type="password"] { letter-spacing: 1px; }
     transform: scale(1);
     pointer-events: auto;
 }
+
 .auth-card[data-state="loading"] .forms-viewport,
 .auth-card[data-state="loading"] .tabs,
 .auth-card[data-state="loading"] .header,
-.auth-card[data-state="loading"] .logo,
+.auth-card[data-state="loading"] .logo-wrap,
 .auth-card[data-state="loading"] .footer,
 .auth-card[data-state="success"] .forms-viewport,
 .auth-card[data-state="success"] .tabs,
 .auth-card[data-state="success"] .header,
-.auth-card[data-state="success"] .logo,
+.auth-card[data-state="success"] .logo-wrap,
 .auth-card[data-state="success"] .footer,
 .auth-card[data-state="error"] .forms-viewport,
 .auth-card[data-state="error"] .tabs,
 .auth-card[data-state="error"] .header,
-.auth-card[data-state="error"] .logo,
+.auth-card[data-state="error"] .logo-wrap,
 .auth-card[data-state="error"] .footer,
 .auth-card[data-state="warning"] .forms-viewport,
 .auth-card[data-state="warning"] .tabs,
 .auth-card[data-state="warning"] .header,
-.auth-card[data-state="warning"] .logo,
+.auth-card[data-state="warning"] .logo-wrap,
 .auth-card[data-state="warning"] .footer {
     opacity: 0;
     transform: translateY(-16px);
     pointer-events: none;
-    transition: opacity .9s ease, transform 1.1s var(--ease-out);
+    transition: opacity .5s ease, transform .6s var(--ease-out);
 }
 
 .status-icon {
     position: relative;
-    width: 96px;
-    height: 96px;
-    margin-bottom: 22px;
+    width: 100px;
+    height: 100px;
+    margin-bottom: 24px;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+/* burst rings on success */
+.status-icon::before,
+.status-icon::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid var(--ok-500);
+    opacity: 0;
+    pointer-events: none;
+}
+.auth-card[data-state="success"] .status-icon::before {
+    animation: burstRing 1.4s var(--ease-out) .5s forwards;
+}
+.auth-card[data-state="success"] .status-icon::after {
+    animation: burstRing 1.4s var(--ease-out) .8s forwards;
+}
+@keyframes burstRing {
+    0%   { transform: scale(.6); opacity: .8; }
+    100% { transform: scale(1.6); opacity: 0; }
 }
 
 .status-spinner {
@@ -903,7 +1220,7 @@ input[type="password"] { letter-spacing: 1px; }
     animation: statusSpin 2.2s linear infinite;
     opacity: 0;
     transform: scale(.7);
-    transition: opacity .9s ease, transform 1.2s var(--ease-spring);
+    transition: opacity .5s ease, transform .7s var(--ease-spring);
 }
 .auth-card[data-state="loading"] .status-spinner {
     opacity: 1;
@@ -921,15 +1238,15 @@ input[type="password"] { letter-spacing: 1px; }
 
 .status-spinner-logo {
     position: absolute;
-    width: 34px; height: 34px;
+    width: 36px; height: 36px;
     border-radius: 11px;
     background: linear-gradient(145deg, #60a5fa, #2563eb);
-    color: #fff; font-size: 14px; font-weight: 800;
+    color: #fff; font-size: 15px; font-weight: 800;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 8px 20px rgba(37,99,235,.4);
     animation: loaderPulse 2.4s ease-in-out infinite;
     opacity: 0;
-    transition: opacity .9s ease;
+    transition: opacity .5s ease;
 }
 .auth-card[data-state="loading"] .status-spinner-logo { opacity: 1; }
 @keyframes loaderPulse {
@@ -940,10 +1257,10 @@ input[type="password"] { letter-spacing: 1px; }
 .status-svg {
     position: absolute;
     inset: 0;
-    width: 96px; height: 96px;
+    width: 100px; height: 100px;
     opacity: 0;
     transform: scale(.4);
-    transition: opacity 1.1s ease, transform 1.6s cubic-bezier(.34,1.4,.5,1);
+    transition: opacity .7s ease, transform 1.2s cubic-bezier(.34,1.4,.5,1);
 }
 .auth-card[data-state="success"] .status-svg.success,
 .auth-card[data-state="error"]   .status-svg.error,
@@ -958,7 +1275,7 @@ input[type="password"] { letter-spacing: 1px; }
     stroke-linecap: round;
     stroke-dasharray: 290;
     stroke-dashoffset: 290;
-    transition: stroke-dashoffset 2s cubic-bezier(.65,0,.35,1);
+    transition: stroke-dashoffset 1.6s cubic-bezier(.65,0,.35,1);
 }
 .status-svg.success circle { stroke: var(--ok-500); }
 .status-svg.error   circle { stroke: var(--err-500); }
@@ -978,7 +1295,7 @@ input[type="password"] { letter-spacing: 1px; }
     stroke-linejoin: round;
     stroke-dasharray: 100;
     stroke-dashoffset: 100;
-    transition: stroke-dashoffset 1.6s cubic-bezier(.65,0,.35,1) 1.3s;
+    transition: stroke-dashoffset 1.3s cubic-bezier(.65,0,.35,1) 1s;
 }
 .status-svg.success path { stroke: var(--ok-500); }
 .status-svg.error   path { stroke: var(--err-500); }
@@ -989,7 +1306,7 @@ input[type="password"] { letter-spacing: 1px; }
     fill: var(--warn-500);
     transform-origin: 48px 68px;
     transform: scale(0);
-    transition: transform 1s var(--ease-spring) 2.2s;
+    transition: transform .8s var(--ease-spring) 1.8s;
 }
 .auth-card[data-state="success"] .status-svg.success path,
 .auth-card[data-state="error"]   .status-svg.error   path,
@@ -1004,7 +1321,7 @@ input[type="password"] { letter-spacing: 1px; }
 .auth-card[data-state="success"] .status-svg.success,
 .auth-card[data-state="error"]   .status-svg.error,
 .auth-card[data-state="warning"] .status-svg.warning {
-    animation: iconPop 1.4s var(--ease-spring) 3s both;
+    animation: iconPop 1.2s var(--ease-spring) 2.4s both;
 }
 @keyframes iconPop {
     0%   { transform: scale(.4); }
@@ -1013,14 +1330,14 @@ input[type="password"] { letter-spacing: 1px; }
 }
 
 .status-title {
-    font-size: 19px;
+    font-size: 21px;
     font-weight: 780;
     letter-spacing: -.5px;
     color: var(--ink-900);
     margin-bottom: 8px;
     opacity: 0;
     transform: translateY(10px);
-    transition: opacity 1s ease .9s, transform 1.2s var(--ease-out) .9s;
+    transition: opacity .7s ease .7s, transform .8s var(--ease-out) .7s;
 }
 .status-subtitle {
     font-size: 13px;
@@ -1030,7 +1347,7 @@ input[type="password"] { letter-spacing: 1px; }
     max-width: 300px;
     opacity: 0;
     transform: translateY(10px);
-    transition: opacity 1s ease 1.2s, transform 1.2s var(--ease-out) 1.2s;
+    transition: opacity .7s ease 1s, transform .8s var(--ease-out) 1s;
 }
 .auth-card[data-state="loading"] .status-title,
 .auth-card[data-state="loading"] .status-subtitle,
@@ -1049,7 +1366,7 @@ input[type="password"] { letter-spacing: 1px; }
     gap: 7px;
     margin-top: 20px;
     opacity: 0;
-    transition: opacity 1s ease .5s;
+    transition: opacity .5s ease .4s;
 }
 .auth-card[data-state="loading"] .status-dots { opacity: 1; }
 .status-dots span {
@@ -1076,9 +1393,10 @@ input[type="password"] { letter-spacing: 1px; }
     opacity: 0;
     transform: translateY(10px);
     transition:
-        opacity 1s ease 2.8s,
-        transform 1.2s var(--ease-out) 2.8s,
-        background .4s ease;
+        opacity .7s ease 2.2s,
+        transform .8s var(--ease-out) 2.2s,
+        background .3s ease,
+        transform .25s ease;
     pointer-events: none;
 }
 .auth-card[data-state="error"] .retry-btn,
@@ -1091,18 +1409,18 @@ input[type="password"] { letter-spacing: 1px; }
 .retry-btn:active { transform: scale(.95); }
 
 /* =========================================
-   LOADER СТРАНИЦЫ
+   PAGE LOADER
 ========================================= */
 .page-loader {
     position: fixed; inset: 0; z-index: 9999;
     display: flex; align-items: center; justify-content: center;
     background: radial-gradient(circle at 50% 50%, #fff 0%, #f6f9ff 55%, #eef4ff 100%);
-    transition: opacity 1.1s ease, visibility 1.1s ease;
+    transition: opacity .9s ease, visibility .9s ease;
 }
 .page-loader.hidden { opacity: 0; visibility: hidden; }
 .loader-content { display: flex; flex-direction: column; align-items: center; gap: 15px; }
 .loader-ring {
-    position: relative; width: 52px; height: 52px;
+    position: relative; width: 56px; height: 56px;
     display: flex; align-items: center; justify-content: center;
 }
 .loader-ring::before,
@@ -1122,16 +1440,67 @@ input[type="password"] { letter-spacing: 1px; }
 }
 @keyframes ringSpin { to { transform: rotate(360deg); } }
 .loader-logo {
-    width: 32px; height: 32px;
+    width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
     border-radius: 11px; color: #fff;
-    font-size: 13px; font-weight: 800; letter-spacing: -.5px;
+    font-size: 14px; font-weight: 800; letter-spacing: -.5px;
     background: linear-gradient(145deg, #60a5fa, #2563eb);
     box-shadow: 0 1px 0 rgba(255,255,255,.4) inset, 0 8px 18px rgba(37,99,235,.35);
     animation: loaderPulse 2.4s ease-in-out infinite;
     z-index: 1;
 }
-.loader-text { color: var(--ink-500); font-size: 11px; font-weight: 520; letter-spacing: .4px; }
+.loader-text { color: var(--ink-500); font-size: 11.5px; font-weight: 520; letter-spacing: .4px; }
+
+/* =========================================
+   CONFETTI
+========================================= */
+#confetti {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity .3s ease;
+}
+#confetti.active { opacity: 1; }
+
+/* =========================================
+   TOAST
+========================================= */
+.toast-container {
+    position: fixed;
+    top: calc(20px + env(safe-area-inset-top, 0px));
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 9000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+    max-width: 90vw;
+}
+.toast {
+    padding: 12px 18px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    background: rgba(15,23,42,.92);
+    color: #fff;
+    box-shadow: 0 12px 30px rgba(15,23,42,.3);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    animation: toastIn .5s var(--ease-spring) forwards;
+    pointer-events: auto;
+    white-space: nowrap;
+}
+.toast.hide { animation: toastOut .4s ease forwards; }
+@keyframes toastIn {
+    from { opacity: 0; transform: translateY(-20px) scale(.9); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toastOut {
+    to { opacity: 0; transform: translateY(-20px) scale(.9); }
+}
 
 /* =========================================
    SCROLLBAR
@@ -1152,28 +1521,48 @@ input[type="password"] { letter-spacing: 1px; }
 @media (max-width: 480px) {
     .page { padding: 16px 12px calc(16px + env(safe-area-inset-bottom, 0px)); }
     .auth-card {
-        padding: 26px 20px 18px;
-        border-radius: 22px;
+        padding: 28px 22px 20px;
+        border-radius: 24px;
         max-width: 100%;
     }
-    .title { font-size: 21px; }
-    .subtitle { font-size: 11.5px; }
-    .logo { width: 46px; height: 46px; font-size: 18px; }
-    input { height: 50px; font-size: 16px; }
-    .submit-btn { height: 50px; font-size: 14.5px; }
-    .tabs { height: 44px; }
-    .tab { font-size: 13px; }
-    .status-icon { width: 88px; height: 88px; margin-bottom: 20px; }
-    .status-svg { width: 88px; height: 88px; }
-    .status-title { font-size: 18px; }
+    .title { font-size: 22px; }
+    .subtitle { font-size: 12px; }
+    .logo-wrap { width: 56px; height: 56px; }
+    .logo { width: 50px; height: 50px; font-size: 20px; border-radius: 15px; }
+    input { height: 52px; font-size: 16px; }
+    .submit-btn { height: 52px; font-size: 15px; }
+    .tabs { height: 46px; }
+    .tab { font-size: 13.5px; }
+    .status-icon { width: 92px; height: 92px; margin-bottom: 22px; }
+    .status-svg { width: 92px; height: 92px; }
+    .status-title { font-size: 19px; }
     .status-subtitle { font-size: 12.5px; }
+    .role-select-title { font-size: 15px; }
+    .caps-warning { font-size: 9px; padding: 2px 6px; }
 }
 
 @media (max-width: 360px) {
-    .auth-card { padding: 22px 16px 16px; }
-    .title { font-size: 19px; }
-    input { height: 46px; font-size: 15px; }
-    .submit-btn { height: 46px; font-size: 13.5px; }
+    .auth-card { padding: 24px 18px 18px; }
+    .title { font-size: 20px; }
+    input { height: 48px; font-size: 15px; }
+    .submit-btn { height: 48px; font-size: 14px; }
+}
+
+@media (max-height: 640px) and (orientation: landscape) {
+    .page { padding: 12px; }
+    .auth-card { padding: 22px 24px 16px; max-width: 440px; }
+    .logo-wrap { width: 48px; height: 48px; margin-bottom: 12px; }
+    .logo { width: 44px; height: 44px; font-size: 17px; }
+    .header { margin-bottom: 16px; }
+    .title { font-size: 20px; }
+    .status-icon { width: 80px; height: 80px; margin-bottom: 16px; }
+    .status-svg { width: 80px; height: 80px; }
+}
+
+@media (hover: none) {
+    .auth-card:hover::after { opacity: 1; }
+    .auth-card:hover { transform: none; }
+    .role-card:hover { transform: translateY(-2px); }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1182,15 +1571,14 @@ input[type="password"] { letter-spacing: 1px; }
         animation-iteration-count: 1 !important;
         transition-duration: .01ms !important;
     }
+    .orb, .particles span, .starfield span, .aurora-lines { display: none; }
 }
 </style>
 </head>
 
 <body>
 
-<!-- =========================================
-     PAGE LOADER
-========================================= -->
+<!-- PAGE LOADER -->
 <div class="page-loader" id="pageLoader">
     <div class="loader-content">
         <div class="loader-ring">
@@ -1200,29 +1588,43 @@ input[type="password"] { letter-spacing: 1px; }
     </div>
 </div>
 
-<!-- =========================================
-     BACKGROUND
-========================================= -->
+<!-- CONFETTI -->
+<canvas id="confetti"></canvas>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- BACKGROUND -->
 <div class="background">
+    <div class="aurora-lines"></div>
     <div class="orb one"></div>
     <div class="orb two"></div>
     <div class="orb three"></div>
-    <div class="particles">
+    <div class="orb four"></div>
+    <div class="orb five"></div>
+    <div class="starfield">
+        <span></span><span></span><span></span><span></span>
         <span></span><span></span><span></span><span></span>
         <span></span><span></span><span></span><span></span>
     </div>
+    <div class="particles">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+    </div>
 </div>
 
-<!-- =========================================
-     PAGE
-========================================= -->
+<!-- PAGE -->
 <main class="page">
 
     <section class="auth-card" id="authCard" data-mode="login" data-state="">
 
         <div class="card-glow"></div>
 
-        <div class="logo">K</div>
+        <div class="logo-wrap">
+            <div class="orbit"></div>
+            <div class="orbit delayed"></div>
+            <div class="logo" id="logo">K</div>
+        </div>
 
         <div class="header">
             <h1 class="title" id="pageTitle">С возвращением</h1>
@@ -1239,7 +1641,7 @@ input[type="password"] { letter-spacing: 1px; }
 
             <!-- LOGIN -->
             <div class="form-panel login-panel" id="loginPanel">
-                <form id="loginForm" autocomplete="on">
+                <form id="loginForm" autocomplete="on" novalidate>
 
                     <div class="field">
                         <div class="input-wrap">
@@ -1258,11 +1660,20 @@ input[type="password"] { letter-spacing: 1px; }
                         <div class="input-wrap">
                             <input type="password" id="loginPassword" placeholder="Пароль"
                                    autocomplete="current-password" required>
+                            <div class="caps-warning" id="loginCaps">CAPS</div>
                             <button type="button" class="password-toggle"
                                     data-target="loginPassword" aria-label="Показать пароль">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
-                                    <circle cx="12" cy="12" r="2.5"/>
+                                    <g class="eye-open">
+                                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
+                                        <circle cx="12" cy="12" r="2.5"/>
+                                    </g>
+                                    <g class="eye-closed">
+                                        <path d="M3 3l18 18"/>
+                                        <path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/>
+                                        <path d="M6.7 6.7C3.6 8.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.4-1.1"/>
+                                        <path d="M21.3 8.4C22 9.5 22 12 22 12s-3.5 6-10 6"/>
+                                    </g>
                                 </svg>
                             </button>
                         </div>
@@ -1280,10 +1691,9 @@ input[type="password"] { letter-spacing: 1px; }
                 </form>
             </div>
 
-            <!-- REGISTER (две сцены: выбор роли → форма) -->
+            <!-- REGISTER -->
             <div class="form-panel register-panel" id="registerPanel">
 
-                <!-- Сцена 1: выбор роли -->
                 <div class="role-select" id="roleSelect">
                     <div class="role-select-title">Ура! 🎉 Выберите, пожалуйста, кто вы?</div>
                     <div class="role-select-sub">Это поможет нам настроить систему под вас</div>
@@ -1340,8 +1750,7 @@ input[type="password"] { letter-spacing: 1px; }
                     </div>
                 </div>
 
-                <!-- Сцена 2: форма регистрации -->
-                <form id="registerForm" class="register-form hidden" autocomplete="on">
+                <form id="registerForm" class="register-form hidden" autocomplete="on" novalidate>
 
                     <button type="button" class="back-btn" id="backToRoles">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -1389,11 +1798,19 @@ input[type="password"] { letter-spacing: 1px; }
                         <div class="input-wrap">
                             <input type="password" id="registerPassword" placeholder="Пароль"
                                    autocomplete="new-password" required>
+                            <div class="caps-warning" id="registerCaps">CAPS</div>
                             <button type="button" class="password-toggle"
                                     data-target="registerPassword" aria-label="Показать пароль">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
-                                    <circle cx="12" cy="12" r="2.5"/>
+                                    <g class="eye-open">
+                                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
+                                        <circle cx="12" cy="12" r="2.5"/>
+                                    </g>
+                                    <g class="eye-closed">
+                                        <path d="M3 3l18 18"/>
+                                        <path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/>
+                                        <path d="M6.7 6.7C3.6 8.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.4-1.1"/>
+                                    </g>
                                 </svg>
                             </button>
                         </div>
@@ -1413,8 +1830,15 @@ input[type="password"] { letter-spacing: 1px; }
                             <button type="button" class="password-toggle"
                                     data-target="registerConfirmPassword" aria-label="Показать пароль">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
-                                    <circle cx="12" cy="12" r="2.5"/>
+                                    <g class="eye-open">
+                                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
+                                        <circle cx="12" cy="12" r="2.5"/>
+                                    </g>
+                                    <g class="eye-closed">
+                                        <path d="M3 3l18 18"/>
+                                        <path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/>
+                                        <path d="M6.7 6.7C3.6 8.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.4-1.1"/>
+                                    </g>
                                 </svg>
                             </button>
                         </div>
@@ -1486,9 +1910,7 @@ input[type="password"] { letter-spacing: 1px; }
 
 </main>
 
-<!-- =========================================
-     FIREBASE
-========================================= -->
+<!-- FIREBASE -->
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
@@ -1537,6 +1959,8 @@ const pageLoader     = document.getElementById("pageLoader");
 const statusTitle    = document.getElementById("statusTitle");
 const statusSubtitle = document.getElementById("statusSubtitle");
 const retryBtn       = document.getElementById("retryBtn");
+const logoEl         = document.getElementById("logo");
+const toastContainer = document.getElementById("toastContainer");
 
 const roleSelect     = document.getElementById("roleSelect");
 const registerForm   = document.getElementById("registerForm");
@@ -1549,6 +1973,20 @@ const ROLE_LABELS = {
     starosta: "Староста",
     parent:   "Родитель"
 };
+
+/* =========================================
+   TOAST
+========================================= */
+function toast(text, duration = 2600) {
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.textContent = text;
+    toastContainer.appendChild(el);
+    setTimeout(() => {
+        el.classList.add("hide");
+        setTimeout(() => el.remove(), 400);
+    }, duration);
+}
 
 /* =========================================
    HELPERS
@@ -1575,6 +2013,13 @@ function clearMessage() {
     messageEl.className = "message";
 }
 
+function shakeField(inputEl) {
+    const field = inputEl.closest(".field");
+    if (!field) return;
+    field.classList.add("error");
+    setTimeout(() => field.classList.remove("error"), 600);
+}
+
 function firebaseError(error) {
     switch (error.code) {
         case "auth/invalid-email":         return "Введите корректную электронную почту.";
@@ -1586,6 +2031,121 @@ function firebaseError(error) {
         case "auth/network-request-failed":return "Ошибка сети. Проверьте подключение.";
         case "auth/too-many-requests":     return "Слишком много попыток. Попробуйте позже.";
         default:                           return error.message || "Произошла неизвестная ошибка.";
+    }
+}
+
+/* =========================================
+   CAPS LOCK DETECTION
+========================================= */
+function attachCapsWarning(inputId, warningId) {
+    const input   = document.getElementById(inputId);
+    const warning = document.getElementById(warningId);
+    if (!input || !warning) return;
+
+    function update(e) {
+        if (e.getModifierState && e.getModifierState("CapsLock")) {
+            warning.classList.add("show");
+        } else {
+            warning.classList.remove("show");
+        }
+    }
+    input.addEventListener("keydown", update);
+    input.addEventListener("keyup", update);
+    input.addEventListener("blur", () => warning.classList.remove("show"));
+}
+attachCapsWarning("loginPassword", "loginCaps");
+attachCapsWarning("registerPassword", "registerCaps");
+
+/* =========================================
+   BUTTON RIPPLE
+========================================= */
+function attachRipple(btn) {
+    btn.addEventListener("click", (e) => {
+        const rect = btn.getBoundingClientRect();
+        const size = Math.max(rect.width, rect.height) * 2.4;
+        const ripple = document.createElement("span");
+        ripple.className = "btn-ripple";
+        ripple.style.width  = `${size}px`;
+        ripple.style.height = `${size}px`;
+        ripple.style.left   = `${e.clientX - rect.left}px`;
+        ripple.style.top    = `${e.clientY - rect.top}px`;
+        btn.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 800);
+    });
+}
+document.querySelectorAll(".submit-btn").forEach(attachRipple);
+
+/* =========================================
+   CONFETTI
+========================================= */
+const confettiCanvas = document.getElementById("confetti");
+let confettiParticles = [];
+let confettiActive = false;
+
+function startConfetti() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const ctx = confettiCanvas.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    confettiCanvas.width = window.innerWidth * dpr;
+    confettiCanvas.height = window.innerHeight * dpr;
+    confettiCanvas.style.width = window.innerWidth + "px";
+    confettiCanvas.style.height = window.innerHeight + "px";
+    ctx.scale(dpr, dpr);
+
+    const colors = ["#3b82f6", "#8b5cf6", "#22d3ee", "#ec4899", "#10b981", "#f59e0b", "#6366f1"];
+    confettiParticles = [];
+    for (let i = 0; i < 110; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const velocity = 4 + Math.random() * 10;
+        confettiParticles.push({
+            x: window.innerWidth / 2,
+            y: window.innerHeight / 2,
+            vx: Math.cos(angle) * velocity,
+            vy: Math.sin(angle) * velocity - 4,
+            size: 4 + Math.random() * 7,
+            color: colors[Math.floor(Math.random() * colors.length)],
+            rotation: Math.random() * Math.PI,
+            rotSpeed: (Math.random() - 0.5) * 0.35,
+            life: 1
+        });
+    }
+    confettiActive = true;
+    confettiCanvas.classList.add("active");
+    animateConfetti();
+}
+
+function animateConfetti() {
+    if (!confettiActive) return;
+    const ctx = confettiCanvas.getContext("2d");
+    ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+    let aliveCount = 0;
+    confettiParticles.forEach(p => {
+        p.vy += 0.36;
+        p.vx *= 0.99;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rotation += p.rotSpeed;
+        p.life -= 0.007;
+
+        if (p.life <= 0 || p.y > window.innerHeight + 50) return;
+        aliveCount++;
+
+        ctx.save();
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rotation);
+        ctx.globalAlpha = Math.max(p.life, 0);
+        ctx.fillStyle = p.color;
+        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+        ctx.restore();
+    });
+
+    if (aliveCount > 0) {
+        requestAnimationFrame(animateConfetti);
+    } else {
+        confettiActive = false;
+        confettiCanvas.classList.remove("active");
+        ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     }
 }
 
@@ -1607,6 +2167,7 @@ function showSuccess(title = "Вход выполнен!", subtitle = "Откр�
     authCard.dataset.state = "success";
     statusTitle.textContent = title;
     statusSubtitle.textContent = subtitle;
+    setTimeout(startConfetti, 400);
 }
 function showError(title = "Не удалось войти", subtitle = "Проверьте логин и пароль") {
     statusActive = true;
@@ -1636,14 +2197,12 @@ function resetStatus() {
 }
 retryBtn.addEventListener("click", () => {
     resetStatus();
-    const panel = getCurrentPanel();
     if (currentMode === "login") {
         const emailInput = document.getElementById("loginEmail");
         const passInput  = document.getElementById("loginPassword");
         if (passInput) passInput.value = "";
         if (emailInput) emailInput.focus();
     } else {
-        // регистрация: вернёмся к выбору роли
         showRoleStage();
     }
 });
@@ -1680,7 +2239,6 @@ async function switchMode(mode) {
     currentMode = mode;
     authCard.dataset.mode = mode;
 
-    // при переходе в register всегда начинаем с выбора роли
     if (mode === "register") {
         showRoleStage();
     }
@@ -1697,7 +2255,7 @@ async function switchMode(mode) {
         pageTitle.style.transform = "translateY(0)";
         pageSubtitle.style.opacity = "1";
         pageSubtitle.style.transform = "translateY(0)";
-    }, 600);
+    }, 350);
 
     requestAnimationFrame(() => {
         requestAnimationFrame(() => {
@@ -1705,7 +2263,7 @@ async function switchMode(mode) {
         });
     });
 
-    setTimeout(() => { switching = false; }, 1400);
+    setTimeout(() => { switching = false; }, 900);
 }
 
 loginTab.addEventListener("click", () => switchMode("login"));
@@ -1722,11 +2280,13 @@ function showRoleStage() {
     roleBadgeText.textContent = "—";
     roleSelect.classList.remove("hidden");
     registerForm.classList.add("hidden");
+    document.querySelectorAll(".role-card").forEach(c => {
+        c.classList.remove("picked");
+        c.style.animation = "none";
+        void c.offsetWidth;
+        c.style.animation = "";
+    });
 
-    // очистим "picked" у всех карточек
-    document.querySelectorAll(".role-card").forEach(c => c.classList.remove("picked"));
-
-    // дать высоте пересчитаться
     setTimeout(() => {
         if (currentMode === "register") {
             setViewportHeight(registerPanel.scrollHeight);
@@ -1741,7 +2301,6 @@ function showFormStage() {
         if (currentMode === "register") {
             setViewportHeight(registerPanel.scrollHeight);
         }
-        // фокус на первое поле
         const nameInput = document.getElementById("registerName");
         if (nameInput) nameInput.focus({ preventScroll: true });
     }, 60);
@@ -1755,14 +2314,12 @@ backToRoles.addEventListener("click", () => {
 function spawnRipple(card, x, y) {
     const rect = card.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height) * 2.4;
-
     const ripple = document.createElement("span");
     ripple.className = "role-ripple";
     ripple.style.width  = `${size}px`;
     ripple.style.height = `${size}px`;
     ripple.style.left   = `${x - rect.left}px`;
     ripple.style.top    = `${y - rect.top}px`;
-
     card.appendChild(ripple);
     setTimeout(() => ripple.remove(), 1000);
 }
@@ -1777,8 +2334,8 @@ function pickRole(card, x, y) {
 
     spawnRipple(card, x, y);
     card.classList.add("picked");
+    toast(`Выбрана роль: ${ROLE_LABELS[role]}`);
 
-    // мягкая задержка, чтобы успел проиграться зелёный эффект
     setTimeout(() => {
         showFormStage();
     }, 900);
@@ -1806,7 +2363,9 @@ document.querySelectorAll(".role-card").forEach(card => {
 document.querySelectorAll(".password-toggle").forEach(btn => {
     btn.addEventListener("click", () => {
         const input = document.getElementById(btn.dataset.target);
-        input.type = input.type === "password" ? "text" : "password";
+        const isHidden = input.type === "password";
+        input.type = isHidden ? "text" : "password";
+        btn.classList.toggle("visible", isHidden);
     });
 });
 
@@ -1821,8 +2380,14 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
     const password = document.getElementById("loginPassword").value;
     const remember = document.getElementById("rememberMe").checked;
 
-    if (!email || !password) {
-        showMessage("Заполните все поля.");
+    if (!email) {
+        showMessage("Введите электронную почту.");
+        shakeField(document.getElementById("loginEmail"));
+        return;
+    }
+    if (!password) {
+        showMessage("Введите пароль.");
+        shakeField(document.getElementById("loginPassword"));
         return;
     }
 
@@ -1860,18 +2425,20 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
         showRoleStage();
         return;
     }
-    if (!name || !email || !password || !confirmPassword || !group) {
-        showMessage("Заполните все поля.");
-        return;
-    }
+    if (!name)     { showMessage("Введите ФИО."); shakeField(document.getElementById("registerName")); return; }
+    if (!email)    { showMessage("Введите почту."); shakeField(document.getElementById("registerEmail")); return; }
+    if (!password) { showMessage("Введите пароль."); shakeField(document.getElementById("registerPassword")); return; }
     if (password.length < 6) {
         showMessage("Пароль должен содержать минимум 6 символов.");
+        shakeField(document.getElementById("registerPassword"));
         return;
     }
     if (password !== confirmPassword) {
         showMessage("Пароли не совпадают.");
+        shakeField(document.getElementById("registerConfirmPassword"));
         return;
     }
+    if (!group) { showMessage("Введите группу."); shakeField(document.getElementById("registerGroup")); return; }
 
     showLoading("Создаём аккаунт…", "Это займёт пару секунд");
     await new Promise(r => setTimeout(r, 700));
@@ -1886,7 +2453,7 @@ document.getElementById("registerForm").addEventListener("submit", async (e) => 
             name,
             email,
             group,
-            role,                  // curator | starosta | parent
+            role,
             reg: 0,
             createdAt: serverTimestamp()
         });
@@ -1919,12 +2486,14 @@ document.getElementById("forgotPassword").addEventListener("click", async () => 
     const email = document.getElementById("loginEmail").value.trim();
     if (!email) {
         showMessage("Сначала введите свою электронную почту.");
+        shakeField(document.getElementById("loginEmail"));
         document.getElementById("loginEmail").focus();
         return;
     }
     try {
         await sendPasswordResetEmail(auth, email);
         showMessage("Письмо для восстановления пароля отправлено.", "success");
+        toast("Письмо отправлено 📬");
     } catch (error) {
         console.error(error);
         showMessage(firebaseError(error));
@@ -2029,6 +2598,35 @@ onAuthStateChanged(auth, (user) => {
         handleAuthUser(user).finally(() => { authCheckInProgress = false; });
     }
 });
+
+/* =========================================
+   MAGNETIC LOGO + CARD PARALLAX (desktop)
+========================================= */
+if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    const card = authCard;
+    let rafId = null;
+    let mx = 0, my = 0;
+
+    card.addEventListener("mousemove", (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        mx = x; my = y;
+
+        if (rafId) return;
+        rafId = requestAnimationFrame(() => {
+            rafId = null;
+            const cx = rect.width / 2;
+            const cy = rect.height / 2;
+            const dx = (mx - cx) / cx;
+            const dy = (my - cy) / cy;
+            logoEl.style.transform = `translate(${dx * 6}px, ${dy * 6}px) scale(1.02)`;
+        });
+    });
+    card.addEventListener("mouseleave", () => {
+        logoEl.style.transform = "";
+    });
+}
 
 /* =========================================
    INIT

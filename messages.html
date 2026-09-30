@@ -16,7 +16,7 @@
 <script src="firebase-config.js"></script>
 
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 
 :root{
     --accent:#4f7cff;
@@ -62,6 +62,11 @@
 
     --ease:cubic-bezier(.22,1,.36,1);
     --ease-spring:cubic-bezier(.34,1.56,.64,1);
+
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+    --safe-left:env(safe-area-inset-left,0px);
+    --safe-right:env(safe-area-inset-right,0px);
 }
 
 body.dark{
@@ -94,14 +99,24 @@ body.dark{
 
 html{scroll-behavior:smooth}
 body{
-    min-height:100vh;
+    min-height:100vh;min-height:100svh;
     font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     color:var(--text);
     background:var(--bg-app);
     overflow-x:hidden;
     -webkit-font-smoothing:antialiased;
     font-feature-settings:"ss01","cv11";
+    position:relative;
+    transition:background .3s ease,color .3s ease;
 }
+
+body::after{
+    content:"";position:fixed;inset:0;
+    pointer-events:none;z-index:1;
+    opacity:.018;mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
 h1,h2,.brand-title{font-family:"Plus Jakarta Sans","Inter",sans-serif}
 button{font-family:inherit}
 :focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-ring);border-radius:8px}
@@ -112,29 +127,38 @@ button{font-family:inherit}
 *::-webkit-scrollbar-thumb{background:rgba(148,163,184,.3);border-radius:4px}
 *::-webkit-scrollbar-thumb:hover{background:rgba(148,163,184,.5)}
 
-.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh}
+/* Aurora */
+.aurora{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden}
+.aurora::before,.aurora::after{
+    content:"";position:absolute;width:520px;height:520px;border-radius:50%;
+    filter:blur(100px);opacity:.22;animation:auroraMove 24s ease-in-out infinite;
+}
+.aurora::before{top:-160px;left:-160px;background:radial-gradient(circle,rgba(79,124,255,.55),transparent 70%)}
+.aurora::after{top:20%;right:-180px;background:radial-gradient(circle,rgba(168,85,247,.35),transparent 70%);animation-delay:-11s}
+@keyframes auroraMove{0%,100%{transform:translate(0,0) scale(1)}50%{transform:translate(60px,40px) scale(1.15)}}
 
-/* ===== SIDEBAR ===== */
+.app{display:grid;grid-template-columns:var(--sidebar-w) 1fr;min-height:100vh;min-height:100svh;position:relative;z-index:2}
+
+/* SIDEBAR */
 .sidebar{
-    position:sticky;top:0;height:100vh;
+    position:sticky;top:0;height:100vh;height:100svh;
     display:flex;flex-direction:column;
     background:var(--bg-panel);
     border-right:1px solid var(--border);
     padding:20px 14px 16px;
     z-index:50;
+    transition:background .3s ease,transform .3s var(--ease);
 }
-.sidebar-brand{
-    display:flex;align-items:center;gap:12px;
-    padding:4px 6px 24px;
-    margin-bottom:8px;
-}
+.sidebar-brand{display:flex;align-items:center;gap:12px;padding:4px 6px 24px;margin-bottom:8px}
 .sidebar-logo{
     width:42px;height:42px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
     border-radius:14px;color:#fff;
     background:var(--accent-grad);
     box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 8px 20px -6px rgba(79,124,255,.6);
+    transition:transform .4s var(--ease-spring);
 }
+.sidebar-logo:hover{transform:rotate(-6deg) scale(1.06)}
 .sidebar-logo svg{width:22px;height:22px}
 .sidebar-brand-text{display:flex;flex-direction:column;min-width:0}
 .brand-title{font-size:14.5px;font-weight:700;letter-spacing:-.3px}
@@ -146,10 +170,7 @@ button{font-family:inherit}
     text-transform:uppercase;color:var(--text-light);
     display:flex;align-items:center;gap:8px;
 }
-.nav-group-title::before{
-    content:"";width:4px;height:4px;border-radius:50%;
-    background:var(--accent);opacity:.6;flex-shrink:0;
-}
+.nav-group-title::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--accent);opacity:.6;flex-shrink:0}
 .nav-list{display:flex;flex-direction:column;gap:2px}
 .sidebar-link{
     position:relative;
@@ -171,34 +192,20 @@ button{font-family:inherit}
 }
 .sidebar-link.active::before{display:none}
 .sidebar-link.active svg{
-    color:#fff;
-    background:var(--accent-grad);
-    padding:4px;
-    border-radius:8px;
+    color:#fff;background:var(--accent-grad);padding:4px;border-radius:8px;
     box-shadow:0 4px 10px -2px rgba(79,124,255,.5);
-    width:26px;height:26px;
-    margin:-4px;
+    width:26px;height:26px;margin:-4px;
 }
 
-.sidebar-footer{
-    margin-top:auto;padding-top:14px;
-    border-top:1px solid var(--border-soft);
-    display:flex;flex-direction:column;gap:8px;
-}
+.sidebar-footer{margin-top:auto;padding-top:14px;border-top:1px solid var(--border-soft);display:flex;flex-direction:column;gap:8px}
 .status-card{
     display:flex;align-items:center;gap:10px;
     padding:10px 12px;border-radius:12px;
-    background:var(--success-light);
-    border:1px solid rgba(16,185,129,.2);
+    background:var(--success-light);border:1px solid rgba(16,185,129,.2);
     color:#0a7a5a;font-size:12px;font-weight:600;
 }
 body.dark .status-card{color:#4ade80}
-.status-dot{
-    width:8px;height:8px;border-radius:50%;
-    background:var(--success);
-    box-shadow:0 0 0 4px rgba(16,185,129,.13);
-    animation:pulse 2.2s infinite;flex-shrink:0;
-}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 4px rgba(16,185,129,.13);animation:pulse 2.2s infinite;flex-shrink:0}
 @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.75}}
 .theme-toggle{
     display:flex;align-items:center;justify-content:center;gap:8px;
@@ -212,8 +219,9 @@ body.dark .status-card{color:#4ade80}
 .theme-toggle:hover{color:var(--accent);border-color:rgba(79,124,255,.35)}
 .theme-toggle svg{width:15px;height:15px}
 
-/* ===== MAIN + TOPBAR ===== */
-.main{display:flex;flex-direction:column;min-width:0;height:100vh;overflow:hidden}
+/* MAIN */
+.main{display:flex;flex-direction:column;min-width:0;height:100vh;height:100svh;overflow:hidden}
+
 .topbar{
     position:sticky;top:0;z-index:40;
     height:var(--topbar-h);flex-shrink:0;
@@ -251,7 +259,20 @@ body.dark .status-card{color:#4ade80}
     box-shadow:0 4px 10px -3px rgba(79,124,255,.5);
 }
 
-/* ===== MESSENGER ===== */
+/* Burger */
+.burger{
+    display:none;width:42px;height:42px;
+    border:1px solid var(--border);border-radius:12px;
+    background:var(--bg-panel);cursor:pointer;
+    align-items:center;justify-content:center;flex-direction:column;gap:4px;
+    flex-shrink:0;padding:0;
+}
+.burger span{display:block;width:18px;height:2px;border-radius:2px;background:var(--text);transition:.3s ease}
+.burger.open span:nth-child(1){transform:translateY(6px) rotate(45deg)}
+.burger.open span:nth-child(2){opacity:0}
+.burger.open span:nth-child(3){transform:translateY(-6px) rotate(-45deg)}
+
+/* MESSENGER */
 .messenger{
     flex:1;min-height:0;
     display:grid;grid-template-columns:380px 1fr;
@@ -262,6 +283,7 @@ body.dark .status-card{color:#4ade80}
     display:flex;flex-direction:column;min-height:0;
     background:var(--bg-panel);
     border-right:1px solid var(--border);
+    transition:background .3s ease;
 }
 .chat-list-head{
     flex-shrink:0;padding:14px 16px 12px;
@@ -377,6 +399,7 @@ body.dark .status-card{color:#4ade80}
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .chat-time{font-size:11px;font-weight:600;color:var(--text-light);flex-shrink:0}
+.chat-time.unread{color:var(--accent)}
 .chat-preview-row{display:flex;align-items:center;gap:8px}
 .chat-preview{
     flex:1;font-size:12.5px;color:var(--text-secondary);
@@ -386,8 +409,28 @@ body.dark .status-card{color:#4ade80}
 .chat-preview.from-me::before{
     content:"✓ ";color:var(--accent);font-weight:800;
 }
+.chat-preview.typing{color:var(--accent);font-style:italic}
 
-/* === СЧЁТЧИК СООБЩЕНИЙ (новое) === */
+/* Счётчик непрочитанных */
+.chat-badge{
+    min-width:22px;height:20px;padding:0 7px;
+    display:inline-flex;align-items:center;justify-content:center;
+    border-radius:999px;
+    background:linear-gradient(135deg,#4f7cff,#7c5cff);
+    color:#fff;
+    font-size:10.5px;font-weight:800;
+    flex-shrink:0;
+    box-shadow:0 4px 10px -3px rgba(79,124,255,.5);
+    border:1.5px solid var(--bg-panel);
+    animation:badgePop .4s var(--ease-spring);
+}
+@keyframes badgePop{
+    0%{transform:scale(0);opacity:0}
+    60%{transform:scale(1.15)}
+    100%{transform:scale(1);opacity:1}
+}
+
+/* Счётчик отправленных */
 .sent-badge{
     min-width:24px;height:20px;padding:0 7px;
     display:inline-flex;align-items:center;justify-content:center;
@@ -407,7 +450,7 @@ body.dark .status-card{color:#4ade80}
 .chat-list-empty h3{margin:0 0 4px;color:var(--text-secondary);font-size:14px;font-weight:700}
 .chat-list-empty p{margin:0;font-size:12px}
 
-/* ===== CHAT VIEW ===== */
+/* CHAT VIEW */
 .chat-view{
     display:flex;flex-direction:column;min-height:0;
     position:relative;background:var(--bg-chat);
@@ -499,7 +542,6 @@ body.dark .status-card{color:#4ade80}
     box-shadow:0 4px 12px -4px rgba(20,30,60,.3);
 }
 
-/* ===== СООБЩЕНИЯ ===== */
 .msg-row{
     display:flex;align-items:flex-end;gap:8px;
     max-width:100%;
@@ -602,11 +644,34 @@ body.dark .msg-row.out .msg-meta{color:rgba(230,235,245,.65)}
 .msg-meta .check{width:15px;height:15px}
 .msg-meta .check.read{color:var(--accent)}
 
-.msg-bubble::after{
-    content:"";display:inline-block;width:0;height:0;
+.msg-meta .sending-clock{
+    width:12px;height:12px;
+    border:1.5px solid var(--text-light);
+    border-top-color:transparent;
+    border-radius:50%;
+    animation:spin .9s linear infinite;
+    display:inline-block;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.msg-meta .check path{
+    stroke-dasharray:30;
+    stroke-dashoffset:30;
+    animation:checkDraw .5s cubic-bezier(.34,1.4,.64,1) forwards;
+}
+.msg-meta .check path:nth-child(2){animation-delay:.08s}
+@keyframes checkDraw{to{stroke-dashoffset:0}}
+.msg-meta .check.read{
+    color:var(--accent);
+    animation:checkPop .4s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes checkPop{
+    0%{transform:scale(.7)}
+    60%{transform:scale(1.2)}
+    100%{transform:scale(1)}
 }
 
-/* Карточка рассылки */
+/* Broadcast card */
 .broadcast-card{
     align-self:stretch;width:100%;max-width:820px;
     margin:8px auto;padding:26px 28px;
@@ -669,10 +734,34 @@ body.dark .msg-row.out .msg-meta{color:rgba(230,235,245,.65)}
 .messages-empty h3{margin:0 0 6px;color:var(--text-secondary);font-size:15px;font-weight:700}
 .messages-empty p{margin:0;font-size:12.5px}
 
-/* ===== COMPOSER ===== */
+/* Typing indicator */
+.typing-indicator-row{
+    display:flex;align-items:flex-end;gap:8px;
+    animation:msgIn .3s var(--ease) both;
+}
+.typing-bubble{
+    display:flex;align-items:center;gap:4px;
+    padding:10px 16px;
+    background:var(--bubble-in);
+    border:1px solid var(--bubble-in-border);
+    border-radius:16px 16px 16px 6px;
+}
+.typing-bubble .dot{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--text-light);
+    animation:typingBounce 1.4s infinite;
+}
+.typing-bubble .dot:nth-child(2){animation-delay:.2s}
+.typing-bubble .dot:nth-child(3){animation-delay:.4s}
+@keyframes typingBounce{
+    0%,60%,100%{transform:translateY(0);opacity:.4}
+    30%{transform:translateY(-5px);opacity:1}
+}
+
+/* COMPOSER */
 .composer{
     position:relative;z-index:2;flex-shrink:0;
-    padding:12px 24px 16px;
+    padding:12px 24px calc(16px + var(--safe-bottom));
     background:var(--bg-panel);
     box-shadow:0 -1px 0 var(--border-soft);
     display:flex;align-items:flex-end;gap:10px;
@@ -764,55 +853,6 @@ body.dark .msg-row.out .msg-meta{color:rgba(230,235,245,.65)}
     50%{opacity:.4;transform:scale(1.05)}
 }
 
-/* ===== СТАТУСЫ ОТПРАВКИ ===== */
-.msg-meta .sending-clock{
-    width:12px;height:12px;
-    border:1.5px solid var(--text-light);
-    border-top-color:transparent;
-    border-radius:50%;
-    animation:spin .9s linear infinite;
-    display:inline-block;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-.msg-meta .sending-dot{
-    width:6px;height:6px;border-radius:50%;
-    background:var(--accent);
-    box-shadow:0 0 8px var(--accent);
-    animation:sendingPulse 1.2s ease-in-out infinite;
-}
-@keyframes sendingPulse{
-    0%,100%{opacity:.4;transform:scale(.85)}
-    50%{opacity:1;transform:scale(1.15)}
-}
-.msg-meta .check path{
-    stroke-dasharray:30;
-    stroke-dashoffset:30;
-    animation:checkDraw .5s cubic-bezier(.34,1.4,.64,1) forwards;
-}
-.msg-meta .check path:nth-child(2){animation-delay:.08s}
-@keyframes checkDraw{to{stroke-dashoffset:0}}
-.msg-meta .check.read{
-    color:var(--accent);
-    animation:checkPop .4s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes checkPop{
-    0%{transform:scale(.7)}
-    60%{transform:scale(1.2)}
-    100%{transform:scale(1)}
-}
-.msg-row.just-sent .msg-bubble::before{
-    content:"";position:absolute;inset:-2px;
-    border-radius:inherit;
-    background:linear-gradient(135deg,rgba(79,124,255,.4),transparent 60%);
-    opacity:0;
-    animation:justSentGlow 1s ease-out;
-    pointer-events:none;
-}
-@keyframes justSentGlow{
-    0%{opacity:.7}
-    100%{opacity:0}
-}
-
 .placeholder{
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     height:100%;padding:40px;text-align:center;
@@ -822,17 +862,18 @@ body.dark .msg-row.out .msg-meta{color:rgba(230,235,245,.65)}
 .placeholder h3{font-size:18px;font-weight:800;color:var(--text);margin-bottom:8px}
 .placeholder p{font-size:13px;max-width:320px;line-height:1.6}
 
-/* ===== MODAL ===== */
+/* MODAL */
 .modal-backdrop{
     position:fixed;inset:0;z-index:400;
     display:flex;align-items:center;justify-content:center;
     background:rgba(15,20,35,.6);
     backdrop-filter:blur(16px) saturate(1.2);
     opacity:0;visibility:hidden;transition:.3s;
+    padding:16px;
 }
 .modal-backdrop.open{opacity:1;visibility:visible}
 .modal{
-    width:560px;max-width:92vw;max-height:90vh;overflow:hidden;
+    width:560px;max-width:100%;max-height:90vh;overflow:hidden;
     border-radius:24px;
     background:var(--bg-panel);
     border:1px solid var(--border);
@@ -1000,9 +1041,10 @@ body.dark .msg-row.out .msg-meta{color:rgba(230,235,245,.65)}
 }
 .btn-ghost:hover{color:var(--accent);border-color:rgba(79,124,255,.4)}
 
-/* ===== TOAST ===== */
+/* TOAST */
 .toast{
-    position:fixed;left:50%;bottom:30px;z-index:1000;
+    position:fixed;left:50%;bottom:calc(30px + var(--safe-bottom));
+    z-index:1000;
     transform:translate(-50%,120px);
     padding:14px 22px 14px 18px;
     border-radius:16px;
@@ -1026,7 +1068,7 @@ body.dark .msg-row.out .msg-meta{color:rgba(230,235,245,.65)}
 .toast.success{background:linear-gradient(135deg,#064e3b,#065f46)}
 .toast.success::before{background:#34d399;box-shadow:0 0 12px #34d399}
 
-/* ===== LOADER ===== */
+/* LOADER */
 .page-loader{
     position:fixed;inset:0;z-index:999;
     display:flex;align-items:center;justify-content:center;
@@ -1060,53 +1102,50 @@ body.dark .page-loader{
 @keyframes glowPulse{0%,100%{transform:scale(1);opacity:.25}50%{transform:scale(1.15);opacity:.4}}
 body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibility:hidden}
 
-/* ============================================================
-   ПЛАНШЕТЫ И МОБИЛЬНЫЕ
-============================================================ */
+.sidebar-backdrop{
+    display:none;
+    position:fixed;inset:0;z-index:49;
+    background:rgba(15,20,35,.45);
+    backdrop-filter:blur(4px);
+    opacity:0;visibility:hidden;
+    transition:opacity .3s ease,visibility .3s ease;
+}
+.sidebar-backdrop.show{opacity:1;visibility:visible}
 
-/* Планшеты горизонтальные */
+/* RESPONSIVE */
 @media (max-width:1200px){
     .msg-bubble{max-width:min(480px,68%);font-size:13px;padding:8px 13px 7px}
     .chat-list-head{padding:12px 14px 10px}
     .messenger{grid-template-columns:340px 1fr}
 }
 
-/* Планшеты вертикальные / большие телефоны —
-   переключаемся в режим "список ИЛИ чат" */
 @media (max-width:900px){
     html,body{min-width:0;width:100%}
-
     .app{grid-template-columns:1fr}
-
-    /* Сайдбар прячем в off-canvas (как отдельное меню) */
     .sidebar{
         position:fixed;left:0;top:0;
-        width:280px;height:100vh;
+        width:280px;height:100vh;height:100svh;
         transform:translateX(-100%);
-        box-shadow:0 0 60px rgba(15,23,42,.25);
+        box-shadow:4px 0 60px rgba(15,23,42,.25);
         z-index:100;
         transition:transform .3s var(--ease);
+        padding-top:calc(20px + var(--safe-top));
     }
     .sidebar.open{transform:translateX(0)}
+    .sidebar-backdrop{display:block}
+    .burger{display:flex}
 
-    .topbar{padding:0 16px}
+    .topbar{padding:0 14px;padding-top:var(--safe-top);height:auto;min-height:60px}
     .topbar-title h1{font-size:14.5px}
-    .topbar-title span{font-size:11px}
-    .back-btn span,
-    .back-btn:not(:has(span)){padding:8px 10px}
-    .user-menu-button > span:not(.user-avatar){max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .user-avatar{width:30px;height:30px;font-size:11px}
+    .topbar-title span{font-size:11px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+    .back-btn{padding:8px 12px 8px 8px;font-size:12px}
+    .back-btn span{display:none}
+    .user-menu-button{padding:4px 4px}
+    .user-menu-button > span:not(.user-avatar){display:none}
 
-    /* Messenger: чат-лист на всю ширину, чат-вью — overlay */
-    .messenger{
-        position:relative;
-        display:block;
-        overflow:hidden;
-    }
+    .messenger{position:relative;display:block;overflow:hidden}
     .chat-list{
-        position:absolute;inset:0;
-        width:100%;
-        border-right:none;
+        position:absolute;inset:0;width:100%;border-right:none;
         transition:transform .3s var(--ease),opacity .3s ease;
         z-index:1;
     }
@@ -1116,18 +1155,13 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
         transition:transform .3s var(--ease);
         z-index:2;
     }
-
-    /* Когда чат открыт — показываем chat-view, прячем список */
     body.chat-open .chat-list{
         transform:translateX(-25%);
         opacity:0;
         pointer-events:none;
     }
-    body.chat-open .chat-view{
-        transform:translateX(0);
-    }
+    body.chat-open .chat-view{transform:translateX(0)}
 
-    /* Кнопка "Назад" в шапке чата — показываем */
     .chat-head-back{display:flex}
 
     .chat-list-head{padding:14px 14px 12px}
@@ -1151,43 +1185,35 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
     .chat-head-name{font-size:14px}
     .chat-head-status{font-size:11px}
 
-    .composer{padding:10px 14px 14px;gap:8px}
+    .composer{padding:10px 14px calc(14px + var(--safe-bottom));gap:8px}
     .composer-wrap{border-radius:22px;padding:6px 14px}
-    .composer-wrap textarea{font-size:14px}
+    .composer-wrap textarea{font-size:16px}
     .send-btn{width:44px;height:44px}
 
     .placeholder .big{font-size:52px}
     .placeholder h3{font-size:16px}
 
-    /* Модалка почти на весь экран */
-    .modal{width:100%;max-width:100%;max-height:100vh;height:100vh;border-radius:0}
+    .modal{max-width:100%;border-radius:20px;margin:auto}
     .modal-body{padding:16px 16px 20px}
     .modal-head{padding:16px 16px 14px}
     .mode-switch{gap:8px}
     .mode-opt{padding:14px 10px}
-    .up-list{max-height:none;max-height:calc(100vh - 480px)}
+    .up-list{max-height:calc(100vh - 480px)}
     .actions-row{position:sticky;bottom:0;background:var(--bg-panel);padding-top:12px;padding-bottom:4px;border-top:1px solid var(--border-soft);margin-top:14px}
     .actions-row .btn{flex:1;justify-content:center}
 
-    .toast{left:14px;right:14px;transform:translate(0,120px);max-width:none}
+    .toast{left:14px;right:14px;transform:translate(0,120px);max-width:none;text-align:center;justify-content:center}
     .toast.show{transform:translate(0,0)}
-
-    /* Скрываем номер шортката на мобильных */
     .section-label{font-size:10px}
 }
 
-/* Обычные телефоны */
 @media (max-width:600px){
     :root{--topbar-h:56px}
-
     .topbar{padding:0 12px;gap:8px}
     .topbar-title h1{font-size:14px}
     .topbar-title span{display:none}
     .back-btn{padding:7px 10px;font-size:12px}
     .back-btn svg{width:14px;height:14px}
-    .back-btn span{display:none}
-    .user-menu-button{padding:4px 10px 4px 4px}
-    .user-menu-button > span:not(.user-avatar){display:none}
 
     .chat-list-head{padding:12px 12px 10px}
     .chat-list-title{font-size:14.5px;margin-bottom:8px}
@@ -1197,12 +1223,13 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
     .chat-name{font-size:13px}
     .chat-preview{font-size:12px}
     .chat-time{font-size:10.5px}
+    .chat-badge{min-width:20px;height:18px;font-size:10px;padding:0 6px}
     .sent-badge{min-width:22px;height:18px;font-size:10px;padding:0 6px}
 
     .messages{padding:14px 10px 10px}
     .msg-bubble{max-width:min(360px,84%);font-size:12.5px;padding:7px 12px 6px}
     .msg-avatar{display:none}
-    .msg-row.in > div[style]{display:none} /* убираем пустой отступ вместо аватара */
+    .msg-row.in > div[style]{display:none}
 
     .chat-head{padding:8px 12px;gap:8px;min-height:52px}
     .chat-head-avatar{width:36px;height:36px;border-radius:11px;font-size:13px}
@@ -1211,12 +1238,11 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
     .chat-head-back{width:32px;height:32px}
     .chat-head-back svg{width:16px;height:16px}
     .chat-head-count{padding:4px 9px;font-size:10px}
-    .chat-head-count span{display:none} /* оставляем только цифру */
 
-    .composer{padding:8px 10px 12px;gap:6px}
+    .composer{padding:8px 10px calc(12px + var(--safe-bottom));gap:6px}
     .composer-wrap{border-radius:22px;padding:6px 12px}
-    .composer-wrap textarea{font-size:14px;line-height:1.4;padding:5px 0}
-    .composer-count{display:none} /* экономим место */
+    .composer-wrap textarea{font-size:16px;line-height:1.4;padding:5px 0}
+    .composer-count{display:none}
     .send-btn{width:42px;height:42px}
     .send-btn svg{width:18px;height:18px}
 
@@ -1230,7 +1256,6 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
     .placeholder h3{font-size:15px}
     .placeholder p{font-size:12px}
 
-    /* Модалка */
     .modal-head h3{font-size:15px}
     .modal-head .m-sub{font-size:11px}
     .field label{font-size:10.5px}
@@ -1247,17 +1272,25 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
     .btn{padding:11px 16px;font-size:12.5px}
 }
 
-/* Очень узкие */
 @media (max-width:380px){
     .chat-name{font-size:12.5px}
     .chat-preview{font-size:11.5px}
     .msg-bubble{font-size:12px;max-width:88%}
     .chat-head-count{display:none}
 }
+
+@media (prefers-reduced-motion: reduce){
+    *,*::before,*::after{
+        animation-duration:.001ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:.001ms !important;
+    }
+}
 </style>
 </head>
-
 <body class="auth-pending">
+
+<div class="aurora"></div>
 
 <div class="page-loader" id="pageLoader">
     <div class="loader-content">
@@ -1270,8 +1303,10 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
     </div>
 </div>
 
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
 <div class="app">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-brand">
             <div class="sidebar-logo">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -1348,6 +1383,9 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
     <div class="main">
         <header class="topbar">
             <div class="topbar-left">
+                <button class="burger" id="burger" aria-label="Меню">
+                    <span></span><span></span><span></span>
+                </button>
                 <a class="back-btn" href="adminhome.html">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
                     <span>На главную</span>
@@ -1504,7 +1542,6 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
 </div>
 
 <div class="toast" id="toast"></div>
-
 <script>
 /* =========================================================
    INIT
@@ -1526,10 +1563,13 @@ let chats = [];
 let currentChatId = null;
 let currentOtherUid = null;
 let messagesUnsub = null;
+let typingUnsub = null;
 let searchChatsQuery = "";
 let usersListenerStarted = false;
 let chatsListenerStarted = false;
 let pendingMessages = new Set();
+let typingTimeout = null;
+let isTyping = false;
 
 /* Helpers */
 function esc(s){
@@ -1583,7 +1623,6 @@ function toMillis(ts){
     if(ts.seconds) return ts.seconds * 1000;
     return new Date(ts).getTime() || 0;
 }
-/* Форматирование счётчика: 1–99+ */
 function formatSentCount(n){
     n = Number(n) || 0;
     if(n <= 0) return "";
@@ -1628,6 +1667,37 @@ function updateThemeLabel(){
         : '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>';
 }
 
+/* Mobile sidebar */
+function initMobileSidebar(){
+    const burger = document.getElementById("burger");
+    const sidebar = document.getElementById("sidebar");
+    const backdrop = document.getElementById("sidebarBackdrop");
+    if(!burger || !sidebar) return;
+
+    burger.addEventListener("click", () => {
+        const open = sidebar.classList.toggle("open");
+        burger.classList.toggle("open", open);
+        backdrop.classList.toggle("show", open);
+        document.body.style.overflow = open ? "hidden" : "";
+    });
+
+    backdrop.addEventListener("click", () => {
+        sidebar.classList.remove("open");
+        burger.classList.remove("open");
+        backdrop.classList.remove("show");
+        document.body.style.overflow = "";
+    });
+
+    document.querySelectorAll(".sidebar-link").forEach(link => {
+        link.addEventListener("click", () => {
+            sidebar.classList.remove("open");
+            burger.classList.remove("open");
+            backdrop.classList.remove("show");
+            document.body.style.overflow = "";
+        });
+    });
+}
+
 /* =========================================================
    USERS LISTENER
 ========================================================= */
@@ -1649,12 +1719,15 @@ function startUsersListener(){
         allUsers.sort((a,b) => a.name.localeCompare(b.name, "ru"));
         renderUsersList();
         renderChats();
+        if(currentChatId){
+            const c = chats.find(x => x.id === currentChatId);
+            if(c) renderChatHead(c);
+        }
     }, err => console.error("users:", err));
 }
 
 /* =========================================================
    CHATS LISTENER
-   Также сохраняем sentCount[myUid] — сколько я отправил
 ========================================================= */
 function startChatsListener(){
     if(chatsListenerStarted) return;
@@ -1682,7 +1755,6 @@ function startChatsListener(){
                   };
               }
 
-              /* Счётчик отправленных ВАМИ сообщений */
               const sentCount = (d.sentCount && d.sentCount[myUid]) || 0;
 
               chats.push({
@@ -1696,12 +1768,28 @@ function startChatsListener(){
                   lastMessage: d.lastMessage || null,
                   unread: (d.unread && d.unread[myUid]) || 0,
                   sentCount: sentCount,
-                  updatedAt: d.updatedAt || (d.lastMessage && d.lastMessage.at) || null
+                  updatedAt: d.updatedAt || (d.lastMessage && d.lastMessage.at) || null,
+                  typing: d.typing && otherData && d.typing[otherData.uid] === true
               });
           });
           chats.sort((a,b) => toMillis(b.updatedAt) - toMillis(a.updatedAt));
           renderChats();
           updateCurrentChatHeadCount();
+
+          /* Если открыт чат — обновляем шапку, чтобы unread не «прилипал» */
+          if(currentChatId){
+              const c = chats.find(x => x.id === currentChatId);
+              if(c){
+                  renderChatHead(c);
+                  updateChatHeadCount(c.sentCount || 0);
+                  /* Если у чата появился unread пока он открыт — сразу сбрасываем */
+                  if(c.unread > 0){
+                      db.collection("chats").doc(currentChatId).set({
+                          unread: { [myUid]: 0 }
+                      }, { merge: true }).catch(()=>{});
+                  }
+              }
+          }
       }, err => {
           console.error("chats:", err);
           document.getElementById("chatListBody").innerHTML = `
@@ -1769,6 +1857,10 @@ function renderChatItem(c){
         ? `<span class="sent-badge ${sentCls}" title="Отправлено вами: ${c.sentCount}">${sentText}</span>`
         : "";
 
+    const unreadBadge = c.unread > 0
+        ? `<span class="chat-badge" title="Непрочитанных: ${c.unread}">${c.unread > 99 ? "99+" : c.unread}</span>`
+        : "";
+
     if(c.isBroadcast){
         const icon = CATEGORY_ICONS[c.category] || "📢";
         const count = c.participantsCount - 1;
@@ -1778,12 +1870,13 @@ function renderChatItem(c){
                 <div class="chat-info">
                     <div class="chat-name-row">
                         <div class="chat-name">${esc(c.title || "Массовое сообщение")}</div>
-                        <div class="chat-time">${lm.at ? esc(formatTime(lm.at)) : ""}</div>
+                        <div class="chat-time ${c.unread > 0 ? "unread" : ""}">${lm.at ? esc(formatTime(lm.at)) : ""}</div>
                     </div>
                     <div class="chat-preview-row">
                         <div class="chat-preview">${esc(preview)}</div>
                         ${sentBadge}
-                        <span class="chat-badge">${count}</span>
+                        ${unreadBadge}
+                        <span class="chat-badge" style="background:linear-gradient(135deg,#94a3b8,#64748b);box-shadow:none" title="Всего получателей">${count}</span>
                     </div>
                 </div>
             </div>
@@ -1791,6 +1884,7 @@ function renderChatItem(c){
     }
 
     const roleCls = `role-${c.otherData.role}`;
+    const typingCls = c.typing ? "typing" : "";
     return `
         <div class="chat-item ${c.id === currentChatId ? "active" : ""}" data-id="${esc(c.id)}">
             <div class="chat-avatar ${roleCls}">
@@ -1800,11 +1894,14 @@ function renderChatItem(c){
             <div class="chat-info">
                 <div class="chat-name-row">
                     <div class="chat-name">${esc(c.otherData.name)}</div>
-                    <div class="chat-time">${lm.at ? esc(formatTime(lm.at)) : ""}</div>
+                    <div class="chat-time ${c.unread > 0 ? "unread" : ""}">${lm.at ? esc(formatTime(lm.at)) : ""}</div>
                 </div>
                 <div class="chat-preview-row">
-                    <div class="chat-preview ${fromMe ? "from-me" : ""}">${esc(preview)}</div>
+                    <div class="chat-preview ${fromMe ? "from-me" : ""} ${typingCls}">
+                        ${c.typing ? "печатает..." : esc(preview)}
+                    </div>
                     ${sentBadge}
+                    ${unreadBadge}
                 </div>
             </div>
         </div>
@@ -1817,14 +1914,21 @@ document.getElementById("searchChats").addEventListener("input", e => {
 });
 
 /* =========================================================
-   OPEN CHAT
+   OPEN CHAT — с ПРАВИЛЬНЫМ сбросом unread
 ========================================================= */
 async function openChat(chatId){
+    /* Если этот же чат уже открыт — просто показать (мобильный режим) */
     if(currentChatId === chatId){
-        // если уже открыт — на мобильном просто показать чат
         document.body.classList.add("chat-open");
+        /* Всё равно сбросим unread, если что-то прилетело */
+        try {
+            await db.collection("chats").doc(chatId).set({
+                unread: { [myUid]: 0 }
+            }, { merge: true });
+        } catch(e){}
         return;
     }
+
     currentChatId = chatId;
     const c = chats.find(x => x.id === chatId);
     if(!c) return;
@@ -1839,17 +1943,16 @@ async function openChat(chatId){
     document.getElementById("messagesContainer").style.display = "flex";
     document.getElementById("composer").style.display = "flex";
 
-    /* Мобильный режим: переключаемся на просмотр чата */
     document.body.classList.add("chat-open");
 
-    if(c.unread > 0){
-        try {
-            await db.collection("chats").doc(chatId).set({
-                unread: { [myUid]: 0 }
-            }, { merge: true });
-        } catch(e){ console.error(e); }
-    }
+    /* ⭐ ГЛАВНЫЙ ФИКС: точечный сброс unread только для ЭТОГО чата */
+    try {
+        await db.collection("chats").doc(chatId).set({
+            unread: { [myUid]: 0 }
+        }, { merge: true });
+    } catch(e){ console.error("reset unread:", e); }
 
+    /* Помечаем прочитанными входящие сообщения (только для личных чатов) */
     if(!c.isBroadcast && currentOtherUid){
         db.collection("chats").doc(chatId).collection("messages")
           .where("from", "==", currentOtherUid)
@@ -1859,28 +1962,56 @@ async function openChat(chatId){
               if(snap.empty) return;
               const batch = db.batch();
               snap.forEach(doc => batch.update(doc.ref, { read: true }));
-              batch.commit().catch(e => console.error(e));
+              batch.commit().catch(e => console.error("mark read:", e));
           })
-          .catch(e => console.warn("mark read:", e.message));
+          .catch(e => console.warn("mark read query failed:", e.message));
     }
 
+    /* Подписка на сообщения */
     if(messagesUnsub){ messagesUnsub(); messagesUnsub = null; }
 
     messagesUnsub = db.collection("chats").doc(chatId).collection("messages")
       .orderBy("createdAt", "asc")
       .onSnapshot(snap => {
           renderMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })), c);
+
+          /* ⭐ При открытом чате — сразу помечаем входящие прочитанными */
+          if(!c.isBroadcast && currentOtherUid){
+              const unreadMsgs = snap.docs.filter(d => {
+                  const data = d.data();
+                  return data.from === currentOtherUid && data.read === false;
+              });
+              if(unreadMsgs.length > 0){
+                  const batch = db.batch();
+                  unreadMsgs.forEach(d => batch.update(d.ref, { read: true }));
+                  batch.commit().catch(()=>{});
+
+                  db.collection("chats").doc(chatId).set({
+                      unread: { [myUid]: 0 }
+                  }, { merge: true }).catch(()=>{});
+              }
+          }
       }, err => console.error("messages:", err));
+
+    /* Подписка на typing собеседника */
+    if(typingUnsub){ typingUnsub(); typingUnsub = null; }
+    if(!c.isBroadcast){
+        typingUnsub = db.collection("chats").doc(chatId).onSnapshot(doc => {
+            const d = doc.data() || {};
+            const other = currentOtherUid;
+            const otherTyping = d.typing && d.typing[other] === true;
+            updateTypingIndicator(otherTyping);
+        });
+    }
 
     document.getElementById("messageInput").value = "";
     updateComposer();
-    // не фокусируем на мобильных — чтобы не выскакивала клавиатура сразу
     if(window.innerWidth > 900){
         document.getElementById("messageInput").focus();
     }
 }
 
-/* Кнопка "Назад" в шапке чата (мобильные) */
+/* Кнопка «Назад» в шапке чата */
 document.getElementById("chatHeadBack").addEventListener("click", () => {
     document.body.classList.remove("chat-open");
 });
@@ -1916,12 +2047,55 @@ function updateCurrentChatHeadCount(){
 }
 
 /* =========================================================
+   TYPING INDICATOR
+========================================================= */
+function updateTypingIndicator(show){
+    const container = document.getElementById("messagesContainer");
+    if(!container) return;
+    const existing = container.querySelector(".typing-indicator-row");
+    if(show && !existing){
+        const user = allUsers.find(u => u.uid === currentOtherUid) || { name:"Пользователь", role:"student" };
+        const row = document.createElement("div");
+        row.className = "msg-row in typing-indicator-row";
+        row.innerHTML = `
+            <div class="msg-avatar role-${user.role}">${esc(initials(user.name))}</div>
+            <div class="typing-bubble">
+                <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            </div>`;
+        container.appendChild(row);
+        container.scrollTop = container.scrollHeight;
+    } else if(!show && existing){
+        existing.remove();
+    }
+}
+
+function setMyTyping(){
+    if(!currentChatId || !currentOtherUid) return;
+    const c = chats.find(x => x.id === currentChatId);
+    if(c && c.isBroadcast) return;
+
+    if(!isTyping){
+        isTyping = true;
+        db.collection("chats").doc(currentChatId).set({
+            typing: { [myUid]: true }
+        }, { merge: true }).catch(()=>{});
+    }
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => {
+        isTyping = false;
+        db.collection("chats").doc(currentChatId).set({
+            typing: { [myUid]: false }
+        }, { merge: true }).catch(()=>{});
+    }, 2000);
+}
+
+/* =========================================================
    RENDER MESSAGES
 ========================================================= */
 function renderMessages(messages, chat){
     const container = document.getElementById("messagesContainer");
 
-    // Убираем оптимистичные пузыри, для которых уже пришли реальные
+    /* Убираем оптимистичные пузыри, для которых уже пришли реальные */
     if(pendingMessages.size){
         const realTexts = new Set(messages.filter(m => m.from === myUid).map(m => m.text));
         pendingMessages.forEach(id => {
@@ -1968,6 +2142,7 @@ function renderMessages(messages, chat){
     }
 
     const tempNodes = Array.from(container.querySelectorAll(".msg-row.sending"));
+    const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 120;
 
     let html = "";
     let lastDay = "";
@@ -2012,12 +2187,14 @@ function renderMessages(messages, chat){
 
     container.innerHTML = html;
     tempNodes.forEach(n => container.appendChild(n));
-    container.scrollTop = container.scrollHeight;
+
+    if(wasAtBottom){
+        container.scrollTop = container.scrollHeight;
+    }
 }
 
 /* =========================================================
-   SEND MESSAGE
-   + инкремент sentCount[myUid]
+   SEND MESSAGE — с ПРАВИЛЬНЫМ инкрементом счётчиков
 ========================================================= */
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
@@ -2025,7 +2202,7 @@ const composerWrap = document.getElementById("composerWrap");
 const composerCount = document.getElementById("composerCount");
 const composerEl = document.getElementById("composer");
 
-messageInput.addEventListener("input", () => { updateComposer(); autoGrow(); });
+messageInput.addEventListener("input", () => { updateComposer(); autoGrow(); setMyTyping(); });
 messageInput.addEventListener("focus", () => composerWrap.classList.add("focused"));
 messageInput.addEventListener("blur", () => composerWrap.classList.remove("focused"));
 messageInput.addEventListener("keydown", e => {
@@ -2098,6 +2275,13 @@ async function sendMessage(){
     updateComposer();
     autoGrow();
 
+    /* Сбрасываем typing */
+    isTyping = false;
+    clearTimeout(typingTimeout);
+    db.collection("chats").doc(currentChatId).set({
+        typing: { [myUid]: false }
+    }, { merge: true }).catch(()=>{});
+
     try {
         const chatRef = db.collection("chats").doc(currentChatId);
         const msgRef = chatRef.collection("messages").doc();
@@ -2118,12 +2302,14 @@ async function sendMessage(){
 
         const chatSnap = await chatRef.get();
         const d = chatSnap.data() || {};
-        const unread = d.unread || {};
-        unread[currentOtherUid] = (unread[currentOtherUid] || 0) + 1;
-        unread[myUid] = 0;
 
-        /* === ИНКРЕМЕНТ СЧЁТЧИКА ОТПРАВЛЕННЫХ === */
-        const sentCount = d.sentCount || {};
+        /* ⭐ ФИКС: unread только для получателя, свой сбрасываем в 0 */
+        const unread = { ...(d.unread || {}) };
+        unread[currentOtherUid] = (unread[currentOtherUid] || 0) + 1;
+        unread[myUid] = 0;   /* У себя всегда 0, т.к. мы и есть отправитель */
+
+        /* Инкремент счётчика отправленных */
+        const sentCount = { ...(d.sentCount || {}) };
         sentCount[myUid] = (sentCount[myUid] || 0) + 1;
 
         batch.set(chatRef, {
@@ -2142,7 +2328,7 @@ async function sendMessage(){
 
         await batch.commit();
 
-        /* Локально обновляем счётчик, чтобы UI сразу отреагировал */
+        /* Локально обновляем счётчик */
         const localChat = chats.find(x => x.id === currentChatId);
         if(localChat){
             localChat.sentCount = (localChat.sentCount || 0) + 1;
@@ -2206,6 +2392,7 @@ function openPicker(){
     selectedUids.clear();
     document.getElementById("selectedCount").textContent = "0";
     pickerMode = "single";
+    document.querySelectorAll("#broadcastModeSwitch .mode-opt").forEach((o,i) => o.classList.toggle("active", i === 0));
     updatePickerMode();
     renderUsersList();
     updatePickerCounts();
@@ -2322,12 +2509,12 @@ document.getElementById("createChatBtn").addEventListener("click", async () => {
 
             const chatSnap = await chatRef.get();
             const d = chatSnap.exists ? (chatSnap.data() || {}) : {};
-            const unread = d.unread || {};
+
+            const unread = { ...(d.unread || {}) };
             unread[otherUid] = (unread[otherUid] || 0) + 1;
             unread[myUid] = 0;
 
-            /* инкремент счётчика */
-            const sentCount = d.sentCount || {};
+            const sentCount = { ...(d.sentCount || {}) };
             sentCount[myUid] = (sentCount[myUid] || 0) + 1;
 
             const myName = (meData && (meData.name || meData.fullName)) || "Администратор";
@@ -2397,7 +2584,6 @@ document.getElementById("createChatBtn").addEventListener("click", async () => {
             const unread = { [myUid]: 0 };
             recipients.forEach(uid => unread[uid] = 1);
 
-            /* счётчик отправленных: админ отправил 1 */
             const sentCount = { [myUid]: 1 };
 
             const batch = db.batch();
@@ -2460,6 +2646,7 @@ document.addEventListener("keydown", e => {
    AUTH
 ========================================================= */
 initTheme();
+initMobileSidebar();
 
 auth.onAuthStateChanged(async user => {
     if(!user){ location.href = "index.html"; return; }

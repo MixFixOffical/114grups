@@ -15,7 +15,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 
-<!-- Chart.js с fallback на резервный CDN -->
 <script>
   window.__CHART_LOADED = false;
 </script>
@@ -254,7 +253,6 @@ button { font-family: inherit; cursor: pointer; }
     100% { transform: scale(1); opacity: 0; }
 }
 
-/* NOTIFICATION BANNER */
 .notification-banner {
     position: fixed;
     top: 96px; left: 50%;
@@ -345,7 +343,6 @@ html[data-theme="dark"] .notification-banner {
 }
 .notif-action:active { transform: translateY(0) scale(.96); }
 
-/* HEADER */
 header {
     position: sticky; top: 0; z-index: 100;
     width: 100%; height: 76px;
@@ -418,7 +415,6 @@ header {
 }
 .header-bell.has-unread .bell-badge { display: flex; }
 
-/* USER MENU */
 .user-menu { position: relative; }
 .user-menu-button {
     height: 48px; min-width: 220px;
@@ -523,14 +519,12 @@ header {
 .dropdown-item.danger { color: var(--rose); }
 .dropdown-item.danger:hover { background: var(--rose-light); color: var(--rose); }
 
-/* CONTAINER */
 .container {
     max-width: 1100px;
     margin: 0 auto;
     padding: 40px 24px 52px;
 }
 
-/* HERO */
 .hero {
     position: relative;
     display: grid;
@@ -630,7 +624,6 @@ header {
 }
 .hero-clock-date { margin-top: 10px; font-size: 12.5px; line-height: 1.4; color: rgba(255,255,255,.72); }
 
-/* INFO GRID */
 .info-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -687,7 +680,6 @@ header {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* ===== СТАТИСТИКА НЕДЕЛИ ===== */
 .week-stats {
     display: none;
     margin-bottom: 36px;
@@ -817,7 +809,6 @@ html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
 }
 .week-stats-right canvas { width: 100% !important; height: 100% !important; }
 
-/* SECTION */
 .section-header {
     display: flex; align-items: flex-end; justify-content: space-between;
     gap: 16px;
@@ -844,7 +835,6 @@ html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
     color: var(--text);
 }
 
-/* MENU */
 .menu {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -1013,7 +1003,6 @@ html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
     font-size: 13.5px; line-height: 1.55;
 }
 
-/* FOOTER */
 footer {
     margin-top: 52px;
     padding: 26px 10px;
@@ -1029,7 +1018,6 @@ footer {
     background: linear-gradient(90deg, #93c5fd, #7c9cf0);
 }
 
-/* LOADER */
 .page-loader {
     position: fixed; inset: 0; z-index: 999;
     display: flex; align-items: center; justify-content: center;
@@ -1077,7 +1065,6 @@ footer {
     100% { transform: translateX(300%); }
 }
 
-/* TOAST */
 .toast {
     position: fixed;
     left: 50%; bottom: 30px;
@@ -1107,7 +1094,6 @@ footer {
     to   { transform: scaleX(0); }
 }
 
-/* CONFETTI */
 #confetti {
     position: fixed; inset: 0;
     pointer-events: none;
@@ -1117,7 +1103,6 @@ footer {
 }
 #confetti.active { opacity: 1; }
 
-/* MOBILE */
 @media (max-width: 1099px) {
     header { padding: 0 24px; }
     .container { padding: 32px 20px 44px; }
@@ -1617,7 +1602,7 @@ footer {
 
 <script>
 /* =========================================================
-   ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (объявляем ДО использования)
+   ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 ========================================================= */
 let weekChartInstance = null;
 let weekStatsUnsub = null;
@@ -1653,7 +1638,7 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
 });
 
 /* =========================================================
-   ОСТАЛЬНЫЕ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+   ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 ========================================================= */
 let currentUser = null;
 let currentUserRole = null;
@@ -2156,10 +2141,8 @@ document.querySelectorAll(".menu-button").forEach(function(btn) {
 
 /* =========================================================
    СТАТИСТИКА НЕДЕЛИ
-   Работает БЕЗ индекса Firestore:
-   - читаем attendance по ID документа (FieldPath.documentId),
-     т.к. ID = "YYYY-MM-DD"
-   - фильтр по groupId делаем в JavaScript
+   Связка: users.groupId → groups/{id}.name → attendance.groupId
+   Фильтр студентов — по списку groups/{id}.students
 ========================================================= */
 
 function isStatsRole(role) {
@@ -2206,6 +2189,11 @@ function waitForChart(cb, attempts) {
     setTimeout(function() { waitForChart(cb, attempts + 1); }, 200);
 }
 
+/* Глобальное состояние статистики */
+let wsGroupName = null;         // название группы (например "313")
+let wsGroupStudentIds = [];     // массив studentId группы
+let wsGroupId = null;           // ID документа группы
+
 async function initWeekStats(user) {
     const block = document.getElementById("weekStats");
     if (!block) return;
@@ -2221,60 +2209,98 @@ async function initWeekStats(user) {
 
     block.classList.add("visible");
 
-    // Берём groupId из users/{uid}
-    let groupId = "—";
-    let groupLabel = "—";
+    /* ---------- 1. Получаем ID группы пользователя ---------- */
+    let groupId = null;
     try {
-        const doc = await firebase.firestore().collection("users").doc(user.uid).get();
-        if (doc.exists) {
-            const data = doc.data() || {};
-            groupId = data.groupId || data.group || data.groupName || data.gruppa || "—";
-            groupLabel = data.groupName || data.groupLabel || groupId;
+        const userDoc = await firebase.firestore()
+            .collection("users").doc(user.uid).get();
+
+        if (userDoc.exists) {
+            const d = userDoc.data() || {};
+            groupId = d.groupId || d.group || d.gruppa || d.groupName || null;
         }
     } catch (e) {
-        console.warn("Не удалось получить группу пользователя:", e);
+        console.warn("Не удалось получить users/{uid}:", e);
     }
-    document.getElementById("wsGroupValue").textContent = groupLabel;
 
+    console.log("🔎 initWeekStats: users.groupId =", groupId);
+
+    /* ---------- 2. По ID группы берём название и студентов ---------- */
+    let groupName = "—";
+    let studentIds = [];
+
+    if (groupId) {
+        try {
+            const groupDoc = await firebase.firestore()
+                .collection("groups").doc(groupId).get();
+
+            if (groupDoc.exists) {
+                const g = groupDoc.data() || {};
+                groupName = String(g.name || groupId).trim();
+                studentIds = Array.isArray(g.students) ? g.students.slice() : [];
+            } else {
+                groupName = String(groupId).trim();
+            }
+        } catch (e) {
+            console.warn("Не удалось получить groups/{id}:", e);
+            groupName = String(groupId).trim();
+        }
+    }
+
+    wsGroupId = groupId;
+    wsGroupName = groupName;
+    wsGroupStudentIds = studentIds;
+
+    console.log("🔎 initWeekStats: groupName =", groupName);
+    console.log("🔎 initWeekStats: students в группе =", studentIds.length);
+
+    document.getElementById("wsGroupValue").textContent = groupName;
+
+    /* ---------- 3. Первая отрисовка ---------- */
     waitForChart(function() {
-        loadWeekStats(groupId);
+        loadWeekStats();
     });
 
+    /* ---------- 4. Подписка на attendance ---------- */
     if (weekStatsUnsub) {
         try { weekStatsUnsub(); } catch(e) {}
         weekStatsUnsub = null;
     }
 
-    if (groupId && groupId !== "—") {
-        try {
-            // Подписка на всю коллекцию attendance.
-            // Фильтрация по groupId и по датам — в JS.
-            // Так избегаем необходимости в составном индексе Firestore.
-            weekStatsUnsub = firebase.firestore()
-                .collection("attendance")
-                .onSnapshot(function() {
-                    waitForChart(function() { loadWeekStats(groupId); });
-                }, function(err) {
-                    console.warn("attendance listener error:", err);
-                });
-        } catch (e) {
-            console.warn("Не удалось подписаться на attendance:", e);
-        }
+    try {
+        weekStatsUnsub = firebase.firestore()
+            .collection("attendance")
+            .onSnapshot(function() {
+                waitForChart(function() { loadWeekStats(); });
+            }, function(err) {
+                console.warn("attendance listener error:", err);
+            });
+    } catch (e) {
+        console.warn("Не удалось подписаться на attendance:", e);
     }
 }
 
-async function loadWeekStats(groupId) {
-    if (!groupId || groupId === "—") {
+/* =========================================================
+   ЗАГРУЗКА СТАТИСТИКИ
+========================================================= */
+async function loadWeekStats() {
+    const groupName = wsGroupName;
+    const groupStudentIds = wsGroupStudentIds;
+
+    if (!groupName || groupName === "—") {
         renderWeekChart([0,0,0,0,0,0,0], [0,0,0,0,0,0,0]);
         updateWeekLegend(0, 0, 0, 0);
         return;
     }
 
+    const myGroup = String(groupName).trim().toLowerCase();
+
     const currentRange = getWeekRange(0);
     const prevRange = getWeekRange(-1);
 
-    // Загружаем документы attendance по ID документа (ID = "YYYY-MM-DD").
-    // Такой запрос НЕ требует составного индекса.
+    console.log("🔎 loadWeekStats: диапазон текущей недели:", currentRange.start, "—", currentRange.end);
+
+    /* ---------- Загружаем документы attendance ---------- */
     let docs = [];
     try {
         const col = firebase.firestore().collection("attendance");
@@ -2297,8 +2323,7 @@ async function loadWeekStats(groupId) {
         });
 
     } catch (e) {
-        console.warn("Ошибка загрузки attendance по ID:", e);
-        // Фолбэк: читаем всю коллекцию
+        console.warn("Ошибка загрузки attendance по ID, читаем всю коллекцию:", e);
         try {
             const allSnap = await firebase.firestore().collection("attendance").get();
             allSnap.forEach(function(d) {
@@ -2309,24 +2334,21 @@ async function loadWeekStats(groupId) {
         }
     }
 
+    console.log("🔎 loadWeekStats: загружено документов attendance =", docs.length);
+
     const currentDays = [0,0,0,0,0,0,0];
     const prevDays = [0,0,0,0,0,0,0];
     let currentPresent = 0, currentTotal = 0;
     let prevPresent = 0, prevTotal = 0;
 
+    /* ---------- Проходим по документам ---------- */
     docs.forEach(function(entry) {
         const item = entry.data || {};
-        const docId = entry.id; // "2026-09-28"
+        const docId = entry.id;
 
-        // Фильтр по группе — в JS (без индекса)
-        const itemGroup = item.groupId || item.group;
-        if (itemGroup !== groupId) return;
-
-        // Дата: из поля date, если есть; иначе из ID документа
         const dateStr = item.date || docId;
         if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
 
-        // Определяем, к какой неделе относится
         let weekArr = null;
         let isCurrent = false;
 
@@ -2339,13 +2361,29 @@ async function loadWeekStats(groupId) {
             return;
         }
 
-        // Считаем present/total по всем студентам и парам
+        const itemGroup = String(item.groupId || item.group || "").trim().toLowerCase();
+
         const students = Array.isArray(item.students) ? item.students : [];
+
         let dayPresent = 0;
         let dayTotal = 0;
+        let matchedStudents = 0;
 
-        students.forEach(function(student) {
-            const lessons = Array.isArray(student.lessons) ? student.lessons : [];
+        students.forEach(function(st) {
+            const stId = String(st.studentId || st.id || "").trim();
+            if (!stId) return;
+
+            let belongs = false;
+            if (groupStudentIds.length > 0) {
+                belongs = groupStudentIds.indexOf(stId) !== -1;
+            } else {
+                belongs = itemGroup && itemGroup === myGroup;
+            }
+            if (!belongs) return;
+
+            matchedStudents++;
+
+            const lessons = Array.isArray(st.lessons) ? st.lessons : [];
             lessons.forEach(function(lesson) {
                 dayTotal += 1;
                 if (lesson && lesson.status === "present") {
@@ -2354,7 +2392,12 @@ async function loadWeekStats(groupId) {
             });
         });
 
-        // Индекс дня недели (Пн=0 ... Вс=6)
+        if (matchedStudents > 0) {
+            console.log("📅 " + dateStr + " | группа " + groupName +
+                        " | студентов найдено: " + matchedStudents +
+                        " | present: " + dayPresent + "/" + dayTotal);
+        }
+
         const d = new Date(dateStr + "T00:00:00");
         let idx = d.getDay() - 1;
         if (idx < 0) idx = 6;
@@ -2369,10 +2412,16 @@ async function loadWeekStats(groupId) {
         }
     });
 
+    console.log("✅ ИТОГО текущая:", currentPresent + "/" + currentTotal,
+                "| прошлая:", prevPresent + "/" + prevTotal);
+
     renderWeekChart(currentDays, prevDays);
     updateWeekLegend(currentPresent, currentTotal, prevPresent, prevTotal);
 }
 
+/* =========================================================
+   ОТРИСОВКА ГРАФИКА
+========================================================= */
 function renderWeekChart(currentData, prevData) {
     const canvas = document.getElementById("weekChart");
     if (!canvas) return;
@@ -2472,6 +2521,9 @@ function renderWeekChart(currentData, prevData) {
     });
 }
 
+/* =========================================================
+   ЛЕГЕНДА
+========================================================= */
 function updateWeekLegend(curPresent, curTotal, prevPresent, prevTotal) {
     const curPct = curTotal > 0 ? Math.round((curPresent / curTotal) * 100) : 0;
     const prevPct = prevTotal > 0 ? Math.round((prevPresent / prevTotal) * 100) : 0;
@@ -2502,6 +2554,9 @@ function updateWeekLegend(curPresent, curTotal, prevPresent, prevTotal) {
     }
 }
 
+/* =========================================================
+   ПЕРЕКРАСКА ПРИ СМЕНЕ ТЕМЫ
+========================================================= */
 function refreshWeekChartTheme(theme) {
     if (!weekChartInstance) return;
     const isDark = theme === "dark";

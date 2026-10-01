@@ -1618,8 +1618,6 @@ footer {
 <script>
 /* =========================================================
    ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (объявляем ДО использования)
-   Это исправляет ошибку
-   "Cannot access 'weekChartInstance' before initialization"
 ========================================================= */
 let weekChartInstance = null;
 let weekStatsUnsub = null;
@@ -1639,7 +1637,6 @@ function applyTheme(theme) {
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#1e3a8a');
 
-    // Перерисовка диаграммы под тему (если Chart готов)
     if (typeof refreshWeekChartTheme === "function") {
         try { refreshWeekChartTheme(theme); } catch (e) { /* ignore */ }
     }
@@ -1749,11 +1746,7 @@ function loadCurrentUser() {
                 currentUserRole = "user";
             }
             updateUserInterface(user);
-
-            // слушаем коллекцию "chats"
             startChatsListener(user);
-
-            // Статистика недели для админа/куратора
             initWeekStats(user);
 
         } catch (error) {
@@ -1770,7 +1763,7 @@ function loadCurrentUser() {
 }
 
 /* =========================================================
-   ПРОВЕРКА СООБЩЕНИЙ — коллекция "chats"
+   ПРОВЕРКА СООБЩЕНИЙ
 ========================================================= */
 function startChatsListener(user) {
     if (!user || !firebase.firestore) return;
@@ -1834,7 +1827,7 @@ function startChatsListener(user) {
 }
 
 /* =========================================================
-   ОБНОВЛЕНИЕ UI — бейджи, баннер, подсветка
+   ОБНОВЛЕНИЕ UI
 ========================================================= */
 function updateMessagesUI(count, previewText, previewFrom, isNew) {
     const messagesButton = document.getElementById("messagesButton");
@@ -2123,7 +2116,7 @@ function animateConfetti() {
 }
 
 /* =========================================================
-   SPOTLIGHT (hover на карточках меню)
+   SPOTLIGHT
 ========================================================= */
 document.querySelectorAll(".menu-button").forEach(function(btn) {
     const spot = btn.querySelector(".menu-spotlight");
@@ -2137,7 +2130,7 @@ document.querySelectorAll(".menu-button").forEach(function(btn) {
 });
 
 /* =========================================================
-   RIPPLE на клик
+   RIPPLE
 ========================================================= */
 document.querySelectorAll(".menu-button").forEach(function(btn) {
     btn.addEventListener("click", function(e) {
@@ -2162,7 +2155,7 @@ document.querySelectorAll(".menu-button").forEach(function(btn) {
 });
 
 /* =========================================================
-   СТАТИСТИКА НЕДЕЛИ (только admin / curator)
+   СТАТИСТИКА НЕДЕЛИ (адаптировано под вашу структуру)
 ========================================================= */
 
 function isStatsRole(role) {
@@ -2199,7 +2192,6 @@ function getWeekRange(offsetWeeks) {
 
 const WEEK_DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
-// Ждём, пока Chart.js загрузится (defer/fallback)
 function waitForChart(cb, attempts) {
     attempts = attempts || 0;
     if (typeof Chart !== "undefined") return cb();
@@ -2225,21 +2217,23 @@ async function initWeekStats(user) {
 
     block.classList.add("visible");
 
-    let groupName = "—";
+    // Берём группу: сначала users/{uid}.groupId, потом group
+    let groupId = "—";
+    let groupLabel = "—";
     try {
         const doc = await firebase.firestore().collection("users").doc(user.uid).get();
         if (doc.exists) {
             const data = doc.data() || {};
-            groupName = data.group || data.groupName || data.gruppa || "—";
+            groupId = data.groupId || data.group || data.groupName || data.gruppa || "—";
+            groupLabel = data.groupName || data.groupLabel || groupId;
         }
     } catch (e) {
         console.warn("Не удалось получить группу пользователя:", e);
     }
-    document.getElementById("wsGroupValue").textContent = groupName;
+    document.getElementById("wsGroupValue").textContent = groupLabel;
 
-    // Ждём Chart.js перед первой отрисовкой
     waitForChart(function() {
-        loadWeekStats(groupName);
+        loadWeekStats(groupId);
     });
 
     if (weekStatsUnsub) {
@@ -2247,13 +2241,14 @@ async function initWeekStats(user) {
         weekStatsUnsub = null;
     }
 
-    if (groupName && groupName !== "—") {
+    if (groupId && groupId !== "—") {
         try {
+            // Слушаем коллекцию attendance — документы с полем groupId
             weekStatsUnsub = firebase.firestore()
                 .collection("attendance")
-                .where("group", "==", groupName)
+                .where("groupId", "==", groupId)
                 .onSnapshot(function() {
-                    waitForChart(function() { loadWeekStats(groupName); });
+                    waitForChart(function() { loadWeekStats(groupId); });
                 }, function(err) {
                     console.warn("attendance listener error:", err);
                 });
@@ -2263,8 +2258,8 @@ async function initWeekStats(user) {
     }
 }
 
-async function loadWeekStats(groupName) {
-    if (!groupName || groupName === "—") {
+async function loadWeekStats(groupId) {
+    if (!groupId || groupId === "—") {
         renderWeekChart([0,0,0,0,0,0,0], [0,0,0,0,0,0,0]);
         updateWeekLegend(0, 0, 0, 0);
         return;
@@ -2273,11 +2268,13 @@ async function loadWeekStats(groupName) {
     const currentRange = getWeekRange(0);
     const prevRange = getWeekRange(-1);
 
+    // Берём документы attendance, у которых поле date попадает в диапазон
+    // Структура: { attestation, date:"YYYY-MM-DD", groupId, semester, students:[ {studentId, studentName, lessons:[{status, reason}]} ] }
     let docs = [];
     try {
         const snap = await firebase.firestore()
             .collection("attendance")
-            .where("group", "==", groupName)
+            .where("groupId", "==", groupId)
             .where("date", ">=", prevRange.start)
             .where("date", "<=", currentRange.end)
             .get();
@@ -2295,9 +2292,7 @@ async function loadWeekStats(groupName) {
         const dateStr = item.date;
         if (!dateStr) return;
 
-        const present = Number(item.present ?? item.attended ?? 0);
-        const total = Number(item.total ?? item.students ?? 0);
-
+        // Определяем, к какой неделе относится
         let weekArr = null;
         let isCurrent = false;
 
@@ -2310,17 +2305,33 @@ async function loadWeekStats(groupName) {
             return;
         }
 
+        // Считаем present/total по всем студентам и парам
+        const students = Array.isArray(item.students) ? item.students : [];
+        let dayPresent = 0;
+        let dayTotal = 0;
+
+        students.forEach(function(student) {
+            const lessons = Array.isArray(student.lessons) ? student.lessons : [];
+            lessons.forEach(function(lesson) {
+                dayTotal += 1;
+                if (lesson && lesson.status === "present") {
+                    dayPresent += 1;
+                }
+            });
+        });
+
+        // Индекс дня недели
         const d = new Date(dateStr + "T00:00:00");
         let idx = d.getDay() - 1;
         if (idx < 0) idx = 6;
-        weekArr[idx] += present;
+        weekArr[idx] += dayPresent;
 
         if (isCurrent) {
-            currentPresent += present;
-            currentTotal += total;
+            currentPresent += dayPresent;
+            currentTotal += dayTotal;
         } else {
-            prevPresent += present;
-            prevTotal += total;
+            prevPresent += dayPresent;
+            prevTotal += dayTotal;
         }
     });
 
@@ -2332,7 +2343,6 @@ function renderWeekChart(currentData, prevData) {
     const canvas = document.getElementById("weekChart");
     if (!canvas) return;
 
-    // Если Chart.js ещё не загрузился — подождём
     if (typeof Chart === "undefined") {
         waitForChart(function() { renderWeekChart(currentData, prevData); });
         return;
@@ -2401,7 +2411,7 @@ function renderWeekChart(currentData, prevData) {
                     bodyFont: { family: "Inter", size: 12 },
                     callbacks: {
                         label: function(ctx) {
-                            return ` ${ctx.dataset.label}: ${ctx.parsed.y} чел.`;
+                            return ` ${ctx.dataset.label}: ${ctx.parsed.y} отметок`;
                         }
                     }
                 }

@@ -2155,7 +2155,11 @@ document.querySelectorAll(".menu-button").forEach(function(btn) {
 });
 
 /* =========================================================
-   СТАТИСТИКА НЕДЕЛИ (адаптировано под вашу структуру)
+   СТАТИСТИКА НЕДЕЛИ
+   Работает БЕЗ индекса Firestore:
+   - читаем attendance по ID документа (FieldPath.documentId),
+     т.к. ID = "YYYY-MM-DD"
+   - фильтр по groupId делаем в JavaScript
 ========================================================= */
 
 function isStatsRole(role) {
@@ -2217,7 +2221,7 @@ async function initWeekStats(user) {
 
     block.classList.add("visible");
 
-    // Берём группу: сначала users/{uid}.groupId, потом group
+    // Берём groupId из users/{uid}
     let groupId = "—";
     let groupLabel = "—";
     try {
@@ -2243,10 +2247,11 @@ async function initWeekStats(user) {
 
     if (groupId && groupId !== "—") {
         try {
-            // Слушаем коллекцию attendance — документы с полем groupId
+            // Подписка на всю коллекцию attendance.
+            // Фильтрация по groupId и по датам — в JS.
+            // Так избегаем необходимости в составном индексе Firestore.
             weekStatsUnsub = firebase.firestore()
                 .collection("attendance")
-                .where("groupId", "==", groupId)
                 .onSnapshot(function() {
                     waitForChart(function() { loadWeekStats(groupId); });
                 }, function(err) {
@@ -2268,19 +2273,40 @@ async function loadWeekStats(groupId) {
     const currentRange = getWeekRange(0);
     const prevRange = getWeekRange(-1);
 
-    // Берём документы attendance, у которых поле date попадает в диапазон
-    // Структура: { attestation, date:"YYYY-MM-DD", groupId, semester, students:[ {studentId, studentName, lessons:[{status, reason}]} ] }
+    // Загружаем документы attendance по ID документа (ID = "YYYY-MM-DD").
+    // Такой запрос НЕ требует составного индекса.
     let docs = [];
     try {
-        const snap = await firebase.firestore()
-            .collection("attendance")
-            .where("groupId", "==", groupId)
-            .where("date", ">=", prevRange.start)
-            .where("date", "<=", currentRange.end)
+        const col = firebase.firestore().collection("attendance");
+        const docIdField = firebase.firestore.FieldPath.documentId();
+
+        const curSnap = await col
+            .where(docIdField, ">=", currentRange.start)
+            .where(docIdField, "<=", currentRange.end)
             .get();
-        snap.forEach(function(d) { docs.push(d.data()); });
+        curSnap.forEach(function(d) {
+            docs.push({ id: d.id, data: d.data() });
+        });
+
+        const prevSnap = await col
+            .where(docIdField, ">=", prevRange.start)
+            .where(docIdField, "<=", prevRange.end)
+            .get();
+        prevSnap.forEach(function(d) {
+            docs.push({ id: d.id, data: d.data() });
+        });
+
     } catch (e) {
-        console.warn("Ошибка загрузки attendance:", e);
+        console.warn("Ошибка загрузки attendance по ID:", e);
+        // Фолбэк: читаем всю коллекцию
+        try {
+            const allSnap = await firebase.firestore().collection("attendance").get();
+            allSnap.forEach(function(d) {
+                docs.push({ id: d.id, data: d.data() });
+            });
+        } catch (e2) {
+            console.warn("Фолбэк тоже не сработал:", e2);
+        }
     }
 
     const currentDays = [0,0,0,0,0,0,0];
@@ -2288,9 +2314,17 @@ async function loadWeekStats(groupId) {
     let currentPresent = 0, currentTotal = 0;
     let prevPresent = 0, prevTotal = 0;
 
-    docs.forEach(function(item) {
-        const dateStr = item.date;
-        if (!dateStr) return;
+    docs.forEach(function(entry) {
+        const item = entry.data || {};
+        const docId = entry.id; // "2026-09-28"
+
+        // Фильтр по группе — в JS (без индекса)
+        const itemGroup = item.groupId || item.group;
+        if (itemGroup !== groupId) return;
+
+        // Дата: из поля date, если есть; иначе из ID документа
+        const dateStr = item.date || docId;
+        if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return;
 
         // Определяем, к какой неделе относится
         let weekArr = null;
@@ -2320,7 +2354,7 @@ async function loadWeekStats(groupId) {
             });
         });
 
-        // Индекс дня недели
+        // Индекс дня недели (Пн=0 ... Вс=6)
         const d = new Date(dateStr + "T00:00:00");
         let idx = d.getDay() - 1;
         if (idx < 0) idx = 6;

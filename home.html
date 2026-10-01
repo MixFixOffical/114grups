@@ -14,7 +14,24 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+<!-- Chart.js с fallback на резервный CDN -->
+<script>
+  window.__CHART_LOADED = false;
+</script>
+<script
+  src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+  defer
+  onload="window.__CHART_LOADED = true;"
+  onerror="
+    var s=document.createElement('script');
+    s.src='https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js';
+    s.defer=true;
+    s.onload=function(){window.__CHART_LOADED=true;};
+    document.head.appendChild(s);
+  ">
+</script>
+
 <script src="firebase-config.js"></script>
 
 <style>
@@ -670,7 +687,7 @@ header {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* ===== СТАТИСТИКА НЕДЕЛИ (только для админа/куратора) ===== */
+/* ===== СТАТИСТИКА НЕДЕЛИ ===== */
 .week-stats {
     display: none;
     margin-bottom: 36px;
@@ -1600,6 +1617,14 @@ footer {
 
 <script>
 /* =========================================================
+   ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ (объявляем ДО использования)
+   Это исправляет ошибку
+   "Cannot access 'weekChartInstance' before initialization"
+========================================================= */
+let weekChartInstance = null;
+let weekStatsUnsub = null;
+
+/* =========================================================
    ТЕМА
 ========================================================= */
 function getPreferredTheme() {
@@ -1613,9 +1638,10 @@ function applyTheme(theme) {
     if (lbl) lbl.textContent = theme === 'dark' ? 'Светлая тема' : 'Тёмная тема';
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#1e3a8a');
-    // Перерисовка диаграммы под тему
+
+    // Перерисовка диаграммы под тему (если Chart готов)
     if (typeof refreshWeekChartTheme === "function") {
-        refreshWeekChartTheme(theme);
+        try { refreshWeekChartTheme(theme); } catch (e) { /* ignore */ }
     }
 }
 function toggleTheme() {
@@ -1630,7 +1656,7 @@ window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', fun
 });
 
 /* =========================================================
-   ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+   ОСТАЛЬНЫЕ ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 ========================================================= */
 let currentUser = null;
 let currentUserRole = null;
@@ -1724,10 +1750,10 @@ function loadCurrentUser() {
             }
             updateUserInterface(user);
 
-            // ⭐ слушаем коллекцию "chats" (как messages.html)
+            // слушаем коллекцию "chats"
             startChatsListener(user);
 
-            // ⭐ Статистика недели для админа/куратора
+            // Статистика недели для админа/куратора
             initWeekStats(user);
 
         } catch (error) {
@@ -1744,7 +1770,7 @@ function loadCurrentUser() {
 }
 
 /* =========================================================
-   ⭐ ПРОВЕРКА СООБЩЕНИЙ — читаем коллекцию "chats"
+   ПРОВЕРКА СООБЩЕНИЙ — коллекция "chats"
 ========================================================= */
 function startChatsListener(user) {
     if (!user || !firebase.firestore) return;
@@ -1763,7 +1789,6 @@ function startChatsListener(user) {
                 let lastUnreadText = "";
                 let lastUnreadFrom = "";
                 let lastUnreadTime = 0;
-                let newestChatId = null;
 
                 snapshot.forEach(function(doc) {
                     const data = doc.data() || {};
@@ -1780,7 +1805,6 @@ function startChatsListener(user) {
                             lastUnreadTime = ts;
                             lastUnreadText = lm.text || "";
                             lastUnreadFrom = lm.fromName || "";
-                            newestChatId = doc.id;
                         }
 
                         if (firstLoadDone && !seenChatIds.has(doc.id)) {
@@ -1793,7 +1817,6 @@ function startChatsListener(user) {
                 });
 
                 unreadMessagesCount = totalUnread;
-
                 const hasNewChat = firstLoadDone && totalUnread > 0;
 
                 updateMessagesUI(totalUnread, lastUnreadText, lastUnreadFrom, hasNewChat);
@@ -1924,7 +1947,8 @@ function setGuestInterface() {
     document.getElementById("dropdownRole").textContent = "Гость";
     document.getElementById("userAvatar").textContent = "?";
     document.getElementById("adminPanelButton").style.display = "none";
-    document.getElementById("weekStats").classList.remove("visible");
+    const ws = document.getElementById("weekStats");
+    if (ws) ws.classList.remove("visible");
 }
 
 /* =========================================================
@@ -1935,6 +1959,10 @@ function logout() {
     if (chatsUnsub) {
         try { chatsUnsub(); } catch(e) {}
         chatsUnsub = null;
+    }
+    if (weekStatsUnsub) {
+        try { weekStatsUnsub(); } catch(e) {}
+        weekStatsUnsub = null;
     }
     firebase.auth().signOut()
         .then(function() {
@@ -2137,9 +2165,6 @@ document.querySelectorAll(".menu-button").forEach(function(btn) {
    СТАТИСТИКА НЕДЕЛИ (только admin / curator)
 ========================================================= */
 
-let weekChartInstance = null;
-let weekStatsUnsub = null;
-
 function isStatsRole(role) {
     return role === "admin" || role === "curator";
 }
@@ -2174,6 +2199,17 @@ function getWeekRange(offsetWeeks) {
 
 const WEEK_DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
 
+// Ждём, пока Chart.js загрузится (defer/fallback)
+function waitForChart(cb, attempts) {
+    attempts = attempts || 0;
+    if (typeof Chart !== "undefined") return cb();
+    if (attempts > 50) {
+        console.warn("Chart.js так и не загрузился");
+        return;
+    }
+    setTimeout(function() { waitForChart(cb, attempts + 1); }, 200);
+}
+
 async function initWeekStats(user) {
     const block = document.getElementById("weekStats");
     if (!block) return;
@@ -2201,7 +2237,10 @@ async function initWeekStats(user) {
     }
     document.getElementById("wsGroupValue").textContent = groupName;
 
-    await loadWeekStats(groupName);
+    // Ждём Chart.js перед первой отрисовкой
+    waitForChart(function() {
+        loadWeekStats(groupName);
+    });
 
     if (weekStatsUnsub) {
         try { weekStatsUnsub(); } catch(e) {}
@@ -2214,7 +2253,7 @@ async function initWeekStats(user) {
                 .collection("attendance")
                 .where("group", "==", groupName)
                 .onSnapshot(function() {
-                    loadWeekStats(groupName);
+                    waitForChart(function() { loadWeekStats(groupName); });
                 }, function(err) {
                     console.warn("attendance listener error:", err);
                 });
@@ -2292,6 +2331,12 @@ async function loadWeekStats(groupName) {
 function renderWeekChart(currentData, prevData) {
     const canvas = document.getElementById("weekChart");
     if (!canvas) return;
+
+    // Если Chart.js ещё не загрузился — подождём
+    if (typeof Chart === "undefined") {
+        waitForChart(function() { renderWeekChart(currentData, prevData); });
+        return;
+    }
 
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
     const textColor = isDark ? "#94a3b8" : "#5b6478";
@@ -2419,11 +2464,15 @@ function refreshWeekChartTheme(theme) {
     const textColor = isDark ? "#94a3b8" : "#5b6478";
     const gridColor = isDark ? "rgba(71,85,105,.3)" : "rgba(220,226,238,.8)";
 
-    weekChartInstance.options.plugins.legend.labels.color = textColor;
-    weekChartInstance.options.scales.x.ticks.color = textColor;
-    weekChartInstance.options.scales.y.ticks.color = textColor;
-    weekChartInstance.options.scales.y.grid.color = gridColor;
-    weekChartInstance.update("none");
+    try {
+        weekChartInstance.options.plugins.legend.labels.color = textColor;
+        weekChartInstance.options.scales.x.ticks.color = textColor;
+        weekChartInstance.options.scales.y.ticks.color = textColor;
+        weekChartInstance.options.scales.y.grid.color = gridColor;
+        weekChartInstance.update("none");
+    } catch (e) {
+        // ignore
+    }
 }
 
 /* =========================================================

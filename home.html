@@ -14,6 +14,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="firebase-config.js"></script>
 
 <style>
@@ -669,6 +670,136 @@ header {
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
+/* ===== СТАТИСТИКА НЕДЕЛИ (только для админа/куратора) ===== */
+.week-stats {
+    display: none;
+    margin-bottom: 36px;
+    animation: rise .6s var(--ease) both;
+}
+.week-stats.visible { display: block; }
+
+.week-stats-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1.2fr;
+    gap: 28px;
+    padding: 30px 32px;
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+}
+.week-stats-card::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 5px;
+    background: linear-gradient(180deg, var(--primary), var(--violet));
+    border-radius: 0 4px 4px 0;
+}
+
+.week-stats-left { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+.week-stats-title {
+    font-family: "Plus Jakarta Sans", "Manrope", sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -.4px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.week-stats-title .ws-emoji {
+    font-size: 22px;
+    animation: float 4s ease-in-out infinite;
+}
+
+.week-stats-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 14px;
+    background: var(--primary-light);
+    border: 1px solid var(--border);
+    width: fit-content;
+}
+.week-stats-group-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: .5px;
+}
+.week-stats-group-value {
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--primary);
+    font-family: "Plus Jakarta Sans", sans-serif;
+}
+
+.week-legend { display: flex; flex-direction: column; gap: 12px; }
+
+.week-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    background: var(--surface-solid);
+    border: 1px solid var(--border);
+    transition: transform .3s var(--ease), box-shadow .3s var(--ease);
+}
+.week-legend-item:hover {
+    transform: translateX(4px);
+    box-shadow: var(--shadow-sm);
+}
+
+.week-legend-dot {
+    width: 14px; height: 14px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    position: relative;
+}
+.week-legend-dot.current { background: #2454e8; box-shadow: 0 0 0 4px rgba(36,84,232,.15); }
+.week-legend-dot.previous { background: #e11d48; box-shadow: 0 0 0 4px rgba(225,29,72,.15); }
+
+html[data-theme="dark"] .week-legend-dot.current { background: #5b83ff; }
+html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
+
+.week-legend-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.week-legend-label { font-size: 13px; font-weight: 700; color: var(--text); }
+.week-legend-value { font-size: 12px; color: var(--text-secondary); }
+
+.week-legend-value b { color: var(--text); font-weight: 800; }
+
+.week-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+.week-trend.up { background: var(--teal-light); color: var(--teal); }
+.week-trend.down { background: var(--rose-light); color: var(--rose); }
+.week-trend.flat { background: var(--primary-light); color: var(--text-secondary); }
+
+.week-stats-right {
+    position: relative;
+    min-height: 260px;
+    padding: 14px;
+    border-radius: var(--radius-md);
+    background: var(--surface-solid);
+    border: 1px solid var(--border);
+}
+.week-stats-right canvas { width: 100% !important; height: 100% !important; }
+
 /* SECTION */
 .section-header {
     display: flex; align-items: flex-end; justify-content: space-between;
@@ -995,6 +1126,8 @@ footer {
     .menu { grid-template-columns: 1fr; }
     .menu-button { min-height: 140px; padding: 24px 22px; }
     .notification-banner { top: 80px; min-width: auto; padding: 12px 16px 12px 12px; }
+    .week-stats-card { grid-template-columns: 1fr; padding: 24px 20px; gap: 20px; }
+    .week-stats-right { min-height: 220px; }
 }
 @media (max-width: 768px) {
     header { height: 62px; padding: 0 14px; }
@@ -1052,6 +1185,10 @@ footer {
     .toast { bottom: 20px; }
     .notification-banner { flex-wrap: wrap; gap: 10px; padding: 12px; }
     .notif-action { width: 100%; text-align: center; }
+    .week-stats-card { padding: 20px 16px; border-radius: 22px; }
+    .week-stats-title { font-size: 17px; }
+    .week-stats-group-value { font-size: 16px; }
+    .week-stats-right { min-height: 200px; padding: 8px; }
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -1263,6 +1400,50 @@ footer {
         </div>
     </section>
 
+    <!-- ===== СТАТИСТИКА НЕДЕЛИ (только для админа/куратора) ===== -->
+    <section class="week-stats" id="weekStats">
+        <div class="week-stats-card">
+            <div class="week-stats-left">
+                <div class="week-stats-title">
+                    <span class="ws-emoji">📊</span>
+                    Статистика этой недели
+                </div>
+
+                <div class="week-stats-group">
+                    <span class="week-stats-group-label">Ваша группа:</span>
+                    <span class="week-stats-group-value" id="wsGroupValue">—</span>
+                </div>
+
+                <div class="week-legend">
+                    <div class="week-legend-item">
+                        <span class="week-legend-dot current"></span>
+                        <div class="week-legend-text">
+                            <span class="week-legend-label">Текущая неделя</span>
+                            <span class="week-legend-value">
+                                Посещаемость: <b id="wsCurrentValue">0%</b> · <span id="wsCurrentCount">0/0</span>
+                            </span>
+                        </div>
+                        <span class="week-trend flat" id="wsTrend">—</span>
+                    </div>
+
+                    <div class="week-legend-item">
+                        <span class="week-legend-dot previous"></span>
+                        <div class="week-legend-text">
+                            <span class="week-legend-label">Предыдущая неделя</span>
+                            <span class="week-legend-value">
+                                Посещаемость: <b id="wsPrevValue">0%</b> · <span id="wsPrevCount">0/0</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="week-stats-right">
+                <canvas id="weekChart"></canvas>
+            </div>
+        </div>
+    </section>
+
     <div class="section-header">
         <div>
             <div class="section-title">Быстрые действия</div>
@@ -1432,6 +1613,10 @@ function applyTheme(theme) {
     if (lbl) lbl.textContent = theme === 'dark' ? 'Светлая тема' : 'Тёмная тема';
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.setAttribute('content', theme === 'dark' ? '#0f172a' : '#1e3a8a');
+    // Перерисовка диаграммы под тему
+    if (typeof refreshWeekChartTheme === "function") {
+        refreshWeekChartTheme(theme);
+    }
 }
 function toggleTheme() {
     const cur = document.documentElement.getAttribute('data-theme') || 'light';
@@ -1539,8 +1724,11 @@ function loadCurrentUser() {
             }
             updateUserInterface(user);
 
-            // ⭐ ГЛАВНОЕ: слушаем коллекцию "chats" (как messages.html)
+            // ⭐ слушаем коллекцию "chats" (как messages.html)
             startChatsListener(user);
+
+            // ⭐ Статистика недели для админа/куратора
+            initWeekStats(user);
 
         } catch (error) {
             console.error("Ошибка получения данных пользователя:", error);
@@ -1548,6 +1736,7 @@ function loadCurrentUser() {
             currentUserRole = "user";
             updateUserInterface(user);
             startChatsListener(user);
+            initWeekStats(user);
         }
 
         hideLoader();
@@ -1556,16 +1745,10 @@ function loadCurrentUser() {
 
 /* =========================================================
    ⭐ ПРОВЕРКА СООБЩЕНИЙ — читаем коллекцию "chats"
-   Такая же структура, как в messages.html:
-   - participants: [uid1, uid2]
-   - unread: { [uid]: count }
-   - isBroadcast: true/false
-   - lastMessage: { text, from, at, ... }
 ========================================================= */
 function startChatsListener(user) {
     if (!user || !firebase.firestore) return;
 
-    // Отписываемся от старого листенера
     if (chatsUnsub) {
         try { chatsUnsub(); } catch(e) {}
         chatsUnsub = null;
@@ -1590,7 +1773,6 @@ function startChatsListener(user) {
                     if (myUnread > 0) {
                         totalUnread += myUnread;
 
-                        // Ищем самое свежее непрочитанное для превью
                         const lm = data.lastMessage || {};
                         const ts = lm.at && lm.at.toMillis ? lm.at.toMillis() : 0;
 
@@ -1601,10 +1783,8 @@ function startChatsListener(user) {
                             newestChatId = doc.id;
                         }
 
-                        // Проверяем новые чаты для confetti
                         if (firstLoadDone && !seenChatIds.has(doc.id)) {
                             seenChatIds.add(doc.id);
-                            // Новый чат с непрочитанным — радость!
                             setTimeout(startConfetti, 300);
                         }
                     }
@@ -1614,7 +1794,6 @@ function startChatsListener(user) {
 
                 unreadMessagesCount = totalUnread;
 
-                // Определяем, есть ли новые чаты (для анимации)
                 const hasNewChat = firstLoadDone && totalUnread > 0;
 
                 updateMessagesUI(totalUnread, lastUnreadText, lastUnreadFrom, hasNewChat);
@@ -1644,20 +1823,16 @@ function updateMessagesUI(count, previewText, previewFrom, isNew) {
     const notifSubtitle = document.getElementById("notifSubtitle");
 
     if (count > 0) {
-        // Обновляем бейджи
         const displayCount = count > 99 ? "99+" : String(count);
         if (msgBadge) msgBadge.textContent = displayCount;
         if (bellBadge) bellBadge.textContent = displayCount;
 
-        // Подсвечиваем
         if (messagesButton) messagesButton.classList.add("has-unread");
         if (headerBell) headerBell.classList.add("has-unread");
 
-        // Показываем баннер
         if (!notifBannerDismissed && notifBanner) {
             notifCount.textContent = displayCount;
 
-            // Формируем текст с превью
             let subtitle = "";
             if (previewFrom && previewText) {
                 const short = previewText.length > 55
@@ -1675,7 +1850,6 @@ function updateMessagesUI(count, previewText, previewFrom, isNew) {
                 notifBanner.classList.add("show");
                 notifBanner.classList.remove("hide");
 
-                // Confetti при первом показе
                 if (!notifBanner.dataset.shown) {
                     notifBanner.dataset.shown = "1";
                     setTimeout(startConfetti, 200);
@@ -1683,7 +1857,6 @@ function updateMessagesUI(count, previewText, previewFrom, isNew) {
             }
         }
     } else {
-        // Скрываем всё
         if (messagesButton) messagesButton.classList.remove("has-unread");
         if (headerBell) headerBell.classList.remove("has-unread");
         if (notifBanner) {
@@ -1727,6 +1900,8 @@ function updateUserInterface(user) {
     const roleElement = document.getElementById("dropdownRole");
     if (currentUserRole === "admin") {
         roleElement.textContent = "🛡️ Администратор";
+    } else if (currentUserRole === "curator") {
+        roleElement.textContent = "🎓 Куратор";
     } else {
         roleElement.textContent = "Пользователь";
     }
@@ -1749,6 +1924,7 @@ function setGuestInterface() {
     document.getElementById("dropdownRole").textContent = "Гость";
     document.getElementById("userAvatar").textContent = "?";
     document.getElementById("adminPanelButton").style.display = "none";
+    document.getElementById("weekStats").classList.remove("visible");
 }
 
 /* =========================================================
@@ -1956,6 +2132,299 @@ document.querySelectorAll(".menu-button").forEach(function(btn) {
         setTimeout(function() { ripple.remove(); }, 900);
     });
 });
+
+/* =========================================================
+   СТАТИСТИКА НЕДЕЛИ (только admin / curator)
+========================================================= */
+
+let weekChartInstance = null;
+let weekStatsUnsub = null;
+
+function isStatsRole(role) {
+    return role === "admin" || role === "curator";
+}
+
+function getMonday(date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = (day === 0 ? -6 : 1) - day;
+    d.setDate(d.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function toISODateLocal(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+}
+
+function getWeekRange(offsetWeeks) {
+    const monday = getMonday(new Date());
+    monday.setDate(monday.getDate() + offsetWeeks * 7);
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return {
+        start: toISODateLocal(monday),
+        end: toISODateLocal(sunday),
+        monday
+    };
+}
+
+const WEEK_DAYS = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+
+async function initWeekStats(user) {
+    const block = document.getElementById("weekStats");
+    if (!block) return;
+
+    if (!isStatsRole(currentUserRole)) {
+        block.classList.remove("visible");
+        if (weekStatsUnsub) {
+            try { weekStatsUnsub(); } catch(e) {}
+            weekStatsUnsub = null;
+        }
+        return;
+    }
+
+    block.classList.add("visible");
+
+    let groupName = "—";
+    try {
+        const doc = await firebase.firestore().collection("users").doc(user.uid).get();
+        if (doc.exists) {
+            const data = doc.data() || {};
+            groupName = data.group || data.groupName || data.gruppa || "—";
+        }
+    } catch (e) {
+        console.warn("Не удалось получить группу пользователя:", e);
+    }
+    document.getElementById("wsGroupValue").textContent = groupName;
+
+    await loadWeekStats(groupName);
+
+    if (weekStatsUnsub) {
+        try { weekStatsUnsub(); } catch(e) {}
+        weekStatsUnsub = null;
+    }
+
+    if (groupName && groupName !== "—") {
+        try {
+            weekStatsUnsub = firebase.firestore()
+                .collection("attendance")
+                .where("group", "==", groupName)
+                .onSnapshot(function() {
+                    loadWeekStats(groupName);
+                }, function(err) {
+                    console.warn("attendance listener error:", err);
+                });
+        } catch (e) {
+            console.warn("Не удалось подписаться на attendance:", e);
+        }
+    }
+}
+
+async function loadWeekStats(groupName) {
+    if (!groupName || groupName === "—") {
+        renderWeekChart([0,0,0,0,0,0,0], [0,0,0,0,0,0,0]);
+        updateWeekLegend(0, 0, 0, 0);
+        return;
+    }
+
+    const currentRange = getWeekRange(0);
+    const prevRange = getWeekRange(-1);
+
+    let docs = [];
+    try {
+        const snap = await firebase.firestore()
+            .collection("attendance")
+            .where("group", "==", groupName)
+            .where("date", ">=", prevRange.start)
+            .where("date", "<=", currentRange.end)
+            .get();
+        snap.forEach(function(d) { docs.push(d.data()); });
+    } catch (e) {
+        console.warn("Ошибка загрузки attendance:", e);
+    }
+
+    const currentDays = [0,0,0,0,0,0,0];
+    const prevDays = [0,0,0,0,0,0,0];
+    let currentPresent = 0, currentTotal = 0;
+    let prevPresent = 0, prevTotal = 0;
+
+    docs.forEach(function(item) {
+        const dateStr = item.date;
+        if (!dateStr) return;
+
+        const present = Number(item.present ?? item.attended ?? 0);
+        const total = Number(item.total ?? item.students ?? 0);
+
+        let weekArr = null;
+        let isCurrent = false;
+
+        if (dateStr >= currentRange.start && dateStr <= currentRange.end) {
+            weekArr = currentDays;
+            isCurrent = true;
+        } else if (dateStr >= prevRange.start && dateStr <= prevRange.end) {
+            weekArr = prevDays;
+        } else {
+            return;
+        }
+
+        const d = new Date(dateStr + "T00:00:00");
+        let idx = d.getDay() - 1;
+        if (idx < 0) idx = 6;
+        weekArr[idx] += present;
+
+        if (isCurrent) {
+            currentPresent += present;
+            currentTotal += total;
+        } else {
+            prevPresent += present;
+            prevTotal += total;
+        }
+    });
+
+    renderWeekChart(currentDays, prevDays);
+    updateWeekLegend(currentPresent, currentTotal, prevPresent, prevTotal);
+}
+
+function renderWeekChart(currentData, prevData) {
+    const canvas = document.getElementById("weekChart");
+    if (!canvas) return;
+
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    const textColor = isDark ? "#94a3b8" : "#5b6478";
+    const gridColor = isDark ? "rgba(71,85,105,.3)" : "rgba(220,226,238,.8)";
+
+    if (weekChartInstance) {
+        weekChartInstance.destroy();
+        weekChartInstance = null;
+    }
+
+    weekChartInstance = new Chart(canvas.getContext("2d"), {
+        type: "bar",
+        data: {
+            labels: WEEK_DAYS,
+            datasets: [
+                {
+                    label: "Текущая неделя",
+                    data: currentData,
+                    backgroundColor: isDark ? "rgba(91,131,255,.85)" : "rgba(36,84,232,.85)",
+                    borderColor: isDark ? "#5b83ff" : "#2454e8",
+                    borderWidth: 1.5,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    maxBarThickness: 26
+                },
+                {
+                    label: "Предыдущая неделя",
+                    data: prevData,
+                    backgroundColor: isDark ? "rgba(251,113,133,.8)" : "rgba(225,29,72,.8)",
+                    borderColor: isDark ? "#fb7185" : "#e11d48",
+                    borderWidth: 1.5,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                    maxBarThickness: 26
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: { duration: 700, easing: "easeOutQuart" },
+            plugins: {
+                legend: {
+                    position: "top",
+                    labels: {
+                        color: textColor,
+                        font: { family: "Inter", size: 11.5, weight: "600" },
+                        boxWidth: 12,
+                        boxHeight: 12,
+                        usePointStyle: true,
+                        pointStyle: "rectRounded",
+                        padding: 14
+                    }
+                },
+                tooltip: {
+                    backgroundColor: isDark ? "#1e293b" : "#0f1729",
+                    titleColor: "#fff",
+                    bodyColor: "#e2e8f0",
+                    padding: 10,
+                    cornerRadius: 10,
+                    titleFont: { family: "Inter", size: 12, weight: "700" },
+                    bodyFont: { family: "Inter", size: 12 },
+                    callbacks: {
+                        label: function(ctx) {
+                            return ` ${ctx.dataset.label}: ${ctx.parsed.y} чел.`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: {
+                        color: textColor,
+                        font: { family: "Inter", size: 11, weight: "600" }
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    grid: { color: gridColor, drawBorder: false },
+                    ticks: {
+                        color: textColor,
+                        font: { family: "Inter", size: 11 },
+                        precision: 0
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateWeekLegend(curPresent, curTotal, prevPresent, prevTotal) {
+    const curPct = curTotal > 0 ? Math.round((curPresent / curTotal) * 100) : 0;
+    const prevPct = prevTotal > 0 ? Math.round((prevPresent / prevTotal) * 100) : 0;
+
+    const curValEl = document.getElementById("wsCurrentValue");
+    const curCntEl = document.getElementById("wsCurrentCount");
+    const prevValEl = document.getElementById("wsPrevValue");
+    const prevCntEl = document.getElementById("wsPrevCount");
+    if (curValEl) curValEl.textContent = curPct + "%";
+    if (curCntEl) curCntEl.textContent = `${curPresent}/${curTotal}`;
+    if (prevValEl) prevValEl.textContent = prevPct + "%";
+    if (prevCntEl) prevCntEl.textContent = `${prevPresent}/${prevTotal}`;
+
+    const trendEl = document.getElementById("wsTrend");
+    if (!trendEl) return;
+    const diff = curPct - prevPct;
+
+    trendEl.classList.remove("up", "down", "flat");
+    if (diff > 0) {
+        trendEl.classList.add("up");
+        trendEl.textContent = `▲ +${diff}%`;
+    } else if (diff < 0) {
+        trendEl.classList.add("down");
+        trendEl.textContent = `▼ ${diff}%`;
+    } else {
+        trendEl.classList.add("flat");
+        trendEl.textContent = "— 0%";
+    }
+}
+
+function refreshWeekChartTheme(theme) {
+    if (!weekChartInstance) return;
+    const isDark = theme === "dark";
+    const textColor = isDark ? "#94a3b8" : "#5b6478";
+    const gridColor = isDark ? "rgba(71,85,105,.3)" : "rgba(220,226,238,.8)";
+
+    weekChartInstance.options.plugins.legend.labels.color = textColor;
+    weekChartInstance.options.scales.x.ticks.color = textColor;
+    weekChartInstance.options.scales.y.ticks.color = textColor;
+    weekChartInstance.options.scales.y.grid.color = gridColor;
+    weekChartInstance.update("none");
+}
 
 /* =========================================================
    ЗАПУСК

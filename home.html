@@ -1408,7 +1408,7 @@ footer {
             <div class="week-stats-left">
                 <div class="week-stats-title">
                     <span class="ws-emoji">📊</span>
-                    Статистика этой недели
+                    Пропуски этой недели
                 </div>
 
                 <div class="week-stats-group">
@@ -1422,7 +1422,7 @@ footer {
                         <div class="week-legend-text">
                             <span class="week-legend-label">Текущая неделя</span>
                             <span class="week-legend-value">
-                                Посещаемость: <b id="wsCurrentValue">0%</b> · <span id="wsCurrentCount">0/0</span>
+                                Отсутствуют: <b id="wsCurrentValue">0%</b> · <span id="wsCurrentCount">0/0</span>
                             </span>
                         </div>
                         <span class="week-trend flat" id="wsTrend">—</span>
@@ -1433,7 +1433,7 @@ footer {
                         <div class="week-legend-text">
                             <span class="week-legend-label">Предыдущая неделя</span>
                             <span class="week-legend-value">
-                                Посещаемость: <b id="wsPrevValue">0%</b> · <span id="wsPrevCount">0/0</span>
+                                Отсутствуют: <b id="wsPrevValue">0%</b> · <span id="wsPrevCount">0/0</span>
                             </span>
                         </div>
                     </div>
@@ -2191,6 +2191,13 @@ function waitForChart(cb, attempts) {
     setTimeout(function() { waitForChart(cb, attempts + 1); }, 200);
 }
 
+/* Статус "отсутствует": любой заполненный статус, кроме present и late (опоздание) */
+function isAbsentStatus(status) {
+    if (!status) return false;
+    const st = String(status).trim().toLowerCase();
+    return st !== "present" && st !== "late";
+}
+
 /* Глобальное состояние статистики */
 let wsGroupName = "—";
 let wsGroupStudentIds = [];
@@ -2436,7 +2443,7 @@ async function loadWeekStats() {
             return;
         }
 
-        let dayPresent = 0;
+        let dayAbsent = 0;
         let dayTotal = 0;
         let matchedStudents = 0;
 
@@ -2453,7 +2460,7 @@ async function loadWeekStats() {
                     const lesson = lessons[ln];
                     if (!lesson) return;
                     dayTotal += 1;
-                    if (lesson.status === "present") dayPresent += 1;
+                    if (isAbsentStatus(lesson.status)) dayAbsent += 1;
                 });
             });
         }
@@ -2467,7 +2474,7 @@ async function loadWeekStats() {
                 const lessons = Array.isArray(st.lessons) ? st.lessons : [];
                 lessons.forEach(function(lesson) {
                     dayTotal += 1;
-                    if (lesson && lesson.status === "present") dayPresent += 1;
+                    if (lesson && isAbsentStatus(lesson.status)) dayAbsent += 1;
                 });
             });
         }
@@ -2480,25 +2487,25 @@ async function loadWeekStats() {
             const lessons = Array.isArray(item.lessons) ? item.lessons : [];
             lessons.forEach(function(lesson) {
                 dayTotal += 1;
-                if (lesson && lesson.status === "present") dayPresent += 1;
+                if (lesson && isAbsentStatus(lesson.status)) dayAbsent += 1;
             });
         }
 
         if (matchedStudents > 0) {
             console.log("📅 " + dateStr + " | студентов: " + matchedStudents +
-                        " | present: " + dayPresent + "/" + dayTotal);
+                        " | absent: " + dayAbsent + "/" + dayTotal);
         }
 
         const d = new Date(dateStr + "T00:00:00");
         let idx = d.getDay() - 1;
         if (idx < 0) idx = 6;
-        weekArr[idx] += dayPresent;
+        weekArr[idx] += dayAbsent;
 
         if (isCurrent) {
-            currentPresent += dayPresent;
+            currentPresent += dayAbsent;
             currentTotal += dayTotal;
         } else {
-            prevPresent += dayPresent;
+            prevPresent += dayAbsent;
             prevTotal += dayTotal;
         }
     });
@@ -2585,7 +2592,7 @@ function renderWeekChart(currentData, prevData) {
                     bodyFont: { family: "Inter", size: 12 },
                     callbacks: {
                         label: function(ctx) {
-                            return ` ${ctx.dataset.label}: ${ctx.parsed.y} отметок`;
+                            return ` ${ctx.dataset.label}: ${ctx.parsed.y} пропусков`;
                         }
                     }
                 }
@@ -2634,10 +2641,10 @@ function updateWeekLegend(curPresent, curTotal, prevPresent, prevTotal) {
 
     trendEl.classList.remove("up", "down", "flat");
     if (diff > 0) {
-        trendEl.classList.add("up");
+        trendEl.classList.add("down");
         trendEl.textContent = `▲ +${diff}%`;
     } else if (diff < 0) {
-        trendEl.classList.add("down");
+        trendEl.classList.add("up");
         trendEl.textContent = `▼ ${diff}%`;
     } else {
         trendEl.classList.add("flat");

@@ -30,7 +30,6 @@
     document.head.appendChild(s);
   ">
 </script>
-
 <script src="firebase-config.js"></script>
 
 <style>
@@ -74,8 +73,7 @@
     --ease-bounce: cubic-bezier(.34,1.56,.64,1);
     --ease-out: cubic-bezier(.19,1,.22,1);
 }
-
-html[data-theme="dark"] {
+  html[data-theme="dark"] {
     --primary: #5b83ff;
     --primary-dark: #3b5fd6;
     --primary-light: rgba(91,131,255,.12);
@@ -122,8 +120,7 @@ body {
     -webkit-font-smoothing: antialiased;
     transition: background .4s ease, color .3s ease;
 }
-
-html[data-theme="dark"] body {
+  html[data-theme="dark"] body {
     background:
         radial-gradient(circle at 8% 0%, rgba(91,131,255,.1), transparent 42%),
         radial-gradient(circle at 96% 12%, rgba(167,139,250,.08), transparent 40%),
@@ -204,8 +201,7 @@ button { font-family: inherit; cursor: pointer; }
     0%, 100% { transform: translate(0, 0) scale(1); }
     50%      { transform: translate(60px, 40px) scale(1.15); }
 }
-
-@keyframes rise {
+  @keyframes rise {
     from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
 }
@@ -296,8 +292,7 @@ html[data-theme="dark"] .notification-banner {
     border: 2px solid var(--surface-solid);
     animation: badgePulse 1.8s ease-in-out infinite;
 }
-
-.notif-text { flex: 1; min-width: 0; }
+  notif-text { flex: 1; min-width: 0; }
 .notif-title {
     font-size: 14px; font-weight: 800; letter-spacing: -.2px;
     color: var(--text);
@@ -414,8 +409,7 @@ header {
     animation: badgePulse 1.8s ease-in-out infinite;
 }
 .header-bell.has-unread .bell-badge { display: flex; }
-
-.user-menu { position: relative; }
+  .user-menu { position: relative; }
 .user-menu-button {
     height: 48px; min-width: 220px;
     display: flex; align-items: center; gap: 10px;
@@ -590,8 +584,7 @@ header {
 .hero-bubbles span:nth-child(4) { left: 55%; width: 8px;  height: 8px;  animation-delay: 1s;   animation-duration: 10s; }
 .hero-bubbles span:nth-child(5) { left: 70%; width: 11px; height: 11px; animation-delay: 3s;   animation-duration: 12s; }
 .hero-bubbles span:nth-child(6) { left: 85%; width: 7px;  height: 7px;  animation-delay: 5s;   animation-duration: 8s;  }
-
-.hero-clock {
+  .hero-clock {
     position: relative; z-index: 2;
     width: 230px;
     padding: 26px 22px;
@@ -783,8 +776,7 @@ html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
 .week-legend-value { font-size: 12px; color: var(--text-secondary); }
 
 .week-legend-value b { color: var(--text); font-weight: 800; }
-
-.week-trend {
+  .week-trend {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -967,8 +959,7 @@ html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
 .settings .icon   { background: var(--amber-light);   color: var(--amber); }
 .messages .icon   { background: var(--rose-light);    color: var(--rose); position: relative; }
 .events .icon     { background: var(--cyan-light);    color: var(--cyan); }
-
-.messages .icon .msg-badge {
+  .messages .icon .msg-badge {
     position: absolute;
     top: -4px; right: -4px;
     min-width: 22px; height: 22px;
@@ -1250,7 +1241,6 @@ footer {
         </svg>
     </button>
 </div>
-
 <header>
     <div class="header-left">
         <div class="logo" onclick="showToast('Посещаемость')">
@@ -1401,8 +1391,7 @@ footer {
             </div>
         </div>
     </section>
-
-    <!-- ===== СТАТИСТИКА НЕДЕЛИ (только для админа/куратора) ===== -->
+      <!-- ===== СТАТИСТИКА НЕДЕЛИ ===== -->
     <section class="week-stats" id="weekStats">
         <div class="week-stats-card">
             <div class="week-stats-left">
@@ -1601,7 +1590,7 @@ footer {
 <div class="toast" id="toast"></div>
 
 <script>
-/* =========================================================
+  /* =========================================================
    ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 ========================================================= */
 let weekChartInstance = null;
@@ -1905,9 +1894,8 @@ function updateUserInterface(user) {
         roleElement.textContent = "🎓 Куратор";
     } else {
         roleElement.textContent = "Пользователь";
-    }
-
-    const adminButton = document.getElementById("adminPanelButton");
+  }
+  const adminButton = document.getElementById("adminPanelButton");
     if (currentUserRole === "admin") {
         adminButton.style.display = "flex";
     } else {
@@ -2138,17 +2126,12 @@ document.querySelectorAll(".menu-button").forEach(function(btn) {
         setTimeout(function() { ripple.remove(); }, 900);
     });
 });
-
 /* =========================================================
    СТАТИСТИКА НЕДЕЛИ
-   Связка:
-     users/{uid}.groupId  →  groups/{id}.name
-     students (коллекция) — фильтр по groupId
-     attendance           — фильтр по studentId
-   Поддержка форматов attendance:
-     1) students: { studentId: { lessons: {...} } }   (объект)
-     2) students: [ { studentId, lessons: [...] } ]   (массив)
-     3) один документ = один студент-день             (старый)
+   Каждый куратор видит СВОЮ группу.
+   Связка: users/{uid}.groupId → groups/{id}.name
+           → groups/{id}.studentIds (приоритет)
+           → attendance (фильтр по studentId)
 ========================================================= */
 
 function isStatsRole(role) {
@@ -2226,13 +2209,14 @@ async function initWeekStats(user) {
             groupId = d.groupId || d.group || d.gruppa || d.groupName || null;
         }
     } catch (e) {
-        console.warn("Не удалось получить users/{uid}:", e);
+        console.warn("users/{uid} err:", e);
     }
 
-    console.log("🔎 initWeekStats: users.groupId =", groupId);
+    console.log("🔎 users.groupId =", groupId);
 
-    /* ---------- 2. Название группы ---------- */
+    /* ---------- 2. Название группы + studentIds из groups ---------- */
     let groupName = "—";
+    let groupData = null;
 
     if (groupId) {
         try {
@@ -2240,13 +2224,13 @@ async function initWeekStats(user) {
                 .collection("groups").doc(groupId).get();
 
             if (groupDoc.exists) {
-                const g = groupDoc.data() || {};
-                groupName = String(g.name || groupId).trim();
+                groupData = groupDoc.data() || {};
+                groupName = String(groupData.name || groupId).trim();
             } else {
                 groupName = String(groupId).trim();
             }
         } catch (e) {
-            console.warn("Не удалось получить groups/{id}:", e);
+            console.warn("groups/{id} err:", e);
             groupName = String(groupId).trim();
         }
     }
@@ -2254,74 +2238,47 @@ async function initWeekStats(user) {
     wsGroupId = groupId;
     wsGroupName = groupName;
 
-    console.log("🔎 initWeekStats: groupName =", groupName);
+    console.log("🔎 groupName =", groupName);
 
-    /* ---------- 3. Список студентов из коллекции students ---------- */
+    /* ---------- 3. Список студентов ---------- */
     let studentIds = [];
 
-    if (groupId) {
-        // Пробуем 1: students.groupId == ID документа группы
+    // Способ 1: groups/{id}.studentIds (или .students)
+    if (groupData) {
+        const raw = groupData.studentIds || groupData.students || [];
+        if (Array.isArray(raw) && raw.length > 0) {
+            studentIds = raw.map(x => String(x).trim()).filter(Boolean);
+            console.log("🔎 students из groups.studentIds =", studentIds.length);
+        }
+    }
+
+    // Способ 2: students.where(groupId == ID группы)
+    if (studentIds.length === 0 && groupId) {
         try {
             const snap = await firebase.firestore()
                 .collection("students")
                 .where("groupId", "==", groupId)
                 .get();
 
-            studentIds = snap.docs.map(function(d) { return String(d.id); });
-            console.log("🔎 students по groupId (ID) =", studentIds.length);
+            studentIds = snap.docs.map(d => String(d.id));
+            console.log("🔎 students.where(groupId == ID) =", studentIds.length);
         } catch (e) {
-            console.warn("Ошибка students.where(groupId == id):", e);
+            console.warn("students.where ID err:", e);
         }
+    }
 
-        // Если пусто — пробуем 2: students.groupId == название группы
-        if (studentIds.length === 0 && groupName && groupName !== "—") {
-            try {
-                const snap2 = await firebase.firestore()
-                    .collection("students")
-                    .where("groupId", "==", groupName)
-                    .get();
+    // Способ 3: students.where(groupId == название)
+    if (studentIds.length === 0 && groupName && groupName !== "—") {
+        try {
+            const snap = await firebase.firestore()
+                .collection("students")
+                .where("groupId", "==", groupName)
+                .get();
 
-                studentIds = snap2.docs.map(function(d) { return String(d.id); });
-                console.log("🔎 students по groupId (name) =", studentIds.length);
-            } catch (e) {
-                console.warn("Ошибка students.where(groupId == name):", e);
-            }
-        }
-
-        // Если всё равно пусто — пробуем 3: students.groupId == groupName в поле group
-        if (studentIds.length === 0 && groupName && groupName !== "—") {
-            try {
-                const snap3 = await firebase.firestore()
-                    .collection("students")
-                    .where("group", "==", groupName)
-                    .get();
-
-                studentIds = snap3.docs.map(function(d) { return String(d.id); });
-                console.log("🔎 students по group (name) =", studentIds.length);
-            } catch (e) {
-                console.warn("Ошибка students.where(group == name):", e);
-            }
-        }
-
-        // Если всё ещё пусто — пробуем 4: массив students внутри groups
-        if (studentIds.length === 0) {
-            try {
-                const groupDoc = await firebase.firestore()
-                    .collection("groups").doc(groupId).get();
-
-                if (groupDoc.exists) {
-                    const g = groupDoc.data() || {};
-                    const raw = g.students || g.studentIds || [];
-                    if (Array.isArray(raw)) {
-                        studentIds = raw.map(function(x) { return String(x).trim(); }).filter(Boolean);
-                    } else if (typeof raw === "string") {
-                        studentIds = raw.split(",").map(function(x){ return x.trim(); }).filter(Boolean);
-                    }
-                    console.log("🔎 students из groups.{students} =", studentIds.length);
-                }
-            } catch (e) {
-                console.warn("Ошибка чтения groups.students:", e);
-            }
+            studentIds = snap.docs.map(d => String(d.id));
+            console.log("🔎 students.where(groupId == name) =", studentIds.length);
+        } catch (e) {
+            console.warn("students.where name err:", e);
         }
     }
 
@@ -2329,10 +2286,10 @@ async function initWeekStats(user) {
 
     document.getElementById("wsGroupValue").textContent = groupName;
 
+    console.log("🔎 ИТОГО студентов найдено:", studentIds.length);
+
     /* ---------- 4. Первая отрисовка ---------- */
-    waitForChart(function() {
-        loadWeekStats();
-    });
+    waitForChart(function() { loadWeekStats(); });
 
     /* ---------- 5. Подписка на attendance ---------- */
     if (weekStatsUnsub) {
@@ -2346,10 +2303,10 @@ async function initWeekStats(user) {
             .onSnapshot(function() {
                 waitForChart(function() { loadWeekStats(); });
             }, function(err) {
-                console.warn("attendance listener error:", err);
+                console.warn("attendance listener err:", err);
             });
     } catch (e) {
-        console.warn("Не удалось подписаться на attendance:", e);
+        console.warn("attendance subscribe err:", e);
     }
 }
 
@@ -2369,17 +2326,16 @@ async function loadWeekStats() {
     const currentRange = getWeekRange(0);
     const prevRange = getWeekRange(-1);
 
-    console.log("🔎 loadWeekStats: диапазон текущей недели:", currentRange.start, "—", currentRange.end);
-    console.log("🔎 loadWeekStats: студентов в группе:", groupStudentIds.length);
+    console.log("🔎 loadWeekStats: диапазон", currentRange.start, "—", currentRange.end,
+                "| студентов:", groupStudentIds.length);
 
     if (groupStudentIds.length === 0) {
-        console.warn("⚠ В students нет студентов для группы", wsGroupId);
         renderWeekChart([0,0,0,0,0,0,0], [0,0,0,0,0,0,0]);
         updateWeekLegend(0, 0, 0, 0);
         return;
     }
 
-    /* ---------- Загружаем документы attendance по ID (дата = ID) ---------- */
+    /* ---------- Документы attendance за обе недели ---------- */
     let docs = [];
     try {
         const col = firebase.firestore().collection("attendance");
@@ -2402,7 +2358,7 @@ async function loadWeekStats() {
         });
 
     } catch (e) {
-        console.warn("Ошибка загрузки attendance по ID, читаем всю коллекцию:", e);
+        console.warn("Ошибка загрузки attendance, фолбэк на всю коллекцию:", e);
         try {
             const allSnap = await firebase.firestore().collection("attendance").get();
             allSnap.forEach(function(d) {
@@ -2413,7 +2369,7 @@ async function loadWeekStats() {
         }
     }
 
-    console.log("🔎 loadWeekStats: загружено документов attendance =", docs.length);
+    console.log("🔎 загружено attendance документов:", docs.length);
 
     const currentDays = [0,0,0,0,0,0,0];
     const prevDays = [0,0,0,0,0,0,0];
@@ -2422,7 +2378,6 @@ async function loadWeekStats() {
 
     const studentIdSet = new Set(groupStudentIds.map(String));
 
-    /* ---------- Проходим по документам ---------- */
     docs.forEach(function(entry) {
         const item = entry.data || {};
         const docId = entry.id;
@@ -2448,14 +2403,12 @@ async function loadWeekStats() {
 
         // ФОРМАТ 1: students = объект { studentId: { lessons: {...} } }
         if (item.students && typeof item.students === "object" && !Array.isArray(item.students)) {
-
             Object.keys(item.students).forEach(function(stKey) {
                 const rec = item.students[stKey] || {};
                 const sid = String(rec.studentId || stKey).trim();
                 if (!sid || !studentIdSet.has(sid)) return;
 
                 matchedStudents++;
-
                 const lessons = rec.lessons || {};
                 Object.keys(lessons).forEach(function(ln) {
                     const lesson = lessons[ln];
@@ -2467,13 +2420,11 @@ async function loadWeekStats() {
         }
         // ФОРМАТ 2: students = массив [ { studentId, lessons: [...] } ]
         else if (Array.isArray(item.students)) {
-
             item.students.forEach(function(st) {
                 const sid = String(st.studentId || st.id || "").trim();
                 if (!sid || !studentIdSet.has(sid)) return;
 
                 matchedStudents++;
-
                 const lessons = Array.isArray(st.lessons) ? st.lessons : [];
                 lessons.forEach(function(lesson) {
                     dayTotal += 1;
@@ -2487,7 +2438,6 @@ async function loadWeekStats() {
             if (!studentIdSet.has(sid)) return;
 
             matchedStudents++;
-
             const lessons = Array.isArray(item.lessons) ? item.lessons : [];
             lessons.forEach(function(lesson) {
                 dayTotal += 1;
@@ -2621,9 +2571,8 @@ function renderWeekChart(currentData, prevData) {
             }
         }
     });
-}
-
-/* =========================================================
+  }
+  /* =========================================================
    ЛЕГЕНДА
 ========================================================= */
 function updateWeekLegend(curPresent, curTotal, prevPresent, prevTotal) {

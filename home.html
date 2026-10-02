@@ -2141,8 +2141,14 @@ document.querySelectorAll(".menu-button").forEach(function(btn) {
 
 /* =========================================================
    СТАТИСТИКА НЕДЕЛИ
-   Связка: users.groupId → groups/{id}.name → attendance.groupId
-   Фильтр студентов — по списку groups/{id}.students
+   Связка:
+     users/{uid}.groupId  →  groups/{id}.name
+     students (коллекция) — фильтр по groupId
+     attendance           — фильтр по studentId
+   Поддержка форматов attendance:
+     1) students: { studentId: { lessons: {...} } }   (объект)
+     2) students: [ { studentId, lessons: [...] } ]   (массив)
+     3) один документ = один студент-день             (старый)
 ========================================================= */
 
 function isStatsRole(role) {
@@ -2190,9 +2196,9 @@ function waitForChart(cb, attempts) {
 }
 
 /* Глобальное состояние статистики */
-let wsGroupName = null;         // название группы (например "313")
-let wsGroupStudentIds = [];     // массив studentId группы
-let wsGroupId = null;           // ID документа группы
+let wsGroupName = "—";
+let wsGroupStudentIds = [];
+let wsGroupId = null;
 
 async function initWeekStats(user) {
     const block = document.getElementById("weekStats");
@@ -2209,7 +2215,7 @@ async function initWeekStats(user) {
 
     block.classList.add("visible");
 
-    /* ---------- 1. Получаем ID группы пользователя ---------- */
+    /* ---------- 1. ID группы пользователя ---------- */
     let groupId = null;
     try {
         const userDoc = await firebase.firestore()
@@ -2225,9 +2231,8 @@ async function initWeekStats(user) {
 
     console.log("🔎 initWeekStats: users.groupId =", groupId);
 
-    /* ---------- 2. По ID группы берём название и студентов ---------- */
+    /* ---------- 2. Название группы ---------- */
     let groupName = "—";
-    let studentIds = [];
 
     if (groupId) {
         try {
@@ -2237,7 +2242,6 @@ async function initWeekStats(user) {
             if (groupDoc.exists) {
                 const g = groupDoc.data() || {};
                 groupName = String(g.name || groupId).trim();
-                studentIds = Array.isArray(g.students) ? g.students.slice() : [];
             } else {
                 groupName = String(groupId).trim();
             }
@@ -2249,19 +2253,88 @@ async function initWeekStats(user) {
 
     wsGroupId = groupId;
     wsGroupName = groupName;
-    wsGroupStudentIds = studentIds;
 
     console.log("🔎 initWeekStats: groupName =", groupName);
-    console.log("🔎 initWeekStats: students в группе =", studentIds.length);
+
+    /* ---------- 3. Список студентов из коллекции students ---------- */
+    let studentIds = [];
+
+    if (groupId) {
+        // Пробуем 1: students.groupId == ID документа группы
+        try {
+            const snap = await firebase.firestore()
+                .collection("students")
+                .where("groupId", "==", groupId)
+                .get();
+
+            studentIds = snap.docs.map(function(d) { return String(d.id); });
+            console.log("🔎 students по groupId (ID) =", studentIds.length);
+        } catch (e) {
+            console.warn("Ошибка students.where(groupId == id):", e);
+        }
+
+        // Если пусто — пробуем 2: students.groupId == название группы
+        if (studentIds.length === 0 && groupName && groupName !== "—") {
+            try {
+                const snap2 = await firebase.firestore()
+                    .collection("students")
+                    .where("groupId", "==", groupName)
+                    .get();
+
+                studentIds = snap2.docs.map(function(d) { return String(d.id); });
+                console.log("🔎 students по groupId (name) =", studentIds.length);
+            } catch (e) {
+                console.warn("Ошибка students.where(groupId == name):", e);
+            }
+        }
+
+        // Если всё равно пусто — пробуем 3: students.groupId == groupName в поле group
+        if (studentIds.length === 0 && groupName && groupName !== "—") {
+            try {
+                const snap3 = await firebase.firestore()
+                    .collection("students")
+                    .where("group", "==", groupName)
+                    .get();
+
+                studentIds = snap3.docs.map(function(d) { return String(d.id); });
+                console.log("🔎 students по group (name) =", studentIds.length);
+            } catch (e) {
+                console.warn("Ошибка students.where(group == name):", e);
+            }
+        }
+
+        // Если всё ещё пусто — пробуем 4: массив students внутри groups
+        if (studentIds.length === 0) {
+            try {
+                const groupDoc = await firebase.firestore()
+                    .collection("groups").doc(groupId).get();
+
+                if (groupDoc.exists) {
+                    const g = groupDoc.data() || {};
+                    const raw = g.students || g.studentIds || [];
+                    if (Array.isArray(raw)) {
+                        studentIds = raw.map(function(x) { return String(x).trim(); }).filter(Boolean);
+                    } else if (typeof raw === "string") {
+                        studentIds = raw.split(",").map(function(x){ return x.trim(); }).filter(Boolean);
+                    }
+                    console.log("🔎 students из groups.{students} =", studentIds.length);
+                }
+            } catch (e) {
+                console.warn("Ошибка чтения groups.students:", e);
+            }
+        }
+    }
+
+    wsGroupStudentIds = studentIds;
 
     document.getElementById("wsGroupValue").textContent = groupName;
 
-    /* ---------- 3. Первая отрисовка ---------- */
+    /* ---------- 4. Первая отрисовка ---------- */
     waitForChart(function() {
         loadWeekStats();
     });
 
-    /* ---------- 4. Подписка на attendance ---------- */
+    /* ---------- 5. Подписка на attendance ---------- */
     if (weekStatsUnsub) {
         try { weekStatsUnsub(); } catch(e) {}
         weekStatsUnsub = null;
@@ -2293,14 +2366,20 @@ async function loadWeekStats() {
         return;
     }
 
-    const myGroup = String(groupName).trim().toLowerCase();
-
     const currentRange = getWeekRange(0);
     const prevRange = getWeekRange(-1);
 
     console.log("🔎 loadWeekStats: диапазон текущей недели:", currentRange.start, "—", currentRange.end);
+    console.log("🔎 loadWeekStats: студентов в группе:", groupStudentIds.length);
 
-    /* ---------- Загружаем документы attendance ---------- */
+    if (groupStudentIds.length === 0) {
+        console.warn("⚠ В students нет студентов для группы", wsGroupId);
+        renderWeekChart([0,0,0,0,0,0,0], [0,0,0,0,0,0,0]);
+        updateWeekLegend(0, 0, 0, 0);
+        return;
+    }
+
+    /* ---------- Загружаем документы attendance по ID (дата = ID) ---------- */
     let docs = [];
     try {
         const col = firebase.firestore().collection("attendance");
@@ -2341,6 +2420,8 @@ async function loadWeekStats() {
     let currentPresent = 0, currentTotal = 0;
     let prevPresent = 0, prevTotal = 0;
 
+    const studentIdSet = new Set(groupStudentIds.map(String));
+
     /* ---------- Проходим по документам ---------- */
     docs.forEach(function(entry) {
         const item = entry.data || {};
@@ -2361,40 +2442,61 @@ async function loadWeekStats() {
             return;
         }
 
-        const itemGroup = String(item.groupId || item.group || "").trim().toLowerCase();
-
-        const students = Array.isArray(item.students) ? item.students : [];
-
         let dayPresent = 0;
         let dayTotal = 0;
         let matchedStudents = 0;
 
-        students.forEach(function(st) {
-            const stId = String(st.studentId || st.id || "").trim();
-            if (!stId) return;
+        // ФОРМАТ 1: students = объект { studentId: { lessons: {...} } }
+        if (item.students && typeof item.students === "object" && !Array.isArray(item.students)) {
 
-            let belongs = false;
-            if (groupStudentIds.length > 0) {
-                belongs = groupStudentIds.indexOf(stId) !== -1;
-            } else {
-                belongs = itemGroup && itemGroup === myGroup;
-            }
-            if (!belongs) return;
+            Object.keys(item.students).forEach(function(stKey) {
+                const rec = item.students[stKey] || {};
+                const sid = String(rec.studentId || stKey).trim();
+                if (!sid || !studentIdSet.has(sid)) return;
+
+                matchedStudents++;
+
+                const lessons = rec.lessons || {};
+                Object.keys(lessons).forEach(function(ln) {
+                    const lesson = lessons[ln];
+                    if (!lesson) return;
+                    dayTotal += 1;
+                    if (lesson.status === "present") dayPresent += 1;
+                });
+            });
+        }
+        // ФОРМАТ 2: students = массив [ { studentId, lessons: [...] } ]
+        else if (Array.isArray(item.students)) {
+
+            item.students.forEach(function(st) {
+                const sid = String(st.studentId || st.id || "").trim();
+                if (!sid || !studentIdSet.has(sid)) return;
+
+                matchedStudents++;
+
+                const lessons = Array.isArray(st.lessons) ? st.lessons : [];
+                lessons.forEach(function(lesson) {
+                    dayTotal += 1;
+                    if (lesson && lesson.status === "present") dayPresent += 1;
+                });
+            });
+        }
+        // ФОРМАТ 3: один документ = один студент-день
+        else if (item.studentId) {
+            const sid = String(item.studentId).trim();
+            if (!studentIdSet.has(sid)) return;
 
             matchedStudents++;
 
-            const lessons = Array.isArray(st.lessons) ? st.lessons : [];
+            const lessons = Array.isArray(item.lessons) ? item.lessons : [];
             lessons.forEach(function(lesson) {
                 dayTotal += 1;
-                if (lesson && lesson.status === "present") {
-                    dayPresent += 1;
-                }
+                if (lesson && lesson.status === "present") dayPresent += 1;
             });
-        });
+        }
 
         if (matchedStudents > 0) {
-            console.log("📅 " + dateStr + " | группа " + groupName +
-                        " | студентов найдено: " + matchedStudents +
+            console.log("📅 " + dateStr + " | студентов: " + matchedStudents +
                         " | present: " + dayPresent + "/" + dayTotal);
         }
 

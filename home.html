@@ -30,6 +30,7 @@
     document.head.appendChild(s);
   ">
 </script>
+
 <script src="firebase-config.js"></script>
 
 <style>
@@ -73,7 +74,8 @@
     --ease-bounce: cubic-bezier(.34,1.56,.64,1);
     --ease-out: cubic-bezier(.19,1,.22,1);
 }
-  html[data-theme="dark"] {
+
+html[data-theme="dark"] {
     --primary: #5b83ff;
     --primary-dark: #3b5fd6;
     --primary-light: rgba(91,131,255,.12);
@@ -120,7 +122,8 @@ body {
     -webkit-font-smoothing: antialiased;
     transition: background .4s ease, color .3s ease;
 }
-  html[data-theme="dark"] body {
+
+html[data-theme="dark"] body {
     background:
         radial-gradient(circle at 8% 0%, rgba(91,131,255,.1), transparent 42%),
         radial-gradient(circle at 96% 12%, rgba(167,139,250,.08), transparent 40%),
@@ -201,7 +204,8 @@ button { font-family: inherit; cursor: pointer; }
     0%, 100% { transform: translate(0, 0) scale(1); }
     50%      { transform: translate(60px, 40px) scale(1.15); }
 }
-  @keyframes rise {
+
+@keyframes rise {
     from { opacity: 0; transform: translateY(16px); }
     to   { opacity: 1; transform: translateY(0); }
 }
@@ -292,7 +296,8 @@ html[data-theme="dark"] .notification-banner {
     border: 2px solid var(--surface-solid);
     animation: badgePulse 1.8s ease-in-out infinite;
 }
-  notif-text { flex: 1; min-width: 0; }
+
+.notif-text { flex: 1; min-width: 0; }
 .notif-title {
     font-size: 14px; font-weight: 800; letter-spacing: -.2px;
     color: var(--text);
@@ -409,7 +414,8 @@ header {
     animation: badgePulse 1.8s ease-in-out infinite;
 }
 .header-bell.has-unread .bell-badge { display: flex; }
-  .user-menu { position: relative; }
+
+.user-menu { position: relative; }
 .user-menu-button {
     height: 48px; min-width: 220px;
     display: flex; align-items: center; gap: 10px;
@@ -584,7 +590,8 @@ header {
 .hero-bubbles span:nth-child(4) { left: 55%; width: 8px;  height: 8px;  animation-delay: 1s;   animation-duration: 10s; }
 .hero-bubbles span:nth-child(5) { left: 70%; width: 11px; height: 11px; animation-delay: 3s;   animation-duration: 12s; }
 .hero-bubbles span:nth-child(6) { left: 85%; width: 7px;  height: 7px;  animation-delay: 5s;   animation-duration: 8s;  }
-  .hero-clock {
+
+.hero-clock {
     position: relative; z-index: 2;
     width: 230px;
     padding: 26px 22px;
@@ -776,7 +783,8 @@ html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
 .week-legend-value { font-size: 12px; color: var(--text-secondary); }
 
 .week-legend-value b { color: var(--text); font-weight: 800; }
-  .week-trend {
+
+.week-trend {
     display: inline-flex;
     align-items: center;
     gap: 6px;
@@ -959,7 +967,8 @@ html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
 .settings .icon   { background: var(--amber-light);   color: var(--amber); }
 .messages .icon   { background: var(--rose-light);    color: var(--rose); position: relative; }
 .events .icon     { background: var(--cyan-light);    color: var(--cyan); }
-  .messages .icon .msg-badge {
+
+.messages .icon .msg-badge {
     position: absolute;
     top: -4px; right: -4px;
     min-width: 22px; height: 22px;
@@ -1241,6 +1250,7 @@ footer {
         </svg>
     </button>
 </div>
+
 <header>
     <div class="header-left">
         <div class="logo" onclick="showToast('Посещаемость')">
@@ -1391,7 +1401,8 @@ footer {
             </div>
         </div>
     </section>
-      <!-- ===== СТАТИСТИКА НЕДЕЛИ ===== -->
+
+    <!-- ===== СТАТИСТИКА НЕДЕЛИ ===== -->
     <section class="week-stats" id="weekStats">
         <div class="week-stats-card">
             <div class="week-stats-left">
@@ -1590,7 +1601,7 @@ footer {
 <div class="toast" id="toast"></div>
 
 <script>
-  /* =========================================================
+/* =========================================================
    ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
 ========================================================= */
 let weekChartInstance = null;
@@ -1894,8 +1905,9 @@ function updateUserInterface(user) {
         roleElement.textContent = "🎓 Куратор";
     } else {
         roleElement.textContent = "Пользователь";
-  }
-  const adminButton = document.getElementById("adminPanelButton");
+    }
+
+    const adminButton = document.getElementById("adminPanelButton");
     if (currentUserRole === "admin") {
         adminButton.style.display = "flex";
     } else {
@@ -2126,12 +2138,13 @@ document.querySelectorAll(".menu-button").forEach(function(btn) {
         setTimeout(function() { ripple.remove(); }, 900);
     });
 });
+
 /* =========================================================
    СТАТИСТИКА НЕДЕЛИ
-   Каждый куратор видит СВОЮ группу.
-   Связка: users/{uid}.groupId → groups/{id}.name
-           → groups/{id}.studentIds (приоритет)
-           → attendance (фильтр по studentId)
+   Связка:
+     users/{uid}.group  →  groups.where("name", "==", "214")
+     groups.studentIds  →  массив ID студентов
+     attendance         →  фильтр по studentId и по датам
 ========================================================= */
 
 function isStatsRole(role) {
@@ -2198,52 +2211,78 @@ async function initWeekStats(user) {
 
     block.classList.add("visible");
 
-    /* ---------- 1. ID группы пользователя ---------- */
-    let groupId = null;
+    /* ---------- 1. Что лежит в users/{uid} ---------- */
+    let userGroupValue = null;
     try {
         const userDoc = await firebase.firestore()
             .collection("users").doc(user.uid).get();
 
         if (userDoc.exists) {
             const d = userDoc.data() || {};
-            groupId = d.groupId || d.group || d.gruppa || d.groupName || null;
+            userGroupValue = d.groupId || d.group || d.gruppa || d.groupName || null;
         }
     } catch (e) {
         console.warn("users/{uid} err:", e);
     }
 
-    console.log("🔎 users.groupId =", groupId);
+    console.log("🔎 users.group (сырое значение) =", userGroupValue);
 
-    /* ---------- 2. Название группы + studentIds из groups ---------- */
-    let groupName = "—";
+    /* ---------- 2. Ищем группу: сначала по name, потом по docId ---------- */
     let groupData = null;
+    let realGroupId = null;
+    let groupName = "—";
 
-    if (groupId) {
+    if (userGroupValue) {
+        const val = String(userGroupValue).trim();
+
+        // 2.1. Поиск по полю name
         try {
-            const groupDoc = await firebase.firestore()
-                .collection("groups").doc(groupId).get();
+            const byName = await firebase.firestore()
+                .collection("groups")
+                .where("name", "==", val)
+                .limit(1)
+                .get();
 
-            if (groupDoc.exists) {
-                groupData = groupDoc.data() || {};
-                groupName = String(groupData.name || groupId).trim();
-            } else {
-                groupName = String(groupId).trim();
+            if (!byName.empty) {
+                const doc0 = byName.docs[0];
+                groupData = doc0.data() || {};
+                realGroupId = doc0.id;
+                groupName = String(groupData.name || val).trim();
+                console.log("✅ Группа найдена по name:", realGroupId, "| name:", groupName);
             }
         } catch (e) {
-            console.warn("groups/{id} err:", e);
-            groupName = String(groupId).trim();
+            console.warn("groups.where(name==...) err:", e);
+        }
+
+        // 2.2. Фолбэк: ищем по docId
+        if (!groupData) {
+            try {
+                const byIdDoc = await firebase.firestore()
+                    .collection("groups").doc(val).get();
+
+                if (byIdDoc.exists) {
+                    groupData = byIdDoc.data() || {};
+                    realGroupId = byIdDoc.id;
+                    groupName = String(groupData.name || realGroupId).trim();
+                    console.log("✅ Группа найдена по docId:", realGroupId, "| name:", groupName);
+                } else {
+                    console.warn("❌ Группа не найдена ни по name, ни по docId:", val);
+                }
+            } catch (e) {
+                console.warn("groups.doc(...) err:", e);
+            }
         }
     }
 
-    wsGroupId = groupId;
+    wsGroupId = realGroupId;
     wsGroupName = groupName;
 
-    console.log("🔎 groupName =", groupName);
+    console.log("🔎 Итог: realGroupId =", realGroupId, "| groupName =", groupName);
 
-    /* ---------- 3. Список студентов ---------- */
+    /* ---------- 3. Студенты ---------- */
     let studentIds = [];
 
-    // Способ 1: groups/{id}.studentIds (или .students)
+    // 3.1. Приоритет — массив в groups/{id}.studentIds
     if (groupData) {
         const raw = groupData.studentIds || groupData.students || [];
         if (Array.isArray(raw) && raw.length > 0) {
@@ -2252,12 +2291,12 @@ async function initWeekStats(user) {
         }
     }
 
-    // Способ 2: students.where(groupId == ID группы)
-    if (studentIds.length === 0 && groupId) {
+    // 3.2. Фолбэк: students.where(groupId == ID группы)
+    if (studentIds.length === 0 && realGroupId) {
         try {
             const snap = await firebase.firestore()
                 .collection("students")
-                .where("groupId", "==", groupId)
+                .where("groupId", "==", realGroupId)
                 .get();
 
             studentIds = snap.docs.map(d => String(d.id));
@@ -2267,7 +2306,7 @@ async function initWeekStats(user) {
         }
     }
 
-    // Способ 3: students.where(groupId == название)
+    // 3.3. Фолбэк: students.where(groupId == название)
     if (studentIds.length === 0 && groupName && groupName !== "—") {
         try {
             const snap = await firebase.firestore()
@@ -2358,7 +2397,7 @@ async function loadWeekStats() {
         });
 
     } catch (e) {
-        console.warn("Ошибка загрузки attendance, фолбэк на всю коллекцию:", e);
+        console.warn("Ошибка загрузки attendance, читаем всю коллекцию:", e);
         try {
             const allSnap = await firebase.firestore().collection("attendance").get();
             allSnap.forEach(function(d) {
@@ -2571,8 +2610,9 @@ function renderWeekChart(currentData, prevData) {
             }
         }
     });
-  }
-  /* =========================================================
+}
+
+/* =========================================================
    ЛЕГЕНДА
 ========================================================= */
 function updateWeekLegend(curPresent, curTotal, prevPresent, prevTotal) {

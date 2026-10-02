@@ -1408,7 +1408,7 @@ footer {
             <div class="week-stats-left">
                 <div class="week-stats-title">
                     <span class="ws-emoji">📊</span>
-                    Пропуски этой недели
+                    Отсутствующие на этой неделе
                 </div>
 
                 <div class="week-stats-group">
@@ -2200,15 +2200,19 @@ function normalizeStatus(status) {
     return "";
 }
 
-/* Учёт пар: в total идут только отмеченные (present/absent), в absent — только "Н" */
+/* Учёт одного студента за день: в total — студент с хотя бы одной отметкой,
+   в absent — студент, у которого хотя бы одна "Н" (считается 1 человек, а не число пар) */
 function countLessons(lessons, acc) {
+    let marked = false, missed = false;
     Object.values(lessons || {}).forEach(function(lesson) {
         if (!lesson) return;
         const st = normalizeStatus(lesson.status);
         if (!st) return;
-        acc.total += 1;
-        if (st === "absent") acc.absent += 1;
+        marked = true;
+        if (st === "absent") missed = true;
     });
+    if (marked) acc.total += 1;
+    if (missed) acc.absent += 1;
 }
 
 /* Глобальное состояние статистики */
@@ -2593,7 +2597,7 @@ function renderWeekChart(currentData, prevData) {
                     bodyFont: { family: "Inter", size: 12 },
                     callbacks: {
                         label: function(ctx) {
-                            return ` ${ctx.dataset.label}: ${ctx.parsed.y} пропусков`;
+                            return ` ${ctx.dataset.label}: ${ctx.parsed.y} чел.`;
                         }
                     }
                 }

@@ -2191,11 +2191,24 @@ function waitForChart(cb, attempts) {
     setTimeout(function() { waitForChart(cb, attempts + 1); }, 200);
 }
 
-/* Статус "отсутствует": любой заполненный статус, кроме present и late (опоздание) */
-function isAbsentStatus(status) {
-    if (!status) return false;
-    const st = String(status).trim().toLowerCase();
-    return st !== "present" && st !== "late";
+/* Нормализация статуса — та же логика, что в history.html */
+function normalizeStatus(status) {
+    if (status === null || status === undefined) return "";
+    const v = String(status).trim().toLowerCase();
+    if (["present", "присутствовал", "присутствует", "присутствие", "п", "✓"].includes(v)) return "present";
+    if (["absent", "отсутствовал", "отсутствует", "отсутствие", "н"].includes(v)) return "absent";
+    return "";
+}
+
+/* Учёт пар: в total идут только отмеченные (present/absent), в absent — только "Н" */
+function countLessons(lessons, acc) {
+    Object.values(lessons || {}).forEach(function(lesson) {
+        if (!lesson) return;
+        const st = normalizeStatus(lesson.status);
+        if (!st) return;
+        acc.total += 1;
+        if (st === "absent") acc.absent += 1;
+    });
 }
 
 /* Глобальное состояние статистики */
@@ -2443,8 +2456,7 @@ async function loadWeekStats() {
             return;
         }
 
-        let dayAbsent = 0;
-        let dayTotal = 0;
+        const acc = { absent: 0, total: 0 };
         let matchedStudents = 0;
 
         // ФОРМАТ 1: students = объект { studentId: { lessons: {...} } }
@@ -2455,13 +2467,7 @@ async function loadWeekStats() {
                 if (!sid || !studentIdSet.has(sid)) return;
 
                 matchedStudents++;
-                const lessons = rec.lessons || {};
-                Object.keys(lessons).forEach(function(ln) {
-                    const lesson = lessons[ln];
-                    if (!lesson) return;
-                    dayTotal += 1;
-                    if (isAbsentStatus(lesson.status)) dayAbsent += 1;
-                });
+                countLessons(rec.lessons, acc);
             });
         }
         // ФОРМАТ 2: students = массив [ { studentId, lessons: [...] } ]
@@ -2471,11 +2477,7 @@ async function loadWeekStats() {
                 if (!sid || !studentIdSet.has(sid)) return;
 
                 matchedStudents++;
-                const lessons = Array.isArray(st.lessons) ? st.lessons : [];
-                lessons.forEach(function(lesson) {
-                    dayTotal += 1;
-                    if (lesson && isAbsentStatus(lesson.status)) dayAbsent += 1;
-                });
+                countLessons(st.lessons, acc);
             });
         }
         // ФОРМАТ 3: один документ = один студент-день
@@ -2484,12 +2486,11 @@ async function loadWeekStats() {
             if (!studentIdSet.has(sid)) return;
 
             matchedStudents++;
-            const lessons = Array.isArray(item.lessons) ? item.lessons : [];
-            lessons.forEach(function(lesson) {
-                dayTotal += 1;
-                if (lesson && isAbsentStatus(lesson.status)) dayAbsent += 1;
-            });
+            countLessons(item.lessons, acc);
         }
+
+        const dayAbsent = acc.absent;
+        const dayTotal = acc.total;
 
         if (matchedStudents > 0) {
             console.log("📅 " + dateStr + " | студентов: " + matchedStudents +

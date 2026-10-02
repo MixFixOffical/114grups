@@ -1,0 +1,1779 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="description" content="Система управления посещаемостью студентов">
+<title>Отметка посещаемости</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+:root {
+    --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #eff6ff;
+    --green: #22c55e; --green-dark: #15803d; --green-light: #f0fdf4;
+    --orange: #f59e0b; --orange-light: #fffbeb;
+    --purple: #8b5cf6; --purple-light: #f5f3ff;
+    --red: #ef4444; --red-dark: #dc2626; --red-light: #fef2f2;
+    --text: #111827; --text-secondary: #6b7280; --text-light: #9ca3af;
+    --background: #f4f7fb; --border: #e5e7eb;
+    --shadow: 0 10px 30px rgba(15,23,42,0.07);
+    --shadow-hover: 0 18px 45px rgba(15,23,42,0.13);
+    --radius: 20px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+html { scroll-behavior: smooth; }
+body {
+    min-height: 100vh;
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--text);
+    background:
+        radial-gradient(circle at 10% 10%, rgba(37,99,235,0.10), transparent 30%),
+        radial-gradient(circle at 90% 20%, rgba(139,92,246,0.08), transparent 28%),
+        linear-gradient(135deg, #f8fafc, #eef3f9);
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+button, input, textarea, select { font-family: inherit; font-size: 16px; }
+button { cursor: pointer; }
+
+/* ===== loader ===== */
+.page-loader {
+    position: fixed; inset: 0; z-index: 5000;
+    display: flex; align-items: center; justify-content: center;
+    background: #f8fafc;
+    transition: opacity .4s ease, visibility .4s ease;
+}
+.page-loader.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+.loader-logo {
+    width: 72px; height: 72px; display: flex; align-items: center; justify-content: center;
+    margin: 0 auto 16px; border-radius: 22px; font-size: 32px;
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    box-shadow: 0 20px 40px rgba(37,99,235,.25);
+    animation: loaderFloat 1.6s infinite ease-in-out;
+}
+.loader-text { text-align: center; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+.loader-progress { width: 160px; height: 4px; margin: 16px auto 0; overflow: hidden; border-radius: 999px; background: #e5e7eb; }
+.loader-progress::after {
+    content: ""; display: block; width: 45%; height: 100%; border-radius: inherit;
+    background: linear-gradient(90deg, #2563eb, #8b5cf6);
+    animation: loaderProgress 1.1s infinite ease-in-out;
+}
+@keyframes loaderFloat { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+@keyframes loaderProgress { 0% { transform: translateX(-120%); } 100% { transform: translateX(400%); } }
+
+.background-orb { position: fixed; border-radius: 50%; pointer-events: none; z-index: -1; }
+.orb-1 { width: 280px; height: 280px; top: -100px; left: -100px; background: rgba(37,99,235,.08); }
+.orb-2 { width: 350px; height: 350px; right: -150px; bottom: -120px; background: rgba(139,92,246,.07); }
+
+/* ===== header ===== */
+header {
+    position: sticky; top: 0; z-index: 100;
+    width: 100%; height: calc(60px + var(--safe-top));
+    padding: var(--safe-top) 12px 0;
+    display: flex; align-items: center; justify-content: space-between;
+    color: #fff;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    box-shadow: 0 5px 25px rgba(37,99,235,.22);
+}
+.header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.back-button {
+    width: 40px; height: 40px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border: none; border-radius: 12px; color: #fff;
+    background: rgba(255,255,255,.16); font-size: 20px;
+    transition: .2s;
+}
+.back-button:active { transform: scale(.93); background: rgba(255,255,255,.26); }
+.header-brand { display: flex; flex-direction: column; min-width: 0; }
+.header-title { font-size: 16px; font-weight: 800; letter-spacing: -.3px; white-space: nowrap; }
+.header-subtitle { margin-top: 1px; font-size: 10.5px; opacity: .78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-right { display: flex; align-items: center; gap: 8px; }
+.online-status {
+    display: flex; align-items: center; gap: 6px;
+    padding: 7px 11px; border-radius: 999px;
+    font-size: 11px; font-weight: 700;
+    background: rgba(255,255,255,.14);
+    backdrop-filter: blur(10px);
+}
+.online-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,.18); animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: .7; } }
+
+/* ===== container ===== */
+.container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 12px 10px calc(90px + var(--safe-bottom)); }
+
+/* ===== hero ===== */
+.page-hero {
+    position: relative; padding: 18px 16px; margin-bottom: 12px;
+    border-radius: 22px; color: #fff; overflow: hidden;
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #4338ca 100%);
+    box-shadow: 0 18px 50px rgba(37,99,235,.22);
+    animation: heroIn .6s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes heroIn { from { opacity: 0; transform: translateY(-14px) scale(.98); } to { opacity: 1; transform: none; } }
+.page-hero::before, .page-hero::after { content:""; position:absolute; border-radius:50%; background:rgba(255,255,255,.07); }
+.page-hero::before { width: 220px; height: 220px; right: -70px; top: -110px; }
+.page-hero::after { width: 140px; height: 140px; right: 120px; bottom: -80px; }
+.hero-row { position: relative; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.hero-content { min-width: 0; flex: 1; }
+.hero-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; margin-bottom: 10px; border-radius: 999px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.14); }
+.page-hero h1 { font-size: 20px; line-height: 1.15; margin-bottom: 6px; letter-spacing: -.6px; }
+.page-hero p { font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,.82); }
+.hero-clock { flex-shrink: 0; padding: 12px 14px; text-align: center; border-radius: 16px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(15px); }
+.hero-clock-time { font-size: 20px; font-weight: 800; letter-spacing: .5px; font-variant-numeric: tabular-nums; }
+.hero-clock-date { margin-top: 3px; font-size: 10px; color: rgba(255,255,255,.75); }
+.hero-toggle {
+    position: absolute; top: 10px; right: 12px; z-index: 3;
+    width: 30px; height: 30px; border: none; border-radius: 10px;
+    background: rgba(255,255,255,.18); color: #fff; font-size: 14px;
+    display: none; align-items: center; justify-content: center;
+    transition: .3s;
+}
+.page-hero.collapsed p { display: none; }
+.page-hero.collapsed h1 { margin-bottom: 0; }
+
+/* ===== top panel ===== */
+.top-panel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
+.info-card {
+    padding: 14px 12px;
+    background: rgba(255,255,255,.94);
+    border: 1px solid rgba(255,255,255,.8);
+    border-radius: 16px; box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    transition: .2s;
+    animation: cardIn .5s cubic-bezier(.2,.8,.3,1) backwards;
+}
+.info-card:nth-child(1){animation-delay:.05s}
+.info-card:nth-child(2){animation-delay:.1s}
+.info-card:nth-child(3){animation-delay:.15s}
+.info-card:nth-child(4){animation-delay:.2s}
+@keyframes cardIn { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform:none; } }
+.info-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
+.info-label { color: var(--text-secondary); font-size: 11px; margin-bottom: 7px; display: flex; align-items: center; gap: 4px; }
+.info-value { font-size: 14px; font-weight: 800; }
+.date-input, select.date-input {
+    width: 100%; padding: 9px 10px;
+    border: 1px solid #dbe1ea; border-radius: 11px;
+    font-size: 14px; outline: none;
+    background: #f8fafc; color: #111827;
+    transition: .15s;
+}
+.date-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+.date-input:disabled { opacity: .75; background: #eef1f5; }
+.group-hint { margin-top: 6px; font-size: 10.5px; color: var(--text-light); line-height: 1.35; }
+
+/* ===== date nav ===== */
+.date-nav { display: flex; gap: 6px; margin-top: 6px; }
+.date-nav button {
+    flex: 1; min-width: 0;
+    padding: 8px 4px; border: 1px solid #dbe1ea; border-radius: 10px;
+    background: #f8fafc; color: #374151; font-size: 12px; font-weight: 700;
+    transition: .15s;
+}
+.date-nav button:active { transform: scale(.96); background: #eef1f5; }
+.date-nav button.primary { background: var(--blue-light); color: var(--blue-dark); border-color: #bfdbfe; }
+
+/* ===== quick panel ===== */
+.quick-panel {
+    display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
+    padding: 12px 14px; margin-bottom: 12px;
+    border: 1px solid #dbe4f0; border-radius: 16px;
+    background: rgba(255,255,255,.94);
+    box-shadow: var(--shadow);
+    transition: .25s;
+}
+.quick-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
+.quick-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: var(--blue-light); color: var(--blue); font-size: 18px; flex-shrink: 0; }
+.quick-title { font-size: 13.5px; font-weight: 800; }
+.quick-description { margin-top: 2px; color: var(--text-secondary); font-size: 11px; }
+.quick-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.quick-button {
+    border: none; border-radius: 11px;
+    padding: 10px 14px; font-size: 12.5px; font-weight: 800;
+    transition: .15s; white-space: nowrap;
+    min-height: 40px;
+}
+.quick-button:active { transform: scale(.96); }
+.quick-present { background: var(--green-light); color: var(--green-dark); }
+.quick-absent { background: var(--red-light); color: var(--red-dark); }
+.quick-cancel { display: none; background: #f3f4f6; color: #4b5563; }
+.quick-panel.active { border-color: #93c5fd; box-shadow: 0 10px 35px rgba(37,99,235,.12); }
+.quick-panel.active .quick-cancel { display: block; }
+.quick-mode-label { display: none; padding: 5px 9px; border-radius: 999px; font-size: 10.5px; font-weight: 800; }
+.quick-panel.active .quick-mode-label { display: inline-flex; }
+.quick-panel.active[data-mode="present"] .quick-mode-label { background: var(--green-light); color: var(--green-dark); }
+.quick-panel.active[data-mode="absent"] .quick-mode-label { background: var(--red-light); color: var(--red-dark); }
+
+/* ===== выбор пары ===== */
+.lesson-picker {
+    margin-bottom: 12px;
+    padding: 14px;
+    background: rgba(255,255,255,.96);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    animation: cardIn .5s cubic-bezier(.2,.8,.3,1) backwards;
+    animation-delay: .22s;
+}
+.lesson-picker-head {
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px; margin-bottom: 10px; flex-wrap: wrap;
+}
+.lesson-picker-title {
+    font-size: 13px; font-weight: 800; color: var(--text);
+    display: flex; align-items: center; gap: 6px;
+}
+.lesson-picker-title .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: linear-gradient(135deg, #2563eb, #8b5cf6);
+    box-shadow: 0 0 0 4px rgba(37,99,235,.1);
+    animation: pulse 2s infinite;
+}
+.lesson-picker-hint { font-size: 10.5px; color: var(--text-light); }
+
+.lesson-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.lesson-chip {
+    position: relative;
+    min-width: 52px; height: 52px;
+    padding: 0 12px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid #e5e7eb; border-radius: 15px;
+    background: #f8fafc; color: #374151;
+    font-size: 17px; font-weight: 900;
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .18s, border-color .18s, color .18s, box-shadow .18s;
+    overflow: hidden;
+}
+.lesson-chip::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle, rgba(37,99,235,.25), transparent 60%);
+    opacity: 0; transition: opacity .3s;
+}
+.lesson-chip:active { transform: scale(.9); }
+.lesson-chip:hover { transform: translateY(-2px); border-color: #bfdbfe; }
+.lesson-chip.active {
+    background: linear-gradient(135deg, #2563eb, #4f46e5);
+    border-color: #2563eb; color: #fff;
+    box-shadow: 0 10px 25px rgba(37,99,235,.35);
+    transform: translateY(-3px) scale(1.04);
+    animation: chipPop .4s cubic-bezier(.34,1.56,.64,1);
+}
+.lesson-chip.active::after { opacity: 1; }
+@keyframes chipPop { 0% { transform: scale(.85); } 60% { transform: scale(1.1); } 100% { transform: translateY(-3px) scale(1.04); } }
+.lesson-chip .chip-pulse {
+    position: absolute; top: 6px; right: 6px;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #fff; opacity: .9;
+    animation: pulse 1.6s infinite;
+}
+
+.discipline-banner {
+    margin-top: 12px;
+    padding: 14px 16px;
+    border-radius: 15px;
+    background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+    border: 1px solid #dbeafe;
+    display: flex; align-items: center; gap: 12px;
+    opacity: 0; transform: translateY(-8px);
+    transition: opacity .35s ease, transform .35s cubic-bezier(.2,.8,.3,1);
+}
+.discipline-banner.show { opacity: 1; transform: none; }
+.discipline-icon {
+    width: 42px; height: 42px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 13px; font-size: 20px;
+    background: #fff;
+    box-shadow: 0 6px 18px rgba(37,99,235,.12);
+    animation: bookBob 3s infinite ease-in-out;
+}
+@keyframes bookBob { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-3px) rotate(-4deg)} }
+.discipline-text { min-width: 0; }
+.discipline-label { font-size: 10.5px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: .5px; }
+.discipline-name {
+    font-size: 15px; font-weight: 800; color: var(--text);
+    margin-top: 2px; line-height: 1.25;
+    word-break: break-word;
+    animation: textSlide .4s cubic-bezier(.2,.8,.3,1);
+}
+@keyframes textSlide { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+.discipline-time { font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; }
+
+/* ===== toolbar ===== */
+.toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
+.toolbar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.toolbar-title { font-size: 17px; font-weight: 800; letter-spacing: -.3px; }
+.day-badge { padding: 5px 10px; border-radius: 999px; color: var(--blue-dark); background: var(--blue-light); font-size: 11.5px; font-weight: 700; }
+.refresh-button {
+    display: flex; align-items: center; gap: 6px;
+    padding: 9px 13px; min-height: 40px;
+    border: 1px solid var(--border); border-radius: 11px;
+    background: rgba(255,255,255,.94); color: #374151;
+    font-weight: 700; font-size: 12.5px;
+    box-shadow: 0 5px 18px rgba(15,23,42,.05);
+    transition: .15s;
+}
+.refresh-button:active { transform: scale(.96); }
+.refresh-button:hover { border-color: var(--blue); color: var(--blue); }
+.refresh-button.spin span { display:inline-block; animation: spin 1s linear infinite; }
+
+/* ===== search ===== */
+.search-wrap { position: relative; margin-bottom: 10px; }
+.search-wrap input {
+    width: 100%; padding: 11px 14px 11px 38px;
+    border: 1px solid var(--border); border-radius: 13px;
+    background: rgba(255,255,255,.94); font-size: 14px; outline: none;
+    box-shadow: var(--shadow); transition: .15s;
+}
+.search-wrap input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+.search-wrap::before { content: "🔍"; position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 14px; opacity: .6; pointer-events: none; }
+
+/* ===== table ===== */
+.table-wrapper {
+    width: 100%; overflow: auto;
+    background: rgba(255,255,255,.96);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    -webkit-overflow-scrolling: touch;
+}
+table { width: 100%; border-collapse: separate; border-spacing: 0; min-width: 640px; }
+th {
+    position: sticky; top: 0; z-index: 5;
+    padding: 12px 8px; background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+    color: #4b5563; font-size: 11.5px; font-weight: 800; text-align: center;
+    white-space: nowrap;
+}
+th:first-child { position: sticky; left: 0; z-index: 10; width: 190px; min-width: 190px; text-align: left; padding-left: 14px; background: #f8fafc; }
+.lesson-header { cursor: pointer; user-select: none; transition: .15s; }
+.lesson-header:hover { color: var(--blue); background: #eff6ff; }
+.lesson-header.active-col { background: #eff6ff; color: var(--blue); }
+.lesson-number { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 7px; border-radius: 9px; background: var(--blue-light); color: var(--blue); font-size: 11.5px; font-weight: 900; }
+.lesson-short-name { display: block; max-width: 84px; margin: 5px auto 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #6b7280; font-size: 9.5px; font-weight: 600; }
+td { padding: 6px; border-bottom: 1px solid #eef0f4; text-align: center; background: #fff; }
+tr:last-child td { border-bottom: none; }
+td:first-child { position: sticky; left: 0; z-index: 4; width: 190px; min-width: 190px; text-align: left; padding-left: 14px; background: #fff; }
+tr:hover td { background: #fbfdff; }
+tr:hover td:first-child { background: #fbfdff; }
+.student-name { font-weight: 700; color: var(--text); font-size: 13px; }
+.student-number { display: inline-flex; width: 26px; height: 26px; align-items: center; justify-content: center; margin-right: 7px; border-radius: 9px; background: var(--blue-light); color: var(--blue); font-size: 10.5px; font-weight: 800; }
+
+.attendance-cell { padding: 4px; cursor: pointer; user-select: none; transition: .12s; }
+.attendance-cell:hover { background: #f8fbff; }
+.status {
+    min-width: 44px; height: 44px; width: fit-content;
+    padding: 0 6px; margin: auto;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 12px; font-size: 15px; font-weight: 900;
+    transition: .15s;
+    pointer-events: none;
+}
+.status-absent { font-size: 11.5px; }
+.status-empty { background: #f3f4f6; color: #9ca3af; }
+.status-present { background: var(--green-light); color: var(--green-dark); }
+.status-absent { background: var(--red-light); color: var(--red-dark); }
+.attendance-cell:active .status { transform: scale(.9); }
+.quick-panel.active .attendance-cell { cursor: crosshair; }
+.quick-panel.active .attendance-cell:hover .status { transform: scale(1.06); }
+
+/* ===== список студентов с кнопками ===== */
+.students-list {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px;
+}
+.student-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 12px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 4px 14px rgba(15,23,42,.05);
+    transition: .2s;
+    animation: rowIn .4s cubic-bezier(.2,.8,.3,1) backwards;
+}
+@keyframes rowIn { from { opacity:0; transform: translateX(-12px); } to { opacity:1; transform:none; } }
+.student-row:hover { border-color: #bfdbfe; box-shadow: 0 10px 26px rgba(37,99,235,.10); }
+.student-row .s-index {
+    width: 32px; height: 32px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 10px; background: var(--blue-light); color: var(--blue);
+    font-size: 12px; font-weight: 800;
+}
+.student-row .s-name {
+    flex: 1; min-width: 0;
+    font-size: 14px; font-weight: 700; color: var(--text);
+    word-break: break-word;
+}
+.student-row .s-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.s-btn {
+    width: 42px; height: 42px;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid transparent; border-radius: 13px;
+    font-size: 18px; font-weight: 900;
+    transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .18s, border-color .18s, box-shadow .18s;
+}
+.s-btn:active { transform: scale(.85); }
+.s-btn.present { background: var(--green-light); color: var(--green-dark); }
+.s-btn.present:hover { border-color: #86efac; transform: translateY(-2px); box-shadow: 0 8px 18px rgba(34,197,94,.2); }
+.s-btn.present.active { background: var(--green); color: #fff; border-color: var(--green-dark); box-shadow: 0 8px 20px rgba(34,197,94,.35); }
+.s-btn.absent { background: var(--red-light); color: var(--red-dark); }
+.s-btn.absent:hover { border-color: #fca5a5; transform: translateY(-2px); box-shadow: 0 8px 18px rgba(239,68,68,.2); }
+.s-btn.absent.active { background: var(--red); color: #fff; border-color: var(--red-dark); box-shadow: 0 8px 20px rgba(239,68,68,.35); }
+.s-btn.more { background: #f3f4f6; color: #4b5563; font-size: 20px; }
+.s-btn.more:hover { background: #e5e7eb; transform: translateY(-2px); }
+
+.s-status {
+    padding: 5px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 800;
+    white-space: nowrap;
+    animation: statusIn .35s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes statusIn { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: scale(1); } }
+.s-status.present { background: var(--green-light); color: var(--green-dark); }
+.s-status.absent { background: var(--red-light); color: var(--red-dark); }
+.s-status.empty { background: #f3f4f6; color: #9ca3af; }
+
+/* ===== cards (mobile, оставлены) ===== */
+.cards { display: none; padding: 10px; gap: 10px; flex-direction: column; }
+.card {
+    background: #fff; border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden;
+    box-shadow: 0 4px 14px rgba(15,23,42,.05);
+    animation: rowIn .4s cubic-bezier(.2,.8,.3,1) backwards;
+}
+.card-head {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px;
+    background: #f8fafc;
+    border-bottom: 1px solid var(--border);
+}
+.card-index {
+    width: 30px; height: 30px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 10px; background: var(--blue-light); color: var(--blue);
+    font-size: 12px; font-weight: 800;
+}
+.card-name { font-size: 14.5px; font-weight: 800; color: var(--text); min-width: 0; word-break: break-word; }
+.card-body { padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
+.card-lesson {
+    position: relative;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 3px; padding: 8px 4px;
+    border: 1px solid #e5e7eb; border-radius: 13px;
+    background: #fbfcfe;
+    min-height: 74px;
+    cursor: pointer; transition: .12s;
+}
+.card-lesson:active { transform: scale(.96); background: #f1f5fb; }
+.card-lesson-num { font-size: 10.5px; font-weight: 800; color: #4b5563; }
+.card-lesson-disc { font-size: 9px; color: var(--text-light); text-align: center; line-height: 1.15; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.card-lesson .status { min-width: 36px; height: 32px; font-size: 13px; border-radius: 10px; }
+.card-lesson .status-absent { font-size: 10.5px; }
+.card-lesson.present { border-color: #bbf7d0; background: var(--green-light); }
+.card-lesson.absent { border-color: #fecaca; background: var(--red-light); }
+
+/* ===== loading / empty ===== */
+.loading { padding: 50px 20px; text-align: center; color: var(--text-secondary); font-size: 14px; }
+.spinner { width: 36px; height: 36px; margin: 0 auto 14px; border-radius: 50%; border: 4px solid #e5e7eb; border-top-color: var(--blue); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.empty { padding: 50px 20px; text-align: center; color: var(--text-secondary); animation: cardIn .4s ease; }
+.empty-icon { font-size: 44px; margin-bottom: 12px; display: inline-block; animation: floaty 3s infinite ease-in-out; }
+@keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+.empty-title { font-size: 17px; font-weight: 800; color: #374151; margin-bottom: 6px; }
+
+/* ===== overlays ===== */
+.menu-overlay, .modal-overlay {
+    position: fixed; inset: 0; z-index: 500;
+    display: none; align-items: flex-end; justify-content: center;
+    padding: 0;
+    background: rgba(15,23,42,.5);
+    backdrop-filter: blur(6px);
+}
+.menu-overlay.active, .modal-overlay.active { display: flex; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.choice-menu, .modal, .lesson-info-modal {
+    width: 100%; max-width: 520px;
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    padding: 8px 18px calc(18px + var(--safe-bottom));
+    box-shadow: 0 -10px 40px rgba(15,23,42,.22);
+    animation: sheetUp .35s cubic-bezier(.2,.8,.3,1);
+    max-height: 90vh; overflow-y: auto;
+}
+.choice-menu::before, .modal::before, .lesson-info-modal::before {
+    content: ""; display: block; width: 40px; height: 4px;
+    margin: 6px auto 14px; border-radius: 999px; background: #d1d5db;
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.menu-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+.menu-student { color: var(--text-secondary); font-size: 13px; margin-bottom: 14px; }
+.choice-button {
+    width: 100%; display: flex; align-items: center; gap: 12px;
+    padding: 12px; margin-bottom: 8px;
+    border: 1px solid var(--border); border-radius: 14px;
+    background: #fff; text-align: left;
+    transition: .12s;
+    min-height: 60px;
+}
+.choice-button:active { transform: scale(.98); background: #f8fbff; }
+.choice-button:hover { border-color: #bfdbfe; }
+.choice-icon { width: 42px; height: 42px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 19px; font-weight: 900; }
+.present-icon { background: var(--green-light); color: var(--green-dark); }
+.absent-icon { background: var(--red-light); color: var(--red-dark); }
+.whole-day-icon { background: var(--orange-light); color: #d97706; }
+.delete-icon { background: #f3f4f6; color: #4b5563; }
+.choice-text strong { display: block; font-size: 14px; margin-bottom: 2px; }
+.choice-text span { color: var(--text-secondary); font-size: 11.5px; }
+.cancel-button {
+    width: 100%; margin-top: 4px; padding: 13px;
+    border: none; border-radius: 13px;
+    background: #f3f4f6; color: #4b5563;
+    font-weight: 800; font-size: 14px;
+}
+.cancel-button:active { background: #e5e7eb; }
+
+.modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; gap: 10px; }
+.modal-title { font-size: 18px; font-weight: 800; }
+.close-button { width: 34px; height: 34px; flex-shrink: 0; border: none; border-radius: 10px; background: #f3f4f6; font-size: 16px; }
+.close-button:active { background: #e5e7eb; transform: scale(.94); }
+.modal-info { padding: 12px; margin-bottom: 14px; border-radius: 13px; background: #f8fafc; }
+.modal-info-row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 12.5px; }
+.modal-info-row span:first-child { color: var(--text-secondary); }
+.modal-info-row span:last-child { font-weight: 700; text-align: right; min-width: 0; word-break: break-word; }
+.absent-type-label, .reason-label { display: block; margin-bottom: 7px; font-size: 13px; font-weight: 700; }
+.absent-type-group { display: flex; gap: 7px; margin-bottom: 14px; }
+.absent-type-btn {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    padding: 10px 4px; min-height: 60px;
+    border: 2px solid #e5e7eb; border-radius: 13px;
+    background: #f8fafc; transition: .12s;
+}
+.absent-type-btn:active { transform: scale(.96); }
+.absent-type-btn strong { font-size: 15px; font-weight: 800; }
+.absent-type-btn span { font-size: 10px; font-weight: 600; color: var(--text-secondary); text-align: center; }
+.absent-type-btn[data-type="neuv"].active { border-color: var(--red); background: var(--red-light); }
+.absent-type-btn[data-type="neuv"].active strong { color: var(--red-dark); }
+.absent-type-btn[data-type="uv"].active { border-color: var(--green); background: var(--green-light); }
+.absent-type-btn[data-type="uv"].active strong { color: var(--green-dark); }
+.absent-type-btn[data-type="bolezn"].active { border-color: var(--purple); background: var(--purple-light); }
+.absent-type-btn[data-type="bolezn"].active strong { color: var(--purple); }
+.reason-input {
+    width: 100%; min-height: 84px; resize: vertical;
+    padding: 11px; border: 1px solid #dbe1ea; border-radius: 13px;
+    outline: none; font-size: 14px;
+    transition: background .35s ease, border-color .15s, box-shadow .15s;
+}
+.reason-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
+.reason-hint {
+    margin-top: 6px; font-size: 11px; color: var(--text-secondary);
+    display: flex; align-items: center; gap: 5px;
+    min-height: 16px;
+    transition: opacity .25s;
+}
+.reason-hint .hint-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: #22c55e;
+    animation: pulse 1.6s infinite;
+}
+.modal-actions { display: flex; gap: 8px; margin-top: 14px; }
+.modal-actions button { flex: 1; padding: 13px; min-height: 46px; border: none; border-radius: 13px; font-weight: 800; font-size: 14px; }
+.save-button { background: var(--blue); color: #fff; }
+.save-button:active { background: var(--blue-dark); }
+.modal-cancel { background: #f3f4f6; color: #4b5563; }
+
+.lesson-big-icon { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; border-radius: 16px; background: linear-gradient(135deg, #eff6ff, #eef2ff); font-size: 24px; }
+.lesson-info-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+.lesson-info-subtitle { color: var(--text-secondary); font-size: 12.5px; margin-bottom: 16px; }
+.lesson-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.lesson-info-item { padding: 12px; border-radius: 13px; background: #f8fafc; }
+.lesson-info-label { color: var(--text-secondary); font-size: 10.5px; margin-bottom: 4px; }
+.lesson-info-value { font-size: 13.5px; font-weight: 800; word-break: break-word; }
+.lesson-close { width: 100%; margin-top: 16px; padding: 13px; border: none; border-radius: 13px; background: #f3f4f6; color: #374151; font-weight: 800; font-size: 14px; }
+
+/* ===== toast ===== */
+.toast {
+    position: fixed; left: 50%; bottom: calc(24px + var(--safe-bottom)); z-index: 1000;
+    transform: translate(-50%, 120px);
+    padding: 12px 18px; border-radius: 14px;
+    color: #fff; background: #111827;
+    font-size: 13px; font-weight: 700;
+    box-shadow: 0 10px 30px rgba(0,0,0,.18);
+    opacity: 0; pointer-events: none;
+    transition: .35s cubic-bezier(.2,.8,.3,1);
+    max-width: calc(100vw - 32px); text-align: center;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast.success { background: #15803d; }
+.toast.error { background: #dc2626; }
+.toast.warning { background: #d97706; }
+
+/* ===== floating bar ===== */
+.floating-bar {
+    position: fixed; left: 12px; right: 12px; bottom: calc(12px + var(--safe-bottom));
+    z-index: 400;
+    display: none; gap: 8px;
+    padding: 10px;
+    background: rgba(17,24,39,.94);
+    border-radius: 18px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.3);
+    backdrop-filter: blur(14px);
+    animation: slideUp .35s cubic-bezier(.2,.8,.3,1);
+}
+.floating-bar.active { display: flex; }
+@keyframes slideUp { from { transform: translateY(120%); } to { transform: translateY(0); } }
+.floating-bar button {
+    flex: 1; min-height: 46px; padding: 8px;
+    border: none; border-radius: 12px;
+    font-size: 12.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+    transition: .12s;
+}
+.floating-bar button:active { transform: scale(.95); }
+.fb-present { background: var(--green); color: #fff; }
+.fb-absent { background: var(--red); color: #fff; }
+.fb-cancel { background: rgba(255,255,255,.14); color: #fff; flex: 0 0 50px !important; }
+
+/* ===== scroll top ===== */
+.scroll-top {
+    position: fixed; right: 12px; bottom: calc(84px + var(--safe-bottom));
+    z-index: 350;
+    width: 42px; height: 42px;
+    display: none; align-items: center; justify-content: center;
+    border: none; border-radius: 50%;
+    background: #fff; color: #374151;
+    box-shadow: 0 8px 25px rgba(15,23,42,.16);
+    font-size: 18px;
+    animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+.scroll-top.show { display: flex; }
+.scroll-top:active { transform: scale(.9); }
+@keyframes popIn { from { transform: scale(.5); opacity:0; } to { transform: scale(1); opacity:1; } }
+
+/* ===== MOBILE ===== */
+@media (max-width: 768px) {
+    .container { padding: 10px 8px calc(100px + var(--safe-bottom)); }
+
+    .page-hero { padding: 14px 14px 16px; border-radius: 18px; }
+    .page-hero h1 { font-size: 17px; }
+    .page-hero p { font-size: 11.5px; }
+    .hero-clock { display: none; }
+    .hero-toggle { display: flex; }
+
+    .top-panel { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .info-card { padding: 11px 10px; border-radius: 14px; }
+    .info-label { font-size: 10.5px; margin-bottom: 5px; }
+    .info-value { font-size: 13px; }
+    .date-input { font-size: 13.5px; padding: 9px 10px; }
+    .group-hint { font-size: 10px; }
+
+    .quick-panel { padding: 11px; border-radius: 14px; flex-direction: column; align-items: stretch; }
+    .quick-actions { justify-content: stretch; }
+    .quick-button { flex: 1; padding: 10px 8px; min-height: 44px; }
+    .quick-description { font-size: 10.5px; }
+
+    .lesson-picker { padding: 12px; border-radius: 16px; }
+    .lesson-chip { min-width: 46px; height: 46px; font-size: 15px; border-radius: 13px; }
+
+    .toolbar-title { font-size: 16px; }
+    .refresh-button { padding: 9px 11px; font-size: 12px; min-height: 42px; }
+
+    .table-wrapper { display: none; }
+    .cards { display: none; }
+    .students-list { display: flex; }
+    .student-row { padding: 10px; border-radius: 14px; gap: 8px; }
+    .student-row .s-name { font-size: 13.5px; }
+    .s-btn { width: 40px; height: 40px; font-size: 17px; border-radius: 12px; }
+}
+
+@media (max-width: 380px) {
+    .top-panel { grid-template-columns: 1fr; }
+    .student-row { flex-wrap: wrap; }
+    .student-row .s-actions { width: 100%; justify-content: flex-end; }
+    .s-btn { width: 38px; height: 38px; font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="page-loader" id="pageLoader">
+    <div>
+        <div class="loader-logo">📚</div>
+        <div class="loader-text">Загрузка системы...</div>
+        <div class="loader-progress"></div>
+    </div>
+</div>
+
+<div class="background-orb orb-1"></div>
+<div class="background-orb orb-2"></div>
+
+<header>
+    <div class="header-left">
+        <button class="back-button" onclick="goBack()" aria-label="Назад">←</button>
+        <div class="header-brand">
+            <div class="header-title">Посещаемость</div>
+            <div class="header-subtitle">Отметка посещаемости</div>
+        </div>
+    </div>
+    <div class="header-right">
+        <div class="online-status">
+            <span class="online-dot"></span>
+            Работает
+        </div>
+    </div>
+</header>
+
+<main class="container">
+
+    <section class="page-hero" id="pageHero">
+        <button class="hero-toggle" onclick="toggleHero()" aria-label="Свернуть">▾</button>
+        <div class="hero-row">
+            <div class="hero-content">
+                <div class="hero-badge">✨ Панель администратора</div>
+                <h1>Отметка посещаемости</h1>
+                <p>Выберите дату и отметьте присутствующих или отсутствующих студентов по каждой паре.</p>
+            </div>
+            <div class="hero-clock">
+                <div class="hero-clock-time" id="clock">00:00:00</div>
+                <div class="hero-clock-date" id="clockDate">Загрузка...</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="top-panel">
+        <div class="info-card">
+            <div class="info-label">👥 Группа</div>
+            <select id="groupSelect" class="date-input" aria-label="Выбор группы">
+                <option value="">Загрузка...</option>
+            </select>
+            <div class="group-hint" id="groupHint">Загрузка данных о доступе...</div>
+        </div>
+        <div class="info-card">
+            <div class="info-label">📅 Дата</div>
+            <input type="date" id="datePicker" class="date-input" aria-label="Выбор даты">
+            <div class="date-nav">
+                <button type="button" onclick="shiftDate(-1)" aria-label="Предыдущий день">←</button>
+                <button type="button" class="primary" onclick="goToday()">Сегодня</button>
+                <button type="button" onclick="shiftDate(1)" aria-label="Следующий день">→</button>
+            </div>
+        </div>
+        <div class="info-card">
+            <div class="info-label">📚 День недели</div>
+            <div class="info-value" id="dayName">—</div>
+        </div>
+        <div class="info-card">
+            <div class="info-label">📝 Учебный период</div>
+            <div class="info-value" id="periodInfo">—</div>
+        </div>
+    </section>
+
+    <!-- выбор пары -->
+    <section class="lesson-picker" id="lessonPicker">
+        <div class="lesson-picker-head">
+            <div class="lesson-picker-title">
+                <span class="dot"></span>
+                Выбор пары
+            </div>
+            <div class="lesson-picker-hint" id="lessonPickerHint">Нажмите на номер пары</div>
+        </div>
+        <div class="lesson-chips" id="lessonChips"></div>
+        <div class="discipline-banner" id="disciplineBanner">
+            <div class="discipline-icon">📖</div>
+            <div class="discipline-text">
+                <div class="discipline-label">Дисциплина</div>
+                <div class="discipline-name" id="disciplineName">—</div>
+                <div class="discipline-time" id="disciplineTime">—</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="quick-panel" id="quickPanel" data-mode="">
+        <div class="quick-left">
+            <div class="quick-icon">⚡</div>
+            <div>
+                <div class="quick-title">Быстрая отметка</div>
+                <div class="quick-description">Выберите режим и отмечайте студентов прямо в таблице</div>
+            </div>
+            <div class="quick-mode-label" id="quickModeLabel">Режим не выбран</div>
+        </div>
+        <div class="quick-actions">
+            <button class="quick-button quick-present" onclick="enableQuickMode('present')">✓ Присутствие</button>
+            <button class="quick-button quick-absent" onclick="enableQuickMode('absent')">Н Отсутствие</button>
+            <button class="quick-button quick-cancel" onclick="disableQuickMode()">✕ Отмена</button>
+        </div>
+    </section>
+
+    <div class="toolbar">
+        <div class="toolbar-left">
+            <div class="toolbar-title">Студенты</div>
+            <div class="day-badge" id="lessonCountBadge">0 пар</div>
+        </div>
+        <button class="refresh-button" id="refreshBtn" onclick="reloadData()">🔄 <span>Обновить</span></button>
+    </div>
+
+    <div class="search-wrap">
+        <input type="search" id="studentSearch" placeholder="Поиск студента..." autocomplete="off">
+    </div>
+
+    <div class="table-wrapper">
+        <div id="tableContainer" class="loading">
+            <div class="spinner"></div>
+            Загрузка данных...
+        </div>
+    </div>
+
+    <!-- список студентов с кнопками -->
+    <div class="students-list" id="studentsList"></div>
+
+    <div class="cards" id="cardsContainer"></div>
+
+</main>
+
+<!-- choice sheet -->
+<div class="menu-overlay" id="choiceOverlay" onclick="closeChoiceOutside(event)">
+    <div class="choice-menu">
+        <div class="menu-title">Отметить посещаемость</div>
+        <div class="menu-student" id="choiceStudent">—</div>
+
+        <button class="choice-button" onclick="choosePresent()">
+            <div class="choice-icon present-icon">✓</div>
+            <div class="choice-text"><strong>Присутствовал</strong><span>Студент присутствовал на паре</span></div>
+        </button>
+        <button class="choice-button" onclick="chooseAbsent()">
+            <div class="choice-icon absent-icon">Н</div>
+            <div class="choice-text"><strong>Отсутствовал</strong><span>Указать причину отсутствия</span></div>
+        </button>
+        <button class="choice-button" onclick="chooseWholeDay()">
+            <div class="choice-icon whole-day-icon">📅</div>
+            <div class="choice-text"><strong>Весь день</strong><span>Отметить Н на всех парах этого дня</span></div>
+        </button>
+        <button class="choice-button" id="deleteButton" onclick="deleteAttendance()">
+            <div class="choice-icon delete-icon">🗑️</div>
+            <div class="choice-text"><strong>Удалить отметку</strong><span>Очистить текущую отметку</span></div>
+        </button>
+        <button class="cancel-button" onclick="closeChoice()">Отмена</button>
+    </div>
+</div>
+
+<!-- reason sheet -->
+<div class="modal-overlay" id="reasonOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Причина отсутствия</div>
+            <button class="close-button" onclick="closeReason()">✕</button>
+        </div>
+        <div class="modal-info">
+            <div class="modal-info-row"><span>Студент</span><span id="modalStudent">—</span></div>
+            <div class="modal-info-row"><span>Дата</span><span id="modalDate">—</span></div>
+            <div class="modal-info-row"><span>Пара</span><span id="modalLesson">—</span></div>
+        </div>
+        <label class="absent-type-label">Статус отсутствия:</label>
+        <div class="absent-type-group" id="absentTypeGroup">
+            <button type="button" class="absent-type-btn" data-type="neuv" onclick="selectAbsentType('neuv')"><strong>Н</strong><span>Неуважит.</span></button>
+            <button type="button" class="absent-type-btn" data-type="uv" onclick="selectAbsentType('uv')"><strong>Н/У</strong><span>Уважит.</span></button>
+            <button type="button" class="absent-type-btn" data-type="bolezn" onclick="selectAbsentType('bolezn')"><strong>Н/Б</strong><span>Болезнь</span></button>
+        </div>
+        <label class="reason-label" for="reasonInput">Отсутствовал по причине:</label>
+        <textarea id="reasonInput" class="reason-input" placeholder="Опишите причину отсутствия..."></textarea>
+        <div class="reason-hint" id="reasonHint"></div>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeReason()">Отмена</button>
+            <button class="save-button" onclick="saveAbsent()">💾 Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<!-- lesson info -->
+<div class="modal-overlay" id="lessonInfoOverlay">
+    <div class="lesson-info-modal">
+        <div class="lesson-big-icon">📚</div>
+        <div class="lesson-info-title" id="lessonInfoTitle">1 пара</div>
+        <div class="lesson-info-subtitle" id="lessonInfoSubtitle">Информация о занятии</div>
+        <div class="lesson-info-grid">
+            <div class="lesson-info-item"><div class="lesson-info-label">Дисциплина</div><div class="lesson-info-value" id="lessonDiscipline">—</div></div>
+            <div class="lesson-info-item"><div class="lesson-info-label">Время</div><div class="lesson-info-value" id="lessonTime">—</div></div>
+            <div class="lesson-info-item"><div class="lesson-info-label">Начало</div><div class="lesson-info-value" id="lessonStart">—</div></div>
+            <div class="lesson-info-item"><div class="lesson-info-label">Окончание</div><div class="lesson-info-value" id="lessonEnd">—</div></div>
+        </div>
+        <button class="lesson-close" onclick="closeLessonInfo()">Закрыть</button>
+    </div>
+</div>
+
+<div class="floating-bar" id="floatingBar">
+    <button class="fb-present" onclick="enableQuickMode('present')">✓ Присутствие</button>
+    <button class="fb-absent" onclick="enableQuickMode('absent')">Н Отсутствие</button>
+    <button class="fb-cancel" onclick="disableQuickMode()" aria-label="Отмена">✕</button>
+</div>
+
+<button class="scroll-top" id="scrollTop" onclick="scrollToTop()" aria-label="Наверх">↑</button>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, FieldPath } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+    authDomain: "othets-1aa03.firebaseapp.com",
+    projectId: "othets-1aa03",
+    storageBucket: "othets-1aa03.firebasestorage.app",
+    messagingSenderId: "528392191591",
+    appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+    measurementId: "G-F50WVZRXZJ"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+
+let homePage = "home.html";
+async function resolveHomePage(user) {
+    try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        const role = snap.exists() ? snap.data().role : null;
+        return role === "admin" ? "adminhome.html" : "home.html";
+    } catch (e) { return "home.html"; }
+}
+
+let currentUser = null, authResolved = false, resolveAuthReady;
+const authReady = new Promise(r => { resolveAuthReady = r; });
+
+onAuthStateChanged(auth, async user => {
+    currentUser = user;
+    homePage = user ? await resolveHomePage(user) : "home.html";
+    if (!authResolved) { authResolved = true; resolveAuthReady(); }
+});
+
+let students = [], allStudents = [], allGroupsData = [], userGroups = [];
+let userRole = null, selectedGroupId = "", settings = {}, attendance = {};
+let selectedDate = "", selectedStudent = null, selectedLesson = null, selectedAction = null;
+let selectedAbsentType = "neuv", quickMode = null, studentFilter = "";
+let currentLesson = 0;
+
+const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+const dayNames = ["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+
+/* Автоподстановка причин для Н/У и Н/Б */
+const AUTO_REASONS = {
+    uv: "Уважительная причина",
+    bolezn: "Больничный"
+};
+
+const datePicker = document.getElementById("datePicker");
+const tableContainer = document.getElementById("tableContainer");
+const cardsContainer = document.getElementById("cardsContainer");
+const studentsListEl = document.getElementById("studentsList");
+const lessonChipsEl = document.getElementById("lessonChips");
+const disciplineBanner = document.getElementById("disciplineBanner");
+const reasonInput = document.getElementById("reasonInput");
+const reasonHint = document.getElementById("reasonHint");
+
+function formatDate(d) {
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${day}`;
+}
+function formatDateRu(s) {
+    if (!s) return "—";
+    const p = s.split("-");
+    return p.length === 3 ? `${p[2]}.${p[1]}.${p[0]}` : s;
+}
+function parseDate(s) {
+    const p = s.split("-");
+    return new Date(Number(p[0]), Number(p[1])-1, Number(p[2]));
+}
+function getDayIndex(s) { return parseDate(s).getDay(); }
+function getDayName(s) { return dayNames[getDayIndex(s)]; }
+
+function getLessonCount(dayIndex) {
+    if (dayIndex < 1 || dayIndex > 6) return 0;
+    const day = days[dayIndex-1];
+    const v = settings?.schedule?.[day];
+    if (v === undefined || v === null) return 0;
+    if (Array.isArray(v)) return v.length;
+    if (typeof v === "object") {
+        if (Array.isArray(v.lessons)) return v.lessons.length;
+        if (typeof v.count !== "undefined") return Number(v.count);
+    }
+    return Number(v) || 0;
+}
+
+function getLessonConfig(dayIndex, lesson) {
+    if (dayIndex < 1 || dayIndex > 6) return {};
+    const day = days[dayIndex-1];
+    let result = {};
+    const disc = settings?.disciplines?.[day];
+    if (Array.isArray(disc)) {
+        const item = disc[lesson-1];
+        if (typeof item === "object" && item) result = {...result, ...item};
+        else if (item) result.discipline = item;
+    } else if (disc && typeof disc === "object") {
+        const item = disc[String(lesson)] ?? disc[lesson];
+        if (typeof item === "object" && item) result = {...result, ...item};
+        else if (item) result.discipline = item;
+    }
+    const bells = settings?.bells;
+    if (bells) {
+        const bell = Array.isArray(bells) ? bells[lesson-1] : bells[String(lesson)] ?? bells[lesson];
+        if (bell && typeof bell === "object") result = {...result, ...bell};
+    }
+    const lessons = settings?.lessons?.[day];
+    if (lessons) {
+        const item = Array.isArray(lessons) ? lessons[lesson-1] : lessons[String(lesson)] ?? lessons[lesson];
+        if (item && typeof item === "object") result = {...result, ...item};
+    }
+    const scheduleDay = settings?.schedule?.[day];
+    if (Array.isArray(scheduleDay)) {
+        const item = scheduleDay[lesson-1];
+        if (item && typeof item === "object") result = {...result, ...item};
+    }
+    return result;
+}
+
+function firstValue(obj, keys) {
+    if (!obj) return "";
+    for (const k of keys) if (obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
+    return "";
+}
+function getDiscipline(d, l) {
+    const c = getLessonConfig(d, l);
+    return firstValue(c, ["discipline","subject","name","title","lessonName"]) || "Дисциплина не настроена";
+}
+function getLessonTime(d, l) {
+    const c = getLessonConfig(d, l);
+    let s = firstValue(c, ["start","startTime","timeStart","from","begin"]);
+    let e = firstValue(c, ["end","endTime","timeEnd","to","finish"]);
+    const bells = settings?.bells;
+    if (bells) {
+        const bell = Array.isArray(bells) ? bells[l-1] : bells[String(l)] ?? bells[l];
+        if (bell && typeof bell === "object") {
+            if (!s) s = firstValue(bell, ["start","startTime","from","begin"]);
+            if (!e) e = firstValue(bell, ["end","endTime","to","finish"]);
+        }
+    }
+    if (s && e) return { start: String(s), end: String(e), text: `${s} — ${e}` };
+    if (s) return { start: String(s), end: "—", text: String(s) };
+    return { start: "—", end: "—", text: "Время не настроено" };
+}
+function getAttestationInfo(dateString) {
+    const date = parseDate(dateString);
+    const inside = p => p?.start && p?.end && date >= parseDate(p.start) && date <= parseDate(p.end);
+    if (inside(settings?.semester1?.attestation1)) return { semester: "1 семестр", attestation: "Аттестация 1" };
+    if (inside(settings?.semester1?.attestation2)) return { semester: "1 семестр", attestation: "Аттестация 2" };
+    if (inside(settings?.semester2?.attestation1)) return { semester: "2 семестр", attestation: "Аттестация 1" };
+    if (inside(settings?.semester2?.attestation2)) return { semester: "2 семестр", attestation: "Аттестация 2" };
+    const m = date.getMonth();
+    return { semester: m >= 8 || m <= 0 ? "1 семестр" : "2 семестр", attestation: "—" };
+}
+
+async function loadGroupsAndRole() {
+    userRole = null; allGroupsData = []; userGroups = [];
+    if (!currentUser) return;
+    try {
+        const s = await getDoc(doc(db, "users", currentUser.uid));
+        userRole = s.exists() ? (s.data().role || null) : null;
+    } catch (e) { console.error(e); }
+    try {
+        const g = await getDocs(collection(db, "groups"));
+        allGroupsData = g.docs.map(i => ({ id: i.id, ...i.data() }));
+        allGroupsData.sort((a,b) => String(a.name||"").localeCompare(String(b.name||""),"ru"));
+    } catch (e) { console.error(e); }
+    if (userRole === "admin") userGroups = allGroupsData;
+    else userGroups = allGroupsData.filter(g => g.curatorId === currentUser.uid || g.starostaId === currentUser.uid || g.leaderId === currentUser.uid);
+}
+
+const groupSelect = document.getElementById("groupSelect");
+const groupHint = document.getElementById("groupHint");
+
+function populateGroupSelect() {
+    const prev = selectedGroupId || localStorage.getItem("selectedGroupId") || "";
+    if (!userGroups.length) {
+        groupSelect.innerHTML = `<option value="">Нет доступных групп</option>`;
+        groupSelect.disabled = true; selectedGroupId = "";
+        groupHint.textContent = userRole === "admin" ? "В системе пока нет ни одной группы" : "Вам не назначена ни одна группа. Обратитесь к администратору.";
+        return;
+    }
+    groupSelect.innerHTML = userGroups.map(g =>
+        `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name||"Без названия")}${g.active === false ? " (архив)" : ""}</option>`
+    ).join("");
+    const valid = userGroups.some(g => g.id === prev);
+    selectedGroupId = valid ? prev : userGroups[0].id;
+    groupSelect.value = selectedGroupId;
+    localStorage.setItem("selectedGroupId", selectedGroupId);
+    if (userRole !== "admin" && userGroups.length === 1) {
+        groupSelect.disabled = true;
+        groupHint.textContent = "Группа закреплена за вами";
+    } else {
+        groupSelect.disabled = false;
+        groupHint.textContent = userRole === "admin" ? "Доступны все группы" : "Выберите группу";
+    }
+}
+
+groupSelect.addEventListener("change", async function() {
+    selectedGroupId = this.value;
+    localStorage.setItem("selectedGroupId", selectedGroupId);
+    applyGroupFilter();
+    await loadSettings();
+    await loadAttendance();
+    currentLesson = 0;
+    render();
+});
+
+function applyGroupFilter() {
+    if (!selectedGroupId) { students = []; return; }
+    const g = allGroupsData.find(i => i.id === selectedGroupId);
+    const ids = g && Array.isArray(g.studentIds) ? g.studentIds : [];
+    const set = new Set(ids);
+    students = allStudents.filter(s => s.groupId === selectedGroupId || set.has(s.id));
+    students.sort((a,b) => String(a.name||a.fullName||a.fio||"").localeCompare(String(b.name||b.fullName||b.fio||""),"ru"));
+}
+
+async function loadSettings() {
+    settings = { schedule: {}, disciplines: {}, bells: {}, semester1: {}, semester2: {} };
+    if (!selectedGroupId) return;
+    try {
+        const snap = await getDoc(doc(db, "groupSettings", selectedGroupId));
+        if (snap.exists()) {
+            const d = snap.data() || {};
+            settings = {
+                schedule: d.schedule || {}, disciplines: d.disciplines || {},
+                bells: d.bells || {}, semester1: d.semester1 || {}, semester2: d.semester2 || {}
+            };
+        }
+    } catch (e) { console.error(e); }
+}
+
+async function loadStudents() {
+    const snap = await getDocs(collection(db, "students"));
+    allStudents = snap.docs.map(i => ({ id: i.id, ...i.data() }));
+    applyGroupFilter();
+}
+
+async function loadAttendance() {
+    attendance = {};
+    if (!selectedDate) return;
+    try {
+        const snap = await getDoc(doc(db, "attendance", selectedDate));
+        if (!snap.exists()) return;
+        const data = snap.data() || {};
+        if (data.students && typeof data.students === "object") {
+            Object.values(data.students).forEach(r => {
+                if (!r || !r.studentId) return;
+                attendance[`${selectedDate}_${r.studentId}`] = {
+                    studentId: r.studentId, studentName: r.studentName || "",
+                    date: selectedDate, groupId: data.groupId || "",
+                    lessons: r.lessons || {}, semester: data.semester || "", attestation: data.attestation || ""
+                };
+            });
+        }
+        Object.keys(data).forEach(f => {
+            if (!f.startsWith("students.")) return;
+            const sid = f.slice("students.".length);
+            const r = data[f];
+            if (!r || typeof r !== "object" || !r.studentId) return;
+            const k = `${selectedDate}_${sid}`;
+            if (attendance[k]) return;
+            attendance[k] = {
+                studentId: sid, studentName: r.studentName || "",
+                date: selectedDate, groupId: data.groupId || "",
+                lessons: r.lessons || {}, semester: data.semester || "", attestation: data.attestation || ""
+            };
+        });
+        if (data.date && data.studentId) attendance[`${data.date}_${data.studentId}`] = data;
+    } catch (e) { console.error(e); }
+}
+
+function getStudentDay(sid) { return attendance[`${selectedDate}_${sid}`] || { studentId: sid, date: selectedDate, lessons: {} }; }
+function getLessonData(sid, l) { const d = getStudentDay(sid); return d.lessons?.[String(l)] || { status:"", absentType:"", reason:"" }; }
+
+async function saveStudentDay(student, lessons) {
+    const period = getAttestationInfo(selectedDate);
+    const ref = doc(db, "attendance", selectedDate);
+    const studentRecord = { studentId: student.id, studentName: student.name || "", lessons, updatedAt: new Date().toISOString() };
+    const meta = { date: selectedDate, groupId: selectedGroupId, semester: period.semester, attestation: period.attestation };
+
+    // ВАЖНО: setDoc(..., {merge:true}) делает глубокое слияние вложенных объектов,
+    // поэтому удалённая пара оставалась в базе. updateDoc по пути поля полностью
+    // заменяет запись студента, и удаление работает.
+    try {
+        await updateDoc(ref, new FieldPath("students", student.id), studentRecord,
+            "date", meta.date, "groupId", meta.groupId, "semester", meta.semester, "attestation", meta.attestation);
+    } catch (e) {
+        if (e && e.code === "not-found") {
+            await setDoc(ref, { ...meta, students: { [student.id]: studentRecord } });
+        } else { throw e; }
+    }
+    attendance[`${selectedDate}_${student.id}`] = {
+        studentId: student.id, studentName: student.name || "",
+        date: selectedDate, groupId: selectedGroupId,
+        lessons, semester: period.semester, attestation: period.attestation
+    };
+}
+
+async function deleteAttendance() {
+    if (!selectedStudent || !selectedLesson) return;
+    closeChoice();
+    try {
+        const d = getStudentDay(selectedStudent.id);
+        const ls = { ...(d.lessons || {}) };
+        const k = String(selectedLesson);
+        if (!ls[k]) { showToast("Отметки нет", "warning"); return; }
+        delete ls[k];
+        await saveStudentDay(selectedStudent, ls);
+        render();
+        showToast("✓ Отметка удалена", "success");
+    } catch (e) { console.error(e); showToast("Ошибка удаления", "error"); }
+}
+window.deleteAttendance = deleteAttendance;
+
+function enableQuickMode(mode) {
+    quickMode = mode;
+    const panel = document.getElementById("quickPanel");
+    const label = document.getElementById("quickModeLabel");
+    panel.classList.add("active");
+    panel.dataset.mode = mode;
+    label.textContent = mode === "present" ? "✓ Режим присутствия" : "Н Режим отсутствия";
+    document.getElementById("floatingBar").classList.add("active");
+    showToast(mode === "present" ? "✓ Режим присутствия" : "Н Режим отсутствия", "success");
+}
+window.enableQuickMode = enableQuickMode;
+
+function disableQuickMode() {
+    quickMode = null;
+    const panel = document.getElementById("quickPanel");
+    panel.classList.remove("active");
+    panel.dataset.mode = "";
+    document.getElementById("quickModeLabel").textContent = "Режим не выбран";
+    document.getElementById("floatingBar").classList.remove("active");
+    showToast("Режим выключен");
+}
+window.disableQuickMode = disableQuickMode;
+
+async function quickPresent(student, lesson) {
+    try {
+        const d = getStudentDay(student.id);
+        const ls = { ...(d.lessons || {}) };
+        ls[String(lesson)] = { status: "present", reason: "" };
+        await saveStudentDay(student, ls);
+        render();
+        showToast(`✓ ${student.name} — ${lesson} пара`, "success");
+    } catch (e) { console.error(e); showToast("Ошибка сохранения", "error"); }
+}
+
+function quickAbsent(student, lesson) {
+    selectedStudent = student; selectedLesson = lesson; selectedAction = "single";
+    document.getElementById("modalStudent").textContent = student.name;
+    document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
+    document.getElementById("modalLesson").textContent = `${lesson} пара • ${getDiscipline(getDayIndex(selectedDate), lesson)}`;
+    const old = getLessonData(student.id, lesson);
+    selectedAbsentType = old.absentType || "neuv";
+    updateAbsentTypeButtons();
+
+    if (old.reason) {
+        reasonInput.value = old.reason;
+    } else {
+        reasonInput.value = AUTO_REASONS[selectedAbsentType] || "";
+    }
+    updateReasonHint();
+
+    document.getElementById("reasonOverlay").classList.add("active");
+}
+
+function getFilteredStudents() {
+    const q = studentFilter.trim().toLowerCase();
+    if (!q) return students;
+    return students.filter(s => String(s.name||"").toLowerCase().includes(q));
+}
+
+/* переключение пары */
+function selectLesson(lesson) {
+    currentLesson = lesson;
+    renderLessonChips();
+    updateDisciplineBanner();
+    render();
+    const chip = lessonChipsEl.querySelector(`.lesson-chip[data-lesson="${lesson}"]`);
+    if (chip) {
+        chip.classList.remove('active');
+        void chip.offsetWidth;
+        chip.classList.add('active');
+    }
+}
+window.selectLesson = selectLesson;
+
+function renderLessonChips() {
+    const dayIndex = getDayIndex(selectedDate);
+    const count = getLessonCount(dayIndex);
+    lessonChipsEl.innerHTML = "";
+    for (let l = 1; l <= count; l++) {
+        const chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "lesson-chip" + (l === currentLesson ? " active" : "");
+        chip.dataset.lesson = l;
+        chip.innerHTML = `${l}${l === currentLesson ? '<span class="chip-pulse"></span>' : ''}`;
+        chip.style.animationDelay = (l * 0.04) + "s";
+        chip.onclick = () => selectLesson(l);
+        lessonChipsEl.appendChild(chip);
+    }
+    const hint = document.getElementById("lessonPickerHint");
+    hint.textContent = count ? `${count} ${count === 1 ? "пара" : count >= 2 && count <= 4 ? "пары" : "пар"}` : "Нет пар";
+}
+
+function updateDisciplineBanner() {
+    const dayIndex = getDayIndex(selectedDate);
+    if (!currentLesson) {
+        disciplineBanner.classList.remove("show");
+        return;
+    }
+    const disc = getDiscipline(dayIndex, currentLesson);
+    const time = getLessonTime(dayIndex, currentLesson);
+    document.getElementById("disciplineName").textContent = disc;
+    document.getElementById("disciplineTime").textContent = time.text;
+    disciplineBanner.classList.add("show");
+    const nameEl = document.getElementById("disciplineName");
+    nameEl.style.animation = 'none';
+    void nameEl.offsetWidth;
+    nameEl.style.animation = '';
+}
+
+/* список студентов с кнопками ✓ / ✕ / … */
+function renderStudentsList(filtered) {
+    const lesson = currentLesson || 1;
+    studentsListEl.innerHTML = "";
+    filtered.forEach((student, idx) => {
+        const d = getLessonData(student.id, lesson);
+        let statusClass = "empty", statusText = "—";
+        if (d.status === "present") { statusClass = "present"; statusText = "✓ Присутствовал"; }
+        if (d.status === "absent") {
+            statusClass = "absent";
+            statusText = d.absentType === "uv" ? "Н/У Уважит." : d.absentType === "bolezn" ? "Н/Б Болезнь" : "Н Неуважит.";
+        }
+
+        const row = document.createElement("div");
+        row.className = "student-row";
+        row.style.animationDelay = Math.min(idx * 0.03, 0.4) + "s";
+        row.innerHTML = `
+            <div class="s-index">${idx+1}</div>
+            <div class="s-name">${escapeHtml(student.name || "Без имени")}</div>
+            <div class="s-status ${statusClass}">${statusText}</div>
+            <div class="s-actions">
+                <button class="s-btn present ${d.status === 'present' ? 'active' : ''}" title="Присутствовал" data-act="present">✓</button>
+                <button class="s-btn absent ${d.status === 'absent' ? 'active' : ''}" title="Отсутствовал" data-act="absent">✕</button>
+                <button class="s-btn more" title="Ещё" data-act="more">…</button>
+            </div>
+        `;
+        row.querySelectorAll(".s-btn").forEach(btn => {
+            btn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                const act = btn.dataset.act;
+                if (act === "present") {
+                    quickPresent(student, lesson);
+                } else if (act === "absent") {
+                    quickAbsent(student, lesson);
+                } else {
+                    openCellMenu(student, lesson);
+                }
+            });
+        });
+        studentsListEl.appendChild(row);
+    });
+}
+
+function openCellMenu(student, lesson) {
+    selectedStudent = student; selectedLesson = lesson;
+    const d = getLessonData(student.id, lesson);
+    document.getElementById("choiceStudent").textContent = `${student.name} • ${lesson} пара`;
+    document.getElementById("deleteButton").style.display = (d.status === "present" || d.status === "absent") ? "flex" : "none";
+    document.getElementById("choiceOverlay").classList.add("active");
+}
+
+function render() {
+    if (!selectedDate) return;
+    const dayIndex = getDayIndex(selectedDate);
+    const lessonCount = getLessonCount(dayIndex);
+
+    document.getElementById("dayName").textContent = getDayName(selectedDate);
+    document.getElementById("lessonCountBadge").textContent =
+        `${lessonCount} ${lessonCount === 1 ? "пара" : lessonCount >= 2 && lessonCount <= 4 ? "пары" : "пар"}`;
+
+    const period = getAttestationInfo(selectedDate);
+    document.getElementById("periodInfo").textContent = `${period.semester} • ${period.attestation}`;
+
+    if (currentLesson > lessonCount) currentLesson = 0;
+    renderLessonChips();
+    updateDisciplineBanner();
+
+    const empty = (icon, title, text) => `
+        <div class="empty">
+            <div class="empty-icon">${icon}</div>
+            <div class="empty-title">${title}</div>
+            <div>${text}</div>
+        </div>`;
+
+    if (dayIndex === 0) {
+        tableContainer.innerHTML = empty("🌴","Воскресенье","В воскресенье занятий нет.");
+        cardsContainer.innerHTML = ""; studentsListEl.innerHTML = "";
+        return;
+    }
+    if (lessonCount <= 0) {
+        tableContainer.innerHTML = empty("📚","Нет занятий","Для этого дня не настроено расписание.");
+        cardsContainer.innerHTML = ""; studentsListEl.innerHTML = "";
+        return;
+    }
+    if (!selectedGroupId) {
+        const msg = userRole === "admin" ? "В системе пока нет ни одной группы." : "Вам не назначена ни одна группа. Обратитесь к администратору.";
+        tableContainer.innerHTML = empty("🔒","Группа недоступна", msg);
+        cardsContainer.innerHTML = ""; studentsListEl.innerHTML = "";
+        return;
+    }
+    if (students.length === 0) {
+        tableContainer.innerHTML = empty("👨‍🎓","Студентов пока нет","В этой группе пока нет ни одного студента.");
+        cardsContainer.innerHTML = ""; studentsListEl.innerHTML = "";
+        return;
+    }
+
+    const filtered = getFilteredStudents();
+
+    /* desktop table */
+    let html = `<table><thead><tr><th>Студент</th>`;
+    for (let l = 1; l <= lessonCount; l++) {
+        const disc = getDiscipline(dayIndex, l);
+        html += `<th class="lesson-header ${l === currentLesson ? 'active-col' : ''}" title="Информация о паре" onclick="window.openLessonInfo(${l})">
+            <span class="lesson-number">${l}</span>
+            <span class="lesson-short-name">${escapeHtml(disc)}</span>
+        </th>`;
+    }
+    html += `</tr></thead><tbody>`;
+
+    filtered.forEach((student, idx) => {
+        html += `<tr><td><span class="student-number">${idx+1}</span><span class="student-name">${escapeHtml(student.name || "Без имени")}</span></td>`;
+        for (let l = 1; l <= lessonCount; l++) {
+            const d = getLessonData(student.id, l);
+            let cls = "status-empty", txt = "—";
+            if (d.status === "present") { cls = "status-present"; txt = "✓"; }
+            if (d.status === "absent") {
+                cls = "status-absent";
+                txt = d.absentType === "uv" ? "Н/У" : d.absentType === "bolezn" ? "Н/Б" : "Н";
+            }
+            html += `<td class="attendance-cell" onclick="window.openCell('${escapeJs(student.id)}', ${l})"><div class="status ${cls}">${txt}</div></td>`;
+        }
+        html += `</tr>`;
+    });
+    html += `</tbody></table>`;
+    tableContainer.innerHTML = html;
+
+    /* mobile cards (скрыты, но оставлены) */
+    let cards = "";
+    filtered.forEach((student, idx) => {
+        cards += `<div class="card">
+            <div class="card-head">
+                <div class="card-index">${idx+1}</div>
+                <div class="card-name">${escapeHtml(student.name || "Без имени")}</div>
+            </div>
+            <div class="card-body">`;
+        for (let l = 1; l <= lessonCount; l++) {
+            const d = getLessonData(student.id, l);
+            let cls = "status-empty", txt = "—", extraClass = "";
+            if (d.status === "present") { cls = "status-present"; txt = "✓"; extraClass = "present"; }
+            if (d.status === "absent") {
+                cls = "status-absent";
+                txt = d.absentType === "uv" ? "Н/У" : d.absentType === "bolezn" ? "Н/Б" : "Н";
+                extraClass = "absent";
+            }
+            const disc = getDiscipline(dayIndex, l);
+            cards += `<div class="card-lesson ${extraClass}" onclick="window.openCell('${escapeJs(student.id)}', ${l})">
+                <div class="card-lesson-num">${l} пара</div>
+                <div class="status ${cls}">${txt}</div>
+                <div class="card-lesson-disc">${escapeHtml(disc)}</div>
+            </div>`;
+        }
+        cards += `</div></div>`;
+    });
+    cardsContainer.innerHTML = cards;
+
+    /* mobile students list */
+    renderStudentsList(filtered);
+}
+
+window.openCell = async function(studentId, lesson) {
+    const student = students.find(s => s.id === studentId);
+    if (!student) return;
+    if (quickMode === "present") { await quickPresent(student, lesson); return; }
+    if (quickMode === "absent") { quickAbsent(student, lesson); return; }
+    openCellMenu(student, lesson);
+};
+
+function closeChoice() { document.getElementById("choiceOverlay").classList.remove("active"); }
+window.closeChoice = closeChoice;
+function closeChoiceOutside(e) { if (e.target === document.getElementById("choiceOverlay")) closeChoice(); }
+window.closeChoiceOutside = closeChoiceOutside;
+
+async function choosePresent() {
+    if (!selectedStudent) return;
+    closeChoice();
+    try {
+        const d = getStudentDay(selectedStudent.id);
+        const ls = { ...(d.lessons || {}) };
+        ls[String(selectedLesson)] = { status: "present", reason: "" };
+        await saveStudentDay(selectedStudent, ls);
+        render();
+        showToast("✓ Присутствие сохранено", "success");
+    } catch (e) { console.error(e); showToast("Ошибка сохранения", "error"); }
+}
+window.choosePresent = choosePresent;
+
+/* ===== Тип отсутствия + автоподстановка причины ===== */
+function selectAbsentType(t) {
+    const prev = selectedAbsentType;
+    selectedAbsentType = t;
+    updateAbsentTypeButtons();
+    applyAbsentTypeDefaults(prev);
+}
+window.selectAbsentType = selectAbsentType;
+
+function updateAbsentTypeButtons() {
+    document.querySelectorAll("#absentTypeGroup .absent-type-btn")
+        .forEach(b => b.classList.toggle("active", b.dataset.type === selectedAbsentType));
+    updateReasonHint();
+}
+
+/* Поле НЕ скрываем. Для Н/У и Н/Б — просто подставляем текст. */
+function applyAbsentTypeDefaults(prevType) {
+    if (!reasonInput) return;
+    const auto = AUTO_REASONS[selectedAbsentType] || "";
+    const prevAuto = AUTO_REASONS[prevType] || "";
+    const trimmed = reasonInput.value.trim();
+
+    // Если поле пустое ИЛИ там предыдущая автоподстановка — заменяем
+    if (!trimmed || (prevAuto && trimmed === prevAuto)) {
+        reasonInput.value = auto;
+    }
+
+    // Мягкая вспышка, чтобы заметить автоподстановку
+    if (auto && reasonInput.value.trim() === auto) {
+        reasonInput.style.background = "#f0fdf4";
+        setTimeout(() => { reasonInput.style.background = ""; }, 500);
+    }
+
+    updateReasonHint();
+}
+
+function updateReasonHint() {
+    if (!reasonHint) return;
+    if (selectedAbsentType === "uv" || selectedAbsentType === "bolezn") {
+        reasonHint.innerHTML = `<span class="hint-dot"></span> Причина подставлена автоматически — при необходимости отредактируйте`;
+    } else {
+        reasonHint.innerHTML = "";
+    }
+}
+
+function chooseAbsent() {
+    if (!selectedStudent) return;
+    closeChoice();
+    const d = getLessonData(selectedStudent.id, selectedLesson);
+    document.getElementById("modalStudent").textContent = selectedStudent.name;
+    document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
+    document.getElementById("modalLesson").textContent =
+        `${selectedLesson} пара • ${getDiscipline(getDayIndex(selectedDate), selectedLesson)}`;
+    selectedAbsentType = d.absentType || "neuv";
+    updateAbsentTypeButtons();
+
+    if (d.reason) {
+        reasonInput.value = d.reason;
+    } else {
+        reasonInput.value = AUTO_REASONS[selectedAbsentType] || "";
+    }
+    updateReasonHint();
+
+    selectedAction = "single";
+    document.getElementById("reasonOverlay").classList.add("active");
+}
+window.chooseAbsent = chooseAbsent;
+
+function chooseWholeDay() {
+    if (!selectedStudent) return;
+    closeChoice();
+    document.getElementById("modalStudent").textContent = selectedStudent.name;
+    document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
+    document.getElementById("modalLesson").textContent = "📅 Весь день";
+    selectedAbsentType = "neuv";
+    updateAbsentTypeButtons();
+    reasonInput.value = "";
+    updateReasonHint();
+    selectedAction = "wholeDay";
+    document.getElementById("reasonOverlay").classList.add("active");
+}
+window.chooseWholeDay = chooseWholeDay;
+
+async function saveAbsent() {
+    if (!selectedStudent || !selectedAction) return;
+    let reason = reasonInput.value.trim();
+
+    // Для Н/У и Н/Б — если пользователь стёр текст, всё равно подставляем автопричину
+    if (AUTO_REASONS[selectedAbsentType] && !reason) {
+        reason = AUTO_REASONS[selectedAbsentType];
+    }
+
+    try {
+        const d = getStudentDay(selectedStudent.id);
+        const ls = { ...(d.lessons || {}) };
+        const dayIndex = getDayIndex(selectedDate);
+        const lessonCount = getLessonCount(dayIndex);
+
+        if (selectedAction === "single") {
+            ls[String(selectedLesson)] = { status: "absent", absentType: selectedAbsentType, reason };
+        }
+        if (selectedAction === "wholeDay") {
+            for (let l = 1; l <= lessonCount; l++) {
+                ls[String(l)] = { status: "absent", absentType: selectedAbsentType, reason };
+            }
+        }
+        await saveStudentDay(selectedStudent, ls);
+        closeReason();
+        render();
+        showToast(selectedAction === "wholeDay" ? "✓ Н на весь день" : "✓ Отсутствие сохранено", "success");
+    } catch (e) { console.error(e); showToast("Ошибка сохранения", "error"); }
+}
+window.saveAbsent = saveAbsent;
+
+function closeReason() { document.getElementById("reasonOverlay").classList.remove("active"); selectedAction = null; }
+window.closeReason = closeReason;
+
+function openLessonInfo(lesson) {
+    const dayIndex = getDayIndex(selectedDate);
+    const disc = getDiscipline(dayIndex, lesson);
+    const time = getLessonTime(dayIndex, lesson);
+    document.getElementById("lessonInfoTitle").textContent = `${lesson} пара`;
+    document.getElementById("lessonInfoSubtitle").textContent = `${getDayName(selectedDate)} • ${formatDateRu(selectedDate)}`;
+    document.getElementById("lessonDiscipline").textContent = disc;
+    document.getElementById("lessonTime").textContent = time.text;
+    document.getElementById("lessonStart").textContent = time.start;
+    document.getElementById("lessonEnd").textContent = time.end;
+    document.getElementById("lessonInfoOverlay").classList.add("active");
+}
+window.openLessonInfo = openLessonInfo;
+function closeLessonInfo() { document.getElementById("lessonInfoOverlay").classList.remove("active"); }
+window.closeLessonInfo = closeLessonInfo;
+
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { closeChoice(); closeReason(); closeLessonInfo(); }
+});
+
+datePicker.addEventListener("change", async function() {
+    selectedDate = this.value;
+    currentLesson = 0;
+    await reloadData();
+});
+
+function shiftDate(delta) {
+    const d = parseDate(selectedDate || formatDate(new Date()));
+    d.setDate(d.getDate() + delta);
+    selectedDate = formatDate(d);
+    datePicker.value = selectedDate;
+    currentLesson = 0;
+    reloadData();
+}
+window.shiftDate = shiftDate;
+
+function goToday() {
+    selectedDate = formatDate(new Date());
+    datePicker.value = selectedDate;
+    currentLesson = 0;
+    reloadData();
+}
+window.goToday = goToday;
+
+async function reloadData() {
+    tableContainer.innerHTML = `<div class="loading"><div class="spinner"></div>Загрузка данных...</div>`;
+    cardsContainer.innerHTML = "";
+    studentsListEl.innerHTML = "";
+    const refreshBtn = document.getElementById("refreshBtn");
+    refreshBtn.classList.add("spin");
+    try {
+        await authReady;
+        await loadGroupsAndRole();
+        populateGroupSelect();
+        await loadSettings();
+        await loadStudents();
+        await loadAttendance();
+        render();
+    } catch (e) {
+        console.error(e);
+        tableContainer.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Ошибка загрузки</div><div>Не удалось получить данные из Firebase.</div></div>`;
+        showToast("Ошибка подключения к Firebase", "error");
+    } finally {
+        setTimeout(() => refreshBtn.classList.remove("spin"), 600);
+    }
+}
+window.reloadData = reloadData;
+
+function updateClock() {
+    const now = new Date();
+    document.getElementById("clock").textContent = now.toLocaleTimeString("ru-RU");
+    const dt = now.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    document.getElementById("clockDate").textContent = dt.charAt(0).toUpperCase() + dt.slice(1);
+}
+
+let toastTimer;
+function showToast(message, type = "") {
+    const t = document.getElementById("toast");
+    t.textContent = message;
+    t.className = `toast show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.className = "toast"; }, 2500);
+}
+
+function escapeHtml(v) {
+    return String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function escapeJs(v) { return String(v ?? "").replaceAll("\\","\\\\").replaceAll("'","\\'"); }
+
+function goBack() { window.location.replace(homePage); }
+window.goBack = goBack;
+
+document.getElementById("reasonOverlay").addEventListener("click", e => { if (e.target.id === "reasonOverlay") closeReason(); });
+document.getElementById("lessonInfoOverlay").addEventListener("click", e => { if (e.target.id === "lessonInfoOverlay") closeLessonInfo(); });
+
+document.getElementById("studentSearch").addEventListener("input", function() {
+    studentFilter = this.value;
+    render();
+});
+
+function toggleHero() {
+    document.getElementById("pageHero").classList.toggle("collapsed");
+    const btn = document.querySelector(".hero-toggle");
+    btn.textContent = document.getElementById("pageHero").classList.contains("collapsed") ? "▸" : "▾";
+}
+window.toggleHero = toggleHero;
+
+function scrollToTop() { window.scrollTo({ top: 0, behavior: "smooth" }); }
+window.scrollToTop = scrollToTop;
+
+window.addEventListener("scroll", () => {
+    const btn = document.getElementById("scrollTop");
+    if (window.scrollY > 400) btn.classList.add("show");
+    else btn.classList.remove("show");
+});
+
+async function start() {
+    const today = new Date();
+    selectedDate = formatDate(today);
+    datePicker.value = selectedDate;
+    updateClock();
+    setInterval(updateClock, 1000);
+    try { await reloadData(); }
+    catch (e) { console.error(e); }
+    setTimeout(() => {
+        const l = document.getElementById("pageLoader");
+        if (l) l.classList.add("hidden");
+    }, 400);
+}
+start();
+</script>
+</body>
+</html>

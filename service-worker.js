@@ -2,7 +2,7 @@
    SERVICE WORKER — Посещаемость
 ========================================================= */
 
-const CACHE_NAME = "attendance-v1";
+const CACHE_NAME = "attendance-v2";
 const OFFLINE_URL = "offline.html";
 
 // Ресурсы для предзагрузки

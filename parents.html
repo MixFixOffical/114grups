@@ -2,494 +2,346 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Родители — Админ-панель</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
-    background: #f4f6f8;
-    color: #1f2937;
-    font-size: 14px;
-  }
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2454e8">
+<title>Родители — Панель управления</title>
 
-  header {
-    background: #1e293b;
-    color: #fff;
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 6px rgba(0,0,0,.15);
-    position: sticky; top: 0; z-index: 50;
-  }
-  header h1 { font-size: 18px; font-weight: 600; }
-  header .user-info {
-    font-size: 13px; opacity: .85;
-    display: flex; gap: 10px; align-items: center;
-  }
-  header .role-badge {
-    background: #334155;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-  }
-  header .role-badge.admin { background: #7c3aed; }
-  header .role-badge.curator { background: #0891b2; }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  nav.tabs {
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 0 24px;
-    display: flex;
-    gap: 4px;
-    position: sticky; top: 57px; z-index: 40;
-  }
-  nav.tabs button {
-    background: none; border: none;
-    padding: 14px 20px;
-    font-size: 14px; color: #6b7280;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    font-weight: 500;
-    transition: .15s;
-    font-family: inherit;
-  }
-  nav.tabs button:hover { color: #111827; }
-  nav.tabs button.active {
-    color: #2563eb;
-    border-bottom-color: #2563eb;
-  }
-
-  main { padding: 24px; max-width: 1400px; margin: 0 auto; }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
-
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .section-header h2 {
-    font-size: 16px;
-    color: #111827;
-    font-weight: 600;
-  }
-  .section-header .stats {
-    font-size: 13px;
-    color: #6b7280;
-    font-weight: normal;
-    margin-left: 8px;
-  }
-
-  .toolbar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .toolbar input[type="search"] {
-    flex: 1;
-    min-width: 200px;
-    max-width: 360px;
-    padding: 9px 14px 9px 36px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 13px;
-    font-family: inherit;
-    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 12px center;
-    transition: .15s;
-  }
-  .toolbar input[type="search"]:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
-  }
-
-  .btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: none;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: .15s;
-    font-family: inherit;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
-  .btn-primary { background: #2563eb; color: #fff; }
-  .btn-primary:hover { background: #1d4ed8; }
-  .btn-secondary { background: #e5e7eb; color: #374151; }
-  .btn-secondary:hover { background: #d1d5db; }
-  .btn-sm { padding: 6px 12px; font-size: 12px; }
-  .btn-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 4px;
-    font-size: 14px;
-    transition: .15s;
-    line-height: 1;
-  }
-  .btn-icon:hover { background: #f3f4f6; }
-
-  .table-wrap {
-    background: #fff;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,.06);
-  }
-  table { width: 100%; border-collapse: collapse; }
-  thead {
-    background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  th {
-    text-align: left;
-    padding: 12px 16px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    color: #6b7280;
-  }
-  td {
-    padding: 12px 16px;
-    border-bottom: 1px solid #f3f4f6;
-    font-size: 13px;
-    vertical-align: middle;
-  }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #fafbfc; }
-  tr.expandable { cursor: pointer; }
-  tr.expandable:hover td { background: #f3f4f6; }
-
-  .empty {
-    padding: 40px;
-    text-align: center;
-    color: #9ca3af;
-    font-size: 13px;
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    background: #eff6ff;
-    color: #1e40af;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-  .badge-green { background: #dcfce7; color: #166534; }
-  .badge-gray { background: #f3f4f6; color: #6b7280; }
-
-  .children-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: #dbeafe;
-    color: #1e40af;
-    padding: 3px 9px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    user-select: none;
-  }
-  .children-badge:hover { background: #bfdbfe; }
-  .children-badge.zero {
-    background: #f3f4f6;
-    color: #9ca3af;
-    cursor: default;
-  }
-
-  tr.expanded-row td {
-    background: #f9fafb;
-    padding: 0;
-  }
-  .children-list {
-    padding: 14px 24px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .child-chip {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    color: #374151;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .child-chip strong { color: #111827; }
-  .child-chip .group-tag {
-    background: #eff6ff;
-    color: #1e40af;
-    padding: 1px 7px;
-    border-radius: 10px;
-    font-size: 11px;
-  }
-
-  .actions { display: flex; gap: 4px; }
-
-  .pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    padding: 16px;
-    background: #fff;
-    border-top: 1px solid #f3f4f6;
-    flex-wrap: wrap;
-  }
-  .pagination button {
-    background: #fff;
-    border: 1px solid #d1d5db;
-    padding: 6px 12px;
-    border-radius: 5px;
-    font-size: 13px;
-    cursor: pointer;
-    font-family: inherit;
-    color: #374151;
-    transition: .15s;
-  }
-  .pagination button:hover:not(:disabled) { background: #f3f4f6; }
-  .pagination button:disabled { opacity: .4; cursor: not-allowed; }
-  .pagination button.active {
-    background: #2563eb;
-    border-color: #2563eb;
-    color: #fff;
-  }
-  .pagination .info {
-    margin: 0 10px;
-    font-size: 12px;
-    color: #6b7280;
-  }
-
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.4);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-  }
-  .modal-overlay.active { display: flex; }
-  .modal {
-    background: #fff;
-    border-radius: 10px;
-    width: 100%;
-    max-width: 440px;
-    padding: 24px;
-    box-shadow: 0 20px 40px rgba(0,0,0,.15);
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  .modal h3 {
-    font-size: 16px;
-    margin-bottom: 18px;
-    color: #111827;
-  }
-  .form-group { margin-bottom: 14px; }
-  .form-group label {
-    display: block;
-    font-size: 12px;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 6px;
-  }
-  .form-group input,
-  .form-group select {
-    width: 100%;
-    padding: 9px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 13px;
-    font-family: inherit;
-    transition: .15s;
-    background: #fff;
-  }
-  .form-group input:focus,
-  .form-group select:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
-  }
-  .form-hint {
-    font-size: 11px;
-    color: #9ca3af;
-    margin-top: 4px;
-  }
-  .form-error {
-    background: #fee2e2;
-    color: #b91c1c;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    margin-bottom: 12px;
-  }
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 20px;
-  }
-
-  #loading {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: #1e293b;
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 13px;
-    z-index: 999;
-    display: none;
-  }
-  #toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #1e293b;
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 13px;
-    z-index: 999;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: .25s;
-    pointer-events: none;
-    max-width: 320px;
-  }
-  #toast.show { opacity: 1; transform: translateY(0); }
-  #toast.error { background: #b91c1c; }
-  #toast.success { background: #15803d; }
-
-  @media (max-width: 700px) {
-    main { padding: 14px; }
-    th, td { padding: 10px 10px; font-size: 12px; }
-    .hide-mobile { display: none; }
-    header h1 { font-size: 15px; }
-    nav.tabs button { padding: 12px 14px; font-size: 13px; }
-    .toolbar input[type="search"] { max-width: 100%; }
-  }
-</style>
+<link rel="stylesheet" href="parents.css">
 </head>
 <body>
 
-<header>
-  <h1>👨‍👩‍👧 Управление родителями</h1>
-  <div class="user-info">
-    <span id="userInfo">…</span>
-    <span class="role-badge" id="roleBadge">…</span>
+<!-- ===== OFFLINE BANNER ===== -->
+<div class="offline-banner" id="offlineBanner">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 1l22 22"/>
+    <path d="M16.7 11.7A11 11 0 0 0 5 6.3"/>
+    <path d="M5 12.5a11 11 0 0 1 4-1.4"/>
+    <path d="M10.7 16.1a6 6 0 0 1 3.8.8"/>
+  </svg>
+  <span>Нет соединения с интернетом</span>
+  <button class="retry-btn" onclick="window.location.reload()">Обновить</button>
+</div>
+
+<!-- ===== TOP PROGRESS BAR ===== -->
+<div class="top-progress" id="topProgress"></div>
+
+<!-- ===== HEADER ===== -->
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="adminhome.html" class="btn-home" title="На главную">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span>На главную</span>
+    </a>
+    <div class="topbar-title">
+      <h1>Родители</h1>
+      <span id="topbarSubtitle">Управление родителями и связями</span>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <button class="topbar-icon-btn" onclick="reloadData()" title="Обновить данные" aria-label="Обновить">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-3-6.7L21 8"/>
+        <path d="M21 3v5h-5"/>
+      </svg>
+    </button>
+
+    <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему" aria-label="Сменить тему">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2"/><path d="M12 20v2"/>
+        <path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
+        <path d="M2 12h2"/><path d="M20 12h2"/>
+        <path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>
+      </svg>
+    </button>
+
+    <div class="user-info">
+      <span class="user-avatar" id="userAvatar">?</span>
+      <span class="user-name" id="userName">…</span>
+      <span class="role-badge" id="roleBadge">…</span>
+    </div>
   </div>
 </header>
 
+<!-- ===== TABS ===== -->
 <nav class="tabs">
-  <button class="active" data-tab="parents">Родители</button>
-  <button data-tab="links">Связи (родитель ↔ студент)</button>
-  <button data-tab="students">Студенты и их родители</button>
+  <button class="active" data-tab="parents">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="7" r="3"/>
+      <path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+      <circle cx="17" cy="8" r="2.5"/>
+    </svg>
+    <span>Родители</span>
+    <span class="tab-count" id="tabCountParents">0</span>
+  </button>
+  <button data-tab="links">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg>
+    <span>Связи</span>
+    <span class="tab-count" id="tabCountLinks">0</span>
+  </button>
+  <button data-tab="students">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+      <circle cx="11.5" cy="7.2" r="3"/>
+    </svg>
+    <span>Студенты</span>
+    <span class="tab-count" id="tabCountStudents">0</span>
+  </button>
 </nav>
 
+<!-- ===== MAIN ===== -->
 <main>
+
+  <!-- ==== РОДИТЕЛИ ==== -->
   <section class="tab-content active" id="tab-parents">
-    <div class="section-header">
-      <h2>Список родителей <span class="stats" id="parentsStats"></span></h2>
-      <button class="btn btn-primary" onclick="openParentModal()">+ Добавить родителя</button>
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2>Родители</h2>
+        <p>Управление списком родителей и их привязкой к студентам</p>
+      </div>
+      <button class="btn btn-primary" onclick="openParentModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14"/><path d="M5 12h14"/>
+        </svg>
+        Добавить родителя
+        <kbd>Ctrl+N</kbd>
+      </button>
     </div>
+
+    <div class="stats-mini">
+      <div class="stat-mini blue">
+        <div class="stat-mini-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="7" r="3"/>
+            <path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+          </svg>
+        </div>
+        <div class="stat-mini-body">
+          <div class="stat-mini-label">Всего родителей</div>
+          <div class="stat-mini-value" id="statParentsCount">0</div>
+        </div>
+      </div>
+      <div class="stat-mini violet">
+        <div class="stat-mini-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </div>
+        <div class="stat-mini-body">
+          <div class="stat-mini-label">Связей</div>
+          <div class="stat-mini-value" id="statLinksCount">0</div>
+        </div>
+      </div>
+      <div class="stat-mini teal">
+        <div class="stat-mini-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+            <circle cx="11.5" cy="7.2" r="3"/>
+          </svg>
+        </div>
+        <div class="stat-mini-body">
+          <div class="stat-mini-label">Студентов</div>
+          <div class="stat-mini-value" id="statStudentsCount">0</div>
+        </div>
+      </div>
+    </div>
+
     <div class="toolbar">
-      <input type="search" id="parentsSearch" placeholder="Поиск по ФИО или email..." oninput="onParentsSearch()">
-      <button class="btn btn-secondary btn-sm" onclick="exportParentsCSV()">📤 Экспорт CSV</button>
-      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('csvParentsInput').click()">📥 Импорт CSV</button>
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input type="search" id="parentsSearch" placeholder="Поиск по ФИО или email... (Ctrl+K)" oninput="onParentsSearch()" autocomplete="off">
+        <button class="search-clear" onclick="clearSearch('parents')" title="Очистить">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="exportParentsCSV()" title="Экспорт в CSV">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Экспорт
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('csvParentsInput').click()" title="Импорт из CSV">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Импорт
+      </button>
       <input type="file" id="csvParentsInput" accept=".csv" style="display:none" onchange="importParentsCSV(event)">
     </div>
+
     <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px">#</th>
-            <th>ФИО</th>
-            <th class="hide-mobile">Email</th>
-            <th style="width:130px">Детей</th>
-            <th class="hide-mobile">UID</th>
-            <th style="width:100px">Действия</th>
-          </tr>
-        </thead>
-        <tbody id="parentsTable"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>ФИО</th>
+              <th class="hide-mobile">Email</th>
+              <th style="width:150px">Детей</th>
+              <th class="hide-mobile">UID</th>
+              <th style="width:110px"></th>
+            </tr>
+          </thead>
+          <tbody id="parentsTable"></tbody>
+        </table>
+      </div>
       <div class="pagination" id="parentsPagination"></div>
     </div>
   </section>
 
+  <!-- ==== СВЯЗИ ==== -->
   <section class="tab-content" id="tab-links">
-    <div class="section-header">
-      <h2>Связи родителей и студентов <span class="stats" id="linksStats"></span></h2>
-      <button class="btn btn-primary" onclick="openLinkModal()">+ Привязать студента</button>
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2>Связи</h2>
+        <p>Привязка родителей к студентам</p>
+      </div>
+      <button class="btn btn-primary" onclick="openLinkModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14"/><path d="M5 12h14"/>
+        </svg>
+        Привязать студента
+      </button>
     </div>
+
     <div class="toolbar">
-      <input type="search" id="linksSearch" placeholder="Поиск по родителю или студенту..." oninput="onLinksSearch()">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input type="search" id="linksSearch" placeholder="Поиск по родителю или студенту..." oninput="onLinksSearch()" autocomplete="off">
+        <button class="search-clear" onclick="clearSearch('links')" title="Очистить">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
+
     <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px">#</th>
-            <th>Родитель</th>
-            <th>Студент</th>
-            <th class="hide-mobile">Группа</th>
-            <th style="width:100px">Действия</th>
-          </tr>
-        </thead>
-        <tbody id="linksTable"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>Родитель</th>
+              <th>Студент</th>
+              <th class="hide-mobile">Группа</th>
+              <th style="width:80px"></th>
+            </tr>
+          </thead>
+          <tbody id="linksTable"></tbody>
+        </table>
+      </div>
       <div class="pagination" id="linksPagination"></div>
     </div>
   </section>
 
+  <!-- ==== СТУДЕНТЫ ==== -->
   <section class="tab-content" id="tab-students">
-    <div class="section-header">
-      <h2>Студенты и их родители <span class="stats" id="studentsStats"></span></h2>
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2>Студенты</h2>
+        <p>Список студентов и их родителей</p>
+      </div>
     </div>
+
     <div class="toolbar">
-      <input type="search" id="studentsSearch" placeholder="Поиск по студенту или группе..." oninput="onStudentsSearch()">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input type="search" id="studentsSearch" placeholder="Поиск по студенту или группе..." oninput="onStudentsSearch()" autocomplete="off">
+        <button class="search-clear" onclick="clearSearch('students')" title="Очистить">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
+
     <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px">#</th>
-            <th>Студент</th>
-            <th class="hide-mobile">Группа</th>
-            <th>Родители</th>
-          </tr>
-        </thead>
-        <tbody id="studentsTable"></tbody>
-      </table>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>Студент</th>
+              <th class="hide-mobile">Группа</th>
+              <th>Родители</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTable"></tbody>
+        </table>
+      </div>
       <div class="pagination" id="studentsPagination"></div>
     </div>
   </section>
+
 </main>
 
+<!-- ===== МОБИЛЬНЫЙ BOTTOM NAV ===== -->
+<nav class="bottom-nav">
+  <button class="bottom-nav-btn active" data-tab="parents">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="7" r="3"/>
+      <path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+      <circle cx="17" cy="8" r="2.5"/>
+    </svg>
+    <span>Родители</span>
+  </button>
+  <button class="bottom-nav-btn" data-tab="links">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg>
+    <span>Связи</span>
+  </button>
+  <button class="bottom-nav-btn" data-tab="students">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+      <circle cx="11.5" cy="7.2" r="3"/>
+    </svg>
+    <span>Студенты</span>
+  </button>
+</nav>
+
+<!-- ===== МОДАЛКА: РОДИТЕЛЬ ===== -->
 <div class="modal-overlay" id="parentModal">
   <div class="modal">
-    <h3 id="parentModalTitle">Добавить родителя</h3>
+    <div class="modal-header">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="7" r="3"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+          <circle cx="17" cy="8" r="2.5"/>
+        </svg>
+      </div>
+      <div>
+        <h3 id="parentModalTitle">Добавить родителя</h3>
+        <div class="modal-subtitle" id="parentModalSubtitle">Заполните данные родителя</div>
+      </div>
+    </div>
     <form id="parentForm" onsubmit="saveParent(event)">
       <input type="hidden" id="parentId">
       <div id="parentFormError" class="form-error" style="display:none"></div>
@@ -510,20 +362,69 @@
   </div>
 </div>
 
+<!-- ===== МОДАЛКА: СВЯЗЬ ===== -->
 <div class="modal-overlay" id="linkModal">
   <div class="modal">
-    <h3>Привязать студента к родителю</h3>
+    <div class="modal-header">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+      </div>
+      <div>
+        <h3>Привязать студента</h3>
+        <div class="modal-subtitle">Выберите родителя и студента</div>
+      </div>
+    </div>
     <form id="linkForm" onsubmit="saveLink(event)">
       <div id="linkFormError" class="form-error" style="display:none"></div>
+
       <div class="form-group">
         <label for="linkParent">Родитель *</label>
-        <select id="linkParent" required></select>
+        <div class="search-select" id="linkParentSelect">
+          <div class="search-select-value" onclick="toggleParentSelect()">
+            <span class="placeholder" id="linkParentLabel">— выберите родителя —</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </div>
+          <div class="search-dropdown" id="linkParentDropdown">
+            <div class="search-select-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+              <input type="text" id="linkParentSearch" placeholder="Поиск родителя..." autocomplete="off" oninput="filterParentOptions()">
+            </div>
+            <div id="linkParentOptions"></div>
+          </div>
+        </div>
+        <input type="hidden" id="linkParent" required>
       </div>
+
       <div class="form-group">
         <label for="linkStudent">Студент *</label>
-        <select id="linkStudent" required></select>
+        <div class="search-select" id="linkStudentSelect">
+          <div class="search-select-value" onclick="toggleStudentSelect()">
+            <span class="placeholder" id="linkStudentLabel">— выберите студента —</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6"/>
+            </svg>
+          </div>
+          <div class="search-dropdown" id="linkStudentDropdown">
+            <div class="search-select-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+              </svg>
+              <input type="text" id="linkStudentSearch" placeholder="Поиск студента..." autocomplete="off" oninput="filterStudentOptions()">
+            </div>
+            <div id="linkStudentOptions"></div>
+          </div>
+        </div>
+        <input type="hidden" id="linkStudent" required>
         <div class="form-hint" id="linkStudentHint"></div>
       </div>
+
       <div class="modal-actions">
         <button type="button" class="btn btn-secondary" onclick="tryCloseModal('linkModal')">Отмена</button>
         <button type="submit" class="btn btn-primary">Привязать</button>
@@ -532,18 +433,924 @@
   </div>
 </div>
 
+<!-- ===== LOADING / TOAST ===== -->
 <div id="loading">Загрузка...</div>
 <div id="toast"></div>
 
-<!-- ============================================================= -->
-<!-- 🔥 FIREBASE COMPAT SDK (как в adminhome.html)                  -->
-<!-- ============================================================= -->
+<!-- ===== FIREBASE COMPAT SDK ===== -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="parents.js"></script>
 
-<script>
+</body>
+</html>
+/* ==========================================================
+   PARENTS.CSS — Стили страницы управления родителями
+   ========================================================== */
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  color-scheme: light dark;
+  --primary:#2454e8; --primary-dark:#17348f; --primary-light:#eef2ff;
+  --teal:#0d9488; --teal-light:#ecfdf9;
+  --violet:#7c3aed; --violet-light:#f4f0ff;
+  --amber:#d97706; --amber-light:#fef8ec;
+  --rose:#e11d48; --rose-light:#fff1f2;
+  --red:#dc2626; --red-light:#fef2f2;
+  --green:#16a34a; --green-light:#f0fdf4;
+  --text:#0f1729; --text-secondary:#5b6478; --text-light:#9aa3b5;
+  --surface:#ffffff; --surface-2:#f8fafc; --surface-3:#f1f5f9;
+  --border:#e6ebf3; --border-soft:#eef2f7;
+  --shadow-xs:0 1px 2px rgba(15,23,42,.04);
+  --shadow-sm:0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+  --shadow-md:0 10px 24px -10px rgba(15,23,42,.14);
+  --shadow-lg:0 24px 60px -20px rgba(15,23,42,.22);
+  --radius-lg:22px; --radius-md:16px; --radius-sm:12px;
+  --topbar-h:64px;
+  --tabs-h:52px;
+  --ease:cubic-bezier(.22,1,.36,1);
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);
+}
+
+[data-theme="dark"]{
+  color-scheme: dark;
+  --primary:#5b7dff; --primary-dark:#3b5fea; --primary-light:#1a2547;
+  --teal:#2dd4bf; --teal-light:#0f2e2b;
+  --violet:#a78bfa; --violet-light:#231a3d;
+  --amber:#fbbf24; --amber-light:#33260d;
+  --rose:#fb7185; --rose-light:#2e0d17;
+  --red:#f87171; --red-light:#2e0d0d;
+  --green:#4ade80; --green-light:#0d2e1a;
+  --text:#f1f5f9; --text-secondary:#94a3b8; --text-light:#64748b;
+  --surface:#0f172a; --surface-2:#1e293b; --surface-3:#334155;
+  --border:#334155; --border-soft:#1e293b;
+  --shadow-xs:0 1px 2px rgba(0,0,0,.4);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+  --shadow-md:0 10px 24px -10px rgba(0,0,0,.6);
+  --shadow-lg:0 24px 60px -20px rgba(0,0,0,.7);
+}
+
+html{scroll-behavior:smooth}
+body{
+  min-height:100vh;
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:var(--text);
+  background:#f4f6fb;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  transition:background .3s ease,color .3s ease;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+[data-theme="dark"] body{background:#0a1120}
+
+h1,h2,h3{font-family:"Plus Jakarta Sans","Inter",sans-serif}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:8px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+  }
+}
+
+/* ============ ANIMATIONS ============ */
+@keyframes fadeUpStagger{
+  from{opacity:0;transform:translateY(16px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+@keyframes fadeSlide{
+  from{opacity:0;transform:translateY(-8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes shimmer{
+  0%{background-position:200% 0}
+  100%{background-position:-200% 0}
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes modalSlide{
+  from{opacity:0;transform:scale(.92) translateY(20px)}
+  to{opacity:1;transform:scale(1) translateY(0)}
+}
+@keyframes pulse{
+  0%,100%{transform:scale(1);opacity:1}
+  50%{transform:scale(1.3);opacity:.75}
+}
+@keyframes offlinePulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:.6;transform:scale(1.15)}
+}
+
+.stagger-row{animation:fadeUpStagger .4s var(--ease) backwards}
+
+/* ============ OFFLINE BANNER ============ */
+.offline-banner{
+  position:fixed;top:0;left:0;right:0;z-index:1050;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:11px 18px;
+  background:linear-gradient(135deg,#b91c1c,#dc2626);
+  color:#fff;font-size:13px;font-weight:600;
+  box-shadow:0 6px 24px rgba(185,28,28,.35);
+  transform:translateY(-100%);
+  transition:transform .4s var(--ease);
+}
+.offline-banner.show{transform:translateY(0)}
+.offline-banner svg{
+  width:16px;height:16px;flex-shrink:0;
+  animation:offlinePulse 1.8s ease-in-out infinite;
+}
+.offline-banner .retry-btn{
+  margin-left:10px;padding:5px 12px;
+  border:1px solid rgba(255,255,255,.4);
+  border-radius:999px;background:rgba(255,255,255,.1);
+  color:#fff;font-family:inherit;font-size:11.5px;
+  font-weight:700;cursor:pointer;transition:background .2s ease;
+}
+.offline-banner .retry-btn:hover{background:rgba(255,255,255,.22)}
+
+/* ============ TOP PROGRESS BAR ============ */
+.top-progress{
+  position:fixed;top:0;left:0;right:0;height:3px;
+  background:transparent;z-index:1100;
+  pointer-events:none;
+}
+.top-progress::after{
+  content:"";position:absolute;top:0;left:0;height:100%;
+  width:0;background:linear-gradient(90deg,#3b82f6,#2454e8,#7c3aed);
+  box-shadow:0 0 10px rgba(36,84,232,.6);
+  transition:width .3s ease;
+}
+.top-progress.loading::after{
+  width:90%;
+  transition:width 8s cubic-bezier(.1,.8,.3,1);
+}
+.top-progress.done::after{
+  width:100%;opacity:0;
+  transition:width .2s ease,opacity .3s ease .2s;
+}
+
+/* ============ HEADER ============ */
+header.topbar{
+  position:sticky;top:0;z-index:50;
+  height:var(--topbar-h);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:16px;padding:0 24px;
+  background:rgba(255,255,255,.82);
+  backdrop-filter:blur(20px) saturate(140%);
+  -webkit-backdrop-filter:blur(20px) saturate(140%);
+  border-bottom:1px solid var(--border);
+  transition:background .3s ease,border-color .3s ease;
+}
+[data-theme="dark"] header.topbar{background:rgba(15,23,42,.82)}
+
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+
+.btn-home{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 14px;border-radius:12px;
+  background:var(--primary-light);color:var(--primary);
+  border:1px solid transparent;text-decoration:none;
+  font-family:inherit;font-size:13px;font-weight:600;
+  cursor:pointer;flex-shrink:0;
+  transition:transform .2s var(--ease),background .2s ease,box-shadow .2s ease;
+}
+.btn-home svg{width:16px;height:16px}
+.btn-home:hover{
+  background:var(--primary);color:#fff;
+  box-shadow:0 8px 20px -6px rgba(36,84,232,.5);
+  transform:translateX(-2px);
+}
+.btn-home:active{transform:translateX(-2px) scale(.97)}
+
+.topbar-title{display:flex;flex-direction:column;gap:2px;min-width:0}
+.topbar-title h1{
+  font-size:16px;font-weight:700;letter-spacing:-.3px;
+  color:var(--text);white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.topbar-title span{
+  font-size:11.5px;font-weight:500;
+  color:var(--text-secondary);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.topbar-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+
+.topbar-icon-btn{
+  position:relative;width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--border);border-radius:50%;
+  background:var(--surface);color:var(--text-secondary);
+  cursor:pointer;box-shadow:var(--shadow-xs);
+  transition:color .2s ease,border-color .2s ease,
+             transform .25s var(--ease),box-shadow .25s ease;
+}
+.topbar-icon-btn svg{width:18px;height:18px}
+.topbar-icon-btn:hover{
+  color:var(--primary);border-color:rgba(36,84,232,.3);
+  transform:translateY(-1px) rotate(-30deg);
+  box-shadow:var(--shadow-sm);
+}
+.topbar-icon-btn:active{transform:translateY(0) scale(.96) rotate(0)}
+
+.user-info{
+  display:flex;align-items:center;gap:10px;
+  padding:6px 12px 6px 6px;border-radius:999px;
+  background:var(--surface);border:1px solid var(--border);
+  box-shadow:var(--shadow-xs);
+  font-size:12.5px;font-weight:600;
+  transition:box-shadow .2s ease;
+}
+.user-info:hover{box-shadow:var(--shadow-sm)}
+
+.user-avatar{
+  width:32px;height:32px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:50%;color:#fff;font-size:12px;font-weight:700;
+  background:linear-gradient(135deg,#3b82f6 0%,#2454e8 55%,#1a3aa8 100%);
+  box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 4px 10px rgba(36,84,232,.25);
+  transition:transform .4s var(--ease-spring);
+}
+.user-info:hover .user-avatar{transform:rotate(-6deg) scale(1.08)}
+
+.user-name{
+  max-width:140px;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;
+  color:var(--text);
+}
+.role-badge{
+  padding:3px 10px;border-radius:20px;
+  font-size:10.5px;font-weight:700;
+  letter-spacing:.04em;text-transform:uppercase;
+  background:var(--surface-3);color:var(--text-secondary);
+}
+.role-badge.admin{background:var(--violet-light);color:var(--violet)}
+.role-badge.curator{background:var(--teal-light);color:var(--teal)}
+.role-badge.parent{background:var(--primary-light);color:var(--primary)}
+
+.theme-toggle{
+  width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--border);border-radius:50%;
+  background:var(--surface);color:var(--text-secondary);
+  cursor:pointer;box-shadow:var(--shadow-xs);
+  transition:color .2s ease,border-color .2s ease,transform .25s var(--ease);
+  position:relative;overflow:hidden;
+}
+.theme-toggle:hover{
+  color:var(--primary);border-color:rgba(36,84,232,.3);
+  transform:translateY(-1px);
+}
+.theme-toggle svg{
+  width:18px;height:18px;position:absolute;
+  transition:transform .35s var(--ease-spring),opacity .25s ease;
+}
+.theme-toggle .icon-sun{opacity:1;transform:rotate(0) scale(1)}
+.theme-toggle .icon-moon{opacity:0;transform:rotate(-90deg) scale(.6)}
+[data-theme="dark"] .theme-toggle .icon-sun{opacity:0;transform:rotate(90deg) scale(.6)}
+[data-theme="dark"] .theme-toggle .icon-moon{opacity:1;transform:rotate(0) scale(1)}
+
+/* ============ TABS ============ */
+nav.tabs{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;display:flex;gap:4px;
+  position:sticky;top:var(--topbar-h);z-index:40;
+  overflow-x:auto;
+  transition:background .3s ease,border-color .3s ease;
+  scrollbar-width:none;
+}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{
+  background:none;border:none;padding:16px 20px;
+  font-size:13.5px;color:var(--text-secondary);
+  cursor:pointer;border-bottom:2px solid transparent;
+  font-weight:600;transition:.15s;font-family:inherit;
+  white-space:nowrap;display:inline-flex;align-items:center;gap:8px;
+}
+nav.tabs button:hover{color:var(--text)}
+nav.tabs button.active{color:var(--primary);border-bottom-color:var(--primary)}
+nav.tabs button svg{width:16px;height:16px}
+nav.tabs button .tab-count{
+  background:var(--surface-3);color:var(--text-secondary);
+  padding:1px 8px;border-radius:10px;
+  font-size:11px;font-weight:700;margin-left:4px;
+}
+nav.tabs button.active .tab-count{background:var(--primary-light);color:var(--primary)}
+
+/* ============ MAIN ============ */
+main{
+  padding:26px 24px 100px;
+  max-width:1400px;width:100%;margin:0 auto;
+}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ============ PAGE HEADER ============ */
+.page-header{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:16px;margin-bottom:20px;flex-wrap:wrap;
+}
+.page-header-text h2{
+  font-size:22px;font-weight:800;letter-spacing:-.5px;
+  color:var(--text);margin-bottom:4px;
+}
+.page-header-text p{font-size:13px;color:var(--text-secondary)}
+
+/* ============ BUTTONS ============ */
+.btn{
+  padding:10px 18px;border-radius:12px;border:none;
+  font-size:13px;font-weight:600;cursor:pointer;
+  transition:transform .2s var(--ease),
+             box-shadow .2s ease,
+             background .2s ease,
+             color .2s ease;
+  font-family:inherit;display:inline-flex;align-items:center;
+  gap:8px;white-space:nowrap;
+}
+.btn svg{width:15px;height:15px}
+.btn:active{transform:scale(.97)}
+.btn kbd{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:10px;padding:2px 6px;
+  background:rgba(255,255,255,.2);
+  border-radius:5px;font-weight:600;
+  letter-spacing:.02em;margin-left:4px;
+}
+.btn-primary{
+  background:linear-gradient(135deg,#3b82f6 0%,#2454e8 100%);
+  color:#fff;box-shadow:0 8px 20px -8px rgba(36,84,232,.5);
+}
+.btn-primary:hover{
+  box-shadow:0 12px 28px -8px rgba(36,84,232,.65);
+  transform:translateY(-1px);
+}
+.btn-secondary{
+  background:var(--surface);color:var(--text-secondary);
+  border:1px solid var(--border);box-shadow:var(--shadow-xs);
+}
+.btn-secondary:hover{
+  background:var(--surface-2);color:var(--text);
+  border-color:var(--border-soft);
+}
+.btn-sm{padding:8px 12px;font-size:12px}
+.btn-sm svg{width:14px;height:14px}
+
+.btn-icon{
+  background:none;border:none;cursor:pointer;padding:7px;
+  border-radius:8px;color:var(--text-light);
+  transition:background .2s ease,color .2s ease,transform .2s var(--ease);
+  display:inline-flex;align-items:center;justify-content:center;line-height:0;
+}
+.btn-icon svg{width:16px;height:16px}
+.btn-icon:hover{
+  background:var(--primary-light);color:var(--primary);
+  transform:scale(1.08);
+}
+.btn-icon.danger:hover{background:var(--red-light);color:var(--red)}
+
+/* ============ TOOLBAR / SEARCH ============ */
+.toolbar{
+  display:flex;gap:10px;margin-bottom:16px;
+  flex-wrap:wrap;align-items:center;
+}
+.search-wrap{position:relative;flex:1;min-width:220px;max-width:400px}
+.search-wrap > svg{
+  position:absolute;left:14px;top:50%;transform:translateY(-50%);
+  width:16px;height:16px;color:var(--text-light);pointer-events:none;
+}
+.search-wrap input{
+  width:100%;padding:11px 40px 11px 40px;
+  border:1px solid var(--border);border-radius:12px;
+  font-size:13px;font-family:inherit;
+  background:var(--surface);color:var(--text);
+  transition:.2s;box-shadow:var(--shadow-xs);
+}
+.search-wrap input::placeholder{color:var(--text-light)}
+.search-wrap input:focus{
+  outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 4px rgba(36,84,232,.12);
+}
+.search-clear{
+  position:absolute;right:10px;top:50%;transform:translateY(-50%);
+  width:22px;height:22px;display:none;
+  align-items:center;justify-content:center;
+  border:none;background:var(--surface-3);color:var(--text-light);
+  border-radius:50%;cursor:pointer;padding:0;
+  transition:.15s;
+}
+.search-clear:hover{background:var(--red-light);color:var(--red)}
+.search-clear svg{width:12px;height:12px}
+.search-wrap input:not(:placeholder-shown) ~ .search-clear{display:flex}
+
+/* ============ STATS MINI ============ */
+.stats-mini{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  gap:12px;margin-bottom:16px;
+}
+.stat-mini{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;background:var(--surface);
+  border:1px solid var(--border);border-radius:14px;
+  box-shadow:var(--shadow-xs);
+  transition:transform .25s var(--ease),box-shadow .25s ease;
+}
+.stat-mini:hover{transform:translateY(-2px);box-shadow:var(--shadow-sm)}
+.stat-mini-icon{
+  width:40px;height:40px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:12px;
+}
+.stat-mini-icon svg{width:20px;height:20px}
+.stat-mini.blue .stat-mini-icon{background:var(--primary-light);color:var(--primary)}
+.stat-mini.violet .stat-mini-icon{background:var(--violet-light);color:var(--violet)}
+.stat-mini.teal .stat-mini-icon{background:var(--teal-light);color:var(--teal)}
+.stat-mini-body{min-width:0}
+.stat-mini-label{
+  font-size:11.5px;font-weight:500;
+  color:var(--text-secondary);
+  margin-bottom:2px;text-transform:uppercase;
+  letter-spacing:.03em;
+}
+.stat-mini-value{
+  font-family:"Plus Jakarta Sans",sans-serif;
+  font-size:20px;font-weight:800;
+  letter-spacing:-.4px;color:var(--text);line-height:1;
+}
+
+/* ============ TABLE ============ */
+.table-wrap{
+  background:var(--surface);border-radius:var(--radius-md);
+  overflow:hidden;box-shadow:var(--shadow-sm);
+  border:1px solid var(--border);
+  transition:background .3s ease,border-color .3s ease;
+}
+.table-scroll{
+  overflow-x:auto;
+  max-height:calc(100vh - 460px);
+  min-height:200px;
+}
+table{width:100%;border-collapse:collapse}
+thead{
+  background:var(--surface-2);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:5;
+}
+th{
+  text-align:left;padding:14px 18px;
+  font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;
+  color:var(--text-light);white-space:nowrap;
+}
+td{
+  padding:14px 18px;border-bottom:1px solid var(--border-soft);
+  font-size:13px;vertical-align:middle;color:var(--text);
+}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .15s ease}
+tbody tr:hover td{background:var(--surface-2)}
+tr.expandable{cursor:pointer}
+tr.expandable:hover td{background:var(--primary-light)}
+
+/* Search highlight */
+mark.hl{
+  background:var(--amber-light);
+  color:var(--amber);
+  padding:1px 3px;border-radius:4px;
+  font-weight:600;
+}
+
+/* Skeleton */
+.skeleton{
+  height:14px;border-radius:6px;
+  background:linear-gradient(90deg,var(--surface-2) 25%,var(--surface-3) 50%,var(--surface-2) 75%);
+  background-size:200% 100%;
+  animation:shimmer 1.3s linear infinite;
+}
+
+/* Empty state */
+.empty{padding:60px 24px;text-align:center;color:var(--text-light)}
+.empty svg{
+  width:56px;height:56px;margin:0 auto 14px;
+  opacity:.35;display:block;
+}
+.empty-title{
+  font-size:15px;font-weight:700;
+  color:var(--text-secondary);margin-bottom:6px;
+}
+.empty-text{
+  font-size:13px;color:var(--text-light);
+  margin-bottom:16px;max-width:340px;
+  margin-left:auto;margin-right:auto;line-height:1.5;
+}
+.empty-cta{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:10px 18px;border-radius:12px;
+  background:var(--primary);color:#fff;border:none;
+  font-family:inherit;font-size:13px;font-weight:600;
+  cursor:pointer;transition:transform .2s var(--ease),box-shadow .2s ease;
+  box-shadow:0 8px 20px -8px rgba(36,84,232,.5);
+}
+.empty-cta:hover{
+  transform:translateY(-1px);
+  box-shadow:0 12px 28px -8px rgba(36,84,232,.65);
+}
+.empty-cta svg{width:15px;height:15px;margin:0;opacity:1}
+
+/* ============ BADGES ============ */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:4px 10px;border-radius:8px;
+  font-size:11.5px;font-weight:600;
+  background:var(--primary-light);color:var(--primary);
+  white-space:nowrap;
+}
+.badge-green{background:var(--green-light);color:var(--green)}
+.badge-gray{background:var(--surface-3);color:var(--text-light)}
+.badge-violet{background:var(--violet-light);color:var(--violet)}
+.badge-teal{background:var(--teal-light);color:var(--teal)}
+.badge-amber{background:var(--amber-light);color:var(--amber)}
+
+.uid-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:4px 10px;border-radius:8px;
+  font-size:11px;font-weight:600;
+  background:var(--surface-3);color:var(--text-secondary);
+  cursor:pointer;transition:background .2s ease,color .2s ease;
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  border:none;font-family:inherit;
+}
+.uid-badge span{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.uid-badge:hover{background:var(--primary-light);color:var(--primary)}
+.uid-badge svg{width:11px;height:11px}
+
+.children-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:4px 10px;border-radius:10px;
+  font-size:12px;font-weight:600;
+  background:var(--primary-light);color:var(--primary);
+  cursor:pointer;user-select:none;
+  transition:transform .15s var(--ease),background .2s ease;
+}
+.children-badge:hover{background:var(--primary);color:#fff;transform:scale(1.04)}
+.children-badge .count{
+  font-family:"Plus Jakarta Sans",sans-serif;
+  font-weight:800;
+}
+.children-badge .chevron{
+  width:10px;height:10px;
+  transition:transform .25s var(--ease);
+}
+.children-badge.open .chevron{transform:rotate(180deg)}
+.children-badge.zero{
+  background:var(--surface-3);color:var(--text-light);
+  cursor:default;
+}
+.children-badge.zero:hover{
+  background:var(--surface-3);color:var(--text-light);
+  transform:none;
+}
+
+/* ============ EXPANDED ROW ============ */
+tr.expanded-row td{
+  background:var(--surface-2);padding:0;
+  border-bottom:1px solid var(--border);
+}
+.children-list{
+  padding:16px 24px;display:flex;flex-wrap:wrap;gap:8px;
+  animation:fadeSlide .3s var(--ease);
+}
+.child-chip{
+  background:var(--surface);border:1px solid var(--border);
+  padding:8px 14px;border-radius:12px;
+  font-size:12.5px;color:var(--text-secondary);
+  display:inline-flex;align-items:center;gap:8px;
+  transition:border-color .2s ease,transform .2s var(--ease);
+}
+.child-chip:hover{border-color:var(--primary);transform:translateY(-1px)}
+.child-chip strong{color:var(--text);font-weight:600}
+.child-chip .group-tag{
+  background:var(--primary-light);color:var(--primary);
+  padding:2px 8px;border-radius:6px;
+  font-size:11px;font-weight:700;
+}
+
+.actions{display:flex;gap:4px;justify-content:flex-end}
+
+/* ============ PAGINATION ============ */
+.pagination{
+  display:flex;justify-content:center;align-items:center;
+  gap:6px;padding:16px;background:var(--surface-2);
+  border-top:1px solid var(--border);flex-wrap:wrap;
+}
+.pagination button{
+  background:var(--surface);border:1px solid var(--border);
+  padding:7px 12px;border-radius:9px;font-size:12.5px;
+  font-weight:600;cursor:pointer;font-family:inherit;
+  color:var(--text-secondary);transition:.15s;
+  min-width:36px;display:inline-flex;
+  align-items:center;justify-content:center;
+}
+.pagination button:hover:not(:disabled){
+  background:var(--primary-light);color:var(--primary);
+  border-color:var(--primary);transform:translateY(-1px);
+}
+.pagination button:disabled{opacity:.35;cursor:not-allowed}
+.pagination button.active{
+  background:var(--primary);border-color:var(--primary);
+  color:#fff;box-shadow:0 4px 12px -4px rgba(36,84,232,.5);
+}
+.pagination .info{
+  margin:0 8px;font-size:12px;
+  font-weight:500;color:var(--text-light);
+}
+
+/* ============ MODAL ============ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(15,23,42,.5);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  z-index:100;align-items:center;justify-content:center;
+  padding:20px;animation:fadeIn .2s ease;
+}
+.modal-overlay.active{display:flex}
+.modal{
+  background:var(--surface);border-radius:20px;
+  width:100%;max-width:460px;padding:28px;
+  box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;
+  animation:modalSlide .35s var(--ease-spring);
+  border:1px solid var(--border);
+}
+.modal-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.modal-icon{
+  width:44px;height:44px;display:flex;
+  align-items:center;justify-content:center;
+  border-radius:12px;background:var(--primary-light);
+  color:var(--primary);flex-shrink:0;
+}
+.modal-icon svg{width:22px;height:22px}
+.modal h3{
+  font-size:17px;font-weight:700;
+  letter-spacing:-.3px;color:var(--text);
+}
+.modal-subtitle{
+  font-size:12.5px;color:var(--text-secondary);margin-top:2px;
+}
+
+.form-group{margin-bottom:16px}
+.form-group > label{
+  display:block;font-size:12px;font-weight:700;
+  color:var(--text-secondary);margin-bottom:8px;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.form-group input,
+.form-group select{
+  width:100%;padding:11px 14px;
+  border:1px solid var(--border);border-radius:12px;
+  font-size:13.5px;font-family:inherit;
+  transition:.2s;background:var(--surface);color:var(--text);
+}
+.form-group input::placeholder{color:var(--text-light)}
+.form-group input:focus{
+  outline:none;border-color:var(--primary);
+  box-shadow:0 0 0 4px rgba(36,84,232,.12);
+}
+.form-hint{
+  font-size:11.5px;color:var(--text-light);margin-top:6px;
+}
+.form-error{
+  background:var(--red-light);color:var(--red);
+  padding:10px 14px;border-radius:10px;
+  font-size:12.5px;font-weight:500;margin-bottom:16px;
+}
+.modal-actions{
+  display:flex;justify-content:flex-end;
+  gap:10px;margin-top:24px;
+}
+
+/* ============ SEARCH SELECT ============ */
+.search-select{position:relative}
+
+.search-select-value{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 14px;border:1px solid var(--border);
+  border-radius:12px;background:var(--surface);
+  cursor:pointer;font-size:13.5px;
+  transition:.2s;min-height:44px;
+}
+.search-select-value:hover{border-color:var(--primary)}
+.search-select-value.selected{
+  background:var(--primary-light);
+  border-color:var(--primary);
+  color:var(--primary);font-weight:600;
+}
+.search-select-value .placeholder{color:var(--text-light)}
+.search-select-value svg{
+  width:14px;height:14px;color:var(--text-light);
+  transition:transform .25s var(--ease);
+}
+.search-select-value.selected svg{color:var(--primary)}
+.search-select.open .search-select-value svg{transform:rotate(180deg)}
+
+.search-dropdown{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:12px;box-shadow:var(--shadow-lg);
+  max-height:320px;display:none;
+  z-index:200;overflow:hidden;
+  animation:fadeSlide .2s var(--ease);
+}
+.search-select.open .search-dropdown{display:block}
+
+.search-dropdown .search-select-wrap{
+  padding:10px;
+  border-bottom:1px solid var(--border-soft);
+  position:sticky;top:0;background:var(--surface);z-index:1;
+  max-width:none;
+}
+
+#linkParentOptions,
+#linkStudentOptions{
+  max-height:240px;overflow-y:auto;
+  padding:6px;
+}
+
+.search-dropdown-item{
+  padding:10px 12px;cursor:pointer;
+  font-size:13px;color:var(--text);
+  transition:background .15s ease;
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;
+}
+.search-dropdown-item:hover,
+.search-dropdown-item.highlight{
+  background:var(--primary-light);color:var(--primary);
+}
+.search-dropdown-item .opt-group{
+  font-size:10.5px;font-weight:700;
+  color:var(--text-light);text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.search-dropdown-item:hover .opt-group,
+.search-dropdown-item.highlight .opt-group{color:var(--primary)}
+
+.search-dropdown-group{
+  padding:8px 12px 4px;
+  font-size:10.5px;font-weight:700;
+  color:var(--text-light);
+  text-transform:uppercase;letter-spacing:.05em;
+  position:sticky;top:0;
+  background:var(--surface);
+  margin:4px 0 2px;
+}
+
+.search-dropdown-empty{
+  padding:24px 20px;text-align:center;
+  color:var(--text-light);font-size:12.5px;
+}
+
+/* ============ BOTTOM NAV (mobile) ============ */
+.bottom-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  z-index:60;
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(20px) saturate(140%);
+  -webkit-backdrop-filter:blur(20px) saturate(140%);
+  border-top:1px solid var(--border);
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  justify-content:space-around;
+  transition:background .3s ease,border-color .3s ease;
+}
+[data-theme="dark"] .bottom-nav{background:rgba(15,23,42,.94)}
+.bottom-nav-btn{
+  flex:1;background:none;border:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;
+  gap:4px;padding:6px;border-radius:12px;
+  color:var(--text-secondary);
+  font-size:10.5px;font-weight:600;font-family:inherit;
+  transition:color .15s ease,background .15s ease;
+}
+.bottom-nav-btn svg{width:22px;height:22px}
+.bottom-nav-btn.active{color:var(--primary)}
+.bottom-nav-btn.active svg{filter:drop-shadow(0 2px 6px rgba(36,84,232,.4))}
+.bottom-nav-btn:active{background:var(--surface-2)}
+
+/* ============ LOADING / TOAST ============ */
+#loading{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  background:linear-gradient(135deg,#101a30 0%,#1a2547 100%);
+  color:#fff;padding:14px 26px;border-radius:14px;
+  font-size:13.5px;font-weight:600;z-index:999;
+  display:none;box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 20px 44px rgba(15,23,42,.32);
+  align-items:center;gap:10px;
+}
+#loading::before{
+  content:"";
+  width:14px;height:14px;
+  border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:spin .7s linear infinite;
+}
+
+#toast{
+  position:fixed;bottom:24px;right:24px;
+  background:linear-gradient(135deg,#101a30 0%,#1a2547 100%);
+  color:#fff;padding:14px 22px;border-radius:14px;
+  font-size:13.5px;font-weight:600;z-index:999;
+  opacity:0;transform:translateY(20px);
+  transition:.35s var(--ease);
+  pointer-events:none;max-width:340px;
+  box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 20px 44px rgba(15,23,42,.32);
+  display:flex;align-items:center;gap:10px;
+}
+#toast::before{
+  content:"";width:8px;height:8px;border-radius:50%;
+  background:#5b7dff;flex-shrink:0;
+  box-shadow:0 0 0 4px rgba(91,125,255,.2);
+}
+#toast.show{opacity:1;transform:translateY(0)}
+#toast.error{background:linear-gradient(135deg,#7f1d1d 0%,#b91c1c 100%)}
+#toast.error::before{background:#fca5a5;box-shadow:0 0 0 4px rgba(252,165,165,.25)}
+#toast.success{background:linear-gradient(135deg,#14532d 0%,#15803d 100%)}
+#toast.success::before{background:#86efac;box-shadow:0 0 0 4px rgba(134,239,172,.25)}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width:1024px){
+  main{padding-bottom:100px}
+  .table-scroll{max-height:none}
+}
+
+@media (max-width:900px){
+  header.topbar{padding:0 16px;gap:10px}
+  .topbar-title span{display:none}
+  .topbar-title h1{font-size:14.5px}
+  .btn-home span{display:none}
+  .btn-home{padding:9px 11px}
+  nav.tabs{padding:0 12px}
+  nav.tabs button{padding:14px 14px;font-size:12.5px}
+  nav.tabs button span:not(.tab-count){display:none}
+  nav.tabs button .tab-count{margin-left:2px}
+  main{padding:18px 14px 100px}
+  .page-header-text h2{font-size:19px}
+  .user-name{max-width:90px}
+  .stat-mini{padding:12px 14px}
+  .stat-mini-value{font-size:18px}
+}
+
+@media (max-width:700px){
+  /* Мобильный bottom-nav */
+  nav.tabs{display:none}
+  .bottom-nav{display:flex}
+  main{padding-top:16px}
+  body{padding-bottom:80px}
+}
+
+@media (max-width:640px){
+  header.topbar{height:60px;padding:0 12px}
+  .user-info{padding:5px 10px 5px 5px;gap:8px}
+  .user-avatar{width:28px;height:28px;font-size:11px}
+  .user-name{max-width:70px;font-size:12px}
+  .role-badge{font-size:9.5px;padding:2px 8px}
+  .theme-toggle,.topbar-icon-btn{width:36px;height:36px}
+  .theme-toggle svg,.topbar-icon-btn svg{width:16px;height:16px}
+  .modal{padding:22px;border-radius:16px}
+  th,td{padding:11px 14px;font-size:12.5px}
+  .hide-mobile{display:none}
+  .toolbar{flex-direction:column;align-items:stretch}
+  .search-wrap{max-width:100%}
+  .toolbar .btn-sm{justify-content:center}
+  #toast{left:16px;right:16px;bottom:16px;max-width:none}
+  #toast{bottom:calc(80px + env(safe-area-inset-bottom))}
+  .page-header{align-items:flex-start;flex-direction:column}
+  .page-header .btn-primary{width:100%;justify-content:center}
+  .stats-mini{grid-template-columns:1fr 1fr}
+  .stat-mini:last-child{grid-column:1 / -1}
+  .stat-mini-icon{width:36px;height:36px}
+  .stat-mini-icon svg{width:18px;height:18px}
+  .stat-mini-value{font-size:17px}
+  .pagination button{padding:6px 10px;font-size:12px;min-width:32px}
+  .pagination .info{font-size:11px;margin:0 4px}
+}
+
+@media (max-width:400px){
+  .btn-home svg{width:15px;height:15px}
+  .page-header-text h2{font-size:17px}
+  .stats-mini{grid-template-columns:1fr}
+  .stat-mini:last-child{grid-column:auto}
+}
+/* ==========================================================
+   PARENTS.JS — Логика страницы управления родителями
+   ========================================================== */
+
 /* ===================== STATE ===================== */
 let currentUser = null;
 let isAdmin = false;
@@ -560,43 +1367,134 @@ let studentMap = new Map();
 let parentMap = new Map();
 let groupMap = new Map();
 
+// Sorted cache
+let sortedParents = [];
+let sortedStudents = [];
+
 const PAGE_SIZE = 15;
 const pagination = { parents: 1, links: 1, students: 1 };
 const filters = { parents: '', links: '', students: '' };
 
+let expandedParents = new Set();
+let selectedParentId = null;
+let selectedStudentId = null;
+
+let isInitialLoad = true;
+
 
 /* ===================== HELPERS ===================== */
 const $ = id => document.getElementById(id);
-function showLoading(v) { $('loading').style.display = v ? 'block' : 'none'; }
-function toast(msg, type = '') {
+
+function showLoading(v){
+  $('loading').style.display = v ? 'flex' : 'none';
+  const tp = $('topProgress');
+  if (v){
+    tp.classList.remove('done');
+    tp.classList.add('loading');
+  } else {
+    tp.classList.remove('loading');
+    tp.classList.add('done');
+    setTimeout(() => tp.classList.remove('done'), 500);
+  }
+}
+
+function toast(msg, type = ''){
   const el = $('toast');
   el.textContent = msg;
   el.className = 'show ' + type;
   clearTimeout(el._t);
   el._t = setTimeout(() => el.className = '', 2800);
 }
-function esc(s) {
+
+function esc(s){
   return String(s ?? '').replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
   }[c]));
 }
-function norm(s) { return String(s ?? '').toLowerCase().trim(); }
-function showFormError(id, msg) {
+
+function norm(s){ return String(s ?? '').toLowerCase().trim(); }
+
+function showFormError(id, msg){
   const el = $(id);
-  if (msg) { el.textContent = msg; el.style.display = 'block'; }
+  if (msg){ el.textContent = msg; el.style.display = 'block'; }
   else { el.style.display = 'none'; }
 }
 
-// Сортировка по ФИО на русском
-function sortByName(a, b, field) {
+function sortByName(a, b, field){
   const na = norm(a[field] || a.name || '');
   const nb = norm(b[field] || b.name || '');
   return na.localeCompare(nb, 'ru');
 }
 
+function sortByGroupThenName(a, b, nameField){
+  const ga = groups[a.groupId] || '';
+  const gb = groups[b.groupId] || '';
+  const gcmp = String(ga).localeCompare(String(gb), 'ru', { numeric: true });
+  if (gcmp !== 0) return gcmp;
+  return sortByName(a, b, nameField);
+}
 
-/* ===================== ЗАГРУЗКА ДАННЫХ ===================== */
-async function loadAll() {
+function getInitials(fio){
+  const parts = String(fio || '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return '?';
+}
+
+// Подсветка найденного текста
+function highlight(text, query){
+  const s = String(text ?? '');
+  if (!query) return esc(s);
+  const q = String(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const re = new RegExp(`(${q})`, 'gi');
+  return esc(s).replace(re, '<mark class="hl">$1</mark>');
+}
+
+// Пустое состояние
+function emptyState(icon, title, text, colspan, cta){
+  const ctaHtml = cta
+    ? `<button class="empty-cta" onclick="${cta.onclick}">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <path d="M12 5v14"/><path d="M5 12h14"/>
+         </svg>
+         ${esc(cta.label)}
+       </button>`
+    : '';
+  return `<tr><td colspan="${colspan}">
+    <div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+      <div class="empty-title">${esc(title)}</div>
+      <div class="empty-text">${esc(text)}</div>
+      ${ctaHtml}
+    </div>
+  </td></tr>`;
+}
+
+// Копирование в буфер
+function copyToClipboard(text){
+  if (navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(text)
+      .then(() => toast('UID скопирован', 'success'))
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); toast('UID скопирован', 'success'); }
+  catch (e) { toast('Не удалось скопировать', 'error'); }
+  document.body.removeChild(ta);
+}
+
+
+/* ===================== ЗАГРУЗКА ===================== */
+async function loadAll(){
   showLoading(true);
   try {
     // 1. Группы
@@ -609,12 +1507,11 @@ async function loadAll() {
       groupMap.set(d.id, data);
     });
 
-    // 2. Куратор — его группы
-    if (isCurator && currentUser?.uid) {
+    // 2. Куратор — его группы и студенты
+    if (isCurator && currentUser?.uid){
       curatorGroupIds = [];
       grSnap.docs.forEach(d => {
-        const g = d.data();
-        if (g.curatorId === currentUser.uid) curatorGroupIds.push(d.id);
+        if (d.data().curatorId === currentUser.uid) curatorGroupIds.push(d.id);
       });
       curatorStudentIds = new Set();
       curatorGroupIds.forEach(gid => {
@@ -630,16 +1527,12 @@ async function loadAll() {
     studSnap.docs.forEach(d => {
       const s = { id: d.id, ...d.data() };
       studentMap.set(d.id, s);
-      if (isCurator) {
-        if (curatorStudentIds.has(d.id) || curatorGroupIds.includes(s.groupId)) {
-          students.push(s);
-        }
-      } else {
-        students.push(s);
-      }
+      if (isCurator){
+        if (curatorStudentIds.has(d.id) || curatorGroupIds.includes(s.groupId)) students.push(s);
+      } else students.push(s);
     });
 
-    // 4. Родители (role = parent)
+    // 4. Родители
     const parSnap = await firebase.firestore()
       .collection('users').where('role', '==', 'parent').get();
     parents = [];
@@ -656,62 +1549,87 @@ async function loadAll() {
     const studentIdsSet = new Set(students.map(s => s.id));
     linksSnap.docs.forEach(d => {
       const l = { id: d.id, ...d.data() };
-      if (isCurator) {
+      if (isCurator){
         if (studentIdsSet.has(l.studentId)) links.push(l);
-      } else {
-        links.push(l);
-      }
+      } else links.push(l);
     });
 
     // 6. Куратор — фильтр родителей
-    if (isCurator) {
+    if (isCurator){
       const visibleParentIds = new Set(links.map(l => l.parentId));
       parents = parents.filter(p => visibleParentIds.has(p.id));
+    }
+
+    // Кэш сортировок
+    sortedParents = [...parents].sort((a, b) => sortByName(a, b, 'name'));
+    sortedStudents = [...students].sort((a, b) => sortByGroupThenName(a, b, 'fullName'));
+
+    // Обновляем счётчики
+    $('statParentsCount').textContent = parents.length;
+    $('statLinksCount').textContent = links.length;
+    $('statStudentsCount').textContent = students.length;
+    $('tabCountParents').textContent = parents.length;
+    $('tabCountLinks').textContent = links.length;
+    $('tabCountStudents').textContent = students.length;
+
+    // Плашка «куратор»
+    if (isCurator){
+      $('topbarSubtitle').innerHTML = `Куратор · только студенты ваших групп`;
+      $('topbarSubtitle').classList.add('warn');
+    } else if (isAdmin){
+      $('topbarSubtitle').textContent = 'Полный доступ';
     }
 
     renderParents();
     renderLinks();
     renderStudents();
-  } catch (e) {
+  } catch (e){
     console.error(e);
     toast('Ошибка загрузки: ' + (e.message || e), 'error');
   } finally {
     showLoading(false);
+    isInitialLoad = false;
   }
+}
+
+async function reloadData(){
+  toast('Обновление данных...');
+  await loadAll();
+  toast('Данные обновлены', 'success');
 }
 
 
 /* ===================== ОБЩИЕ ===================== */
-function getChildrenOfParent(parentId) {
+function getChildrenOfParent(parentId){
   return links
     .filter(l => l.parentId === parentId)
     .map(l => studentMap.get(l.studentId))
     .filter(Boolean);
 }
-function getParentsOfStudent(studentId) {
+function getParentsOfStudent(studentId){
   return links
     .filter(l => l.studentId === studentId)
     .map(l => parentMap.get(l.parentId))
     .filter(Boolean);
 }
 
-function renderPagination(containerId, total, current, onChange) {
+function renderPagination(containerId, total, current, onChange){
   const el = $(containerId);
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (total <= PAGE_SIZE) { el.innerHTML = ''; return; }
+  if (total <= PAGE_SIZE){ el.innerHTML = ''; return; }
 
-  let html = `<button ${current === 1 ? 'disabled' : ''} data-page="${current - 1}">← Назад</button>`;
+  let html = `<button ${current===1?'disabled':''} data-page="${current-1}">← Назад</button>`;
   const maxVisible = 5;
-  let start = Math.max(1, current - Math.floor(maxVisible / 2));
+  let start = Math.max(1, current - Math.floor(maxVisible/2));
   let end = Math.min(pages, start + maxVisible - 1);
   if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
 
   if (start > 1) html += `<button data-page="1">1</button>${start > 2 ? '<span class="info">…</span>' : ''}`;
-  for (let i = start; i <= end; i++) {
-    html += `<button data-page="${i}" class="${i === current ? 'active' : ''}">${i}</button>`;
+  for (let i = start; i <= end; i++){
+    html += `<button data-page="${i}" class="${i===current?'active':''}">${i}</button>`;
   }
-  if (end < pages) html += `${end < pages - 1 ? '<span class="info">…</span>' : ''}<button data-page="${pages}">${pages}</button>`;
-  html += `<button ${current === pages ? 'disabled' : ''} data-page="${current + 1}">Вперёд →</button>`;
+  if (end < pages) html += `${end < pages-1 ? '<span class="info">…</span>' : ''}<button data-page="${pages}">${pages}</button>`;
+  html += `<button ${current===pages?'disabled':''} data-page="${current+1}">Вперёд →</button>`;
   html += `<span class="info">Всего: ${total}</span>`;
 
   el.innerHTML = html;
@@ -720,21 +1638,30 @@ function renderPagination(containerId, total, current, onChange) {
   });
 }
 
+function skeletonRows(cols, count = 5){
+  let html = '';
+  for (let i = 0; i < count; i++){
+    html += '<tr>';
+    for (let c = 0; c < cols; c++){
+      const w = c === 0 ? '20px' : (c === 1 ? '60%' : '40%');
+      html += `<td><div class="skeleton" style="width:${w}"></div></td>`;
+    }
+    html += '</tr>';
+  }
+  return html;
+}
+
 
 /* ===================== РОДИТЕЛИ ===================== */
-let expandedParents = new Set();
-
-function renderParents() {
+function renderParents(){
   const tb = $('parentsTable');
   const search = norm(filters.parents);
 
-  let list = parents.filter(p =>
-    !search || norm(p.name).includes(search) || norm(p.email).includes(search)
+  let list = sortedParents.filter(p =>
+    !search ||
+    norm(p.name).includes(search) ||
+    norm(p.email).includes(search)
   );
-  // === Алфавитный порядок ===
-  list.sort((a, b) => sortByName(a, b, 'name'));
-
-  $('parentsStats').textContent = `· найдено: ${list.length}`;
 
   const total = list.length;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -742,47 +1669,81 @@ function renderParents() {
   const start = (pagination.parents - 1) * PAGE_SIZE;
   const pageItems = list.slice(start, start + PAGE_SIZE);
 
-  if (!total) {
-    tb.innerHTML = `<tr><td colspan="6" class="empty">${parents.length ? 'Ничего не найдено' : 'Нет родителей. Нажмите «+ Добавить родителя»'}</td></tr>`;
+  if (!total){
+    tb.innerHTML = parents.length
+      ? emptyState(
+          '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+          'Ничего не найдено',
+          'Попробуйте изменить запрос или очистить поиск',
+          6
+        )
+      : emptyState(
+          '<circle cx="9" cy="7" r="3"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/><circle cx="17" cy="8" r="2.5"/>',
+          'Пока нет родителей',
+          'Добавьте первого родителя, чтобы начать работу',
+          6,
+          { label: 'Добавить родителя', onclick: 'openParentModal()' }
+        );
     renderPagination('parentsPagination', 0, 1, () => {});
     return;
   }
 
-  const rowsHtml = pageItems.map((p, i) => {
+  tb.innerHTML = pageItems.map((p, i) => {
     const childCount = getChildrenOfParent(p.id).length;
     const isExpanded = expandedParents.has(p.id);
     const children = isExpanded ? getChildrenOfParent(p.id) : [];
 
     const childBadge = childCount > 0
-      ? `<span class="children-badge" onclick="event.stopPropagation(); toggleParent('${p.id}')">👶 ${childCount} ${isExpanded ? '▲' : '▼'}</span>`
+      ? `<span class="children-badge ${isExpanded ? 'open' : ''}"
+              onclick="event.stopPropagation(); toggleParent('${p.id}')">
+          <span>👶</span><span class="count">${childCount}</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+         </span>`
       : `<span class="children-badge zero">— нет</span>`;
 
+    const uidShort = p.id.slice(0, 8) + '…';
+
     let html = `
-      <tr class="${childCount ? 'expandable' : ''}" ${childCount ? `onclick="toggleParent('${p.id}')"` : ''}>
-        <td>${start + i + 1}</td>
-        <td><strong>${esc(p.name || '—')}</strong></td>
-        <td class="hide-mobile">${esc(p.email || '—')}</td>
+      <tr class="stagger-row ${childCount ? 'expandable' : ''}"
+          style="animation-delay:${i * 0.03}s"
+          ${childCount ? `onclick="toggleParent('${p.id}')" ondblclick="editParent('${p.id}')"` : `ondblclick="editParent('${p.id}')"`}>
+        <td><span style="color:var(--text-light);font-weight:600">${start + i + 1}</span></td>
+        <td><strong>${highlight(p.name || '—', filters.parents)}</strong></td>
+        <td class="hide-mobile">${highlight(p.email || '—', filters.parents)}</td>
         <td>${childBadge}</td>
-        <td class="hide-mobile"><span class="badge">${esc(p.id.slice(0, 8))}…</span></td>
+        <td class="hide-mobile">
+          <button class="uid-badge" onclick="event.stopPropagation(); copyToClipboard('${p.id}')" title="Нажмите, чтобы скопировать">
+            <span>${esc(uidShort)}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+          </button>
+        </td>
         <td>
           <div class="actions" onclick="event.stopPropagation()">
-            <button class="btn-icon" title="Редактировать" onclick="editParent('${p.id}')">✏️</button>
-            <button class="btn-icon" title="Удалить" onclick="removeParent('${p.id}', '${esc(p.name || '')}')">🗑</button>
+            <button class="btn-icon" title="Редактировать" onclick="editParent('${p.id}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20h9"/>
+                <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+              </svg>
+            </button>
+            <button class="btn-icon danger" title="Удалить" onclick="removeParent('${p.id}', '${esc(p.name || '')}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+              </svg>
+            </button>
           </div>
         </td>
       </tr>
     `;
 
-    if (isExpanded && children.length) {
-      // === Дети: сортируем по группе, потом по ФИО ===
-      const sortedChildren = [...children].sort((a, b) => {
-        const ga = groups[a.groupId] || '';
-        const gb = groups[b.groupId] || '';
-        const gcmp = String(ga).localeCompare(String(gb), 'ru', { numeric: true });
-        if (gcmp !== 0) return gcmp;
-        return sortByName(a, b, 'fullName');
-      });
-
+    if (isExpanded && children.length){
+      const sortedChildren = [...children].sort((a, b) => sortByGroupThenName(a, b, 'fullName'));
       html += `
         <tr class="expanded-row">
           <td colspan="6">
@@ -802,19 +1763,19 @@ function renderParents() {
     return html;
   }).join('');
 
-  tb.innerHTML = rowsHtml;
   renderPagination('parentsPagination', total, pagination.parents, p => {
     pagination.parents = p;
     renderParents();
   });
 }
 
-function toggleParent(id) {
+function toggleParent(id){
   if (expandedParents.has(id)) expandedParents.delete(id);
   else expandedParents.add(id);
   renderParents();
 }
-function onParentsSearch() {
+
+function onParentsSearch(){
   filters.parents = $('parentsSearch').value;
   pagination.parents = 1;
   renderParents();
@@ -822,7 +1783,7 @@ function onParentsSearch() {
 
 
 /* ===================== СВЯЗИ ===================== */
-function renderLinks() {
+function renderLinks(){
   const tb = $('linksTable');
   const search = norm(filters.links);
 
@@ -835,18 +1796,11 @@ function renderLinks() {
         || norm(student?.name).includes(search);
   });
 
-  // === Сортировка: сначала по группе, потом по ФИО студента ===
   list.sort((a, b) => {
     const sA = studentMap.get(a.studentId);
     const sB = studentMap.get(b.studentId);
-    const gA = groups[sA?.groupId] || '';
-    const gB = groups[sB?.groupId] || '';
-    const gcmp = String(gA).localeCompare(String(gB), 'ru', { numeric: true });
-    if (gcmp !== 0) return gcmp;
-    return sortByName(sA || {}, sB || {}, 'fullName');
+    return sortByGroupThenName(sA || {}, sB || {}, 'fullName');
   });
-
-  $('linksStats').textContent = `· найдено: ${list.length}`;
 
   const total = list.length;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -854,8 +1808,21 @@ function renderLinks() {
   const start = (pagination.links - 1) * PAGE_SIZE;
   const pageItems = list.slice(start, start + PAGE_SIZE);
 
-  if (!total) {
-    tb.innerHTML = `<tr><td colspan="5" class="empty">${links.length ? 'Ничего не найдено' : 'Нет связей. Нажмите «+ Привязать студента»'}</td></tr>`;
+  if (!total){
+    tb.innerHTML = links.length
+      ? emptyState(
+          '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+          'Ничего не найдено',
+          'Попробуйте изменить запрос',
+          5
+        )
+      : emptyState(
+          '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+          'Пока нет связей',
+          'Привяжите студента к родителю, чтобы начать',
+          5,
+          { label: 'Привязать студента', onclick: 'openLinkModal()' }
+        );
     renderPagination('linksPagination', 0, 1, () => {});
     return;
   }
@@ -865,13 +1832,21 @@ function renderLinks() {
     const student = studentMap.get(l.studentId);
     const groupName = student ? (groups[student.groupId] || student.groupId || '—') : '—';
     return `
-      <tr>
-        <td>${start + i + 1}</td>
-        <td>${esc(parent?.name || '— (удалён)')}</td>
-        <td><strong>${esc(student?.fullName || student?.name || '— (удалён)')}</strong></td>
+      <tr class="stagger-row" style="animation-delay:${i * 0.03}s">
+        <td><span style="color:var(--text-light);font-weight:600">${start + i + 1}</span></td>
+        <td><strong>${highlight(parent?.name || '— (удалён)', filters.links)}</strong></td>
+        <td>${highlight(student?.fullName || student?.name || '— (удалён)', filters.links)}</td>
         <td class="hide-mobile"><span class="badge badge-green">${esc(groupName)}</span></td>
         <td>
-          <button class="btn-icon" title="Отвязать" onclick="removeLink('${l.id}')">🗑</button>
+          <div class="actions">
+            <button class="btn-icon danger" title="Отвязать" onclick="removeLink('${l.id}')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 6h18"/>
+                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+              </svg>
+            </button>
+          </div>
         </td>
       </tr>
     `;
@@ -882,19 +1857,20 @@ function renderLinks() {
     renderLinks();
   });
 }
-function onLinksSearch() {
+
+function onLinksSearch(){
   filters.links = $('linksSearch').value;
   pagination.links = 1;
   renderLinks();
 }
 
 
-/* ===================== СТУДЕНТЫ → РОДИТЕЛИ ===================== */
-function renderStudents() {
+/* ===================== СТУДЕНТЫ ===================== */
+function renderStudents(){
   const tb = $('studentsTable');
   const search = norm(filters.students);
 
-  let list = students.filter(s => {
+  let list = sortedStudents.filter(s => {
     if (!search) return true;
     const gr = groups[s.groupId] || '';
     return norm(s.fullName).includes(search)
@@ -902,42 +1878,35 @@ function renderStudents() {
         || norm(gr).includes(search);
   });
 
-  // === Сортировка: сначала по группе, потом по ФИО ===
-  list.sort((a, b) => {
-    const gA = groups[a.groupId] || '';
-    const gB = groups[b.groupId] || '';
-    const gcmp = String(gA).localeCompare(String(gB), 'ru', { numeric: true });
-    if (gcmp !== 0) return gcmp;
-    return sortByName(a, b, 'fullName');
-  });
-
-  $('studentsStats').textContent = `· найдено: ${list.length}`;
-
   const total = list.length;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   if (pagination.students > pages) pagination.students = pages;
   const start = (pagination.students - 1) * PAGE_SIZE;
   const pageItems = list.slice(start, start + PAGE_SIZE);
 
-  if (!total) {
-    tb.innerHTML = `<tr><td colspan="4" class="empty">${students.length ? 'Ничего не найдено' : 'Нет студентов'}</td></tr>`;
+  if (!total){
+    tb.innerHTML = emptyState(
+      '<path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/><circle cx="11.5" cy="7.2" r="3"/>',
+      students.length ? 'Ничего не найдено' : 'Нет студентов',
+      students.length ? 'Попробуйте изменить запрос' : 'Студенты появятся здесь после добавления',
+      4
+    );
     renderPagination('studentsPagination', 0, 1, () => {});
     return;
   }
 
   tb.innerHTML = pageItems.map((s, i) => {
-    const parentList = getParentsOfStudent(s.id)
-      .sort((a, b) => sortByName(a, b, 'name')); // родители — по алфавиту
+    const parentList = getParentsOfStudent(s.id).sort((a, b) => sortByName(a, b, 'name'));
     const gr = groups[s.groupId] || s.groupId || '—';
     const parentsHtml = parentList.length
       ? parentList.map(p => `<span class="child-chip">👤 ${esc(p.name || p.id)}</span>`).join(' ')
       : `<span class="badge badge-gray">нет родителей</span>`;
     return `
-      <tr>
-        <td>${start + i + 1}</td>
-        <td><strong>${esc(s.fullName || s.name || s.id)}</strong></td>
-        <td class="hide-mobile"><span class="badge badge-green">${esc(gr)}</span></td>
-        <td><div class="children-list" style="padding:0">${parentsHtml}</div></td>
+      <tr class="stagger-row" style="animation-delay:${i * 0.03}s">
+        <td><span style="color:var(--text-light);font-weight:600">${start + i + 1}</span></td>
+        <td><strong>${highlight(s.fullName || s.name || s.id, filters.students)}</strong></td>
+        <td class="hide-mobile"><span class="badge badge-green">${highlight(gr, filters.students)}</span></td>
+        <td><div style="display:flex;flex-wrap:wrap;gap:6px">${parentsHtml}</div></td>
       </tr>
     `;
   }).join('');
@@ -947,35 +1916,51 @@ function renderStudents() {
     renderStudents();
   });
 }
-function onStudentsSearch() {
+
+function onStudentsSearch(){
   filters.students = $('studentsSearch').value;
   pagination.students = 1;
   renderStudents();
 }
 
+function clearSearch(tab){
+  const map = { parents: 'parentsSearch', links: 'linksSearch', students: 'studentsSearch' };
+  const el = $(map[tab]);
+  if (el){ el.value = ''; el.focus(); }
+  filters[tab] = '';
+  pagination[tab] = 1;
+  if (tab === 'parents') renderParents();
+  if (tab === 'links') renderLinks();
+  if (tab === 'students') renderStudents();
+}
+
 
 /* ===================== РОДИТЕЛЬ: модалка ===================== */
-function openParentModal(id = null) {
+function openParentModal(id = null){
   $('parentId').value = '';
   $('parentName').value = '';
   $('parentEmail').value = '';
   $('parentModalTitle').textContent = id ? 'Редактировать родителя' : 'Добавить родителя';
+  $('parentModalSubtitle').textContent = id
+    ? 'Измените данные и сохраните'
+    : 'Заполните данные родителя';
   showFormError('parentFormError', '');
   $('parentModal').classList.add('active');
-  setTimeout(() => $('parentName').focus(), 50);
+  setTimeout(() => $('parentName').focus(), 80);
 
-  if (id) {
+  if (id){
     const p = parentMap.get(id);
-    if (p) {
+    if (p){
       $('parentId').value = id;
       $('parentName').value = p.name || '';
       $('parentEmail').value = p.email || '';
     }
   }
 }
-function editParent(id) { openParentModal(id); }
 
-async function saveParent(e) {
+function editParent(id){ openParentModal(id); }
+
+async function saveParent(e){
   e.preventDefault();
   const id = $('parentId').value;
   const name = $('parentName').value.trim();
@@ -984,20 +1969,25 @@ async function saveParent(e) {
   if (!name) return;
   showFormError('parentFormError', '');
 
-  const dupEmail = email ? parents.find(p => p.id !== id && norm(p.email) === email) : null;
-  if (dupEmail) {
+  // Проверка дубликатов
+  const dupEmail = email
+    ? parents.find(p => p.id !== id && norm(p.email) === email)
+    : null;
+  if (dupEmail){
     showFormError('parentFormError', `Родитель с email «${email}» уже существует: ${dupEmail.name}`);
     return;
   }
-  const dupName = !email ? parents.find(p => p.id !== id && norm(p.name) === norm(name)) : null;
-  if (dupName) {
+  const dupName = !email
+    ? parents.find(p => p.id !== id && norm(p.name) === norm(name))
+    : null;
+  if (dupName){
     showFormError('parentFormError', `Родитель с ФИО «${name}» уже существует. Добавьте email для различения.`);
     return;
   }
 
   showLoading(true);
   try {
-    if (id) {
+    if (id){
       await firebase.firestore().collection('users').doc(id).update({ name, email });
       toast('Родитель обновлён', 'success');
     } else {
@@ -1011,7 +2001,7 @@ async function saveParent(e) {
     }
     closeModal('parentModal');
     await loadAll();
-  } catch (err) {
+  } catch (err){
     console.error(err);
     showFormError('parentFormError', 'Ошибка: ' + (err.message || err));
   } finally {
@@ -1019,7 +2009,7 @@ async function saveParent(e) {
   }
 }
 
-async function removeParent(id, name) {
+async function removeParent(id, name){
   const children = getChildrenOfParent(id);
   const msg = children.length
     ? `Удалить родителя «${name}»?\n\nУ него ${children.length} привязанных детей — связи тоже будут удалены.`
@@ -1036,7 +2026,7 @@ async function removeParent(id, name) {
     await batch.commit();
     toast('Родитель удалён', 'success');
     await loadAll();
-  } catch (err) {
+  } catch (err){
     console.error(err);
     toast('Ошибка удаления: ' + (err.message || err), 'error');
   } finally {
@@ -1046,83 +2036,183 @@ async function removeParent(id, name) {
 
 
 /* ===================== СВЯЗЬ: модалка ===================== */
-function openLinkModal() {
-  if (!parents.length) { toast('Сначала добавьте родителей', 'error'); return; }
-  if (!students.length) {
+function openLinkModal(){
+  if (!parents.length){
+    toast('Сначала добавьте родителей', 'error');
+    return;
+  }
+  if (!students.length){
     toast(isCurator ? 'У вас нет студентов в ваших группах' : 'Нет студентов', 'error');
     return;
   }
 
-  // === Родители: алфавитный порядок ===
-  const parentsSorted = [...parents].sort((a, b) => sortByName(a, b, 'name'));
+  // Сброс
+  selectedParentId = null;
+  selectedStudentId = null;
+  $('linkParent').value = '';
+  $('linkStudent').value = '';
+  $('linkParentLabel').textContent = '— выберите родителя —';
+  $('linkParentLabel').classList.add('placeholder');
+  $('linkStudentLabel').textContent = '— выберите студента —';
+  $('linkStudentLabel').classList.add('placeholder');
+  $('linkParentSelect').classList.remove('selected');
+  $('linkStudentSelect').classList.remove('selected');
 
-  $('linkParent').innerHTML = '<option value="">— выберите родителя —</option>' +
-    parentsSorted.map(p =>
-      `<option value="${p.id}">${esc(p.name || p.id)}</option>`
-    ).join('');
-
-  // === Студенты: группировка по группам + алфавит ===
-  // 1. Разбиваем по группам
-  const byGroup = new Map(); // groupId → [студенты]
-  students.forEach(s => {
-    const gid = s.groupId || '__no_group__';
-    if (!byGroup.has(gid)) byGroup.set(gid, []);
-    byGroup.get(gid).push(s);
-  });
-
-  // 2. Сортируем группы по названию
-  const sortedGroups = [...byGroup.keys()].sort((a, b) => {
-    const nameA = groups[a] || a;
-    const nameB = groups[b] || b;
-    if (a === '__no_group__') return 1;
-    if (b === '__no_group__') return -1;
-    return String(nameA).localeCompare(String(nameB), 'ru', { numeric: true });
-  });
-
-  // 3. Собираем <optgroup> с алфавитной сортировкой внутри
-  let optionsHtml = '<option value="">— выберите студента —</option>';
-  sortedGroups.forEach(gid => {
-    const groupName = gid === '__no_group__' ? 'Без группы' : (groups[gid] || gid);
-    const groupStudents = byGroup.get(gid).sort((a, b) =>
-      sortByName(a, b, 'fullName')
-    );
-
-    optionsHtml += `<optgroup label="${esc(groupName)} (${groupStudents.length})">`;
-    groupStudents.forEach(s => {
-      optionsHtml += `<option value="${s.id}">${esc(s.fullName || s.name || s.id)}</option>`;
-    });
-    optionsHtml += `</optgroup>`;
-  });
-
-  $('linkStudent').innerHTML = optionsHtml;
-
+  // Hint для куратора
   $('linkStudentHint').textContent = isCurator
     ? `Доступны только студенты ваших групп: ${curatorGroupIds.map(id => groups[id]).join(', ') || '—'}`
     : '';
 
   showFormError('linkFormError', '');
   $('linkModal').classList.add('active');
+
+  // Рендер опций
+  renderParentOptions('');
+  renderStudentOptions('');
 }
 
-async function saveLink(e) {
+/* -------- Кастомный селект: родитель -------- */
+function renderParentOptions(query){
+  const q = norm(query);
+  const filtered = sortedParents.filter(p => !q || norm(p.name).includes(q));
+
+  const container = $('linkParentOptions');
+  if (!filtered.length){
+    container.innerHTML = `<div class="search-dropdown-empty">Ничего не найдено</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(p => `
+    <div class="search-dropdown-item ${selectedParentId === p.id ? 'highlight' : ''}"
+         onclick="selectParent('${p.id}')">
+      <span>${highlight(p.name || p.id, query)}</span>
+    </div>
+  `).join('');
+}
+
+function selectParent(id){
+  const p = parentMap.get(id);
+  if (!p) return;
+  selectedParentId = id;
+  $('linkParent').value = id;
+  $('linkParentLabel').textContent = p.name || p.id;
+  $('linkParentLabel').classList.remove('placeholder');
+  $('linkParentSelect').classList.add('selected');
+  closeSelects();
+}
+
+function toggleParentSelect(){
+  const el = $('linkParentSelect');
+  const isOpen = el.classList.contains('open');
+  closeSelects();
+  if (!isOpen){
+    el.classList.add('open');
+    renderParentOptions('');
+    setTimeout(() => $('linkParentSearch')?.focus(), 50);
+  }
+}
+
+function filterParentOptions(){
+  renderParentOptions($('linkParentSearch').value);
+}
+
+/* -------- Кастомный селект: студент -------- */
+function renderStudentOptions(query){
+  const q = norm(query);
+  const filtered = sortedStudents.filter(s => {
+    if (!q) return true;
+    const gr = groups[s.groupId] || '';
+    return norm(s.fullName).includes(q)
+        || norm(s.name).includes(q)
+        || norm(gr).includes(q);
+  });
+
+  const container = $('linkStudentOptions');
+  if (!filtered.length){
+    container.innerHTML = `<div class="search-dropdown-empty">Ничего не найдено</div>`;
+    return;
+  }
+
+  // Группировка
+  const byGroup = new Map();
+  filtered.forEach(s => {
+    const gid = s.groupId || '__no_group__';
+    if (!byGroup.has(gid)) byGroup.set(gid, []);
+    byGroup.get(gid).push(s);
+  });
+
+  const sortedGroups = [...byGroup.keys()].sort((a, b) => {
+    if (a === '__no_group__') return 1;
+    if (b === '__no_group__') return -1;
+    return String(groups[a] || a).localeCompare(String(groups[b] || b), 'ru', { numeric: true });
+  });
+
+  let html = '';
+  sortedGroups.forEach(gid => {
+    const groupName = gid === '__no_group__' ? 'Без группы' : (groups[gid] || gid);
+    const gStud = byGroup.get(gid);
+    html += `<div class="search-dropdown-group">${esc(groupName)} · ${gStud.length}</div>`;
+    html += gStud.map(s => `
+      <div class="search-dropdown-item ${selectedStudentId === s.id ? 'highlight' : ''}"
+           onclick="selectStudent('${s.id}')">
+        <span>${highlight(s.fullName || s.name || s.id, query)}</span>
+      </div>
+    `).join('');
+  });
+
+  container.innerHTML = html;
+}
+
+function selectStudent(id){
+  const s = studentMap.get(id);
+  if (!s) return;
+  selectedStudentId = id;
+  $('linkStudent').value = id;
+  const gr = groups[s.groupId] || '';
+  $('linkStudentLabel').textContent = (s.fullName || s.name) + (gr ? ` · ${gr}` : '');
+  $('linkStudentLabel').classList.remove('placeholder');
+  $('linkStudentSelect').classList.add('selected');
+  closeSelects();
+}
+
+function toggleStudentSelect(){
+  const el = $('linkStudentSelect');
+  const isOpen = el.classList.contains('open');
+  closeSelects();
+  if (!isOpen){
+    el.classList.add('open');
+    renderStudentOptions('');
+    setTimeout(() => $('linkStudentSearch')?.focus(), 50);
+  }
+}
+
+function filterStudentOptions(){
+  renderStudentOptions($('linkStudentSearch').value);
+}
+
+function closeSelects(){
+  document.querySelectorAll('.search-select.open').forEach(el => el.classList.remove('open'));
+}
+
+/* -------- Сохранение связи -------- */
+async function saveLink(e){
   e.preventDefault();
   const parentId = $('linkParent').value;
   const studentId = $('linkStudent').value;
   if (!parentId || !studentId) return;
   showFormError('linkFormError', '');
 
-  if (isCurator && !students.find(s => s.id === studentId)) {
+  if (isCurator && !students.find(s => s.id === studentId)){
     showFormError('linkFormError', 'Вы можете привязывать только студентов своих групп');
     return;
   }
-  if (links.some(l => l.parentId === parentId && l.studentId === studentId)) {
+  if (links.some(l => l.parentId === parentId && l.studentId === studentId)){
     showFormError('linkFormError', 'Такая связь уже существует');
     return;
   }
 
   showLoading(true);
   try {
-    // ID связи = parentId_studentId (для Firestore rules exists())
     const linkId = `${parentId}_${studentId}`;
     await firebase.firestore().collection('links').doc(linkId).set({
       parentId,
@@ -1133,7 +2223,7 @@ async function saveLink(e) {
     toast('Студент привязан', 'success');
     closeModal('linkModal');
     await loadAll();
-  } catch (err) {
+  } catch (err){
     console.error(err);
     showFormError('linkFormError', 'Ошибка: ' + (err.message || err));
   } finally {
@@ -1141,14 +2231,14 @@ async function saveLink(e) {
   }
 }
 
-async function removeLink(id) {
+async function removeLink(id){
   if (!confirm('Отвязать студента от родителя?')) return;
   showLoading(true);
   try {
     await firebase.firestore().collection('links').doc(id).delete();
     toast('Связь удалена', 'success');
     await loadAll();
-  } catch (err) {
+  } catch (err){
     console.error(err);
     toast('Ошибка: ' + (err.message || err), 'error');
   } finally {
@@ -1158,46 +2248,52 @@ async function removeLink(id) {
 
 
 /* ===================== CSV ===================== */
-function exportParentsCSV() {
-  if (!parents.length) { toast('Нет данных для экспорта', 'error'); return; }
-  // === Экспорт в алфавитном порядке ===
-  const sorted = [...parents].sort((a, b) => sortByName(a, b, 'name'));
+function exportParentsCSV(){
+  if (!parents.length){
+    toast('Нет данных для экспорта', 'error');
+    return;
+  }
   const rows = [['ФИО', 'Email', 'UID', 'Кол-во детей']];
-  sorted.forEach(p => {
+  sortedParents.forEach(p => {
     rows.push([p.name || '', p.email || '', p.id, getChildrenOfParent(p.id).length]);
   });
-  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const csv = rows
+    .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `parents_${new Date().toISOString().slice(0,10)}.csv`;
+  a.download = `parents_${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  toast('Экспортировано: ' + sorted.length, 'success');
+  toast('Экспортировано: ' + sortedParents.length, 'success');
 }
 
-async function importParentsCSV(e) {
+async function importParentsCSV(e){
   const file = e.target.files?.[0];
   if (!file) return;
   e.target.value = '';
 
   const text = await file.text();
   const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) { toast('CSV пустой или без данных', 'error'); return; }
+  if (lines.length < 2){
+    toast('CSV пустой или без данных', 'error');
+    return;
+  }
 
-  function parseLine(line) {
+  function parseLine(line){
     const out = [];
     let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
+    for (let i = 0; i < line.length; i++){
       const ch = line[i];
-      if (inQ) {
-        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      if (inQ){
+        if (ch === '"' && line[i + 1] === '"'){ cur += '"'; i++; }
         else if (ch === '"') inQ = false;
         else cur += ch;
       } else {
         if (ch === '"') inQ = true;
-        else if (ch === ',') { out.push(cur); cur = ''; }
+        else if (ch === ','){ out.push(cur); cur = ''; }
         else cur += ch;
       }
     }
@@ -1208,28 +2304,33 @@ async function importParentsCSV(e) {
   const header = parseLine(lines[0]).map(h => h.toLowerCase());
   const nameIdx = header.findIndex(h => h.includes('фио') || h.includes('name') || h.includes('имя'));
   const emailIdx = header.findIndex(h => h.includes('email') || h.includes('почт'));
-
-  if (nameIdx === -1) { toast('В CSV нет колонки «ФИО»/«Name»', 'error'); return; }
+  if (nameIdx === -1){
+    toast('В CSV нет колонки «ФИО»/«Name»', 'error');
+    return;
+  }
 
   const items = [];
-  for (let i = 1; i < lines.length; i++) {
+  for (let i = 1; i < lines.length; i++){
     const cols = parseLine(lines[i]);
     const name = cols[nameIdx]?.trim();
     const email = emailIdx >= 0 ? (cols[emailIdx]?.trim().toLowerCase() || '') : '';
     if (!name) continue;
     items.push({ name, email });
   }
-  if (!items.length) { toast('Нет валидных строк', 'error'); return; }
+  if (!items.length){
+    toast('Нет валидных строк', 'error');
+    return;
+  }
 
   if (!confirm(`Найдено ${items.length} записей для импорта.\n\nДубликаты будут пропущены.\n\nИмпортировать?`)) return;
 
   showLoading(true);
   let added = 0, skipped = 0;
   try {
-    for (const item of items) {
+    for (const item of items){
       const dupEmail = item.email && parents.some(p => norm(p.email) === item.email);
       const dupName = !item.email && parents.some(p => norm(p.name) === norm(item.name));
-      if (dupEmail || dupName) { skipped++; continue; }
+      if (dupEmail || dupName){ skipped++; continue; }
 
       await firebase.firestore().collection('users').add({
         name: item.name,
@@ -1243,7 +2344,7 @@ async function importParentsCSV(e) {
     }
     toast(`Добавлено: ${added}, пропущено: ${skipped}`, 'success');
     await loadAll();
-  } catch (err) {
+  } catch (err){
     console.error(err);
     toast('Ошибка импорта: ' + (err.message || err), 'error');
   } finally {
@@ -1253,11 +2354,14 @@ async function importParentsCSV(e) {
 
 
 /* ===================== UI ===================== */
-function closeModal(id) { $(id).classList.remove('active'); }
+function closeModal(id){
+  $(id).classList.remove('active');
+  if (id === 'linkModal') closeSelects();
+}
 
-function tryCloseModal(id) {
+function tryCloseModal(id){
   const modal = $(id);
-  if (id === 'parentModal') {
+  if (id === 'parentModal'){
     const p = parentMap.get($('parentId').value);
     const changed =
       $('parentName').value.trim() !== (p?.name || '') ||
@@ -1267,35 +2371,124 @@ function tryCloseModal(id) {
   modal.classList.remove('active');
 }
 
+// Клик по фону модалки
 document.querySelectorAll('.modal-overlay').forEach(ov => {
   ov.addEventListener('click', e => {
     if (e.target === ov) tryCloseModal(ov.id);
   });
 });
 
-document.querySelectorAll('nav.tabs button').forEach(btn => {
+// Клик вне селекта — закрыть
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-select')) closeSelects();
+});
+
+// Tabs
+document.querySelectorAll('nav.tabs button, .bottom-nav-btn').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
-    btn.classList.add('active');
-    $('tab-' + btn.dataset.tab).classList.add('active');
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-content').forEach(s => s.classList.toggle('active', s.id === 'tab-' + tab));
+    // Reset pagination при смене
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 });
 
 
+/* ===================== ТЕМА ===================== */
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+}
+
+(function initTheme(){
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+    document.documentElement.setAttribute('data-theme', 'dark');
+  }
+})();
+
+
+/* ===================== ОФФЛАЙН ===================== */
+function updateOnlineStatus(){
+  const banner = $('offlineBanner');
+  if (!navigator.onLine) banner.classList.add('show');
+  else banner.classList.remove('show');
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+window.addEventListener('load', updateOnlineStatus);
+
+
+/* ===================== ГОРЯЧИЕ КЛАВИШИ ===================== */
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName;
+  const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+  // Esc — закрыть всё
+  if (e.key === 'Escape'){
+    closeSelects();
+    document.querySelectorAll('.modal-overlay.active').forEach(m => tryCloseModal(m.id));
+    return;
+  }
+
+  // Ctrl+K — фокус на поиск
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){
+    e.preventDefault();
+    const activeTab = document.querySelector('nav.tabs button.active')?.dataset.tab || 'parents';
+    const searchInput = $({ parents: 'parentsSearch', links: 'linksSearch', students: 'studentsSearch' }[activeTab]);
+    if (searchInput){ searchInput.focus(); searchInput.select(); }
+    return;
+  }
+
+  // Ctrl+N — новый родитель
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault();
+    if (!document.querySelector('.modal-overlay.active')) openParentModal();
+    return;
+  }
+
+  // Стрелки ← → — пагинация
+  if (!isInput && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')){
+    const activeTab = document.querySelector('nav.tabs button.active')?.dataset.tab || 'parents';
+    const current = pagination[activeTab];
+    if (e.key === 'ArrowLeft' && current > 1){
+      pagination[activeTab]--;
+      if (activeTab === 'parents') renderParents();
+      if (activeTab === 'links') renderLinks();
+      if (activeTab === 'students') renderStudents();
+    }
+    if (e.key === 'ArrowRight'){
+      pagination[activeTab]++;
+      if (activeTab === 'parents') renderParents();
+      if (activeTab === 'links') renderLinks();
+      if (activeTab === 'students') renderStudents();
+    }
+  }
+});
+
+
 /* ===================== АВТОРИЗАЦИЯ ===================== */
-firebase.auth().onAuthStateChanged(async function(user) {
-  if (!user) {
-    $('userInfo').textContent = 'Не авторизован';
+firebase.auth().onAuthStateChanged(async function(user){
+  if (!user){
+    $('userName').textContent = 'Не авторизован';
+    $('userAvatar').textContent = '?';
     $('roleBadge').textContent = '—';
+    $('topbarSubtitle').textContent = 'Требуется вход в систему';
     showLoading(false);
     toast('Вы не авторизованы. Войдите в систему.', 'error');
     return;
   }
 
+  // Skeleton пока грузим
+  $('parentsTable').innerHTML = skeletonRows(6, 5);
+
   try {
     const doc = await firebase.firestore().collection('users').doc(user.uid).get();
-    if (doc.exists) {
+    if (doc.exists){
       currentUser = { uid: user.uid, id: doc.id, ...doc.data() };
     } else {
       currentUser = { uid: user.uid, email: user.email, role: 'parent' };
@@ -1304,13 +2497,16 @@ firebase.auth().onAuthStateChanged(async function(user) {
     isAdmin = currentUser.role === 'admin';
     isCurator = currentUser.role === 'curator';
 
-    $('userInfo').textContent = currentUser.name || currentUser.email || user.uid;
+    const fio = currentUser.name || currentUser.email || user.uid;
+    $('userName').textContent = fio;
+    $('userAvatar').textContent = getInitials(fio);
+
     const badge = $('roleBadge');
     badge.textContent = isAdmin ? 'Админ' : isCurator ? 'Куратор' : (currentUser.role || 'Гость');
-    badge.className = 'role-badge ' + (isAdmin ? 'admin' : isCurator ? 'curator' : '');
+    badge.className = 'role-badge ' + (isAdmin ? 'admin' : isCurator ? 'curator' : 'parent');
 
     await loadAll();
-  } catch (err) {
+  } catch (err){
     console.error(err);
     toast('Ошибка инициализации: ' + (err.message || err), 'error');
     showLoading(false);
@@ -1320,13 +2516,21 @@ firebase.auth().onAuthStateChanged(async function(user) {
 
 /* ===================== ЭКСПОРТ В ГЛОБАЛ ===================== */
 Object.assign(window, {
+  // CRUD
   openParentModal, editParent, removeParent, saveParent,
   openLinkModal, saveLink, removeLink,
-  closeModal, tryCloseModal, toggleParent,
+  // UI
+  closeModal, tryCloseModal, toggleParent, toggleTheme,
+  closeSelects, reloadData,
+  // Поиск
   onParentsSearch, onLinksSearch, onStudentsSearch,
-  exportParentsCSV, importParentsCSV
+  clearSearch,
+  // CSV
+  exportParentsCSV, importParentsCSV,
+  // Кастомные селекты
+  toggleParentSelect, toggleStudentSelect,
+  filterParentOptions, filterStudentOptions,
+  selectParent, selectStudent,
+  // Утилиты
+  copyToClipboard
 });
-</script>
-
-</body>
-</html>

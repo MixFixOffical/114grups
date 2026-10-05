@@ -253,6 +253,7 @@
     padding: 16px;
     background: #fff;
     border-top: 1px solid #f3f4f6;
+    flex-wrap: wrap;
   }
   .pagination button {
     background: #fff;
@@ -586,6 +587,13 @@ function showFormError(id, msg) {
   else { el.style.display = 'none'; }
 }
 
+// Сортировка по ФИО на русском
+function sortByName(a, b, field) {
+  const na = norm(a[field] || a.name || '');
+  const nb = norm(b[field] || b.name || '');
+  return na.localeCompare(nb, 'ru');
+}
+
 
 /* ===================== ЗАГРУЗКА ДАННЫХ ===================== */
 async function loadAll() {
@@ -638,7 +646,7 @@ async function loadAll() {
     parentMap.clear();
     parSnap.docs.forEach(d => {
       const p = { id: d.id, ...d.data() };
-      parentMap.set(d.id, p);
+      parentMap.set(p.id, p);
       parents.push(p);
     });
 
@@ -723,7 +731,8 @@ function renderParents() {
   let list = parents.filter(p =>
     !search || norm(p.name).includes(search) || norm(p.email).includes(search)
   );
-  list.sort((a, b) => norm(a.name).localeCompare(norm(b.name), 'ru'));
+  // === Алфавитный порядок ===
+  list.sort((a, b) => sortByName(a, b, 'name'));
 
   $('parentsStats').textContent = `· найдено: ${list.length}`;
 
@@ -765,11 +774,20 @@ function renderParents() {
     `;
 
     if (isExpanded && children.length) {
+      // === Дети: сортируем по группе, потом по ФИО ===
+      const sortedChildren = [...children].sort((a, b) => {
+        const ga = groups[a.groupId] || '';
+        const gb = groups[b.groupId] || '';
+        const gcmp = String(ga).localeCompare(String(gb), 'ru', { numeric: true });
+        if (gcmp !== 0) return gcmp;
+        return sortByName(a, b, 'fullName');
+      });
+
       html += `
         <tr class="expanded-row">
           <td colspan="6">
             <div class="children-list">
-              ${children.map(c => {
+              ${sortedChildren.map(c => {
                 const gr = groups[c.groupId] || c.groupId || '';
                 return `<span class="child-chip">
                   <strong>${esc(c.fullName || c.name || c.id)}</strong>
@@ -817,7 +835,16 @@ function renderLinks() {
         || norm(student?.name).includes(search);
   });
 
-  list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+  // === Сортировка: сначала по группе, потом по ФИО студента ===
+  list.sort((a, b) => {
+    const sA = studentMap.get(a.studentId);
+    const sB = studentMap.get(b.studentId);
+    const gA = groups[sA?.groupId] || '';
+    const gB = groups[sB?.groupId] || '';
+    const gcmp = String(gA).localeCompare(String(gB), 'ru', { numeric: true });
+    if (gcmp !== 0) return gcmp;
+    return sortByName(sA || {}, sB || {}, 'fullName');
+  });
 
   $('linksStats').textContent = `· найдено: ${list.length}`;
 
@@ -874,7 +901,15 @@ function renderStudents() {
         || norm(s.name).includes(search)
         || norm(gr).includes(search);
   });
-  list.sort((a, b) => norm(a.fullName || a.name).localeCompare(norm(b.fullName || b.name), 'ru'));
+
+  // === Сортировка: сначала по группе, потом по ФИО ===
+  list.sort((a, b) => {
+    const gA = groups[a.groupId] || '';
+    const gB = groups[b.groupId] || '';
+    const gcmp = String(gA).localeCompare(String(gB), 'ru', { numeric: true });
+    if (gcmp !== 0) return gcmp;
+    return sortByName(a, b, 'fullName');
+  });
 
   $('studentsStats').textContent = `· найдено: ${list.length}`;
 
@@ -891,7 +926,8 @@ function renderStudents() {
   }
 
   tb.innerHTML = pageItems.map((s, i) => {
-    const parentList = getParentsOfStudent(s.id);
+    const parentList = getParentsOfStudent(s.id)
+      .sort((a, b) => sortByName(a, b, 'name')); // родители — по алфавиту
     const gr = groups[s.groupId] || s.groupId || '—';
     const parentsHtml = parentList.length
       ? parentList.map(p => `<span class="child-chip">👤 ${esc(p.name || p.id)}</span>`).join(' ')
@@ -1017,15 +1053,48 @@ function openLinkModal() {
     return;
   }
 
-  $('linkParent').innerHTML = '<option value="">— выберите родителя —</option>' +
-    parents.map(p => `<option value="${p.id}">${esc(p.name || p.id)}</option>`).join('');
+  // === Родители: алфавитный порядок ===
+  const parentsSorted = [...parents].sort((a, b) => sortByName(a, b, 'name'));
 
-  $('linkStudent').innerHTML = '<option value="">— выберите студента —</option>' +
-    students.map(s => {
-      const gr = groups[s.groupId] || '';
-      const label = (s.fullName || s.name || s.id) + (gr ? ` (${gr})` : '');
-      return `<option value="${s.id}">${esc(label)}</option>`;
-    }).join('');
+  $('linkParent').innerHTML = '<option value="">— выберите родителя —</option>' +
+    parentsSorted.map(p =>
+      `<option value="${p.id}">${esc(p.name || p.id)}</option>`
+    ).join('');
+
+  // === Студенты: группировка по группам + алфавит ===
+  // 1. Разбиваем по группам
+  const byGroup = new Map(); // groupId → [студенты]
+  students.forEach(s => {
+    const gid = s.groupId || '__no_group__';
+    if (!byGroup.has(gid)) byGroup.set(gid, []);
+    byGroup.get(gid).push(s);
+  });
+
+  // 2. Сортируем группы по названию
+  const sortedGroups = [...byGroup.keys()].sort((a, b) => {
+    const nameA = groups[a] || a;
+    const nameB = groups[b] || b;
+    if (a === '__no_group__') return 1;
+    if (b === '__no_group__') return -1;
+    return String(nameA).localeCompare(String(nameB), 'ru', { numeric: true });
+  });
+
+  // 3. Собираем <optgroup> с алфавитной сортировкой внутри
+  let optionsHtml = '<option value="">— выберите студента —</option>';
+  sortedGroups.forEach(gid => {
+    const groupName = gid === '__no_group__' ? 'Без группы' : (groups[gid] || gid);
+    const groupStudents = byGroup.get(gid).sort((a, b) =>
+      sortByName(a, b, 'fullName')
+    );
+
+    optionsHtml += `<optgroup label="${esc(groupName)} (${groupStudents.length})">`;
+    groupStudents.forEach(s => {
+      optionsHtml += `<option value="${s.id}">${esc(s.fullName || s.name || s.id)}</option>`;
+    });
+    optionsHtml += `</optgroup>`;
+  });
+
+  $('linkStudent').innerHTML = optionsHtml;
 
   $('linkStudentHint').textContent = isCurator
     ? `Доступны только студенты ваших групп: ${curatorGroupIds.map(id => groups[id]).join(', ') || '—'}`
@@ -1091,8 +1160,10 @@ async function removeLink(id) {
 /* ===================== CSV ===================== */
 function exportParentsCSV() {
   if (!parents.length) { toast('Нет данных для экспорта', 'error'); return; }
+  // === Экспорт в алфавитном порядке ===
+  const sorted = [...parents].sort((a, b) => sortByName(a, b, 'name'));
   const rows = [['ФИО', 'Email', 'UID', 'Кол-во детей']];
-  parents.forEach(p => {
+  sorted.forEach(p => {
     rows.push([p.name || '', p.email || '', p.id, getChildrenOfParent(p.id).length]);
   });
   const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
@@ -1103,7 +1174,7 @@ function exportParentsCSV() {
   a.download = `parents_${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
-  toast('Экспортировано: ' + parents.length, 'success');
+  toast('Экспортировано: ' + sorted.length, 'success');
 }
 
 async function importParentsCSV(e) {
@@ -1215,7 +1286,6 @@ document.querySelectorAll('nav.tabs button').forEach(btn => {
 /* ===================== АВТОРИЗАЦИЯ ===================== */
 firebase.auth().onAuthStateChanged(async function(user) {
   if (!user) {
-    // Не редиректим — просто показываем состояние
     $('userInfo').textContent = 'Не авторизован';
     $('roleBadge').textContent = '—';
     showLoading(false);

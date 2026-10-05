@@ -1,48 +1,1402 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Родители — Админ-панель</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    background: #f4f6f8;
+    color: #1f2937;
+    font-size: 14px;
+  }
 
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
+  /* ===== Header ===== */
+  header {
+    background: #1e293b;
+    color: #fff;
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
+    position: sticky; top: 0; z-index: 50;
+  }
+  header h1 { font-size: 18px; font-weight: 600; }
+  header .user-info {
+    font-size: 13px;
+    opacity: .85;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  header .role-badge {
+    background: #334155;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  header .role-badge.admin { background: #7c3aed; }
+  header .role-badge.curator { background: #0891b2; }
 
-    function isSignedIn() { return request.auth != null; }
-    function myProfile() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-    function isAdmin() {
-      return isSignedIn() && myProfile().role == 'admin';
-    }
-    function isCurator() {
-      return isSignedIn() && myProfile().role == 'curator';
-    }
-    // Куратор — только свои группы
-    function curatorOwnsGroup(groupId) {
-      return isCurator() 
-        && get(/databases/$(database)/documents/groups/$(groupId)).data.curatorId == request.auth.uid;
+  /* ===== Tabs ===== */
+  nav.tabs {
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+    position: sticky; top: 57px; z-index: 40;
+  }
+  nav.tabs button {
+    background: none; border: none;
+    padding: 14px 20px;
+    font-size: 14px; color: #6b7280;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-weight: 500;
+    transition: .15s;
+    font-family: inherit;
+  }
+  nav.tabs button:hover { color: #111827; }
+  nav.tabs button.active {
+    color: #2563eb;
+    border-bottom-color: #2563eb;
+  }
+
+  /* ===== Main ===== */
+  main { padding: 24px; max-width: 1400px; margin: 0 auto; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .section-header h2 {
+    font-size: 16px;
+    color: #111827;
+    font-weight: 600;
+  }
+  .section-header .stats {
+    font-size: 13px;
+    color: #6b7280;
+    font-weight: normal;
+    margin-left: 8px;
+  }
+
+  /* ===== Toolbar ===== */
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .toolbar input[type="search"] {
+    flex: 1;
+    min-width: 200px;
+    max-width: 360px;
+    padding: 9px 14px 9px 36px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 12px center;
+    transition: .15s;
+  }
+  .toolbar input[type="search"]:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  }
+
+  /* ===== Buttons ===== */
+  .btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: .15s;
+    font-family: inherit;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+  }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-secondary { background: #e5e7eb; color: #374151; }
+  .btn-secondary:hover { background: #d1d5db; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-icon {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: .15s;
+    line-height: 1;
+  }
+  .btn-icon:hover { background: #f3f4f6; }
+
+  /* ===== Table ===== */
+  .table-wrap {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  thead {
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  th {
+    text-align: left;
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: #6b7280;
+  }
+  td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #fafbfc; }
+  tr.expandable { cursor: pointer; }
+  tr.expandable:hover td { background: #f3f4f6; }
+
+  .empty {
+    padding: 40px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 13px;
+  }
+
+  .skeleton {
+    height: 14px;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: skel 1.2s infinite;
+    border-radius: 4px;
+  }
+  @keyframes skel {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #eff6ff;
+    color: #1e40af;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-gray { background: #f3f4f6; color: #6b7280; }
+  .badge-purple { background: #f3e8ff; color: #6b21a8; }
+
+  .children-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: #dbeafe;
+    color: #1e40af;
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    user-select: none;
+  }
+  .children-badge:hover { background: #bfdbfe; }
+  .children-badge.zero {
+    background: #f3f4f6;
+    color: #9ca3af;
+    cursor: default;
+  }
+
+  /* Expanded row */
+  tr.expanded-row td {
+    background: #f9fafb;
+    padding: 0;
+  }
+  .children-list {
+    padding: 14px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .child-chip {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    color: #374151;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .child-chip strong { color: #111827; }
+  .child-chip .group-tag {
+    background: #eff6ff;
+    color: #1e40af;
+    padding: 1px 7px;
+    border-radius: 10px;
+    font-size: 11px;
+  }
+
+  .actions { display: flex; gap: 4px; }
+
+  /* ===== Pagination ===== */
+  .pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    padding: 16px;
+    background: #fff;
+    border-top: 1px solid #f3f4f6;
+  }
+  .pagination button {
+    background: #fff;
+    border: 1px solid #d1d5db;
+    padding: 6px 12px;
+    border-radius: 5px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    color: #374151;
+    transition: .15s;
+  }
+  .pagination button:hover:not(:disabled) { background: #f3f4f6; }
+  .pagination button:disabled { opacity: .4; cursor: not-allowed; }
+  .pagination button.active {
+    background: #2563eb;
+    border-color: #2563eb;
+    color: #fff;
+  }
+  .pagination .info {
+    margin: 0 10px;
+    font-size: 12px;
+    color: #6b7280;
+  }
+
+  /* ===== Modal ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.4);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: #fff;
+    border-radius: 10px;
+    width: 100%;
+    max-width: 440px;
+    padding: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,.15);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h3 {
+    font-size: 16px;
+    margin-bottom: 18px;
+    color: #111827;
+  }
+  .form-group { margin-bottom: 14px; }
+  .form-group label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    margin-bottom: 6px;
+  }
+  .form-group input,
+  .form-group select {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    transition: .15s;
+    background: #fff;
+  }
+  .form-group input:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  }
+  .form-hint {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+  }
+  .form-error {
+    background: #fee2e2;
+    color: #b91c1c;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+  .modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+  }
+
+  /* ===== Loading / Toast ===== */
+  #loading {
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: #1e293b;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 999;
+    display: none;
+  }
+  #toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #1e293b;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 13px;
+    z-index: 999;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: .25s;
+    pointer-events: none;
+    max-width: 320px;
+  }
+  #toast.show { opacity: 1; transform: translateY(0); }
+  #toast.error { background: #b91c1c; }
+  #toast.success { background: #15803d; }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 700px) {
+    main { padding: 14px; }
+    th, td { padding: 10px 10px; font-size: 12px; }
+    .hide-mobile { display: none; }
+    header h1 { font-size: 15px; }
+    nav.tabs button { padding: 12px 14px; font-size: 13px; }
+    .toolbar input[type="search"] { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>👨‍👩‍👧 Управление родителями</h1>
+  <div class="user-info">
+    <span id="userInfo">…</span>
+    <span class="role-badge" id="roleBadge">…</span>
+  </div>
+</header>
+
+<nav class="tabs">
+  <button class="active" data-tab="parents">Родители</button>
+  <button data-tab="links">Связи (родитель ↔ студент)</button>
+  <button data-tab="students">Студенты и их родители</button>
+</nav>
+
+<main>
+  <!-- ============ РОДИТЕЛИ ============ -->
+  <section class="tab-content active" id="tab-parents">
+    <div class="section-header">
+      <h2>Список родителей <span class="stats" id="parentsStats"></span></h2>
+      <button class="btn btn-primary" onclick="openParentModal()">+ Добавить родителя</button>
+    </div>
+
+    <div class="toolbar">
+      <input type="search" id="parentsSearch" placeholder="Поиск по ФИО или email..." oninput="onParentsSearch()">
+      <button class="btn btn-secondary btn-sm" onclick="exportParentsCSV()" title="Экспорт в CSV">📤 Экспорт CSV</button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('csvParentsInput').click()" title="Импорт из CSV">📥 Импорт CSV</button>
+      <input type="file" id="csvParentsInput" accept=".csv" style="display:none" onchange="importParentsCSV(event)">
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>ФИО</th>
+            <th class="hide-mobile">Email</th>
+            <th style="width:130px">Детей</th>
+            <th class="hide-mobile">UID</th>
+            <th style="width:100px">Действия</th>
+          </tr>
+        </thead>
+        <tbody id="parentsTable"></tbody>
+      </table>
+      <div class="pagination" id="parentsPagination"></div>
+    </div>
+  </section>
+
+  <!-- ============ СВЯЗИ ============ -->
+  <section class="tab-content" id="tab-links">
+    <div class="section-header">
+      <h2>Связи родителей и студентов <span class="stats" id="linksStats"></span></h2>
+      <button class="btn btn-primary" onclick="openLinkModal()">+ Привязать студента</button>
+    </div>
+
+    <div class="toolbar">
+      <input type="search" id="linksSearch" placeholder="Поиск по родителю или студенту..." oninput="onLinksSearch()">
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Родитель</th>
+            <th>Студент</th>
+            <th class="hide-mobile">Группа</th>
+            <th style="width:100px">Действия</th>
+          </tr>
+        </thead>
+        <tbody id="linksTable"></tbody>
+      </table>
+      <div class="pagination" id="linksPagination"></div>
+    </div>
+  </section>
+
+  <!-- ============ СТУДЕНТЫ → РОДИТЕЛИ ============ -->
+  <section class="tab-content" id="tab-students">
+    <div class="section-header">
+      <h2>Студенты и их родители <span class="stats" id="studentsStats"></span></h2>
+    </div>
+
+    <div class="toolbar">
+      <input type="search" id="studentsSearch" placeholder="Поиск по студенту или группе..." oninput="onStudentsSearch()">
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Студент</th>
+            <th class="hide-mobile">Группа</th>
+            <th>Родители</th>
+          </tr>
+        </thead>
+        <tbody id="studentsTable"></tbody>
+      </table>
+      <div class="pagination" id="studentsPagination"></div>
+    </div>
+  </section>
+</main>
+
+<!-- ============ МОДАЛКА: РОДИТЕЛЬ ============ -->
+<div class="modal-overlay" id="parentModal">
+  <div class="modal">
+    <h3 id="parentModalTitle">Добавить родителя</h3>
+    <form id="parentForm" onsubmit="saveParent(event)">
+      <input type="hidden" id="parentId">
+      <div id="parentFormError" class="form-error" style="display:none"></div>
+      <div class="form-group">
+        <label for="parentName">ФИО *</label>
+        <input type="text" id="parentName" required placeholder="Иванова Мария Петровна" autocomplete="off">
+      </div>
+      <div class="form-group">
+        <label for="parentEmail">Email</label>
+        <input type="email" id="parentEmail" placeholder="parent@example.com" autocomplete="off">
+        <div class="form-hint">Используется для проверки дубликатов</div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="tryCloseModal('parentModal')">Отмена</button>
+        <button type="submit" class="btn btn-primary">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ МОДАЛКА: СВЯЗЬ ============ -->
+<div class="modal-overlay" id="linkModal">
+  <div class="modal">
+    <h3>Привязать студента к родителю</h3>
+    <form id="linkForm" onsubmit="saveLink(event)">
+      <div id="linkFormError" class="form-error" style="display:none"></div>
+      <div class="form-group">
+        <label for="linkParent">Родитель *</label>
+        <select id="linkParent" required></select>
+      </div>
+      <div class="form-group">
+        <label for="linkStudent">Студент *</label>
+        <select id="linkStudent" required></select>
+        <div class="form-hint" id="linkStudentHint"></div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="tryCloseModal('linkModal')">Отмена</button>
+        <button type="submit" class="btn btn-primary">Привязать</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="loading">Загрузка...</div>
+<div id="toast"></div>
+
+<!-- ============================================================= -->
+<!-- 🔥 FIREBASE SDK v10 (modular)                                  -->
+<!-- ============================================================= -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getFirestore, collection, getDocs, doc, addDoc, updateDoc,
+  deleteDoc, query, where, serverTimestamp, writeBatch
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+  getAuth, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+/* ===================== 🔧 КОНФИГ ===================== */
+/* ⚠️ Замени на свой конфиг из Firebase Console */
+const firebaseConfig = {
+  apiKey: "AIza...",
+  authDomain: "xxx.firebaseapp.com",
+  projectId: "xxx",
+  storageBucket: "xxx.appspot.com",
+  messagingSenderId: "000",
+  appId: "1:000:web:xxx"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+/* =================================================== */
+
+
+/* ===================== STATE ===================== */
+let currentUser = null;    // { uid, role, name, email, group? }
+let isAdmin = false;
+let isCurator = false;
+let curatorGroupIds = [];  // группы, где текущий куратор
+let curatorStudentIds = new Set(); // студенты этих групп
+
+let parents = [];   // { id, name, email, ... }
+let students = [];  // { id, fullName, groupId, ... }
+let groups = {};    // { groupId: name }
+let links = [];     // { id, parentId, studentId, ... }
+
+// Кэши (оптимизация #18)
+let studentMap = new Map();
+let parentMap = new Map();
+let groupMap = new Map();
+
+// Pagination state
+const PAGE_SIZE = 15;
+const pagination = {
+  parents: 1,
+  links: 1,
+  students: 1
+};
+
+// Filters
+const filters = {
+  parents: '',
+  links: '',
+  students: ''
+};
+
+
+/* ===================== HELPERS ===================== */
+const $ = id => document.getElementById(id);
+
+function showLoading(v) { $('loading').style.display = v ? 'block' : 'none'; }
+
+function toast(msg, type = '') {
+  const el = $('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 2800);
+}
+
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function norm(s) { return String(s ?? '').toLowerCase().trim(); }
+
+function showFormError(id, msg) {
+  const el = $(id);
+  if (msg) { el.textContent = msg; el.style.display = 'block'; }
+  else { el.style.display = 'none'; }
+}
+
+
+/* ===================== ОПРЕДЕЛЕНИЕ ПОЛЬЗОВАТЕЛЯ ===================== */
+async function resolveCurrentUser() {
+  // Попробуем все распространённые способы
+  // 1. window.currentUser
+  if (window.currentUser && window.currentUser.uid) return window.currentUser;
+  // 2. localStorage
+  for (const key of ['currentUser', 'user', 'authUser']) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.uid) return parsed;
+      }
+    } catch (e) { /* ignore */ }
+  }
+  // 3. Firebase Auth
+  return await new Promise(resolve => {
+    const unsub = onAuthStateChanged(auth, async fbUser => {
+      unsub();
+      if (!fbUser) return resolve(null);
+      // Загрузим профиль из Firestore
+      try {
+        const snap = await getDocs(query(
+          collection(db, 'users'),
+          where('uid', '==', fbUser.uid)
+        ));
+        if (!snap.empty) {
+          const d = snap.docs[0];
+          resolve({ uid: fbUser.uid, id: d.id, ...d.data() });
+        } else {
+          resolve({ uid: fbUser.uid, email: fbUser.email, role: 'parent' });
+        }
+      } catch (e) {
+        resolve({ uid: fbUser.uid, email: fbUser.email });
+      }
+    });
+  });
+}
+
+
+/* ===================== ЗАГРУЗКА ДАННЫХ ===================== */
+async function loadAll() {
+  showLoading(true);
+  try {
+    // 1. Определим пользователя
+    currentUser = await resolveCurrentUser();
+    if (currentUser) {
+      isAdmin = currentUser.role === 'admin';
+      isCurator = currentUser.role === 'curator';
+      $('userInfo').textContent = currentUser.name || currentUser.email || currentUser.uid;
+      const badge = $('roleBadge');
+      badge.textContent = isAdmin ? 'Админ' : isCurator ? 'Куратор' : (currentUser.role || 'Гость');
+      badge.className = 'role-badge ' + (isAdmin ? 'admin' : isCurator ? 'curator' : '');
+    } else {
+      $('userInfo').textContent = 'Не авторизован';
+      $('roleBadge').textContent = '—';
     }
 
-    match /users/{userId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() && request.auth.uid == userId;
-      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+    // 2. Группы
+    const grSnap = await getDocs(collection(db, 'groups'));
+    groups = {};
+    groupMap.clear();
+    grSnap.docs.forEach(d => {
+      const data = d.data();
+      groups[d.id] = data.name || d.id;
+      groupMap.set(d.id, data);
+    });
+
+    // 3. Куратор → его группы и студенты
+    if (isCurator && currentUser?.uid) {
+      curatorGroupIds = [];
+      grSnap.docs.forEach(d => {
+        const g = d.data();
+        if (g.curatorId === currentUser.uid) curatorGroupIds.push(d.id);
+      });
+      curatorStudentIds = new Set();
+      curatorGroupIds.forEach(gid => {
+        const g = groupMap.get(gid);
+        (g?.studentIds || []).forEach(sid => curatorStudentIds.add(sid));
+      });
     }
 
-    match /students/{studentId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || isCurator();
+    // 4. Студенты (куратор — только свои)
+    const studSnap = await getDocs(collection(db, 'students'));
+    students = [];
+    studentMap.clear();
+    studSnap.docs.forEach(d => {
+      const s = { id: d.id, ...d.data() };
+      studentMap.set(d.id, s);
+      if (isCurator) {
+        // Включаем если в группе куратора ИЛИ в studentIds (если у студента groupId совпадает)
+        if (curatorStudentIds.has(d.id) || curatorGroupIds.includes(s.groupId)) {
+          students.push(s);
+        }
+      } else {
+        students.push(s);
+      }
+    });
+
+    // 5. Родители (users с role="parent")
+    const parSnap = await getDocs(
+      query(collection(db, 'users'), where('role', '==', 'parent'))
+    );
+    parents = [];
+    parentMap.clear();
+    parSnap.docs.forEach(d => {
+      const p = { id: d.id, ...d.data() };
+      parentMap.set(d.id, p);
+      parents.push(p);
+    });
+
+    // 6. Связи (куратор — только по своим студентам)
+    const linksSnap = await getDocs(collection(db, 'links'));
+    links = [];
+    const studentIdsSet = new Set(students.map(s => s.id));
+    linksSnap.docs.forEach(d => {
+      const l = { id: d.id, ...d.data() };
+      if (isCurator) {
+        if (studentIdsSet.has(l.studentId)) links.push(l);
+      } else {
+        links.push(l);
+      }
+    });
+
+    // 7. Если куратор — фильтруем родителей: оставим только тех, у кого есть связь с его студентами
+    if (isCurator) {
+      const visibleParentIds = new Set(links.map(l => l.parentId));
+      parents = parents.filter(p => visibleParentIds.has(p.id));
     }
 
-    match /groups/{groupId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin() || curatorOwnsGroup(groupId);
-    }
+    renderParents();
+    renderLinks();
+    renderStudents();
+  } catch (e) {
+    console.error(e);
+    toast('Ошибка загрузки: ' + e.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
 
-    match /links/{linkId} {
-      allow read: if isSignedIn();
-      // Куратор может создавать связь только для студента своей группы
-      allow create: if isAdmin() 
-        || (isCurator() && curatorOwnsGroup(
-              get(/databases/$(database)/documents/students/$(request.resource.data.studentId)).data.groupId
-            ));
-      allow delete: if isAdmin() || isCurator();
+
+/* ===================== ОБЩИЕ ФУНКЦИИ ===================== */
+function getChildrenOfParent(parentId) {
+  return links
+    .filter(l => l.parentId === parentId)
+    .map(l => studentMap.get(l.studentId))
+    .filter(Boolean);
+}
+
+function getParentsOfStudent(studentId) {
+  return links
+    .filter(l => l.studentId === studentId)
+    .map(l => parentMap.get(l.parentId))
+    .filter(Boolean);
+}
+
+function renderPagination(containerId, total, current, onChange) {
+  const el = $(containerId);
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (total <= PAGE_SIZE) { el.innerHTML = ''; return; }
+
+  let html = `<button ${current === 1 ? 'disabled' : ''} data-page="${current - 1}">← Назад</button>`;
+  const maxVisible = 5;
+  let start = Math.max(1, current - Math.floor(maxVisible / 2));
+  let end = Math.min(pages, start + maxVisible - 1);
+  if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+
+  if (start > 1) html += `<button data-page="1">1</button>${start > 2 ? '<span class="info">…</span>' : ''}`;
+  for (let i = start; i <= end; i++) {
+    html += `<button data-page="${i}" class="${i === current ? 'active' : ''}">${i}</button>`;
+  }
+  if (end < pages) html += `${end < pages - 1 ? '<span class="info">…</span>' : ''}<button data-page="${pages}">${pages}</button>`;
+  html += `<button ${current === pages ? 'disabled' : ''} data-page="${current + 1}">Вперёд →</button>`;
+  html += `<span class="info">Всего: ${total}</span>`;
+
+  el.innerHTML = html;
+  el.querySelectorAll('button[data-page]').forEach(btn => {
+    btn.onclick = () => { onChange(Number(btn.dataset.page)); };
+  });
+}
+
+
+/* ===================== РЕНДЕР: РОДИТЕЛИ ===================== */
+let expandedParents = new Set();
+
+function renderParents() {
+  const tb = $('parentsTable');
+  const search = norm(filters.parents);
+
+  let list = parents.filter(p =>
+    !search ||
+    norm(p.name).includes(search) ||
+    norm(p.email).includes(search)
+  );
+  list.sort((a, b) => norm(a.name).localeCompare(norm(b.name), 'ru'));
+
+  $('parentsStats').textContent = `· найдено: ${list.length}`;
+
+  const total = list.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (pagination.parents > pages) pagination.parents = pages;
+  const start = (pagination.parents - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
+
+  if (!total) {
+    tb.innerHTML = `<tr><td colspan="6" class="empty">${parents.length ? 'Ничего не найдено' : 'Нет родителей. Нажмите «+ Добавить родителя»'}</td></tr>`;
+    renderPagination('parentsPagination', 0, 1, () => {});
+    return;
+  }
+
+  const rowsHtml = pageItems.map((p, i) => {
+    const childCount = getChildrenOfParent(p.id).length;
+    const isExpanded = expandedParents.has(p.id);
+    const children = isExpanded ? getChildrenOfParent(p.id) : [];
+
+    const childBadge = childCount > 0
+      ? `<span class="children-badge" onclick="event.stopPropagation(); toggleParent('${p.id}')">👶 ${childCount} ${isExpanded ? '▲' : '▼'}</span>`
+      : `<span class="children-badge zero">— нет</span>`;
+
+    let html = `
+      <tr class="${childCount ? 'expandable' : ''}" ${childCount ? `onclick="toggleParent('${p.id}')"` : ''}>
+        <td>${start + i + 1}</td>
+        <td><strong>${esc(p.name || '—')}</strong></td>
+        <td class="hide-mobile">${esc(p.email || '—')}</td>
+        <td>${childBadge}</td>
+        <td class="hide-mobile"><span class="badge">${esc(p.id.slice(0, 8))}…</span></td>
+        <td>
+          <div class="actions" onclick="event.stopPropagation()">
+            <button class="btn-icon" title="Редактировать" onclick="editParent('${p.id}')">✏️</button>
+            <button class="btn-icon" title="Удалить" onclick="removeParent('${p.id}', '${esc(p.name || '')}')">🗑</button>
+          </div>
+        </td>
+      </tr>
+    `;
+
+    if (isExpanded && children.length) {
+      html += `
+        <tr class="expanded-row">
+          <td colspan="6">
+            <div class="children-list">
+              ${children.map(c => {
+                const gr = groups[c.groupId] || c.groupId || '';
+                return `<span class="child-chip">
+                  <strong>${esc(c.fullName || c.name || c.id)}</strong>
+                  ${gr ? `<span class="group-tag">${esc(gr)}</span>` : ''}
+                </span>`;
+              }).join('')}
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    return html;
+  }).join('');
+
+  tb.innerHTML = rowsHtml;
+  renderPagination('parentsPagination', total, pagination.parents, (p) => {
+    pagination.parents = p;
+    renderParents();
+  });
+}
+
+function toggleParent(id) {
+  if (expandedParents.has(id)) expandedParents.delete(id);
+  else expandedParents.add(id);
+  renderParents();
+}
+
+function onParentsSearch() {
+  filters.parents = $('parentsSearch').value;
+  pagination.parents = 1;
+  renderParents();
+}
+
+
+/* ===================== РЕНДЕР: СВЯЗИ ===================== */
+function renderLinks() {
+  const tb = $('linksTable');
+  const search = norm(filters.links);
+
+  let list = links.filter(l => {
+    if (!search) return true;
+    const parent = parentMap.get(l.parentId);
+    const student = studentMap.get(l.studentId);
+    return norm(parent?.name).includes(search)
+        || norm(student?.fullName).includes(search)
+        || norm(student?.name).includes(search);
+  });
+
+  list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+  $('linksStats').textContent = `· найдено: ${list.length}`;
+
+  const total = list.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (pagination.links > pages) pagination.links = pages;
+  const start = (pagination.links - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
+
+  if (!total) {
+    tb.innerHTML = `<tr><td colspan="5" class="empty">${links.length ? 'Ничего не найдено' : 'Нет связей. Нажмите «+ Привязать студента»'}</td></tr>`;
+    renderPagination('linksPagination', 0, 1, () => {});
+    return;
+  }
+
+  tb.innerHTML = pageItems.map((l, i) => {
+    const parent = parentMap.get(l.parentId);
+    const student = studentMap.get(l.studentId);
+    const groupName = student ? (groups[student.groupId] || student.groupId || '—') : '—';
+    return `
+      <tr>
+        <td>${start + i + 1}</td>
+        <td>${esc(parent?.name || '— (удалён)')}</td>
+        <td><strong>${esc(student?.fullName || student?.name || '— (удалён)')}</strong></td>
+        <td class="hide-mobile"><span class="badge badge-green">${esc(groupName)}</span></td>
+        <td>
+          <button class="btn-icon" title="Отвязать" onclick="removeLink('${l.id}')">🗑</button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  renderPagination('linksPagination', total, pagination.links, (p) => {
+    pagination.links = p;
+    renderLinks();
+  });
+}
+
+function onLinksSearch() {
+  filters.links = $('linksSearch').value;
+  pagination.links = 1;
+  renderLinks();
+}
+
+
+/* ===================== РЕНДЕР: СТУДЕНТЫ → РОДИТЕЛИ ===================== */
+function renderStudents() {
+  const tb = $('studentsTable');
+  const search = norm(filters.students);
+
+  let list = students.filter(s => {
+    if (!search) return true;
+    const gr = groups[s.groupId] || '';
+    return norm(s.fullName).includes(search)
+        || norm(s.name).includes(search)
+        || norm(gr).includes(search);
+  });
+  list.sort((a, b) => norm(a.fullName || a.name).localeCompare(norm(b.fullName || b.name), 'ru'));
+
+  $('studentsStats').textContent = `· найдено: ${list.length}`;
+
+  const total = list.length;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (pagination.students > pages) pagination.students = pages;
+  const start = (pagination.students - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
+
+  if (!total) {
+    tb.innerHTML = `<tr><td colspan="4" class="empty">${students.length ? 'Ничего не найдено' : 'Нет студентов'}</td></tr>`;
+    renderPagination('studentsPagination', 0, 1, () => {});
+    return;
+  }
+
+  tb.innerHTML = pageItems.map((s, i) => {
+    const parentList = getParentsOfStudent(s.id);
+    const gr = groups[s.groupId] || s.groupId || '—';
+    const parentsHtml = parentList.length
+      ? parentList.map(p => `<span class="child-chip">👤 ${esc(p.name || p.id)}</span>`).join(' ')
+      : `<span class="badge badge-gray">нет родителей</span>`;
+    return `
+      <tr>
+        <td>${start + i + 1}</td>
+        <td><strong>${esc(s.fullName || s.name || s.id)}</strong></td>
+        <td class="hide-mobile"><span class="badge badge-green">${esc(gr)}</span></td>
+        <td><div class="children-list" style="padding:0">${parentsHtml}</div></td>
+      </tr>
+    `;
+  }).join('');
+
+  renderPagination('studentsPagination', total, pagination.students, (p) => {
+    pagination.students = p;
+    renderStudents();
+  });
+}
+
+function onStudentsSearch() {
+  filters.students = $('studentsSearch').value;
+  pagination.students = 1;
+  renderStudents();
+}
+
+
+/* ===================== МОДАЛКА: РОДИТЕЛЬ ===================== */
+let parentModalDirty = false;
+
+function openParentModal(id = null) {
+  $('parentId').value = '';
+  $('parentName').value = '';
+  $('parentEmail').value = '';
+  $('parentModalTitle').textContent = id ? 'Редактировать родителя' : 'Добавить родителя';
+  showFormError('parentFormError', '');
+  parentModalDirty = false;
+  $('parentModal').classList.add('active');
+  setTimeout(() => $('parentName').focus(), 50);
+
+  if (id) {
+    const p = parentMap.get(id);
+    if (p) {
+      $('parentId').value = id;
+      $('parentName').value = p.name || '';
+      $('parentEmail').value = p.email || '';
     }
   }
 }
+
+function editParent(id) { openParentModal(id); }
+
+async function saveParent(e) {
+  e.preventDefault();
+  const id = $('parentId').value;
+  const name = $('parentName').value.trim();
+  const email = $('parentEmail').value.trim().toLowerCase();
+
+  if (!name) return;
+  showFormError('parentFormError', '');
+
+  // Проверка дубликатов (#4)
+  const dupName = parents.find(p => p.id !== id && norm(p.name) === norm(name) && !email);
+  const dupEmail = email ? parents.find(p => p.id !== id && norm(p.email) === email) : null;
+
+  if (dupEmail) {
+    showFormError('parentFormError', `Родитель с email «${email}» уже существует: ${dupEmail.name}`);
+    return;
+  }
+  if (dupName) {
+    showFormError('parentFormError', `Родитель с ФИО «${name}» уже существует (без email). Добавьте email для различения.`);
+    return;
+  }
+
+  showLoading(true);
+  try {
+    if (id) {
+      await updateDoc(doc(db, 'users', id), { name, email });
+      toast('Родитель обновлён', 'success');
+    } else {
+      await addDoc(collection(db, 'users'), {
+        name, email,
+        role: 'parent',
+        createdAt: serverTimestamp()
+      });
+      toast('Родитель добавлен', 'success');
+    }
+    parentModalDirty = false;
+    closeModal('parentModal');
+    await loadAll();
+  } catch (err) {
+    console.error(err);
+    showFormError('parentFormError', 'Ошибка: ' + err.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function removeParent(id, name) {
+  const children = getChildrenOfParent(id);
+  const msg = children.length
+    ? `Удалить родителя «${name}»?\n\nУ него ${children.length} привязанных детей — связи тоже будут удалены.`
+    : `Удалить родителя «${name}»?`;
+  if (!confirm(msg)) return;
+
+  showLoading(true);
+  try {
+    const batch = writeBatch(db);
+    links.filter(l => l.parentId === id).forEach(l => {
+      batch.delete(doc(db, 'links', l.id));
+    });
+    batch.delete(doc(db, 'users', id));
+    await batch.commit();
+    toast('Родитель удалён', 'success');
+    await loadAll();
+  } catch (err) {
+    console.error(err);
+    toast('Ошибка удаления: ' + err.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+
+/* ===================== МОДАЛКА: СВЯЗЬ ===================== */
+function openLinkModal() {
+  if (!parents.length) { toast('Сначала добавьте родителей', 'error'); return; }
+  if (!students.length) {
+    toast(isCurator ? 'У вас нет студентов в ваших группах' : 'Нет студентов', 'error');
+    return;
+  }
+
+  $('linkParent').innerHTML = '<option value="">— выберите родителя —</option>' +
+    parents.map(p => `<option value="${p.id}">${esc(p.name || p.id)}</option>`).join('');
+
+  $('linkStudent').innerHTML = '<option value="">— выберите студента —</option>' +
+    students.map(s => {
+      const gr = groups[s.groupId] || '';
+      const label = (s.fullName || s.name || s.id) + (gr ? ` (${gr})` : '');
+      return `<option value="${s.id}">${esc(label)}</option>`;
+    }).join('');
+
+  $('linkStudentHint').textContent = isCurator
+    ? `Доступны только студенты ваших групп: ${curatorGroupIds.map(id => groups[id]).join(', ') || '—'}`
+    : '';
+
+  showFormError('linkFormError', '');
+  $('linkModal').classList.add('active');
+}
+
+async function saveLink(e) {
+  e.preventDefault();
+  const parentId = $('linkParent').value;
+  const studentId = $('linkStudent').value;
+  if (!parentId || !studentId) return;
+  showFormError('linkFormError', '');
+
+  // Проверка: куратор привязывает только своих
+  if (isCurator && !students.find(s => s.id === studentId)) {
+    showFormError('linkFormError', 'Вы можете привязывать только студентов своих групп');
+    return;
+  }
+
+  if (links.some(l => l.parentId === parentId && l.studentId === studentId)) {
+    showFormError('linkFormError', 'Такая связь уже существует');
+    return;
+  }
+
+  showLoading(true);
+  try {
+    await addDoc(collection(db, 'links'), {
+      parentId, studentId,
+      createdAt: serverTimestamp(),
+      createdBy: currentUser?.uid || null
+    });
+    toast('Студент привязан', 'success');
+    closeModal('linkModal');
+    await loadAll();
+  } catch (err) {
+    console.error(err);
+    showFormError('linkFormError', 'Ошибка: ' + err.message);
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function removeLink(id) {
+  if (!confirm('Отвязать студента от родителя?')) return;
+  showLoading(true);
+  try {
+    await deleteDoc(doc(db, 'links', id));
+    toast('Связь удалена', 'success');
+    await loadAll();
+  } catch (err) {
+    console.error(err);
+    toast('Ошибка: ' + err.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+
+/* ===================== CSV: ЭКСПОРТ / ИМПОРТ (#7) ===================== */
+function exportParentsCSV() {
+  if (!parents.length) { toast('Нет данных для экспорта', 'error'); return; }
+  const rows = [['ФИО', 'Email', 'UID', 'Кол-во детей']];
+  parents.forEach(p => {
+    rows.push([
+      p.name || '',
+      p.email || '',
+      p.id,
+      getChildrenOfParent(p.id).length
+    ]);
+  });
+  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `parents_${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Экспортировано: ' + parents.length, 'success');
+}
+
+async function importParentsCSV(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  e.target.value = '';
+
+  const text = await file.text();
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { toast('CSV пустой или без данных', 'error'); return; }
+
+  // Парсер с поддержкой кавычек
+  function parseLine(line) {
+    const out = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQ) {
+        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+        else if (ch === '"') inQ = false;
+        else cur += ch;
+      } else {
+        if (ch === '"') inQ = true;
+        else if (ch === ',') { out.push(cur); cur = ''; }
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  }
+
+  const header = parseLine(lines[0]).map(h => h.toLowerCase());
+  const nameIdx = header.findIndex(h => h.includes('фио') || h.includes('name') || h.includes('имя'));
+  const emailIdx = header.findIndex(h => h.includes('email') || h.includes('почт'));
+
+  if (nameIdx === -1) { toast('В CSV нет колонки «ФИО»/«Name»', 'error'); return; }
+
+  const items = [];
+  for (let i = 1; i < lines.length; i++) {
+    const cols = parseLine(lines[i]);
+    const name = cols[nameIdx]?.trim();
+    const email = emailIdx >= 0 ? (cols[emailIdx]?.trim().toLowerCase() || '') : '';
+    if (!name) continue;
+    items.push({ name, email });
+  }
+
+  if (!items.length) { toast('Нет валидных строк', 'error'); return; }
+
+  // Предпросмотр
+  const ok = confirm(
+    `Найдено ${items.length} записей для импорта.\n\n` +
+    `Будут пропущены дубликаты по email/ФИО.\n\nИмпортировать?`
+  );
+  if (!ok) return;
+
+  showLoading(true);
+  let added = 0, skipped = 0;
+  try {
+    for (const item of items) {
+      const dupEmail = item.email && parents.some(p => norm(p.email) === item.email);
+      const dupName = !item.email && parents.some(p => norm(p.name) === norm(item.name));
+      if (dupEmail || dupName) { skipped++; continue; }
+
+      await addDoc(collection(db, 'users'), {
+        name: item.name,
+        email: item.email,
+        role: 'parent',
+        createdAt: serverTimestamp(),
+        importedAt: serverTimestamp()
+      });
+      // локально, чтобы следующие итерации видели дубли
+      parents.push({ id: 'tmp' + Math.random(), name: item.name, email: item.email });
+      added++;
+    }
+    toast(`Добавлено: ${added}, пропущено: ${skipped}`, 'success');
+    await loadAll();
+  } catch (err) {
+    console.error(err);
+    toast('Ошибка импорта: ' + err.message, 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+
+/* ===================== UI ===================== */
+function closeModal(id) {
+  const modal = $(id);
+  if (id === 'parentModal' && parentModalDirty) {
+    if (!confirm('Изменения не сохранены. Закрыть?')) return;
+  }
+  modal.classList.remove('active');
+}
+
+function tryCloseModal(id) {
+  const modal = $(id);
+  // Проверим, изменены ли поля
+  if (id === 'parentModal') {
+    const p = parentMap.get($('parentId').value);
+    const changed =
+      $('parentName').value.trim() !== (p?.name || '') ||
+      $('parentEmail').value.trim() !== (p?.email || '');
+    if (changed && !confirm('Изменения не сохранены. Закрыть?')) return;
+  }
+  modal.classList.remove('active');
+}
+
+// Отслеживаем изменения
+document.addEventListener('input', e => {
+  if (e.target.closest('#parentModal')) parentModalDirty = true;
+});
+
+// Закрытие по клику на фон
+document.querySelectorAll('.modal-overlay').forEach(ov => {
+  ov.addEventListener('click', e => {
+    if (e.target === ov) tryCloseModal(ov.id);
+  });
+});
+
+// Табы
+document.querySelectorAll('nav.tabs button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
+    btn.classList.add('active');
+    $('tab-' + btn.dataset.tab).classList.add('active');
+  });
+});
+
+// Экспорт в глобал
+Object.assign(window, {
+  openParentModal, editParent, removeParent, saveParent,
+  openLinkModal, saveLink, removeLink,
+  closeModal, tryCloseModal, toggleParent,
+  onParentsSearch, onLinksSearch, onStudentsSearch,
+  exportParentsCSV, importParentsCSV
+});
+
+
+/* ===================== СТАРТ ===================== */
+loadAll();
+</script>
+
+</body>
+</html>

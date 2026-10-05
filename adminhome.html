@@ -2,1260 +2,2911 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Родители — Админ-панель</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
-    background: #f4f6f8;
-    color: #1f2937;
-    font-size: 14px;
-  }
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2454e8">
+<meta name="description" content="Современная система управления посещаемостью студентов">
+<title>Посещаемость — Панель управления</title>
 
-  header {
-    background: #1e293b;
-    color: #fff;
-    padding: 16px 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    box-shadow: 0 2px 6px rgba(0,0,0,.15);
-    position: sticky; top: 0; z-index: 50;
-  }
-  header h1 { font-size: 18px; font-weight: 600; }
-  header .user-info {
-    font-size: 13px; opacity: .85;
-    display: flex; gap: 10px; align-items: center;
-  }
-  header .role-badge {
-    background: #334155;
-    padding: 3px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .05em;
-  }
-  header .role-badge.admin { background: #7c3aed; }
-  header .role-badge.curator { background: #0891b2; }
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  nav.tabs {
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 0 24px;
-    display: flex;
-    gap: 4px;
-    position: sticky; top: 57px; z-index: 40;
-  }
-  nav.tabs button {
-    background: none; border: none;
-    padding: 14px 20px;
-    font-size: 14px; color: #6b7280;
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    font-weight: 500;
-    transition: .15s;
-    font-family: inherit;
-  }
-  nav.tabs button:hover { color: #111827; }
-  nav.tabs button.active {
-    color: #2563eb;
-    border-bottom-color: #2563eb;
-  }
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  main { padding: 24px; max-width: 1400px; margin: 0 auto; }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
-
-  .section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 16px;
-    flex-wrap: wrap;
-    gap: 12px;
-  }
-  .section-header h2 {
-    font-size: 16px;
-    color: #111827;
-    font-weight: 600;
-  }
-  .section-header .stats {
-    font-size: 13px;
-    color: #6b7280;
-    font-weight: normal;
-    margin-left: 8px;
-  }
-
-  .toolbar {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 14px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .toolbar input[type="search"] {
-    flex: 1;
-    min-width: 200px;
-    max-width: 360px;
-    padding: 9px 14px 9px 36px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 13px;
-    font-family: inherit;
-    background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m21 21-4.3-4.3'/%3E%3C/svg%3E") no-repeat 12px center;
-    transition: .15s;
-  }
-  .toolbar input[type="search"]:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
-  }
-
-  .btn {
-    padding: 8px 16px;
-    border-radius: 6px;
-    border: none;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: .15s;
-    font-family: inherit;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    white-space: nowrap;
-  }
-  .btn-primary { background: #2563eb; color: #fff; }
-  .btn-primary:hover { background: #1d4ed8; }
-  .btn-secondary { background: #e5e7eb; color: #374151; }
-  .btn-secondary:hover { background: #d1d5db; }
-  .btn-sm { padding: 6px 12px; font-size: 12px; }
-  .btn-icon {
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 4px 6px;
-    border-radius: 4px;
-    font-size: 14px;
-    transition: .15s;
-    line-height: 1;
-  }
-  .btn-icon:hover { background: #f3f4f6; }
-
-  .table-wrap {
-    background: #fff;
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0,0,0,.06);
-  }
-  table { width: 100%; border-collapse: collapse; }
-  thead {
-    background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-  }
-  th {
-    text-align: left;
-    padding: 12px 16px;
-    font-size: 12px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: .04em;
-    color: #6b7280;
-  }
-  td {
-    padding: 12px 16px;
-    border-bottom: 1px solid #f3f4f6;
-    font-size: 13px;
-    vertical-align: middle;
-  }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: #fafbfc; }
-  tr.expandable { cursor: pointer; }
-  tr.expandable:hover td { background: #f3f4f6; }
-
-  .empty {
-    padding: 40px;
-    text-align: center;
-    color: #9ca3af;
-    font-size: 13px;
-  }
-
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    background: #eff6ff;
-    color: #1e40af;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 500;
-  }
-  .badge-green { background: #dcfce7; color: #166534; }
-  .badge-gray { background: #f3f4f6; color: #6b7280; }
-
-  .children-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: #dbeafe;
-    color: #1e40af;
-    padding: 3px 9px;
-    border-radius: 12px;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    user-select: none;
-  }
-  .children-badge:hover { background: #bfdbfe; }
-  .children-badge.zero {
-    background: #f3f4f6;
-    color: #9ca3af;
-    cursor: default;
-  }
-
-  tr.expanded-row td {
-    background: #f9fafb;
-    padding: 0;
-  }
-  .children-list {
-    padding: 14px 24px;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .child-chip {
-    background: #fff;
-    border: 1px solid #e5e7eb;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 12px;
-    color: #374151;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .child-chip strong { color: #111827; }
-  .child-chip .group-tag {
-    background: #eff6ff;
-    color: #1e40af;
-    padding: 1px 7px;
-    border-radius: 10px;
-    font-size: 11px;
-  }
-
-  .actions { display: flex; gap: 4px; }
-
-  .pagination {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 6px;
-    padding: 16px;
-    background: #fff;
-    border-top: 1px solid #f3f4f6;
-  }
-  .pagination button {
-    background: #fff;
-    border: 1px solid #d1d5db;
-    padding: 6px 12px;
-    border-radius: 5px;
-    font-size: 13px;
-    cursor: pointer;
-    font-family: inherit;
-    color: #374151;
-    transition: .15s;
-  }
-  .pagination button:hover:not(:disabled) { background: #f3f4f6; }
-  .pagination button:disabled { opacity: .4; cursor: not-allowed; }
-  .pagination button.active {
-    background: #2563eb;
-    border-color: #2563eb;
-    color: #fff;
-  }
-  .pagination .info {
-    margin: 0 10px;
-    font-size: 12px;
-    color: #6b7280;
-  }
-
-  .modal-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,.4);
-    z-index: 100;
-    align-items: center;
-    justify-content: center;
-    padding: 16px;
-  }
-  .modal-overlay.active { display: flex; }
-  .modal {
-    background: #fff;
-    border-radius: 10px;
-    width: 100%;
-    max-width: 440px;
-    padding: 24px;
-    box-shadow: 0 20px 40px rgba(0,0,0,.15);
-    max-height: 90vh;
-    overflow-y: auto;
-  }
-  .modal h3 {
-    font-size: 16px;
-    margin-bottom: 18px;
-    color: #111827;
-  }
-  .form-group { margin-bottom: 14px; }
-  .form-group label {
-    display: block;
-    font-size: 12px;
-    font-weight: 600;
-    color: #374151;
-    margin-bottom: 6px;
-  }
-  .form-group input,
-  .form-group select {
-    width: 100%;
-    padding: 9px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    font-size: 13px;
-    font-family: inherit;
-    transition: .15s;
-    background: #fff;
-  }
-  .form-group input:focus,
-  .form-group select:focus {
-    outline: none;
-    border-color: #2563eb;
-    box-shadow: 0 0 0 3px rgba(37,99,235,.12);
-  }
-  .form-hint {
-    font-size: 11px;
-    color: #9ca3af;
-    margin-top: 4px;
-  }
-  .form-error {
-    background: #fee2e2;
-    color: #b91c1c;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    margin-bottom: 12px;
-  }
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 20px;
-  }
-
-  #loading {
-    position: fixed;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    background: #1e293b;
-    color: #fff;
-    padding: 10px 20px;
-    border-radius: 8px;
-    font-size: 13px;
-    z-index: 999;
-    display: none;
-  }
-  #toast {
-    position: fixed;
-    bottom: 24px;
-    right: 24px;
-    background: #1e293b;
-    color: #fff;
-    padding: 12px 20px;
-    border-radius: 8px;
-    font-size: 13px;
-    z-index: 999;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: .25s;
-    pointer-events: none;
-    max-width: 320px;
-  }
-  #toast.show { opacity: 1; transform: translateY(0); }
-  #toast.error { background: #b91c1c; }
-  #toast.success { background: #15803d; }
-
-  @media (max-width: 700px) {
-    main { padding: 14px; }
-    th, td { padding: 10px 10px; font-size: 12px; }
-    .hide-mobile { display: none; }
-    header h1 { font-size: 15px; }
-    nav.tabs button { padding: 12px 14px; font-size: 13px; }
-    .toolbar input[type="search"] { max-width: 100%; }
-  }
-</style>
-</head>
-<body>
-
-<header>
-  <h1>👨‍👩‍👧 Управление родителями</h1>
-  <div class="user-info">
-    <span id="userInfo">…</span>
-    <span class="role-badge" id="roleBadge">…</span>
-  </div>
-</header>
-
-<nav class="tabs">
-  <button class="active" data-tab="parents">Родители</button>
-  <button data-tab="links">Связи (родитель ↔ студент)</button>
-  <button data-tab="students">Студенты и их родители</button>
-</nav>
-
-<main>
-  <section class="tab-content active" id="tab-parents">
-    <div class="section-header">
-      <h2>Список родителей <span class="stats" id="parentsStats"></span></h2>
-      <button class="btn btn-primary" onclick="openParentModal()">+ Добавить родителя</button>
-    </div>
-    <div class="toolbar">
-      <input type="search" id="parentsSearch" placeholder="Поиск по ФИО или email..." oninput="onParentsSearch()">
-      <button class="btn btn-secondary btn-sm" onclick="exportParentsCSV()">📤 Экспорт CSV</button>
-      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('csvParentsInput').click()">📥 Импорт CSV</button>
-      <input type="file" id="csvParentsInput" accept=".csv" style="display:none" onchange="importParentsCSV(event)">
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px">#</th>
-            <th>ФИО</th>
-            <th class="hide-mobile">Email</th>
-            <th style="width:130px">Детей</th>
-            <th class="hide-mobile">UID</th>
-            <th style="width:100px">Действия</th>
-          </tr>
-        </thead>
-        <tbody id="parentsTable"></tbody>
-      </table>
-      <div class="pagination" id="parentsPagination"></div>
-    </div>
-  </section>
-
-  <section class="tab-content" id="tab-links">
-    <div class="section-header">
-      <h2>Связи родителей и студентов <span class="stats" id="linksStats"></span></h2>
-      <button class="btn btn-primary" onclick="openLinkModal()">+ Привязать студента</button>
-    </div>
-    <div class="toolbar">
-      <input type="search" id="linksSearch" placeholder="Поиск по родителю или студенту..." oninput="onLinksSearch()">
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px">#</th>
-            <th>Родитель</th>
-            <th>Студент</th>
-            <th class="hide-mobile">Группа</th>
-            <th style="width:100px">Действия</th>
-          </tr>
-        </thead>
-        <tbody id="linksTable"></tbody>
-      </table>
-      <div class="pagination" id="linksPagination"></div>
-    </div>
-  </section>
-
-  <section class="tab-content" id="tab-students">
-    <div class="section-header">
-      <h2>Студенты и их родители <span class="stats" id="studentsStats"></span></h2>
-    </div>
-    <div class="toolbar">
-      <input type="search" id="studentsSearch" placeholder="Поиск по студенту или группе..." oninput="onStudentsSearch()">
-    </div>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th style="width:40px">#</th>
-            <th>Студент</th>
-            <th class="hide-mobile">Группа</th>
-            <th>Родители</th>
-          </tr>
-        </thead>
-        <tbody id="studentsTable"></tbody>
-      </table>
-      <div class="pagination" id="studentsPagination"></div>
-    </div>
-  </section>
-</main>
-
-<div class="modal-overlay" id="parentModal">
-  <div class="modal">
-    <h3 id="parentModalTitle">Добавить родителя</h3>
-    <form id="parentForm" onsubmit="saveParent(event)">
-      <input type="hidden" id="parentId">
-      <div id="parentFormError" class="form-error" style="display:none"></div>
-      <div class="form-group">
-        <label for="parentName">ФИО *</label>
-        <input type="text" id="parentName" required placeholder="Иванова Мария Петровна" autocomplete="off">
-      </div>
-      <div class="form-group">
-        <label for="parentEmail">Email</label>
-        <input type="email" id="parentEmail" placeholder="parent@example.com" autocomplete="off">
-        <div class="form-hint">Используется для проверки дубликатов</div>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" onclick="tryCloseModal('parentModal')">Отмена</button>
-        <button type="submit" class="btn btn-primary">Сохранить</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div class="modal-overlay" id="linkModal">
-  <div class="modal">
-    <h3>Привязать студента к родителю</h3>
-    <form id="linkForm" onsubmit="saveLink(event)">
-      <div id="linkFormError" class="form-error" style="display:none"></div>
-      <div class="form-group">
-        <label for="linkParent">Родитель *</label>
-        <select id="linkParent" required></select>
-      </div>
-      <div class="form-group">
-        <label for="linkStudent">Студент *</label>
-        <select id="linkStudent" required></select>
-        <div class="form-hint" id="linkStudentHint"></div>
-      </div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-secondary" onclick="tryCloseModal('linkModal')">Отмена</button>
-        <button type="submit" class="btn btn-primary">Привязать</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<div id="loading">Загрузка...</div>
-<div id="toast"></div>
-
-<!-- ============================================================= -->
-<!-- 🔥 FIREBASE COMPAT SDK (как в adminhome.html)                  -->
-<!-- ============================================================= -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 
-<script>
-/* ===================== STATE ===================== */
-let currentUser = null;
-let isAdmin = false;
-let isCurator = false;
-let curatorGroupIds = [];
-let curatorStudentIds = new Set();
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
 
-let parents = [];
-let students = [];
-let groups = {};
-let links = [];
+:root{
+    color-scheme: light dark;
 
-let studentMap = new Map();
-let parentMap = new Map();
-let groupMap = new Map();
+    --primary:#2454e8;
+    --primary-dark:#17348f;
+    --primary-light:#eef2ff;
 
-const PAGE_SIZE = 15;
-const pagination = { parents: 1, links: 1, students: 1 };
-const filters = { parents: '', links: '', students: '' };
+    --teal:#0d9488;
+    --teal-light:#ecfdf9;
 
+    --violet:#7c3aed;
+    --violet-light:#f4f0ff;
 
-/* ===================== HELPERS ===================== */
-const $ = id => document.getElementById(id);
-function showLoading(v) { $('loading').style.display = v ? 'block' : 'none'; }
-function toast(msg, type = '') {
-  const el = $('toast');
-  el.textContent = msg;
-  el.className = 'show ' + type;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.className = '', 2800);
+    --amber:#d97706;
+    --amber-light:#fef8ec;
+
+    --indigo:#4f46e5;
+    --indigo-light:#eef2ff;
+
+    --cyan:#0891b2;
+    --cyan-light:#ecfeff;
+
+    --rose:#e11d48;
+    --rose-light:#fff1f2;
+
+    --red:#dc2626;
+    --red-light:#fef2f2;
+
+    --text:#0f1729;
+    --text-secondary:#5b6478;
+    --text-light:#9aa3b5;
+
+    --surface:#ffffff;
+    --surface-2:#f8fafc;
+    --surface-3:#f1f5f9;
+    --border:#e6ebf3;
+    --border-soft:#eef2f7;
+
+    --sidebar-w:264px;
+    --topbar-h:64px;
+
+    --shadow-xs:0 1px 2px rgba(15,23,42,.04);
+    --shadow-sm:0 1px 3px rgba(15,23,42,.06), 0 1px 2px rgba(15,23,42,.04);
+    --shadow-md:0 10px 24px -10px rgba(15,23,42,.14);
+    --shadow-lg:0 24px 60px -20px rgba(15,23,42,.22);
+    --shadow-xl:0 40px 80px -24px rgba(15,23,42,.28);
+
+    --radius-lg:22px;
+    --radius-md:16px;
+    --radius-sm:12px;
+
+    --ease:cubic-bezier(.22,1,.36,1);
+    --ease-spring:cubic-bezier(.34,1.56,.64,1);
 }
-function esc(s) {
-  return String(s ?? '').replace(/[&<>"']/g, c => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[c]));
+
+/* ================= ТЁМНАЯ ТЕМА ================= */
+[data-theme="dark"]{
+    color-scheme: dark;
+
+    --primary:#5b7dff;
+    --primary-dark:#3b5fea;
+    --primary-light:#1a2547;
+
+    --teal:#2dd4bf;
+    --teal-light:#0f2e2b;
+
+    --violet:#a78bfa;
+    --violet-light:#231a3d;
+
+    --amber:#fbbf24;
+    --amber-light:#33260d;
+
+    --indigo:#818cf8;
+    --indigo-light:#1e1e3f;
+
+    --cyan:#22d3ee;
+    --cyan-light:#0d2830;
+
+    --rose:#fb7185;
+    --rose-light:#2e0d17;
+
+    --red:#f87171;
+    --red-light:#2e0d0d;
+
+    --text:#f1f5f9;
+    --text-secondary:#94a3b8;
+    --text-light:#64748b;
+
+    --surface:#0f172a;
+    --surface-2:#1e293b;
+    --surface-3:#334155;
+    --border:#334155;
+    --border-soft:#1e293b;
+
+    --shadow-xs:0 1px 2px rgba(0,0,0,.4);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.5), 0 1px 2px rgba(0,0,0,.4);
+    --shadow-md:0 10px 24px -10px rgba(0,0,0,.6);
+    --shadow-lg:0 24px 60px -20px rgba(0,0,0,.7);
+    --shadow-xl:0 40px 80px -24px rgba(0,0,0,.8);
 }
-function norm(s) { return String(s ?? '').toLowerCase().trim(); }
-function showFormError(id, msg) {
-  const el = $(id);
-  if (msg) { el.textContent = msg; el.style.display = 'block'; }
-  else { el.style.display = 'none'; }
+
+[data-theme="dark"] body{background:#0a1120}
+[data-theme="dark"] .sidebar{
+    background:linear-gradient(180deg,#0f172a 0%,#0a1120 100%);
+}
+[data-theme="dark"] .topbar{
+    background:rgba(15,23,42,.82);
+}
+[data-theme="dark"] .topbar-btn,
+[data-theme="dark"] .topbar-icon-btn,
+[data-theme="dark"] .hamburger,
+[data-theme="dark"] .user-menu-button,
+[data-theme="dark"] .sidebar-close{
+    background:var(--surface-2);
+}
+[data-theme="dark"] .user-dropdown{background:var(--surface-2)}
+[data-theme="dark"] .stat-icon.blue{background:linear-gradient(135deg,#1a2547 0%,#1e2c52 100%)}
+[data-theme="dark"] .stat-icon.teal{background:linear-gradient(135deg,#0f2e2b 0%,#133f38 100%)}
+[data-theme="dark"] .stat-icon.violet{background:linear-gradient(135deg,#231a3d 0%,#2c2148 100%)}
+[data-theme="dark"] .stat-icon.amber{background:linear-gradient(135deg,#33260d 0%,#3f2f10 100%)}
+[data-theme="dark"] .icon.attendance{background:linear-gradient(135deg,#0f2e2b 0%,#133f38 100%)}
+[data-theme="dark"] .attendance .icon{background:linear-gradient(135deg,#0f2e2b 0%,#133f38 100%)}
+[data-theme="dark"] .history .icon{background:linear-gradient(135deg,#1a2547 0%,#1e2c52 100%)}
+[data-theme="dark"] .students .icon{background:linear-gradient(135deg,#231a3d 0%,#2c2148 100%)}
+[data-theme="dark"] .groups .icon{background:linear-gradient(135deg,#1a2547 0%,#1e2c52 100%)}
+[data-theme="dark"] .parents .icon{background:linear-gradient(135deg,#0d2830 0%,#103440 100%)}
+[data-theme="dark"] .settings .icon{background:linear-gradient(135deg,#33260d 0%,#3f2f10 100%)}
+[data-theme="dark"] .messages .icon{background:linear-gradient(135deg,#2e0d17 0%,#3a1120 100%)}
+[data-theme="dark"] .progress-icon{background:linear-gradient(135deg,#1a2547 0%,#1e2c52 100%)}
+[data-theme="dark"] .loader-logo{box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 20px 40px rgba(0,0,0,.6)}
+[data-theme="dark"] .page-loader{
+    background:radial-gradient(circle at 50% 50%,#0a1120 0%,#050a15 55%,#020510 100%);
+}
+[data-theme="dark"] .hero::after{opacity:.25}
+[data-theme="dark"] .progress-track{background:#1e293b}
+[data-theme="dark"] .status-card{
+    background:#0f2e2b;
+    border-color:rgba(45,212,191,.2);
+    color:#5eead4;
 }
 
+html{scroll-behavior:smooth}
+body{
+    min-height:100vh;
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:var(--text);
+    background:#f4f6fb;
+    overflow-x:hidden;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    transition:background .3s ease,color .3s ease;
+}
 
-/* ===================== ЗАГРУЗКА ДАННЫХ ===================== */
-async function loadAll() {
-  showLoading(true);
-  try {
-    // 1. Группы
-    const grSnap = await firebase.firestore().collection('groups').get();
-    groups = {};
-    groupMap.clear();
-    grSnap.docs.forEach(d => {
-      const data = d.data();
-      groups[d.id] = data.name || d.id;
-      groupMap.set(d.id, data);
-    });
+h1,h2,.brand-title,.section-title,.page-title,.card-title,.hero-clock-time,.stat-value{
+    font-family:"Plus Jakarta Sans","Inter",sans-serif;
+}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:8px}
 
-    // 2. Куратор — его группы
-    if (isCurator && currentUser?.uid) {
-      curatorGroupIds = [];
-      grSnap.docs.forEach(d => {
-        const g = d.data();
-        if (g.curatorId === currentUser.uid) curatorGroupIds.push(d.id);
-      });
-      curatorStudentIds = new Set();
-      curatorGroupIds.forEach(gid => {
-        const g = groupMap.get(gid);
-        (g?.studentIds || []).forEach(sid => curatorStudentIds.add(sid));
-      });
+@media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+        animation-duration:.001ms!important;
+        animation-iteration-count:1!important;
+        transition-duration:.001ms!important;
     }
+}
 
-    // 3. Студенты
-    const studSnap = await firebase.firestore().collection('students').get();
-    students = [];
-    studentMap.clear();
-    studSnap.docs.forEach(d => {
-      const s = { id: d.id, ...d.data() };
-      studentMap.set(d.id, s);
-      if (isCurator) {
-        if (curatorStudentIds.has(d.id) || curatorGroupIds.includes(s.groupId)) {
-          students.push(s);
-        }
-      } else {
-        students.push(s);
-      }
-    });
+/* ============ LAYOUT ============ */
+.app{
+    display:grid;
+    grid-template-columns:var(--sidebar-w) 1fr;
+    min-height:100vh;
+}
 
-    // 4. Родители (role = parent)
-    const parSnap = await firebase.firestore()
-      .collection('users').where('role', '==', 'parent').get();
-    parents = [];
-    parentMap.clear();
-    parSnap.docs.forEach(d => {
-      const p = { id: d.id, ...d.data() };
-      parentMap.set(d.id, p);
-      parents.push(p);
-    });
+/* ============ SIDEBAR OVERLAY ============ */
+.sidebar-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.5);
+    backdrop-filter:blur(4px);
+    z-index:60;
+    opacity:0;
+    transition:opacity .25s ease;
+}
+.sidebar-overlay.show{opacity:1}
 
-    // 5. Связи
-    const linksSnap = await firebase.firestore().collection('links').get();
-    links = [];
-    const studentIdsSet = new Set(students.map(s => s.id));
-    linksSnap.docs.forEach(d => {
-      const l = { id: d.id, ...d.data() };
-      if (isCurator) {
-        if (studentIdsSet.has(l.studentId)) links.push(l);
-      } else {
-        links.push(l);
-      }
-    });
+/* ============ SIDEBAR ============ */
+.sidebar{
+    position:sticky;
+    top:0;
+    height:100vh;
+    display:flex;
+    flex-direction:column;
+    background:linear-gradient(180deg,#ffffff 0%,#fbfcfe 100%);
+    border-right:1px solid var(--border);
+    padding:22px 16px 18px;
+    z-index:70;
+    transition:transform .3s var(--ease),background .3s ease;
+}
 
-    // 6. Куратор — фильтр родителей
-    if (isCurator) {
-      const visibleParentIds = new Set(links.map(l => l.parentId));
-      parents = parents.filter(p => visibleParentIds.has(p.id));
+.sidebar-brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:4px 6px 22px;
+    border-bottom:1px solid var(--border-soft);
+    margin-bottom:16px;
+}
+.sidebar-logo{
+    width:44px;height:44px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:14px;color:#fff;
+    background:linear-gradient(135deg,#3b82f6 0%,#2454e8 55%,#1a3aa8 100%);
+    box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 10px 22px rgba(36,84,232,.35);
+    transition:transform .4s var(--ease-spring);
+}
+.sidebar-logo:hover{transform:rotate(-6deg) scale(1.06)}
+.sidebar-logo svg{width:22px;height:22px}
+
+.sidebar-brand-text{display:flex;flex-direction:column;min-width:0}
+.brand-title{font-size:15px;font-weight:700;letter-spacing:-.3px;color:var(--text)}
+.brand-subtitle{margin-top:1px;font-size:11px;font-weight:500;color:var(--text-secondary)}
+
+.sidebar-close{
+    display:none;
+    margin-left:auto;
+    width:34px;height:34px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:var(--surface);
+    color:var(--text-secondary);
+    cursor:pointer;
+    align-items:center;justify-content:center;
+    transition:.2s;
+}
+.sidebar-close:hover{color:var(--red);border-color:rgba(220,38,38,.3)}
+.sidebar-close svg{width:16px;height:16px}
+
+.sidebar-nav{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    gap:22px;
+    overflow-y:auto;
+    padding-right:2px;
+}
+.nav-group-title{
+    padding:0 10px;
+    margin-bottom:8px;
+    font-size:10.5px;
+    font-weight:700;
+    letter-spacing:.8px;
+    text-transform:uppercase;
+    color:var(--text-light);
+}
+.nav-list{display:flex;flex-direction:column;gap:2px}
+
+.sidebar-link{
+    position:relative;
+    display:flex;align-items:center;gap:11px;
+    padding:10px 12px;
+    border-radius:11px;
+    font-size:13.5px;font-weight:600;
+    color:var(--text-secondary);
+    cursor:pointer;text-decoration:none;
+    transition:background .2s ease,color .2s ease,transform .2s var(--ease);
+}
+.sidebar-link svg{
+    width:18px;height:18px;flex-shrink:0;
+    color:var(--text-light);
+    transition:color .2s ease,transform .25s var(--ease);
+}
+.sidebar-link:hover{background:var(--surface-2);color:var(--text)}
+.sidebar-link:hover svg{color:var(--primary);transform:scale(1.05)}
+.sidebar-link:active{transform:scale(.985)}
+.sidebar-link.active{color:var(--primary);background:var(--primary-light)}
+.sidebar-link.active::before{
+    content:"";position:absolute;
+    left:-16px;top:50%;transform:translateY(-50%);
+    width:3px;height:20px;border-radius:0 3px 3px 0;
+    background:var(--primary);
+}
+.sidebar-link.active svg{color:var(--primary)}
+
+.sidebar-link.nav-permissions:hover{color:var(--violet);background:var(--violet-light)}
+.sidebar-link.nav-permissions:hover svg{color:var(--violet)}
+.sidebar-link.nav-users:hover{color:var(--teal);background:var(--teal-light)}
+.sidebar-link.nav-users:hover svg{color:var(--teal)}
+.sidebar-link.nav-messages:hover{color:var(--rose);background:var(--rose-light)}
+.sidebar-link.nav-messages:hover svg{color:var(--rose)}
+.sidebar-link.nav-parents:hover{color:var(--cyan);background:var(--cyan-light)}
+.sidebar-link.nav-parents:hover svg{color:var(--cyan)}
+
+.permissions-badge,
+.messages-badge{
+    min-width:20px;height:20px;padding:0 6px;
+    display:none;align-items:center;justify-content:center;
+    margin-left:auto;border-radius:999px;color:#fff;
+    font-size:10.5px;font-weight:800;line-height:1;
+    animation:badgeAppear .35s var(--ease);
+}
+.permissions-badge{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 12px rgba(220,38,38,.3)}
+.messages-badge{background:linear-gradient(135deg,#f43f5e,#e11d48);box-shadow:0 4px 12px rgba(225,29,72,.3)}
+
+@keyframes badgeAppear{from{opacity:0;transform:scale(.5)}to{opacity:1;transform:scale(1)}}
+
+.sidebar-link.nav-permissions.has-requests{
+    color:var(--red);background:var(--red-light);
+    box-shadow:0 0 0 1px rgba(220,38,38,.08);
+}
+.sidebar-link.nav-permissions.has-requests svg{
+    color:var(--red);animation:permissionIconPulse 1.8s ease-in-out infinite;
+}
+.sidebar-link.nav-messages.has-unread{
+    color:var(--rose);background:var(--rose-light);
+    box-shadow:0 0 0 1px rgba(225,29,72,.08);
+}
+.sidebar-link.nav-messages.has-unread svg{
+    color:var(--rose);animation:messageIconPulse 2.2s ease-in-out infinite;
+}
+
+@keyframes permissionIconPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@keyframes messageIconPulse{0%,100%{transform:scale(1) rotate(0)}50%{transform:scale(1.1) rotate(-6deg)}}
+
+.sidebar-footer{
+    margin-top:auto;
+    padding-top:14px;
+    border-top:1px solid var(--border-soft);
+}
+.status-card{
+    display:flex;align-items:center;gap:10px;
+    padding:11px 12px;border-radius:12px;
+    background:var(--teal-light);
+    border:1px solid rgba(13,148,136,.16);
+    color:#0a7a5a;font-size:12px;font-weight:600;
+}
+.status-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:var(--teal);
+    box-shadow:0 0 0 4px rgba(13,148,136,.13);
+    animation:pulse 2.2s infinite;flex-shrink:0;
+}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.75}}
+
+/* ============ MAIN ============ */
+.main{display:flex;flex-direction:column;min-width:0}
+
+/* ============ TOPBAR ============ */
+.topbar{
+    position:sticky;top:0;z-index:50;
+    height:var(--topbar-h);
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;
+    padding:0 36px;
+    background:rgba(255,255,255,.82);
+    backdrop-filter:blur(20px) saturate(140%);
+    -webkit-backdrop-filter:blur(20px) saturate(140%);
+    border-bottom:1px solid var(--border);
+    transition:background .3s ease,border-color .3s ease;
+}
+
+.topbar-left{
+    display:flex;align-items:center;gap:12px;min-width:0;
+}
+
+.hamburger{
+    display:none;
+    width:40px;height:40px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:#fff;
+    color:var(--text);
+    cursor:pointer;
+    align-items:center;justify-content:center;
+    box-shadow:var(--shadow-xs);
+    transition:.2s;
+    flex-shrink:0;
+}
+.hamburger:hover{color:var(--primary);border-color:rgba(36,84,232,.3)}
+.hamburger svg{width:20px;height:20px}
+
+.topbar-title{display:flex;flex-direction:column;gap:2px;min-width:0}
+.topbar-title h1{
+    font-size:16px;font-weight:700;letter-spacing:-.3px;color:var(--text);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.topbar-title span{
+    font-size:11.5px;font-weight:500;color:var(--text-secondary);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+
+.topbar-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+
+.topbar-btn{
+    display:flex;align-items:center;gap:7px;
+    padding:8px 13px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:#fff;color:var(--text-secondary);
+    font-size:12px;font-weight:600;
+    cursor:pointer;
+    box-shadow:var(--shadow-xs);
+    transition:color .2s ease,border-color .2s ease,box-shadow .25s ease,transform .2s var(--ease),background .3s ease;
+}
+.topbar-btn svg{width:15px;height:15px}
+.topbar-btn:hover{
+    color:var(--primary);
+    border-color:rgba(36,84,232,.3);
+    box-shadow:var(--shadow-sm);
+}
+.topbar-btn:active{transform:scale(.97)}
+
+.topbar-icon-btn{
+    position:relative;
+    width:40px;height:40px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--border);
+    border-radius:50%;
+    background:#fff;color:var(--text-secondary);
+    cursor:pointer;
+    box-shadow:var(--shadow-xs);
+    transition:color .2s ease,border-color .2s ease,box-shadow .25s ease,transform .25s var(--ease),background .3s ease;
+}
+.topbar-icon-btn svg{width:18px;height:18px}
+.topbar-icon-btn:hover{
+    color:var(--primary);
+    border-color:rgba(36,84,232,.3);
+    box-shadow:var(--shadow-sm);
+    transform:translateY(-1px);
+}
+.topbar-icon-btn:active{transform:translateY(0) scale(.96)}
+.topbar-icon-btn.has-unread{
+    color:var(--rose);
+    border-color:rgba(225,29,72,.3);
+}
+.topbar-icon-btn.has-unread svg{
+    animation:messageIconPulse 2.2s ease-in-out infinite;
+}
+
+.unread-dot{
+    position:absolute;top:6px;right:6px;
+    width:9px;height:9px;border-radius:50%;
+    background:linear-gradient(135deg,#f43f5e,#e11d48);
+    border:2px solid var(--surface);
+    box-shadow:0 2px 6px rgba(225,29,72,.4);
+    display:none;
+    animation:badgeAppear .35s var(--ease);
+}
+.unread-dot.show{display:block}
+.unread-dot::after{
+    content:"";position:absolute;inset:-2px;
+    border-radius:50%;
+    background:rgba(225,29,72,.4);
+    animation:dotPulse 2s ease-out infinite;
+    z-index:-1;
+}
+@keyframes dotPulse{
+    0%{transform:scale(.9);opacity:.8}
+    100%{transform:scale(2);opacity:0}
+}
+
+/* Кнопка темы */
+.theme-toggle-btn{
+    position:relative;
+    width:40px;height:40px;
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--border);
+    border-radius:50%;
+    background:#fff;color:var(--text-secondary);
+    cursor:pointer;
+    box-shadow:var(--shadow-xs);
+    transition:color .2s ease,border-color .2s ease,box-shadow .25s ease,transform .25s var(--ease),background .3s ease;
+    overflow:hidden;
+}
+.theme-toggle-btn:hover{
+    color:var(--primary);
+    border-color:rgba(36,84,232,.3);
+    transform:translateY(-1px);
+}
+.theme-toggle-btn:active{transform:translateY(0) scale(.96)}
+.theme-toggle-btn svg{width:18px;height:18px;transition:transform .35s var(--ease-spring),opacity .25s ease}
+.theme-toggle-btn .icon-sun,
+.theme-toggle-btn .icon-moon{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+}
+.theme-toggle-btn .icon-moon{opacity:0;transform:rotate(-90deg) scale(.6)}
+[data-theme="dark"] .theme-toggle-btn .icon-sun{opacity:0;transform:rotate(90deg) scale(.6)}
+[data-theme="dark"] .theme-toggle-btn .icon-moon{opacity:1;transform:rotate(0) scale(1)}
+
+/* ============ USER MENU ============ */
+.user-menu{position:relative}
+
+.user-menu-button{
+    display:flex;align-items:center;gap:10px;
+    padding:5px 13px 5px 5px;
+    border:1px solid var(--border);
+    border-radius:999px;
+    background:#fff;
+    cursor:pointer;
+    font-family:inherit;font-size:12.5px;font-weight:600;color:var(--text);
+    box-shadow:var(--shadow-xs);
+    transition:box-shadow .25s ease,border-color .25s ease,background .3s ease;
+    max-width:220px;
+}
+.user-menu-button:hover{
+    border-color:rgba(36,84,232,.3);
+    box-shadow:var(--shadow-sm);
+}
+.user-menu-button.open{
+    border-color:rgba(36,84,232,.35);
+    box-shadow:0 0 0 4px rgba(36,84,232,.08);
+}
+.user-menu-button > span:not(.user-avatar){
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+    max-width:130px;
+}
+
+.user-avatar{
+    width:32px;height:32px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:50%;color:#fff;font-size:12px;font-weight:700;
+    background:linear-gradient(135deg,#3b82f6 0%,#2454e8 55%,#1a3aa8 100%);
+    box-shadow:0 1px 0 rgba(255,255,255,.35) inset,0 4px 10px rgba(36,84,232,.25);
+}
+
+.user-chevron{
+    width:15px;height:15px;color:var(--text-light);
+    transition:transform .3s var(--ease);
+    flex-shrink:0;
+}
+.user-menu.open .user-chevron{transform:rotate(180deg)}
+
+.user-dropdown{
+    position:absolute;top:calc(100% + 10px);right:0;
+    z-index:200;width:250px;
+    padding:8px;
+    border-radius:18px;
+    background:#fff;
+    border:1px solid var(--border);
+    box-shadow:var(--shadow-xl);
+    opacity:0;visibility:hidden;
+    transform:translateY(-8px) scale(.97);
+    transform-origin:top right;
+    transition:opacity .25s ease,transform .3s var(--ease),visibility .25s ease,background .3s ease;
+}
+.user-menu.open .user-dropdown{
+    opacity:1;visibility:visible;
+    transform:translateY(0) scale(1);
+}
+.dropdown-header{
+    padding:12px 14px 13px;
+    margin-bottom:6px;
+    border-bottom:1px solid var(--border-soft);
+}
+.dropdown-name{
+    font-size:13.5px;font-weight:700;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.dropdown-role{margin-top:4px;font-size:11.5px;font-weight:600;color:var(--violet)}
+
+.dropdown-item{
+    display:flex;align-items:center;gap:11px;
+    width:100%;padding:10px 12px;
+    border:none;border-radius:12px;
+    background:transparent;cursor:pointer;text-align:left;
+    font-family:inherit;font-size:13px;font-weight:600;color:var(--text);
+    transition:background .2s ease,color .2s ease;
+}
+.dropdown-item svg{
+    width:17px;height:17px;flex-shrink:0;
+    color:var(--text-light);
+    transition:color .2s ease;
+}
+.dropdown-item:hover{background:var(--primary-light);color:var(--primary)}
+.dropdown-item:hover svg{color:var(--primary)}
+.dropdown-item.danger:hover{background:var(--red-light);color:var(--red)}
+.dropdown-item.danger:hover svg{color:var(--red)}
+.dropdown-item .item-badge{
+    margin-left:auto;
+    min-width:20px;height:20px;padding:0 6px;
+    display:none;align-items:center;justify-content:center;
+    border-radius:999px;
+    background:linear-gradient(135deg,#f43f5e,#e11d48);
+    color:#fff;font-size:10px;font-weight:800;line-height:1;
+}
+.dropdown-item .item-badge.show{display:flex}
+
+/* ============ PAGE ============ */
+.page{
+    padding:26px 36px 44px;
+    max-width:1400px;
+    width:100%;
+    margin:0 auto;
+}
+
+/* ============ STAGGER FADE-IN ============ */
+@keyframes fadeUpStagger{
+    from{opacity:0;transform:translateY(18px)}
+    to{opacity:1;transform:translateY(0)}
+}
+
+.stagger-item{
+    opacity:0;
+    animation:fadeUpStagger .55s var(--ease) forwards;
+}
+
+/* ============ HERO ============ */
+.hero{
+    position:relative;
+    display:grid;
+    grid-template-columns:1fr auto;
+    align-items:center;
+    gap:32px;
+    padding:32px 36px;
+    margin-bottom:20px;
+    overflow:hidden;
+    border-radius:var(--radius-lg);
+    color:#fff;
+    background:linear-gradient(128deg,#17348f 0%,#2454e8 55%,#3b5fea 100%);
+    box-shadow:0 1px 0 rgba(255,255,255,.18) inset,0 24px 60px -20px rgba(36,84,232,.42);
+}
+.hero::before{
+    content:"";position:absolute;inset:0;
+    background:
+        radial-gradient(circle at 88% 20%,rgba(139,92,246,.28),transparent 42%),
+        radial-gradient(circle at 8% 92%,rgba(34,211,238,.18),transparent 45%);
+    pointer-events:none;
+}
+.hero::after{
+    content:"";position:absolute;inset:0;
+    background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px);
+    background-size:22px 22px;
+    -webkit-mask-image:linear-gradient(120deg,#000 0%,transparent 55%);
+    mask-image:linear-gradient(120deg,#000 0%,transparent 55%);
+    opacity:.55;pointer-events:none;
+}
+.hero-particles{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.hero-particles span{
+    position:absolute;width:3px;height:3px;border-radius:50%;
+    background:rgba(255,255,255,.7);
+    box-shadow:0 0 10px rgba(255,255,255,.9);
+    animation:heroFloat 12s linear infinite;opacity:0;
+}
+.hero-particles span:nth-child(1){left:12%;bottom:10%;animation-delay:0s}
+.hero-particles span:nth-child(2){left:28%;bottom:5%;animation-delay:2s}
+.hero-particles span:nth-child(3){left:44%;bottom:12%;animation-delay:4s}
+.hero-particles span:nth-child(4){left:62%;bottom:8%;animation-delay:6s}
+.hero-particles span:nth-child(5){left:78%;bottom:15%;animation-delay:8s}
+.hero-particles span:nth-child(6){left:90%;bottom:6%;animation-delay:10s}
+@keyframes heroFloat{
+    0%{transform:translateY(0) scale(.6);opacity:0}
+    15%{opacity:.8}
+    50%{transform:translateY(-120px) scale(1.1);opacity:.5}
+    85%{opacity:.25}
+    100%{transform:translateY(-240px) scale(.5);opacity:0}
+}
+
+.hero-content{position:relative;z-index:2;min-width:0}
+.hero-badge{
+    display:inline-flex;align-items:center;gap:7px;
+    padding:6px 13px;margin-bottom:14px;
+    border-radius:999px;
+    font-size:11.5px;font-weight:600;
+    background:rgba(255,255,255,.14);
+    border:1px solid rgba(255,255,255,.24);
+    backdrop-filter:blur(10px);
+}
+.hero h1{
+    font-size:30px;line-height:1.15;margin-bottom:10px;
+    font-weight:800;letter-spacing:-.8px;
+}
+.hero p{
+    max-width:560px;font-size:14px;line-height:1.65;
+    color:rgba(255,255,255,.85);
+}
+
+.hero-clock{
+    position:relative;z-index:2;
+    width:210px;padding:22px 20px;text-align:center;
+    border-radius:20px;
+    background:rgba(255,255,255,.13);
+    border:1px solid rgba(255,255,255,.22);
+    backdrop-filter:blur(20px) saturate(140%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 10px 28px rgba(15,23,42,.12);
+}
+.hero-clock::before{
+    content:"";position:absolute;top:0;left:20%;right:20%;height:1px;
+    background:linear-gradient(90deg,transparent,rgba(255,255,255,.9),transparent);
+}
+.hero-clock-label{
+    margin-bottom:6px;font-size:11px;font-weight:500;
+    opacity:.75;letter-spacing:.3px;text-transform:uppercase;
+}
+.hero-clock-time{
+    font-size:32px;font-weight:700;
+    font-variant-numeric:tabular-nums;letter-spacing:.5px;
+    text-shadow:0 2px 12px rgba(0,0,0,.15);
+}
+.hero-clock-date{
+    margin-top:8px;font-size:11.5px;line-height:1.4;
+    color:rgba(255,255,255,.8);
+}
+
+/* ============ STATS ============ */
+.stats-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:14px;
+    margin-bottom:24px;
+}
+.stat-card{
+    position:relative;
+    display:flex;flex-direction:column;gap:10px;
+    padding:18px 20px;overflow:hidden;
+    border-radius:var(--radius-md);
+    background:var(--surface);
+    border:1px solid var(--border);
+    box-shadow:var(--shadow-sm);
+    transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s var(--ease),background .3s ease;
+}
+.stat-card::before{
+    content:"";position:absolute;
+    top:0;left:20px;right:20px;height:3px;
+    border-radius:0 0 3px 3px;
+    opacity:0;
+    transition:opacity .3s ease;
+}
+.stat-card:nth-child(1)::before{background:linear-gradient(90deg,transparent,#2454e8,transparent)}
+.stat-card:nth-child(2)::before{background:linear-gradient(90deg,transparent,#0d9488,transparent)}
+.stat-card:nth-child(3)::before{background:linear-gradient(90deg,transparent,#7c3aed,transparent)}
+.stat-card:nth-child(4)::before{background:linear-gradient(90deg,transparent,#d97706,transparent)}
+.stat-card:hover{
+    transform:translateY(-3px);
+    box-shadow:var(--shadow-md);
+    border-color:rgba(36,84,232,.18);
+}
+.stat-card:hover::before{opacity:1}
+
+.stat-header{display:flex;align-items:center;justify-content:space-between}
+.stat-icon{
+    width:40px;height:40px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:12px;
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset;
+}
+.stat-icon svg{width:20px;height:20px}
+.stat-icon.blue{background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);color:var(--primary)}
+.stat-icon.teal{background:linear-gradient(135deg,#ecfdf9 0%,#d1fae5 100%);color:var(--teal)}
+.stat-icon.violet{background:linear-gradient(135deg,#f4f0ff 0%,#ede9fe 100%);color:var(--violet)}
+.stat-icon.amber{background:linear-gradient(135deg,#fef8ec 0%,#fef3c7 100%);color:var(--amber)}
+
+.stat-label{font-size:11.5px;font-weight:500;color:var(--text-secondary)}
+.stat-value{
+    font-size:26px;font-weight:800;letter-spacing:-.6px;
+    color:var(--text);font-variant-numeric:tabular-nums;line-height:1.1;
+}
+.stat-value small{font-size:13px;font-weight:600;color:var(--text-light);letter-spacing:0;margin-left:2px}
+.stat-value.pending{
+    background:linear-gradient(90deg,var(--surface-3) 25%,var(--surface-2) 50%,var(--surface-3) 75%);
+    background-size:200% 100%;
+    animation:shimmer 1.4s linear infinite;
+    color:transparent;
+    border-radius:6px;
+    min-width:40px;display:inline-block;
+}
+@keyframes shimmer{
+    0%{background-position:200% 0}
+    100%{background-position:-200% 0}
+}
+.stat-trend{
+    display:inline-flex;align-items:center;gap:4px;
+    font-size:11px;font-weight:600;color:var(--teal);
+}
+.stat-trend.warn{color:var(--amber)}
+.stat-trend.muted{color:var(--text-light)}
+.stat-trend svg{width:12px;height:12px}
+
+/* ============ PROGRESS ============ */
+.progress-card{
+    display:grid;
+    grid-template-columns:auto 1fr auto;
+    align-items:center;gap:22px;
+    padding:20px 24px;margin-bottom:26px;
+    border-radius:var(--radius-md);
+    background:var(--surface);
+    border:1px solid var(--border);
+    box-shadow:var(--shadow-sm);
+    transition:background .3s ease,border-color .3s ease;
+}
+.progress-icon{
+    width:44px;height:44px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:13px;
+    background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);
+    color:var(--primary);
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset;
+}
+.progress-icon svg{width:22px;height:22px}
+.progress-body{min-width:0}
+.progress-title{
+    font-size:13.5px;font-weight:700;
+    margin-bottom:6px;color:var(--text);
+}
+.progress-track{
+    width:100%;height:8px;border-radius:999px;
+    background:var(--surface-3);
+    box-shadow:0 1px 2px rgba(15,23,42,.04) inset;
+    overflow:hidden;
+}
+.progress-bar{
+    width:0%;height:100%;border-radius:999px;
+    background:linear-gradient(90deg,#3b82f6,#2454e8,#7c3aed);
+    background-size:200% 100%;
+    animation:progressShift 4s ease-in-out infinite;
+    transition:width .9s var(--ease);
+    box-shadow:0 0 12px rgba(36,84,232,.4);
+}
+@keyframes progressShift{
+    0%,100%{background-position:0% 50%}
+    50%{background-position:100% 50%}
+}
+.progress-percent{
+    font-family:"Plus Jakarta Sans","Inter",sans-serif;
+    font-size:22px;font-weight:800;letter-spacing:-.5px;
+    color:var(--primary);font-variant-numeric:tabular-nums;
+}
+
+/* ============ SECTION ============ */
+.section-header{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    margin-bottom:14px;
+}
+.section-title{font-size:17px;font-weight:700;letter-spacing:-.3px}
+.section-subtitle{margin-top:4px;color:var(--text-secondary);font-size:12.5px}
+
+/* ============ QUICK ACTIONS ============ */
+.menu{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
+}
+.menu-button{
+    position:relative;
+    display:flex;align-items:flex-start;gap:14px;
+    padding:20px 18px;overflow:hidden;
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    background:var(--surface);
+    color:var(--text);
+    cursor:pointer;text-align:left;
+    box-shadow:var(--shadow-sm);
+    transition:transform .3s var(--ease),box-shadow .3s var(--ease),border-color .3s var(--ease),background .3s ease;
+}
+.menu-button::before{
+    content:"";position:absolute;
+    top:0;left:18px;right:18px;height:3px;
+    border-radius:0 0 3px 3px;
+    opacity:0;transition:opacity .3s ease;
+}
+.attendance::before{background:linear-gradient(90deg,transparent,#0d9488,transparent)}
+.history::before{background:linear-gradient(90deg,transparent,#2454e8,transparent)}
+.students::before{background:linear-gradient(90deg,transparent,#7c3aed,transparent)}
+.groups::before{background:linear-gradient(90deg,transparent,#4f46e5,transparent)}
+.parents::before{background:linear-gradient(90deg,transparent,#0891b2,transparent)}
+.settings::before{background:linear-gradient(90deg,transparent,#d97706,transparent)}
+.messages::before{background:linear-gradient(90deg,transparent,#e11d48,transparent)}
+
+.menu-button::after{
+    content:"";position:absolute;
+    width:160px;height:160px;
+    right:-70px;top:-90px;border-radius:50%;
+    opacity:0;
+    transition:opacity .35s ease,transform .6s var(--ease);
+    transform:scale(.85);
+    pointer-events:none;
+}
+.attendance::after{background:radial-gradient(circle at 50% 50%,rgba(13,148,136,.12),transparent 70%)}
+.history::after{background:radial-gradient(circle at 50% 50%,rgba(36,84,232,.12),transparent 70%)}
+.students::after{background:radial-gradient(circle at 50% 50%,rgba(124,58,237,.12),transparent 70%)}
+.groups::after{background:radial-gradient(circle at 50% 50%,rgba(79,70,229,.12),transparent 70%)}
+.parents::after{background:radial-gradient(circle at 50% 50%,rgba(8,145,178,.12),transparent 70%)}
+.settings::after{background:radial-gradient(circle at 50% 50%,rgba(217,119,6,.12),transparent 70%)}
+.messages::after{background:radial-gradient(circle at 50% 50%,rgba(225,29,72,.12),transparent 70%)}
+
+.menu-button:hover{
+    transform:translateY(-4px);
+    box-shadow:var(--shadow-md);
+    border-color:rgba(36,84,232,.2);
+}
+.menu-button:hover::before{opacity:1}
+.menu-button:hover::after{opacity:1;transform:scale(1)}
+.menu-button:active{transform:translateY(-2px) scale(.99)}
+
+.icon{
+    position:relative;z-index:2;
+    width:48px;height:48px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:14px;
+    transition:transform .35s var(--ease);
+}
+.icon svg{width:22px;height:22px}
+.menu-button:hover .icon{transform:scale(1.06) rotate(-4deg)}
+
+.attendance .icon{background:linear-gradient(135deg,#ecfdf9 0%,#d1fae5 100%);color:var(--teal)}
+.history .icon{background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);color:var(--primary)}
+.students .icon{background:linear-gradient(135deg,#f4f0ff 0%,#ede9fe 100%);color:var(--violet)}
+.groups .icon{background:linear-gradient(135deg,#eef2ff 0%,#e0e7ff 100%);color:var(--indigo)}
+.parents .icon{background:linear-gradient(135deg,#ecfeff 0%,#cffafe 100%);color:var(--cyan)}
+.settings .icon{background:linear-gradient(135deg,#fef8ec 0%,#fef3c7 100%);color:var(--amber)}
+.messages .icon{background:linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%);color:var(--rose)}
+
+.button-content{position:relative;z-index:2;min-width:0;flex:1}
+.button-title{
+    display:block;margin-bottom:4px;
+    font-size:14px;font-weight:700;letter-spacing:-.2px;color:var(--text);
+}
+.button-description{
+    display:block;color:var(--text-secondary);
+    font-size:12px;line-height:1.5;
+}
+.shortcut{
+    position:absolute;top:12px;right:14px;
+    width:22px;height:22px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:7px;
+    font-size:10.5px;font-weight:700;
+    color:var(--text-light);
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    transition:color .2s ease,background .2s ease;
+}
+.menu-button:hover .shortcut{
+    color:var(--primary);
+    background:var(--primary-light);
+    border-color:rgba(36,84,232,.18);
+}
+.parents:hover .shortcut{
+    color:var(--cyan);
+    background:var(--cyan-light);
+    border-color:rgba(8,145,178,.18);
+}
+.messages:hover .shortcut{
+    color:var(--rose);
+    background:var(--rose-light);
+    border-color:rgba(225,29,72,.18);
+}
+
+/* ============ FOOTER ============ */
+footer{
+    margin-top:40px;padding:20px 0 0;
+    text-align:center;color:var(--text-light);
+    font-size:12px;border-top:1px solid var(--border-soft);
+}
+.footer-line{
+    width:44px;height:3px;margin:0 auto 14px;
+    border-radius:999px;
+    background:linear-gradient(90deg,#93c5fd,#7c9cf0);
+    box-shadow:0 2px 10px rgba(124,156,240,.35);
+}
+
+/* ============ LOADER ============ */
+.page-loader{
+    position:fixed;inset:0;z-index:999;
+    display:flex;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 50%,#ffffff 0%,#f5f8ff 55%,#eef4ff 100%);
+    transition:opacity .5s ease,visibility .5s ease,background .3s ease;
+}
+.page-loader.hidden{opacity:0;visibility:hidden}
+body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibility:hidden}
+.loader-content{text-align:center}
+.loader-logo{
+    width:68px;height:68px;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 16px;border-radius:22px;
+    background:linear-gradient(135deg,#3b82f6 0%,#2454e8 55%,#1a3aa8 100%);
+    box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 20px 40px rgba(36,84,232,.35);
+    animation:loaderFloat 1.6s infinite ease-in-out;
+}
+.loader-logo svg{width:30px;height:30px}
+.loader-text{font-size:13px;font-weight:600;color:var(--text-secondary)}
+@keyframes loaderFloat{
+    0%,100%{transform:translateY(0)}
+    50%{transform:translateY(-9px)}
+}
+
+/* ============ TOAST ============ */
+.toast{
+    position:fixed;left:50%;bottom:30px;z-index:1000;
+    transform:translate(-50%,120px);
+    padding:13px 22px;
+    border-radius:14px;
+    background:linear-gradient(135deg,#101a30 0%,#1a2547 100%);
+    color:#fff;font-size:13px;font-weight:600;
+    box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 20px 44px rgba(15,23,42,.32);
+    opacity:0;pointer-events:none;
+    transition:transform .4s var(--ease),opacity .4s ease;
+    max-width:calc(100vw - 40px);
+    text-align:center;
+}
+.toast.show{transform:translate(-50%,0);opacity:1}
+
+/* ============================================================
+   УВЕДОМЛЕНИЯ «ВЖУХ» — правый верхний угол
+============================================================ */
+.notif-container{
+    position:fixed;
+    top:calc(var(--topbar-h) + 14px);
+    right:20px;
+    z-index:1100;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    pointer-events:none;
+    max-width:380px;
+    width:calc(100vw - 40px);
+}
+
+@keyframes notifWhoosh{
+    0%{
+        opacity:0;
+        transform:translateX(120%) scale(.85) rotate(2deg);
     }
-
-    renderParents();
-    renderLinks();
-    renderStudents();
-  } catch (e) {
-    console.error(e);
-    toast('Ошибка загрузки: ' + (e.message || e), 'error');
-  } finally {
-    showLoading(false);
-  }
+    60%{
+        opacity:1;
+        transform:translateX(-6px) scale(1.02) rotate(-.5deg);
+    }
+    100%{
+        opacity:1;
+        transform:translateX(0) scale(1) rotate(0);
+    }
 }
 
-
-/* ===================== ОБЩИЕ ===================== */
-function getChildrenOfParent(parentId) {
-  return links
-    .filter(l => l.parentId === parentId)
-    .map(l => studentMap.get(l.studentId))
-    .filter(Boolean);
-}
-function getParentsOfStudent(studentId) {
-  return links
-    .filter(l => l.studentId === studentId)
-    .map(l => parentMap.get(l.parentId))
-    .filter(Boolean);
-}
-
-function renderPagination(containerId, total, current, onChange) {
-  const el = $(containerId);
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (total <= PAGE_SIZE) { el.innerHTML = ''; return; }
-
-  let html = `<button ${current === 1 ? 'disabled' : ''} data-page="${current - 1}">← Назад</button>`;
-  const maxVisible = 5;
-  let start = Math.max(1, current - Math.floor(maxVisible / 2));
-  let end = Math.min(pages, start + maxVisible - 1);
-  if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
-
-  if (start > 1) html += `<button data-page="1">1</button>${start > 2 ? '<span class="info">…</span>' : ''}`;
-  for (let i = start; i <= end; i++) {
-    html += `<button data-page="${i}" class="${i === current ? 'active' : ''}">${i}</button>`;
-  }
-  if (end < pages) html += `${end < pages - 1 ? '<span class="info">…</span>' : ''}<button data-page="${pages}">${pages}</button>`;
-  html += `<button ${current === pages ? 'disabled' : ''} data-page="${current + 1}">Вперёд →</button>`;
-  html += `<span class="info">Всего: ${total}</span>`;
-
-  el.innerHTML = html;
-  el.querySelectorAll('button[data-page]').forEach(btn => {
-    btn.onclick = () => onChange(Number(btn.dataset.page));
-  });
+@keyframes notifOut{
+    from{
+        opacity:1;
+        transform:translateX(0) scale(1);
+        max-height:200px;
+        margin-bottom:0;
+    }
+    to{
+        opacity:0;
+        transform:translateX(120%) scale(.9);
+        max-height:0;
+        margin-bottom:-10px;
+    }
 }
 
+.notif{
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:13px;
+    padding:14px 16px;
+    border-radius:16px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 20px 48px -12px rgba(15,23,42,.28);
+    pointer-events:auto;
+    cursor:pointer;
+    overflow:hidden;
+    animation:notifWhoosh .5s var(--ease-spring) forwards;
+    transition:transform .25s var(--ease),box-shadow .25s ease,background .3s ease,border-color .3s ease;
+}
+.notif:hover{
+    transform:translateY(-2px) scale(1.01);
+    box-shadow:0 1px 0 rgba(255,255,255,.5) inset,0 24px 56px -12px rgba(15,23,42,.35);
+}
+.notif.removing{
+    animation:notifOut .35s var(--ease) forwards;
+    pointer-events:none;
+}
 
-/* ===================== РОДИТЕЛИ ===================== */
-let expandedParents = new Set();
+.notif::before{
+    content:"";
+    position:absolute;
+    left:0;top:0;bottom:0;
+    width:4px;
+    border-radius:0 4px 4px 0;
+}
 
-function renderParents() {
-  const tb = $('parentsTable');
-  const search = norm(filters.parents);
+.notif.notif-request::before{
+    background:linear-gradient(180deg,#8b5cf6,#7c3aed);
+}
+.notif.notif-message::before{
+    background:linear-gradient(180deg,#f43f5e,#e11d48);
+}
 
-  let list = parents.filter(p =>
-    !search || norm(p.name).includes(search) || norm(p.email).includes(search)
-  );
-  list.sort((a, b) => norm(a.name).localeCompare(norm(b.name), 'ru'));
+.notif-icon{
+    width:42px;height:42px;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:12px;
+}
+.notif-icon svg{width:20px;height:20px}
 
-  $('parentsStats').textContent = `· найдено: ${list.length}`;
+.notif-request .notif-icon{
+    background:linear-gradient(135deg,#f4f0ff 0%,#ede9fe 100%);
+    color:var(--violet);
+    box-shadow:0 1px 0 rgba(255,255,255,.7) inset;
+}
+.notif-message .notif-icon{
+    background:linear-gradient(135deg,#fff1f2 0%,#ffe4e6 100%);
+    color:var(--rose);
+    box-shadow:0 1px 0 rgba(255,255,255,.7) inset;
+}
 
-  const total = list.length;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (pagination.parents > pages) pagination.parents = pages;
-  const start = (pagination.parents - 1) * PAGE_SIZE;
-  const pageItems = list.slice(start, start + PAGE_SIZE);
+[data-theme="dark"] .notif-request .notif-icon{
+    background:linear-gradient(135deg,#231a3d 0%,#2c2148 100%);
+}
+[data-theme="dark"] .notif-message .notif-icon{
+    background:linear-gradient(135deg,#2e0d17 0%,#3a1120 100%);
+}
 
-  if (!total) {
-    tb.innerHTML = `<tr><td colspan="6" class="empty">${parents.length ? 'Ничего не найдено' : 'Нет родителей. Нажмите «+ Добавить родителя»'}</td></tr>`;
-    renderPagination('parentsPagination', 0, 1, () => {});
-    return;
-  }
+.notif-body{
+    flex:1;
+    min-width:0;
+}
+.notif-title{
+    font-size:13.5px;
+    font-weight:700;
+    color:var(--text);
+    margin-bottom:3px;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
+.notif-text{
+    font-size:12px;
+    font-weight:500;
+    color:var(--text-secondary);
+    line-height:1.4;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+}
 
-  const rowsHtml = pageItems.map((p, i) => {
-    const childCount = getChildrenOfParent(p.id).length;
-    const isExpanded = expandedParents.has(p.id);
-    const children = isExpanded ? getChildrenOfParent(p.id) : [];
+.notif-arrow{
+    flex-shrink:0;
+    width:22px;
+    height:22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    color:var(--text-light);
+    transition:transform .3s var(--ease),color .2s ease;
+}
+.notif-arrow svg{width:14px;height:14px}
+.notif:hover .notif-arrow{
+    color:var(--primary);
+    transform:translateX(3px);
+}
 
-    const childBadge = childCount > 0
-      ? `<span class="children-badge" onclick="event.stopPropagation(); toggleParent('${p.id}')">👶 ${childCount} ${isExpanded ? '▲' : '▼'}</span>`
-      : `<span class="children-badge zero">— нет</span>`;
+.notif-close{
+    position:absolute;
+    top:8px;
+    right:8px;
+    width:22px;
+    height:22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:none;
+    background:transparent;
+    border-radius:50%;
+    color:var(--text-light);
+    cursor:pointer;
+    opacity:0;
+    transition:opacity .2s ease,background .2s ease,color .2s ease;
+}
+.notif-close svg{width:12px;height:12px}
+.notif:hover .notif-close{opacity:1}
+.notif-close:hover{background:var(--surface-3);color:var(--red)}
 
-    let html = `
-      <tr class="${childCount ? 'expandable' : ''}" ${childCount ? `onclick="toggleParent('${p.id}')"` : ''}>
-        <td>${start + i + 1}</td>
-        <td><strong>${esc(p.name || '—')}</strong></td>
-        <td class="hide-mobile">${esc(p.email || '—')}</td>
-        <td>${childBadge}</td>
-        <td class="hide-mobile"><span class="badge">${esc(p.id.slice(0, 8))}…</span></td>
-        <td>
-          <div class="actions" onclick="event.stopPropagation()">
-            <button class="btn-icon" title="Редактировать" onclick="editParent('${p.id}')">✏️</button>
-            <button class="btn-icon" title="Удалить" onclick="removeParent('${p.id}', '${esc(p.name || '')}')">🗑</button>
-          </div>
-        </td>
-      </tr>
-    `;
+/* ============================================================
+   БАННЕР «НЕТ СОЕДИНЕНИЯ»
+============================================================ */
+.offline-banner{
+    position:fixed;
+    top:0;left:0;right:0;
+    z-index:1050;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding:11px 18px;
+    background:linear-gradient(135deg,#b91c1c,#dc2626);
+    color:#fff;
+    font-size:13px;
+    font-weight:600;
+    box-shadow:0 6px 24px rgba(185,28,28,.35);
+    transform:translateY(-100%);
+    transition:transform .4s var(--ease);
+}
+.offline-banner.show{
+    transform:translateY(0);
+}
+.offline-banner svg{
+    width:16px;
+    height:16px;
+    flex-shrink:0;
+    animation:offlinePulse 1.8s ease-in-out infinite;
+}
+@keyframes offlinePulse{
+    0%,100%{opacity:1;transform:scale(1)}
+    50%{opacity:.6;transform:scale(1.15)}
+}
 
-    if (isExpanded && children.length) {
-      html += `
-        <tr class="expanded-row">
-          <td colspan="6">
-            <div class="children-list">
-              ${children.map(c => {
-                const gr = groups[c.groupId] || c.groupId || '';
-                return `<span class="child-chip">
-                  <strong>${esc(c.fullName || c.name || c.id)}</strong>
-                  ${gr ? `<span class="group-tag">${esc(gr)}</span>` : ''}
-                </span>`;
-              }).join('')}
+.offline-banner .retry-btn{
+    margin-left:10px;
+    padding:5px 12px;
+    border:1px solid rgba(255,255,255,.4);
+    border-radius:999px;
+    background:rgba(255,255,255,.1);
+    color:#fff;
+    font-family:inherit;
+    font-size:11.5px;
+    font-weight:700;
+    cursor:pointer;
+    transition:background .2s ease;
+}
+.offline-banner .retry-btn:hover{
+    background:rgba(255,255,255,.22);
+}
+
+/* ============================================================
+   МОДАЛКА ТАЙМАУТА
+============================================================ */
+.idle-modal-overlay{
+    position:fixed;
+    inset:0;
+    z-index:1200;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    background:rgba(15,23,42,.55);
+    backdrop-filter:blur(8px);
+    -webkit-backdrop-filter:blur(8px);
+    opacity:0;
+    visibility:hidden;
+    transition:opacity .3s ease,visibility .3s ease;
+}
+.idle-modal-overlay.show{
+    opacity:1;
+    visibility:visible;
+}
+
+.idle-modal{
+    width:100%;
+    max-width:420px;
+    padding:28px 26px 24px;
+    border-radius:22px;
+    background:var(--surface);
+    border:1px solid var(--border);
+    box-shadow:0 40px 80px -24px rgba(15,23,42,.5);
+    text-align:center;
+    transform:scale(.9) translateY(10px);
+    transition:transform .4s var(--ease-spring),background .3s ease;
+}
+.idle-modal-overlay.show .idle-modal{
+    transform:scale(1) translateY(0);
+}
+
+.idle-icon{
+    width:64px;height:64px;
+    display:flex;align-items:center;justify-content:center;
+    margin:0 auto 16px;
+    border-radius:20px;
+    background:linear-gradient(135deg,#fef8ec 0%,#fef3c7 100%);
+    color:var(--amber);
+    box-shadow:0 1px 0 rgba(255,255,255,.6) inset;
+    animation:idlePulse 2s ease-in-out infinite;
+}
+[data-theme="dark"] .idle-icon{
+    background:linear-gradient(135deg,#33260d 0%,#3f2f10 100%);
+}
+.idle-icon svg{width:30px;height:30px}
+@keyframes idlePulse{
+    0%,100%{transform:scale(1)}
+    50%{transform:scale(1.06)}
+}
+
+.idle-title{
+    font-family:"Plus Jakarta Sans","Inter",sans-serif;
+    font-size:19px;
+    font-weight:700;
+    letter-spacing:-.3px;
+    color:var(--text);
+    margin-bottom:8px;
+}
+
+.idle-text{
+    font-size:13.5px;
+    line-height:1.6;
+    color:var(--text-secondary);
+    margin-bottom:8px;
+}
+
+.idle-timer{
+    font-family:"Plus Jakarta Sans","Inter",sans-serif;
+    font-size:32px;
+    font-weight:800;
+    letter-spacing:-.5px;
+    color:var(--amber);
+    font-variant-numeric:tabular-nums;
+    margin:14px 0 22px;
+    padding:12px 0;
+    border-top:1px solid var(--border-soft);
+    border-bottom:1px solid var(--border-soft);
+}
+
+.idle-actions{
+    display:flex;
+    gap:10px;
+}
+
+.idle-btn{
+    flex:1;
+    padding:12px 18px;
+    border:none;
+    border-radius:12px;
+    font-family:inherit;
+    font-size:13.5px;
+    font-weight:700;
+    cursor:pointer;
+    transition:transform .2s var(--ease),box-shadow .2s ease,background .2s ease,color .2s ease;
+}
+.idle-btn:active{transform:scale(.97)}
+
+.idle-btn.primary{
+    background:linear-gradient(135deg,#3b82f6 0%,#2454e8 100%);
+    color:#fff;
+    box-shadow:0 10px 22px -8px rgba(36,84,232,.55);
+}
+.idle-btn.primary:hover{
+    box-shadow:0 14px 30px -8px rgba(36,84,232,.65);
+    transform:translateY(-1px);
+}
+
+.idle-btn.ghost{
+    background:var(--surface-2);
+    color:var(--text-secondary);
+    border:1px solid var(--border);
+}
+.idle-btn.ghost:hover{
+    background:var(--surface-3);
+    color:var(--text);
+}
+
+/* ============================================================
+   МОБИЛЬНАЯ АДАПТАЦИЯ
+============================================================ */
+
+@media (max-width:1200px){
+    .page{padding:22px 24px 36px}
+    .topbar{padding:0 24px}
+    .hero{padding:28px 28px;gap:24px}
+    .hero h1{font-size:26px}
+    .hero-clock{width:180px;padding:18px 16px}
+    .hero-clock-time{font-size:28px}
+    .stats-grid{grid-template-columns:repeat(2,1fr)}
+    .menu{grid-template-columns:repeat(2,1fr)}
+}
+
+@media (max-width:1024px){
+    html,body{min-width:0;width:100%;overflow-x:hidden}
+    .app{grid-template-columns:1fr}
+
+    .sidebar{
+        position:fixed;left:0;top:0;
+        width:280px;height:100vh;
+        transform:translateX(-100%);
+        box-shadow:0 0 60px rgba(15,23,42,.2);
+        z-index:70;
+    }
+    .sidebar.open{transform:translateX(0)}
+    .sidebar-overlay{display:block;pointer-events:none}
+    .sidebar-overlay.show{pointer-events:auto}
+    .sidebar-close{display:flex}
+    .sidebar-link.active::before{left:-16px}
+
+    .hamburger{display:flex}
+
+    .topbar{padding:0 16px;gap:8px}
+    .topbar-title h1{font-size:15px}
+    .topbar-title span{font-size:11px}
+
+    .page{padding:18px 16px 32px}
+
+    .hero{
+        grid-template-columns:1fr;
+        padding:24px 22px;
+        gap:20px;
+        text-align:left;
+    }
+    .hero h1{font-size:24px;letter-spacing:-.5px}
+    .hero p{font-size:13px}
+    .hero-clock{
+        width:100%;
+        padding:16px 18px;
+        display:flex;
+        align-items:center;
+        gap:16px;
+        text-align:left;
+    }
+    .hero-clock-label{display:none}
+    .hero-clock-time{font-size:24px;letter-spacing:.3px}
+    .hero-clock-date{margin-top:0;font-size:11px;opacity:.8}
+
+    .stats-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+    .stat-card{padding:16px 16px}
+    .stat-value{font-size:22px}
+
+    .progress-card{padding:16px 18px;gap:14px}
+    .progress-percent{font-size:18px}
+
+    .menu{grid-template-columns:1fr;gap:12px}
+    .menu-button{padding:16px 16px}
+    .icon{width:44px;height:44px}
+    .button-title{font-size:13.5px}
+    .button-description{font-size:12px}
+
+    .topbar-btn span,
+    .topbar-btn:not(:has(svg + *)) span{display:none}
+    .topbar-btn{padding:8px 10px}
+    .topbar-btn svg{width:16px;height:16px}
+
+    .notif-container{
+        top:auto;
+        bottom:20px;
+        right:12px;
+        left:12px;
+        width:auto;
+        max-width:none;
+    }
+    .notif{animation:notifWhooshMobile .5s var(--ease-spring) forwards}
+    @keyframes notifWhooshMobile{
+        0%{opacity:0;transform:translateY(120%) scale(.9)}
+        60%{opacity:1;transform:translateY(-6px) scale(1.02)}
+        100%{opacity:1;transform:translateY(0) scale(1)}
+    }
+    .notif.removing{animation:notifOutMobile .35s var(--ease) forwards}
+    @keyframes notifOutMobile{
+        from{opacity:1;transform:translateY(0) scale(1);max-height:200px}
+        to{opacity:0;transform:translateY(120%) scale(.9);max-height:0;margin-bottom:-10px}
+    }
+}
+
+@media (max-width:640px){
+    :root{--topbar-h:60px}
+
+    .topbar{padding:0 12px}
+    .topbar-title span{display:none}
+    .topbar-title h1{font-size:14.5px}
+
+    .user-menu-button{padding:4px 10px 4px 4px;gap:8px;max-width:160px}
+    .user-menu-button > span:not(.user-avatar){max-width:80px;font-size:12px}
+    .user-avatar{width:30px;height:30px;font-size:11px}
+
+    .user-dropdown{width:calc(100vw - 24px);right:-4px}
+
+    .page{padding:14px 12px 28px}
+
+    .hero{padding:20px 18px;gap:16px;border-radius:18px}
+    .hero h1{font-size:21px}
+    .hero p{font-size:12.5px}
+    .hero-badge{font-size:10.5px;padding:5px 11px}
+    .hero-clock{padding:14px 14px;border-radius:14px}
+    .hero-clock-time{font-size:22px}
+    .hero-clock-date{font-size:10.5px}
+
+    .stats-grid{grid-template-columns:1fr;gap:10px}
+    .stat-card{padding:14px 16px;flex-direction:row;align-items:center;gap:14px}
+    .stat-card .stat-header{flex-shrink:0}
+    .stat-icon{width:44px;height:44px;border-radius:12px}
+    .stat-label{font-size:11px}
+    .stat-value{font-size:20px;margin-left:auto}
+
+    .progress-card{
+        grid-template-columns:auto 1fr;
+        gap:12px;
+        padding:14px 16px;
+    }
+    .progress-icon{width:40px;height:40px}
+    .progress-percent{
+        grid-column:1 / -1;
+        text-align:right;
+        font-size:17px;
+    }
+    .progress-title{font-size:12.5px}
+
+    .section-title{font-size:15.5px}
+    .section-subtitle{font-size:12px}
+
+    .menu{gap:10px}
+    .menu-button{padding:14px 14px;gap:12px;border-radius:14px}
+    .icon{width:42px;height:42px;border-radius:12px}
+    .icon svg{width:20px;height:20px}
+    .button-title{font-size:13px}
+    .button-description{font-size:11.5px;line-height:1.45}
+    .shortcut{width:20px;height:20px;font-size:10px;top:10px;right:10px}
+
+    footer{font-size:11px;margin-top:28px}
+
+    .toast{font-size:12px;padding:11px 16px;bottom:20px}
+
+    .idle-modal{padding:24px 20px 20px;border-radius:18px}
+    .idle-title{font-size:17px}
+    .idle-timer{font-size:26px;margin:12px 0 18px}
+
+    .offline-banner{font-size:12px;padding:10px 14px}
+}
+
+@media (max-width:400px){
+    .topbar-title h1{font-size:14px}
+    .hamburger{width:36px;height:36px}
+    .topbar-icon-btn{width:36px;height:36px}
+    .topbar-icon-btn svg{width:16px;height:16px}
+    .topbar-btn{padding:7px 9px}
+    .theme-toggle-btn{width:36px;height:36px}
+
+    .hero h1{font-size:19px}
+    .hero-clock-time{font-size:20px}
+
+    .menu-button{padding:12px 12px}
+    .icon{width:38px;height:38px}
+    .icon svg{width:18px;height:18px}
+    .button-description{display:none}
+}
+</style>
+
+</head>
+
+<body class="auth-pending">
+
+<!-- OFFLINE BANNER -->
+<div class="offline-banner" id="offlineBanner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 1l22 22"/>
+        <path d="M16.7 11.7A11 11 0 0 0 5 6.3"/>
+        <path d="M5 12.5a11 11 0 0 1 4-1.4"/>
+        <path d="M10.7 16.1a6 6 0 0 1 3.8.8"/>
+        <path d="M8.5 16a11 11 0 0 0-3 1.2"/>
+        <path d="M12 20h.01"/>
+    </svg>
+    <span>Нет соединения с интернетом</span>
+    <button class="retry-btn" onclick="window.location.reload()">Обновить</button>
+</div>
+
+<!-- OVERLAY для мобильного сайдбара -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<!-- LOADER -->
+<div class="page-loader" id="pageLoader">
+    <div class="loader-content">
+        <div class="loader-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3 2 8l10 5 10-5-10-5Z"/>
+                <path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/>
+                <path d="M22 8v6"/>
+            </svg>
+        </div>
+        <div class="loader-text">Загрузка системы...</div>
+    </div>
+</div>
+
+
+<div class="app">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+
+        <div class="sidebar-brand">
+            <div class="sidebar-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3 2 8l10 5 10-5-10-5Z"/>
+                    <path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/>
+                    <path d="M22 8v6"/>
+                </svg>
             </div>
-          </td>
-        </tr>
-      `;
+            <div class="sidebar-brand-text">
+                <div class="brand-title">Посещаемость</div>
+                <div class="brand-subtitle">Админ-панель</div>
+            </div>
+            <button class="sidebar-close" onclick="closeSidebar()" aria-label="Закрыть меню">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+
+            <div>
+                <div class="nav-group-title">Работа</div>
+                <div class="nav-list">
+
+                    <a class="sidebar-link" onclick="openAttendance()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"/>
+                            <rect x="5" y="6" width="14" height="15" rx="2.5"/>
+                            <path d="m9 13.2 2.3 2.3L15.5 11"/>
+                        </svg>
+                        Отметить посещаемость
+                    </a>
+
+                    <a class="sidebar-link" onclick="openHistory()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 20V11"/><path d="M10.5 20V4"/>
+                            <path d="M17 20v-8"/><path d="M3 20h18"/>
+                        </svg>
+                        Посещаемость
+                    </a>
+
+                    <a class="sidebar-link nav-messages" id="messagesNav" onclick="openMessages()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            <path d="M8.5 11.5h.01"/><path d="M12.5 11.5h.01"/><path d="M16.5 11.5h.01"/>
+                        </svg>
+                        Сообщения
+                        <span class="messages-badge" id="messagesBadge">0</span>
+                    </a>
+
+                </div>
+            </div>
+
+            <div>
+                <div class="nav-group-title">Справочники</div>
+                <div class="nav-list">
+
+                    <a class="sidebar-link" onclick="openStudents()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                            <circle cx="11.5" cy="7.2" r="3"/>
+                            <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                            <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                        </svg>
+                        Студенты
+                    </a>
+
+                    <a class="sidebar-link" onclick="openGroups()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        Группы
+                    </a>
+
+                    <a class="sidebar-link nav-parents" onclick="openParents()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="8" cy="7" r="3"/>
+                            <circle cx="17" cy="8" r="2.5"/>
+                            <path d="M2 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+                            <path d="M15 20v-1a4 4 0 0 1 4-4h1a3 3 0 0 1 3 3v2"/>
+                        </svg>
+                        Родители
+                    </a>
+
+                </div>
+            </div>
+
+            <div>
+                <div class="nav-group-title">Управление</div>
+                <div class="nav-list">
+
+                    <a class="sidebar-link nav-permissions" id="permissionsNav" onclick="openPermissions()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="10.5" width="14" height="10" rx="2.5"/>
+                            <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+                            <circle cx="12" cy="15.5" r="1.4"/>
+                        </svg>
+                        Разрешения
+                        <span class="permissions-badge" id="permissionsBadge">0</span>
+                    </a>
+
+                    <a class="sidebar-link nav-users" onclick="openUsers()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                            <circle cx="11.5" cy="7.2" r="3"/>
+                            <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                            <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                        </svg>
+                        Пользователи
+                    </a>
+
+                    <a class="sidebar-link" onclick="openSettings()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3.3"/>
+                            <path d="M12 2.5v3.2"/><path d="M12 18.3v3.2"/>
+                            <path d="M4.5 4.5l2.3 2.3"/><path d="M17.2 17.2l2.3 2.3"/>
+                            <path d="M2.5 12h3.2"/><path d="M18.3 12h3.2"/>
+                            <path d="M4.5 19.5l2.3-2.3"/><path d="M17.2 6.8l2.3-2.3"/>
+                        </svg>
+                        Настройки
+                    </a>
+
+                </div>
+            </div>
+
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="status-card">
+                <span class="status-dot"></span>
+                Система активна
+            </div>
+        </div>
+
+    </aside>
+
+
+    <!-- MAIN -->
+    <div class="main">
+
+        <header class="topbar">
+
+            <div class="topbar-left">
+                <button class="hamburger" onclick="openSidebar()" aria-label="Открыть меню">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/>
+                    </svg>
+                </button>
+
+                <div class="topbar-title">
+                    <h1>Панель управления</h1>
+                    <span>Центр администрирования</span>
+                </div>
+            </div>
+
+            <div class="topbar-actions">
+
+                <button class="topbar-icon-btn" id="topbarMessagesBtn" onclick="openMessages()" title="Сообщения" aria-label="Сообщения">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                        <path d="M8.5 11.5h.01"/><path d="M12.5 11.5h.01"/><path d="M16.5 11.5h.01"/>
+                    </svg>
+                    <span class="unread-dot" id="topbarUnreadDot"></span>
+                </button>
+
+                <button class="theme-toggle-btn" onclick="toggleTheme()" title="Переключить тему" aria-label="Переключить тему">
+                    <span class="icon-sun">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="4"/>
+                            <path d="M12 2v2"/><path d="M12 20v2"/>
+                            <path d="m4.93 4.93 1.41 1.41"/>
+                            <path d="m17.66 17.66 1.41 1.41"/>
+                            <path d="M2 12h2"/><path d="M20 12h2"/>
+                            <path d="m4.93 19.07 1.41-1.41"/>
+                            <path d="m17.66 6.34 1.41-1.41"/>
+                        </svg>
+                    </span>
+                    <span class="icon-moon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>
+                        </svg>
+                    </span>
+                </button>
+
+                <button class="topbar-btn" onclick="openShortcuts()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="6" width="18" height="12" rx="2.5"/>
+                        <path d="M7 10h.01"/><path d="M11 10h.01"/>
+                        <path d="M15 10h.01"/><path d="M7 14h10"/>
+                    </svg>
+                    <span>Клавиши</span>
+                </button>
+
+                <div class="user-menu" id="userMenu">
+                    <button class="user-menu-button" id="userMenuButton" onclick="toggleUserMenu()">
+                        <span class="user-avatar" id="userAvatar">?</span>
+                        <span id="userFio">Загрузка...</span>
+                        <svg class="user-chevron" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                    </button>
+
+                    <div class="user-dropdown" id="userDropdown">
+
+                        <div class="dropdown-header">
+                            <div class="dropdown-name" id="dropdownName">Пользователь</div>
+                            <div class="dropdown-role">🛡️ Администратор</div>
+                        </div>
+
+                        <button class="dropdown-item" onclick="openMessages()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            </svg>
+                            Сообщения
+                            <span class="item-badge" id="dropdownMessagesBadge">0</span>
+                        </button>
+
+                        <button class="dropdown-item" onclick="openMyButtons()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3.5" y="3.5" width="7" height="7" rx="2"/>
+                                <rect x="13.5" y="3.5" width="7" height="7" rx="2"/>
+                                <rect x="3.5" y="13.5" width="7" height="7" rx="2"/>
+                                <rect x="13.5" y="13.5" width="7" height="7" rx="2"/>
+                            </svg>
+                            Мои кнопки
+                        </button>
+
+                        <button class="dropdown-item" onclick="openSecurity()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3 5 5.8v5.4c0 4.4 3 8.4 7 9.8 4-1.4 7-5.4 7-9.8V5.8L12 3Z"/>
+                                <path d="m9.3 12 1.9 1.9 3.5-3.8"/>
+                            </svg>
+                            Безопасность
+                        </button>
+
+                        <button class="dropdown-item danger" onclick="logout()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/>
+                                <path d="m11 8-4 4 4 4"/>
+                                <path d="M7 12h10"/>
+                            </svg>
+                            Выход
+                        </button>
+
+                    </div>
+                </div>
+
+            </div>
+
+        </header>
+
+
+        <main class="page">
+
+            <section class="hero stagger-item" style="animation-delay:.05s">
+                <div class="hero-particles">
+                    <span></span><span></span><span></span>
+                    <span></span><span></span><span></span>
+                </div>
+
+                <div class="hero-content">
+                    <div class="hero-badge">🛡️ Администрирование</div>
+                    <h1 id="greeting">Добро пожаловать! 👋</h1>
+                    <p>
+                        Полный доступ: управляйте студентами, посещаемостью,
+                        пользователями и разрешениями системы.
+                    </p>
+                </div>
+
+                <div class="hero-clock">
+                    <div class="hero-clock-label">Текущее время</div>
+                    <div class="hero-clock-time" id="clock">00:00:00</div>
+                    <div class="hero-clock-date" id="date">Загрузка даты...</div>
+                </div>
+            </section>
+
+
+            <section class="stats-grid">
+                <div class="stat-card stagger-item" style="animation-delay:.15s">
+                    <div class="stat-header">
+                        <div class="stat-icon blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="5" y="10.5" width="14" height="10" rx="2.5"/>
+                                <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+                                <circle cx="12" cy="15.5" r="1.4"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-label">Заявки на регистрацию</div>
+                    <div class="stat-value pending" id="statRequests">0</div>
+                </div>
+
+                <div class="stat-card stagger-item" style="animation-delay:.22s">
+                    <div class="stat-header">
+                        <div class="stat-icon teal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                                <circle cx="11.5" cy="7.2" r="3"/>
+                                <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                                <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-label">Всего студентов</div>
+                    <div class="stat-value pending" id="statStudents">0</div>
+                </div>
+
+                <div class="stat-card stagger-item" style="animation-delay:.29s">
+                    <div class="stat-header">
+                        <div class="stat-icon violet">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-label">Учебных групп</div>
+                    <div class="stat-value pending" id="statGroups">0</div>
+                </div>
+
+                <div class="stat-card stagger-item" style="animation-delay:.36s">
+                    <div class="stat-header">
+                        <div class="stat-icon amber">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            </svg>
+                        </div>
+                    </div>
+                    <div class="stat-label">Новых сообщений</div>
+                    <div class="stat-value pending" id="statMessages">0</div>
+                </div>
+            </section>
+
+            <div id="statParents" style="display:none">0</div>
+
+            <section class="progress-card stagger-item" style="animation-delay:.43s">
+                <div class="progress-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 20h18"/>
+                        <path d="M6 20V10"/>
+                        <path d="M12 20V4"/>
+                        <path d="M18 20v-7"/>
+                    </svg>
+                </div>
+                <div class="progress-body">
+                    <div class="progress-title">Активность системы</div>
+                    <div class="progress-track">
+                        <div class="progress-bar" id="activityBar"></div>
+                    </div>
+                </div>
+                <div class="progress-percent" id="activityPercent">0%</div>
+            </section>
+
+
+            <div class="section-header stagger-item" style="animation-delay:.5s">
+                <div>
+                    <div class="section-title">Быстрые действия</div>
+                    <div class="section-subtitle">Выберите необходимый раздел</div>
+                </div>
+            </div>
+
+            <section class="menu">
+
+                <button class="menu-button attendance stagger-item" style="animation-delay:.57s" onclick="openAttendance()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"/>
+                            <rect x="5" y="6" width="14" height="15" rx="2.5"/>
+                            <path d="m9 13.2 2.3 2.3L15.5 11"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Отметить посещаемость</span>
+                        <span class="button-description">
+                            Отметьте присутствующих и отсутствующих студентов на занятиях.
+                        </span>
+                    </span>
+                    <span class="shortcut">1</span>
+                </button>
+
+                <button class="menu-button history stagger-item" style="animation-delay:.63s" onclick="openHistory()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 20V11"/>
+                            <path d="M10.5 20V4"/>
+                            <path d="M17 20v-8"/>
+                            <path d="M3 20h18"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Посещаемость</span>
+                        <span class="button-description">
+                            Просматривайте статистику посещаемости по дням и учебным неделям.
+                        </span>
+                    </span>
+                    <span class="shortcut">2</span>
+                </button>
+
+                <button class="menu-button students stagger-item" style="animation-delay:.69s" onclick="openStudents()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                            <circle cx="11.5" cy="7.2" r="3"/>
+                            <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                            <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Студенты</span>
+                        <span class="button-description">
+                            Добавляйте, просматривайте и управляйте списком студентов.
+                        </span>
+                    </span>
+                    <span class="shortcut">3</span>
+                </button>
+
+                <button class="menu-button groups stagger-item" style="animation-delay:.75s" onclick="openGroups()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Группы</span>
+                        <span class="button-description">
+                            Управляйте учебными группами, курсами и специальностями.
+                        </span>
+                    </span>
+                    <span class="shortcut">4</span>
+                </button>
+
+                <button class="menu-button settings stagger-item" style="animation-delay:.81s" onclick="openSettings()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3.3"/>
+                            <path d="M12 2.5v3.2"/><path d="M12 18.3v3.2"/>
+                            <path d="M4.5 4.5l2.3 2.3"/><path d="M17.2 17.2l2.3 2.3"/>
+                            <path d="M2.5 12h3.2"/><path d="M18.3 12h3.2"/>
+                            <path d="M4.5 19.5l2.3-2.3"/><path d="M17.2 6.8l2.3-2.3"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Настройки</span>
+                        <span class="button-description">
+                            Настройте расписание, семестры и учебные периоды.
+                        </span>
+                    </span>
+                    <span class="shortcut">5</span>
+                </button>
+
+                <button class="menu-button parents stagger-item" style="animation-delay:.87s" onclick="openParents()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="8" cy="7" r="3"/>
+                            <circle cx="17" cy="8" r="2.5"/>
+                            <path d="M2 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+                            <path d="M15 20v-1a4 4 0 0 1 4-4h1a3 3 0 0 1 3 3v2"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Родители</span>
+                        <span class="button-description">
+                            Список родителей, привязка к студентам и контактные данные.
+                        </span>
+                    </span>
+                    <span class="shortcut">7</span>
+                </button>
+
+                <button class="menu-button messages stagger-item" style="animation-delay:.93s" onclick="openMessages()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            <path d="M8.5 11.5h.01"/>
+                            <path d="M12.5 11.5h.01"/>
+                            <path d="M16.5 11.5h.01"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Сообщения</span>
+                        <span class="button-description">
+                            Внутренние сообщения, уведомления и обращения от кураторов.
+                        </span>
+                    </span>
+                    <span class="shortcut">6</span>
+                </button>
+
+            </section>
+
+
+            <footer class="stagger-item" style="animation-delay:.99s">
+                <div class="footer-line"></div>
+                <div>© 2026 Система посещаемости</div>
+                <div style="margin-top:5px">Админ-панель • Полный доступ</div>
+            </footer>
+
+        </main>
+
+    </div>
+
+</div>
+
+
+<!-- КОНТЕЙНЕР УВЕДОМЛЕНИЙ -->
+<div class="notif-container" id="notifContainer"></div>
+
+<!-- МОДАЛКА ТАЙМАУТА -->
+<div class="idle-modal-overlay" id="idleModal">
+    <div class="idle-modal">
+        <div class="idle-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+            </svg>
+        </div>
+        <div class="idle-title">Сессия скоро истечёт</div>
+        <div class="idle-text">Вы давно не проявляли активность. Система автоматически выйдет через:</div>
+        <div class="idle-timer" id="idleTimer">02:00</div>
+        <div class="idle-actions">
+            <button class="idle-btn ghost" onclick="logout()">Выйти</button>
+            <button class="idle-btn primary" onclick="stayLoggedIn()">Остаться в системе</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+
+<script>
+
+/* =========================================================
+   ТЕМА (светлая / тёмная)
+========================================================= */
+
+(function initTheme() {
+    const saved = localStorage.getItem("theme");
+    if (saved === "dark" || (!saved && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+        document.documentElement.setAttribute("data-theme", "dark");
     }
-    return html;
-  }).join('');
+})();
 
-  tb.innerHTML = rowsHtml;
-  renderPagination('parentsPagination', total, pagination.parents, p => {
-    pagination.parents = p;
-    renderParents();
-  });
-}
-
-function toggleParent(id) {
-  if (expandedParents.has(id)) expandedParents.delete(id);
-  else expandedParents.add(id);
-  renderParents();
-}
-function onParentsSearch() {
-  filters.parents = $('parentsSearch').value;
-  pagination.parents = 1;
-  renderParents();
+function toggleTheme() {
+    const current = document.documentElement.getAttribute("data-theme");
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
 }
 
 
-/* ===================== СВЯЗИ ===================== */
-function renderLinks() {
-  const tb = $('linksTable');
-  const search = norm(filters.links);
+/* =========================================================
+   НАВИГАЦИЯ
+========================================================= */
 
-  let list = links.filter(l => {
-    if (!search) return true;
-    const parent = parentMap.get(l.parentId);
-    const student = studentMap.get(l.studentId);
-    return norm(parent?.name).includes(search)
-        || norm(student?.fullName).includes(search)
-        || norm(student?.name).includes(search);
-  });
+function openAttendance()  { window.location.href = "attendance.html"; }
+function openHistory()     { window.location.href = "history.html"; }
+function openStudents()    { window.location.href = "students.html"; }
+function openGroups()      { window.location.href = "groups.html"; }
+function openParents()     { window.location.href = "parents.html"; }
+function openSettings()    { window.location.href = "settings.html"; }
+function openPermissions() { window.location.href = "permissions.html"; }
+function openUsers()       { window.location.href = "users.html"; }
+function openMessages()    { window.location.href = "messages.html"; }
+function openMyButtons()   { window.location.href = "mybuttons.html"; }
+function openSecurity()    { window.location.href = "security.html"; }
 
-  list.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-
-  $('linksStats').textContent = `· найдено: ${list.length}`;
-
-  const total = list.length;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (pagination.links > pages) pagination.links = pages;
-  const start = (pagination.links - 1) * PAGE_SIZE;
-  const pageItems = list.slice(start, start + PAGE_SIZE);
-
-  if (!total) {
-    tb.innerHTML = `<tr><td colspan="5" class="empty">${links.length ? 'Ничего не найдено' : 'Нет связей. Нажмите «+ Привязать студента»'}</td></tr>`;
-    renderPagination('linksPagination', 0, 1, () => {});
-    return;
-  }
-
-  tb.innerHTML = pageItems.map((l, i) => {
-    const parent = parentMap.get(l.parentId);
-    const student = studentMap.get(l.studentId);
-    const groupName = student ? (groups[student.groupId] || student.groupId || '—') : '—';
-    return `
-      <tr>
-        <td>${start + i + 1}</td>
-        <td>${esc(parent?.name || '— (удалён)')}</td>
-        <td><strong>${esc(student?.fullName || student?.name || '— (удалён)')}</strong></td>
-        <td class="hide-mobile"><span class="badge badge-green">${esc(groupName)}</span></td>
-        <td>
-          <button class="btn-icon" title="Отвязать" onclick="removeLink('${l.id}')">🗑</button>
-        </td>
-      </tr>
-    `;
-  }).join('');
-
-  renderPagination('linksPagination', total, pagination.links, p => {
-    pagination.links = p;
-    renderLinks();
-  });
-}
-function onLinksSearch() {
-  filters.links = $('linksSearch').value;
-  pagination.links = 1;
-  renderLinks();
+function openShortcuts() {
+    showToast("Клавиши: 1–6 — быстрые действия, 7 — Родители, 8 — Разрешения, 9 — Пользователи");
 }
 
 
-/* ===================== СТУДЕНТЫ → РОДИТЕЛИ ===================== */
-function renderStudents() {
-  const tb = $('studentsTable');
-  const search = norm(filters.students);
+/* =========================================================
+   МОБИЛЬНЫЙ САЙДБАР
+========================================================= */
 
-  let list = students.filter(s => {
-    if (!search) return true;
-    const gr = groups[s.groupId] || '';
-    return norm(s.fullName).includes(search)
-        || norm(s.name).includes(search)
-        || norm(gr).includes(search);
-  });
-  list.sort((a, b) => norm(a.fullName || a.name).localeCompare(norm(b.fullName || b.name), 'ru'));
-
-  $('studentsStats').textContent = `· найдено: ${list.length}`;
-
-  const total = list.length;
-  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  if (pagination.students > pages) pagination.students = pages;
-  const start = (pagination.students - 1) * PAGE_SIZE;
-  const pageItems = list.slice(start, start + PAGE_SIZE);
-
-  if (!total) {
-    tb.innerHTML = `<tr><td colspan="4" class="empty">${students.length ? 'Ничего не найдено' : 'Нет студентов'}</td></tr>`;
-    renderPagination('studentsPagination', 0, 1, () => {});
-    return;
-  }
-
-  tb.innerHTML = pageItems.map((s, i) => {
-    const parentList = getParentsOfStudent(s.id);
-    const gr = groups[s.groupId] || s.groupId || '—';
-    const parentsHtml = parentList.length
-      ? parentList.map(p => `<span class="child-chip">👤 ${esc(p.name || p.id)}</span>`).join(' ')
-      : `<span class="badge badge-gray">нет родителей</span>`;
-    return `
-      <tr>
-        <td>${start + i + 1}</td>
-        <td><strong>${esc(s.fullName || s.name || s.id)}</strong></td>
-        <td class="hide-mobile"><span class="badge badge-green">${esc(gr)}</span></td>
-        <td><div class="children-list" style="padding:0">${parentsHtml}</div></td>
-      </tr>
-    `;
-  }).join('');
-
-  renderPagination('studentsPagination', total, pagination.students, p => {
-    pagination.students = p;
-    renderStudents();
-  });
-}
-function onStudentsSearch() {
-  filters.students = $('studentsSearch').value;
-  pagination.students = 1;
-  renderStudents();
+function openSidebar() {
+    document.getElementById("sidebar").classList.add("open");
+    document.getElementById("sidebarOverlay").classList.add("show");
+    document.body.style.overflow = "hidden";
 }
 
+function closeSidebar() {
+    document.getElementById("sidebar").classList.remove("open");
+    document.getElementById("sidebarOverlay").classList.remove("show");
+    document.body.style.overflow = "";
+}
 
-/* ===================== РОДИТЕЛЬ: модалка ===================== */
-function openParentModal(id = null) {
-  $('parentId').value = '';
-  $('parentName').value = '';
-  $('parentEmail').value = '';
-  $('parentModalTitle').textContent = id ? 'Редактировать родителя' : 'Добавить родителя';
-  showFormError('parentFormError', '');
-  $('parentModal').classList.add('active');
-  setTimeout(() => $('parentName').focus(), 50);
-
-  if (id) {
-    const p = parentMap.get(id);
-    if (p) {
-      $('parentId').value = id;
-      $('parentName').value = p.name || '';
-      $('parentEmail').value = p.email || '';
+window.addEventListener("resize", function() {
+    if (window.innerWidth > 1024) {
+        closeSidebar();
     }
-  }
+});
+
+
+/* =========================================================
+   МЕНЮ ПОЛЬЗОВАТЕЛЯ
+========================================================= */
+
+function toggleUserMenu() {
+    const menu = document.getElementById("userMenu");
+    const button = document.getElementById("userMenuButton");
+    menu.classList.toggle("open");
+    button.classList.toggle("open");
 }
-function editParent(id) { openParentModal(id); }
 
-async function saveParent(e) {
-  e.preventDefault();
-  const id = $('parentId').value;
-  const name = $('parentName').value.trim();
-  const email = $('parentEmail').value.trim().toLowerCase();
-
-  if (!name) return;
-  showFormError('parentFormError', '');
-
-  const dupEmail = email ? parents.find(p => p.id !== id && norm(p.email) === email) : null;
-  if (dupEmail) {
-    showFormError('parentFormError', `Родитель с email «${email}» уже существует: ${dupEmail.name}`);
-    return;
-  }
-  const dupName = !email ? parents.find(p => p.id !== id && norm(p.name) === norm(name)) : null;
-  if (dupName) {
-    showFormError('parentFormError', `Родитель с ФИО «${name}» уже существует. Добавьте email для различения.`);
-    return;
-  }
-
-  showLoading(true);
-  try {
-    if (id) {
-      await firebase.firestore().collection('users').doc(id).update({ name, email });
-      toast('Родитель обновлён', 'success');
-    } else {
-      await firebase.firestore().collection('users').add({
-        name,
-        email,
-        role: 'parent',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      toast('Родитель добавлен', 'success');
+document.addEventListener("click", function(event) {
+    const menu = document.getElementById("userMenu");
+    if (menu && !menu.contains(event.target)) {
+        menu.classList.remove("open");
+        document.getElementById("userMenuButton").classList.remove("open");
     }
-    closeModal('parentModal');
-    await loadAll();
-  } catch (err) {
-    console.error(err);
-    showFormError('parentFormError', 'Ошибка: ' + (err.message || err));
-  } finally {
-    showLoading(false);
-  }
+});
+
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+        document.getElementById("userMenu").classList.remove("open");
+        document.getElementById("userMenuButton").classList.remove("open");
+        closeSidebar();
+    }
+});
+
+
+/* =========================================================
+   ВЫХОД
+========================================================= */
+
+function logout() {
+    firebase.auth().signOut()
+        .then(function() { window.location.href = "index.html"; })
+        .catch(function() { showToast("Не удалось выйти. Попробуйте снова."); });
 }
 
-async function removeParent(id, name) {
-  const children = getChildrenOfParent(id);
-  const msg = children.length
-    ? `Удалить родителя «${name}»?\n\nУ него ${children.length} привязанных детей — связи тоже будут удалены.`
-    : `Удалить родителя «${name}»?`;
-  if (!confirm(msg)) return;
 
-  showLoading(true);
-  try {
-    const batch = firebase.firestore().batch();
-    links.filter(l => l.parentId === id).forEach(l => {
-      batch.delete(firebase.firestore().collection('links').doc(l.id));
+/* =========================================================
+   ЧАСЫ + ПРИВЕТСТВИЕ
+========================================================= */
+
+function updateClock() {
+    const now = new Date();
+    const hours = String(now.getHours()).padStart(2, "0");
+    const minutes = String(now.getMinutes()).padStart(2, "0");
+    const seconds = String(now.getSeconds()).padStart(2, "0");
+
+    document.getElementById("clock").textContent = `${hours}:${minutes}:${seconds}`;
+
+    const dateText = now.toLocaleDateString("ru-RU", {
+        weekday: "long", day: "numeric", month: "long", year: "numeric"
     });
-    batch.delete(firebase.firestore().collection('users').doc(id));
-    await batch.commit();
-    toast('Родитель удалён', 'success');
-    await loadAll();
-  } catch (err) {
-    console.error(err);
-    toast('Ошибка удаления: ' + (err.message || err), 'error');
-  } finally {
-    showLoading(false);
-  }
+    document.getElementById("date").textContent =
+        dateText.charAt(0).toUpperCase() + dateText.slice(1);
+
+    const h = now.getHours();
+    let greet = "Доброй ночи";
+    let emoji = "🌙";
+    if (h >= 5 && h < 12)  { greet = "Доброе утро";  emoji = "☀️"; }
+    else if (h >= 12 && h < 18) { greet = "Добрый день";  emoji = "🌤️"; }
+    else if (h >= 18 && h < 23) { greet = "Добрый вечер"; emoji = "🌆"; }
+
+    const g = document.getElementById("greeting");
+    if (g) g.textContent = `${greet}! ${emoji}`;
 }
 
 
-/* ===================== СВЯЗЬ: модалка ===================== */
-function openLinkModal() {
-  if (!parents.length) { toast('Сначала добавьте родителей', 'error'); return; }
-  if (!students.length) {
-    toast(isCurator ? 'У вас нет студентов в ваших группах' : 'Нет студентов', 'error');
-    return;
-  }
+/* =========================================================
+   TOAST
+========================================================= */
 
-  $('linkParent').innerHTML = '<option value="">— выберите родителя —</option>' +
-    parents.map(p => `<option value="${p.id}">${esc(p.name || p.id)}</option>`).join('');
-
-  $('linkStudent').innerHTML = '<option value="">— выберите студента —</option>' +
-    students.map(s => {
-      const gr = groups[s.groupId] || '';
-      const label = (s.fullName || s.name || s.id) + (gr ? ` (${gr})` : '');
-      return `<option value="${s.id}">${esc(label)}</option>`;
-    }).join('');
-
-  $('linkStudentHint').textContent = isCurator
-    ? `Доступны только студенты ваших групп: ${curatorGroupIds.map(id => groups[id]).join(', ') || '—'}`
-    : '';
-
-  showFormError('linkFormError', '');
-  $('linkModal').classList.add('active');
+let toastTimer;
+function showToast(message) {
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 3000);
 }
 
-async function saveLink(e) {
-  e.preventDefault();
-  const parentId = $('linkParent').value;
-  const studentId = $('linkStudent').value;
-  if (!parentId || !studentId) return;
-  showFormError('linkFormError', '');
 
-  if (isCurator && !students.find(s => s.id === studentId)) {
-    showFormError('linkFormError', 'Вы можете привязывать только студентов своих групп');
-    return;
-  }
-  if (links.some(l => l.parentId === parentId && l.studentId === studentId)) {
-    showFormError('linkFormError', 'Такая связь уже существует');
-    return;
-  }
+/* =========================================================
+   УВЕДОМЛЕНИЯ «ВЖУХ»
+========================================================= */
 
-  showLoading(true);
-  try {
-    // ID связи = parentId_studentId (для Firestore rules exists())
-    const linkId = `${parentId}_${studentId}`;
-    await firebase.firestore().collection('links').doc(linkId).set({
-      parentId,
-      studentId,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-      createdBy: currentUser?.uid || null
+const notifContainer = document.getElementById("notifContainer");
+
+const NOTIF_ICONS = {
+    request: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="10.5" width="14" height="10" rx="2.5"/>
+        <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+        <circle cx="12" cy="15.5" r="1.4"/>
+    </svg>`,
+    message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+        <path d="M8.5 11.5h.01"/><path d="M12.5 11.5h.01"/><path d="M16.5 11.5h.01"/>
+    </svg>`
+};
+
+function showNotification(type, title, text, onClick) {
+    const notif = document.createElement("div");
+    notif.className = `notif notif-${type}`;
+
+    notif.innerHTML = `
+        <div class="notif-icon">${NOTIF_ICONS[type] || NOTIF_ICONS.message}</div>
+        <div class="notif-body">
+            <div class="notif-title">${escapeHtml(title)}</div>
+            <div class="notif-text">${escapeHtml(text)}</div>
+        </div>
+        <div class="notif-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14"/>
+                <path d="m12 5 7 7-7 7"/>
+            </svg>
+        </div>
+        <button class="notif-close" aria-label="Закрыть">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+            </svg>
+        </button>
+    `;
+
+    const closeBtn = notif.querySelector(".notif-close");
+    closeBtn.addEventListener("click", function(e) {
+        e.stopPropagation();
+        removeNotification(notif);
     });
-    toast('Студент привязан', 'success');
-    closeModal('linkModal');
-    await loadAll();
-  } catch (err) {
-    console.error(err);
-    showFormError('linkFormError', 'Ошибка: ' + (err.message || err));
-  } finally {
-    showLoading(false);
-  }
+
+    notif.addEventListener("click", function() {
+        if (typeof onClick === "function") onClick();
+        removeNotification(notif);
+    });
+
+    notifContainer.appendChild(notif);
+
+    // Авто-скрытие через 10 сек
+    const autoHide = setTimeout(() => removeNotification(notif), 10000);
+    notif._autoHide = autoHide;
 }
 
-async function removeLink(id) {
-  if (!confirm('Отвязать студента от родителя?')) return;
-  showLoading(true);
-  try {
-    await firebase.firestore().collection('links').doc(id).delete();
-    toast('Связь удалена', 'success');
-    await loadAll();
-  } catch (err) {
-    console.error(err);
-    toast('Ошибка: ' + (err.message || err), 'error');
-  } finally {
-    showLoading(false);
-  }
+function removeNotification(notif) {
+    if (!notif.parentNode) return;
+    clearTimeout(notif._autoHide);
+    notif.classList.add("removing");
+    setTimeout(() => {
+        if (notif.parentNode) notif.parentNode.removeChild(notif);
+    }, 350);
+}
+
+function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = String(str);
+    return div.innerHTML;
 }
 
 
-/* ===================== CSV ===================== */
-function exportParentsCSV() {
-  if (!parents.length) { toast('Нет данных для экспорта', 'error'); return; }
-  const rows = [['ФИО', 'Email', 'UID', 'Кол-во детей']];
-  parents.forEach(p => {
-    rows.push([p.name || '', p.email || '', p.id, getChildrenOfParent(p.id).length]);
-  });
-  const csv = rows.map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
-  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `parents_${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
-  toast('Экспортировано: ' + parents.length, 'success');
-}
+/* =========================================================
+   БРАУЗЕРНЫЕ УВЕДОМЛЕНИЯ
+========================================================= */
 
-async function importParentsCSV(e) {
-  const file = e.target.files?.[0];
-  if (!file) return;
-  e.target.value = '';
+function tryBrowserNotification(title, body) {
+    if (!("Notification" in window)) return;
+    if (Notification.permission !== "granted") return;
+    if (document.visibilityState === "visible") return; // не дублируем, если вкладка открыта
 
-  const text = await file.text();
-  const lines = text.split(/\r?\n/).filter(l => l.trim());
-  if (lines.length < 2) { toast('CSV пустой или без данных', 'error'); return; }
-
-  function parseLine(line) {
-    const out = [];
-    let cur = '', inQ = false;
-    for (let i = 0; i < line.length; i++) {
-      const ch = line[i];
-      if (inQ) {
-        if (ch === '"' && line[i + 1] === '"') { cur += '"'; i++; }
-        else if (ch === '"') inQ = false;
-        else cur += ch;
-      } else {
-        if (ch === '"') inQ = true;
-        else if (ch === ',') { out.push(cur); cur = ''; }
-        else cur += ch;
-      }
+    try {
+        new Notification(title, {
+            body: body,
+            icon: "icon-192.png",
+            badge: "icon-192.png"
+        });
+    } catch (e) {
+        console.warn("Browser notification failed:", e);
     }
-    out.push(cur);
-    return out.map(s => s.trim());
-  }
+}
 
-  const header = parseLine(lines[0]).map(h => h.toLowerCase());
-  const nameIdx = header.findIndex(h => h.includes('фио') || h.includes('name') || h.includes('имя'));
-  const emailIdx = header.findIndex(h => h.includes('email') || h.includes('почт'));
-
-  if (nameIdx === -1) { toast('В CSV нет колонки «ФИО»/«Name»', 'error'); return; }
-
-  const items = [];
-  for (let i = 1; i < lines.length; i++) {
-    const cols = parseLine(lines[i]);
-    const name = cols[nameIdx]?.trim();
-    const email = emailIdx >= 0 ? (cols[emailIdx]?.trim().toLowerCase() || '') : '';
-    if (!name) continue;
-    items.push({ name, email });
-  }
-  if (!items.length) { toast('Нет валидных строк', 'error'); return; }
-
-  if (!confirm(`Найдено ${items.length} записей для импорта.\n\nДубликаты будут пропущены.\n\nИмпортировать?`)) return;
-
-  showLoading(true);
-  let added = 0, skipped = 0;
-  try {
-    for (const item of items) {
-      const dupEmail = item.email && parents.some(p => norm(p.email) === item.email);
-      const dupName = !item.email && parents.some(p => norm(p.name) === norm(item.name));
-      if (dupEmail || dupName) { skipped++; continue; }
-
-      await firebase.firestore().collection('users').add({
-        name: item.name,
-        email: item.email,
-        role: 'parent',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        importedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      parents.push({ id: 'tmp' + Math.random(), name: item.name, email: item.email });
-      added++;
+function requestNotificationPermission() {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "default") {
+        Notification.requestPermission().catch(() => {});
     }
-    toast(`Добавлено: ${added}, пропущено: ${skipped}`, 'success');
-    await loadAll();
-  } catch (err) {
-    console.error(err);
-    toast('Ошибка импорта: ' + (err.message || err), 'error');
-  } finally {
-    showLoading(false);
-  }
 }
 
 
-/* ===================== UI ===================== */
-function closeModal(id) { $(id).classList.remove('active'); }
+/* =========================================================
+   OFFLINE / ONLINE
+========================================================= */
 
-function tryCloseModal(id) {
-  const modal = $(id);
-  if (id === 'parentModal') {
-    const p = parentMap.get($('parentId').value);
-    const changed =
-      $('parentName').value.trim() !== (p?.name || '') ||
-      $('parentEmail').value.trim() !== (p?.email || '');
-    if (changed && !confirm('Изменения не сохранены. Закрыть?')) return;
-  }
-  modal.classList.remove('active');
-}
+const offlineBanner = document.getElementById("offlineBanner");
 
-document.querySelectorAll('.modal-overlay').forEach(ov => {
-  ov.addEventListener('click', e => {
-    if (e.target === ov) tryCloseModal(ov.id);
-  });
-});
-
-document.querySelectorAll('nav.tabs button').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
-    btn.classList.add('active');
-    $('tab-' + btn.dataset.tab).classList.add('active');
-  });
-});
-
-
-/* ===================== АВТОРИЗАЦИЯ ===================== */
-firebase.auth().onAuthStateChanged(async function(user) {
-  if (!user) {
-    // Не редиректим — просто показываем состояние
-    $('userInfo').textContent = 'Не авторизован';
-    $('roleBadge').textContent = '—';
-    showLoading(false);
-    toast('Вы не авторизованы. Войдите в систему.', 'error');
-    return;
-  }
-
-  try {
-    const doc = await firebase.firestore().collection('users').doc(user.uid).get();
-    if (doc.exists) {
-      currentUser = { uid: user.uid, id: doc.id, ...doc.data() };
+function updateOnlineStatus() {
+    if (!navigator.onLine) {
+        offlineBanner.classList.add("show");
     } else {
-      currentUser = { uid: user.uid, email: user.email, role: 'parent' };
+        offlineBanner.classList.remove("show");
+    }
+}
+
+window.addEventListener("online", updateOnlineStatus);
+window.addEventListener("offline", updateOnlineStatus);
+
+// первичная проверка после загрузки
+window.addEventListener("load", updateOnlineStatus);
+
+
+/* =========================================================
+   ГОРЯЧИЕ КЛАВИШИ
+========================================================= */
+
+document.addEventListener("keydown", function(event) {
+    const tag = document.activeElement ? document.activeElement.tagName : "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+    if (event.key === "1") openAttendance();
+    if (event.key === "2") openHistory();
+    if (event.key === "3") openStudents();
+    if (event.key === "4") openGroups();
+    if (event.key === "5") openSettings();
+    if (event.key === "6") openMessages();
+    if (event.key === "7") openParents();
+    if (event.key === "8") openPermissions();
+    if (event.key === "9") openUsers();
+});
+
+
+/* =========================================================
+   ЗАГРУЗКА
+========================================================= */
+
+window.addEventListener("load", function() {
+    updateClock();
+    setInterval(updateClock, 1000);
+});
+
+
+/* =========================================================
+   СЧЁТЧИКИ И УВЕДОМЛЕНИЯ
+========================================================= */
+
+let registrationRequestsUnsubscribe = null;
+let messagesUnsubscribe = null;
+let currentUserUid = null;
+
+// для отслеживания изменений
+let prevRequestsCount = null;
+let prevMessagesCount = null;
+let isInitialLoad = true;
+
+
+/* ---------- ЗАЯВКИ НА РЕГИСТРАЦИЮ ---------- */
+
+function startRegistrationRequestsListener() {
+    const badge = document.getElementById("permissionsBadge");
+    const nav = document.getElementById("permissionsNav");
+    if (!badge || !nav) return;
+
+    if (typeof registrationRequestsUnsubscribe === "function") {
+        registrationRequestsUnsubscribe();
+        registrationRequestsUnsubscribe = null;
     }
 
-    isAdmin = currentUser.role === 'admin';
-    isCurator = currentUser.role === 'curator';
+    registrationRequestsUnsubscribe = firebase.firestore()
+        .collection("users").where("reg", "==", 0)
+        .onSnapshot(
+            function(snapshot) {
+                const count = snapshot.size;
 
-    $('userInfo').textContent = currentUser.name || currentUser.email || user.uid;
-    const badge = $('roleBadge');
-    badge.textContent = isAdmin ? 'Админ' : isCurator ? 'Куратор' : (currentUser.role || 'Гость');
-    badge.className = 'role-badge ' + (isAdmin ? 'admin' : isCurator ? 'curator' : '');
+                // Уведомление при росте счётчика (не при первичной загрузке)
+                if (!isInitialLoad && prevRequestsCount !== null && count > prevRequestsCount) {
+                    const diff = count - prevRequestsCount;
+                    const text = diff === 1
+                        ? "Поступила новая заявка на регистрацию"
+                        : `Поступило новых заявок: ${diff}`;
 
-    await loadAll();
-  } catch (err) {
-    console.error(err);
-    toast('Ошибка инициализации: ' + (err.message || err), 'error');
-    showLoading(false);
-  }
+                    showNotification(
+                        "request",
+                        "Запрос регистрации",
+                        text,
+                        () => openPermissions()
+                    );
+                    tryBrowserNotification("Запрос регистрации", text);
+                }
+
+                prevRequestsCount = count;
+
+                updateBadge(badge, nav, count, "has-requests");
+
+                const statEl = document.getElementById("statRequests");
+                if (statEl) {
+                    statEl.classList.remove("pending");
+                    statEl.textContent = count;
+                }
+                updateActivity();
+            },
+            function(error) {
+                console.error("Ошибка счётчика заявок:", error);
+                updateBadge(badge, nav, 0, "has-requests");
+            }
+        );
+}
+
+
+/* ---------- СООБЩЕНИЯ ---------- */
+
+function startMessagesListener() {
+    const sidebarBadge = document.getElementById("messagesBadge");
+    const sidebarNav = document.getElementById("messagesNav");
+    const topbarDot = document.getElementById("topbarUnreadDot");
+    const dropdownBadge = document.getElementById("dropdownMessagesBadge");
+
+    if (!currentUserUid) return;
+
+    if (typeof messagesUnsubscribe === "function") {
+        messagesUnsubscribe();
+        messagesUnsubscribe = null;
+    }
+
+    messagesUnsubscribe = firebase.firestore()
+        .collection("chats")
+        .where("participants", "array-contains", currentUserUid)
+        .onSnapshot(
+            function(snapshot) {
+                let count = 0;
+
+                snapshot.forEach(function(doc) {
+                    const d = doc.data() || {};
+                    const unread = d.unread || {};
+                    const n = unread[currentUserUid];
+                    if (typeof n === "number" && n > 0) {
+                        count += n;
+                    }
+                });
+
+                // Уведомление при росте
+                if (!isInitialLoad && prevMessagesCount !== null && count > prevMessagesCount) {
+                    const diff = count - prevMessagesCount;
+                    const text = diff === 1
+                        ? "У вас новое сообщение"
+                        : `Новых сообщений: ${diff}`;
+
+                    showNotification(
+                        "message",
+                        "Новое сообщение",
+                        text,
+                        () => openMessages()
+                    );
+                    tryBrowserNotification("Новое сообщение", text);
+                }
+
+                prevMessagesCount = count;
+
+                if (sidebarBadge) {
+                    if (count > 0) {
+                        sidebarBadge.textContent = count > 99 ? "99+" : String(count);
+                        sidebarBadge.style.display = "flex";
+                    } else {
+                        sidebarBadge.textContent = "0";
+                        sidebarBadge.style.display = "none";
+                    }
+                }
+                if (sidebarNav) {
+                    sidebarNav.classList.toggle("has-unread", count > 0);
+                }
+
+                if (topbarDot) {
+                    topbarDot.classList.toggle("show", count > 0);
+                }
+
+                if (dropdownBadge) {
+                    dropdownBadge.textContent = count > 99 ? "99+" : String(count);
+                    dropdownBadge.classList.toggle("show", count > 0);
+                }
+
+                const statEl = document.getElementById("statMessages");
+                if (statEl) {
+                    statEl.classList.remove("pending");
+                    statEl.textContent = count;
+                }
+
+                updateActivity();
+            },
+            function(error) {
+                console.warn("Счётчик сообщений недоступен:", error.code || error.message);
+
+                if (sidebarBadge) { sidebarBadge.textContent = "0"; sidebarBadge.style.display = "none"; }
+                if (sidebarNav)   sidebarNav.classList.remove("has-unread");
+                if (topbarDot)    topbarDot.classList.remove("show");
+                if (dropdownBadge){ dropdownBadge.textContent = "0"; dropdownBadge.classList.remove("show"); }
+
+                const statEl = document.getElementById("statMessages");
+                if (statEl) {
+                    statEl.classList.remove("pending");
+                    statEl.textContent = "0";
+                }
+            }
+        );
+}
+
+
+/* ---------- Универсальный апдейт бейджа ---------- */
+
+function updateBadge(badge, nav, count, activeClass) {
+    if (count > 0) {
+        badge.textContent = count > 99 ? "99+" : String(count);
+        badge.style.display = "flex";
+        if (nav) nav.classList.add(activeClass);
+    } else {
+        badge.textContent = "0";
+        badge.style.display = "none";
+        if (nav) nav.classList.remove(activeClass);
+    }
+}
+
+
+/* =========================================================
+   СТАТИСТИКА
+========================================================= */
+
+function loadCollectionCount(collectionName, elementId) {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+
+    firebase.firestore()
+        .collection(collectionName)
+        .onSnapshot(
+            function(snapshot) {
+                el.classList.remove("pending");
+                el.textContent = snapshot.size;
+                updateActivity();
+            },
+            function(error) {
+                console.warn(`Коллекция "${collectionName}" недоступна:`, error.code || error.message);
+                el.classList.remove("pending");
+                el.textContent = "0";
+            }
+        );
+}
+
+
+/* =========================================================
+   ПРОГРЕСС АКТИВНОСТИ
+========================================================= */
+
+function updateActivity() {
+    const getNum = id => {
+        const el = document.getElementById(id);
+        if (!el) return 0;
+        const n = parseInt(el.textContent, 10);
+        return isNaN(n) ? 0 : n;
+    };
+
+    const students = getNum("statStudents");
+    const groups   = getNum("statGroups");
+    const requests = getNum("statRequests");
+    const messages = getNum("statMessages");
+    const parents  = getNum("statParents");
+
+    const total = students + groups * 3 + requests * 2 + messages + parents * 2;
+    const max = 150;
+    const percent = Math.min(Math.round((total / max) * 100), 100);
+
+    const bar = document.getElementById("activityBar");
+    const label = document.getElementById("activityPercent");
+    if (bar) bar.style.width = percent + "%";
+    if (label) label.textContent = percent + "%";
+}
+
+
+/* =========================================================
+   ТАЙМАУТ НЕАКТИВНОСТИ
+========================================================= */
+
+const IDLE_TIMEOUT = 30 * 60 * 1000;    // 30 минут
+const WARNING_TIME = 2 * 60 * 1000;     // за 2 минуты до выхода
+
+let idleTimer = null;
+let warningTimer = null;
+let warningCountdown = null;
+let idleWarningShown = false;
+let isLoggedOut = false;
+
+function resetIdleTimer() {
+    if (isLoggedOut) return;
+
+    clearTimeout(idleTimer);
+    clearTimeout(warningTimer);
+    clearInterval(warningCountdown);
+
+    // если модалка была открыта — закрываем
+    if (idleWarningShown) {
+        hideIdleWarning();
+    }
+
+    warningTimer = setTimeout(showIdleWarning, IDLE_TIMEOUT - WARNING_TIME);
+    idleTimer = setTimeout(idleLogout, IDLE_TIMEOUT);
+}
+
+function showIdleWarning() {
+    idleWarningShown = true;
+    const modal = document.getElementById("idleModal");
+    const timerEl = document.getElementById("idleTimer");
+    modal.classList.add("show");
+
+    let secondsLeft = Math.round(WARNING_TIME / 1000);
+    timerEl.textContent = formatTime(secondsLeft);
+
+    warningCountdown = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+            clearInterval(warningCountdown);
+            timerEl.textContent = "00:00";
+            return;
+        }
+        timerEl.textContent = formatTime(secondsLeft);
+    }, 1000);
+}
+
+function hideIdleWarning() {
+    idleWarningShown = false;
+    clearInterval(warningCountdown);
+    document.getElementById("idleModal").classList.remove("show");
+}
+
+function formatTime(totalSeconds) {
+    const m = String(Math.floor(totalSeconds / 60)).padStart(2, "0");
+    const s = String(totalSeconds % 60).padStart(2, "0");
+    return `${m}:${s}`;
+}
+
+function stayLoggedIn() {
+    hideIdleWarning();
+    resetIdleTimer();
+}
+
+function idleLogout() {
+    isLoggedOut = true;
+    hideIdleWarning();
+    clearTimeout(idleTimer);
+    clearTimeout(warningTimer);
+    clearInterval(warningCountdown);
+
+    firebase.auth().signOut().then(function() {
+        window.location.href = "index.html?reason=idle";
+    }).catch(function() {
+        window.location.href = "index.html?reason=idle";
+    });
+}
+
+// Слушаем активность пользователя
+["mousedown", "keydown", "touchstart", "scroll", "mousemove", "wheel"].forEach(function(event) {
+    document.addEventListener(event, function() {
+        if (!idleWarningShown) {
+            resetIdleTimer();
+        }
+    }, { passive: true });
 });
 
 
-/* ===================== ЭКСПОРТ В ГЛОБАЛ ===================== */
-Object.assign(window, {
-  openParentModal, editParent, removeParent, saveParent,
-  openLinkModal, saveLink, removeLink,
-  closeModal, tryCloseModal, toggleParent,
-  onParentsSearch, onLinksSearch, onStudentsSearch,
-  exportParentsCSV, importParentsCSV
+/* =========================================================
+   АВТОРИЗАЦИЯ
+========================================================= */
+
+firebase.auth().onAuthStateChanged(function(user) {
+    if (!user) {
+        window.location.href = "index.html";
+        return;
+    }
+
+    currentUserUid = user.uid;
+
+    // Запрос разрешения на браузерные уведомления
+    requestNotificationPermission();
+
+    firebase.firestore().collection("users").doc(user.uid).get()
+        .then(function(doc) {
+            const fio = (doc.exists && doc.data().name) ? doc.data().name : "Пользователь";
+
+            document.getElementById("userFio").textContent = fio;
+            document.getElementById("dropdownName").textContent = fio;
+
+            const parts = fio.trim().split(/\s+/);
+            let initials = "?";
+            if (parts.length >= 2) {
+                initials = (parts[0][0] + parts[1][0]).toUpperCase();
+            } else if (parts.length === 1 && parts[0].length > 0) {
+                initials = parts[0][0].toUpperCase();
+            }
+            document.getElementById("userAvatar").textContent = initials;
+
+            startRegistrationRequestsListener();
+            startMessagesListener();
+            loadCollectionCount("students", "statStudents");
+            loadCollectionCount("groups", "statGroups");
+            loadCollectionCount("parents", "statParents");
+        })
+        .catch(function(error) {
+            console.error("Ошибка загрузки профиля:", error);
+            document.getElementById("userFio").textContent = "Пользователь";
+
+            startRegistrationRequestsListener();
+            startMessagesListener();
+            loadCollectionCount("students", "statStudents");
+            loadCollectionCount("groups", "statGroups");
+            loadCollectionCount("parents", "statParents");
+        })
+        .finally(function() {
+            document.body.classList.remove("auth-pending");
+            document.getElementById("pageLoader").classList.add("hidden");
+
+            // Первая загрузка данных завершена — включаем уведомления
+            // Задержка, чтобы onSnapshot успел прочитать исходные значения
+            setTimeout(function() {
+                isInitialLoad = false;
+            }, 2500);
+
+            // Запускаем таймер неактивности
+            resetIdleTimer();
+        });
 });
+
+
+/* =========================================================
+   PWA — Service Worker
+========================================================= */
+
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", function() {
+        navigator.serviceWorker.register("service-worker.js")
+            .then(function(reg) {
+                console.log("Service Worker зарегистрирован:", reg.scope);
+            })
+            .catch(function(err) {
+                console.warn("Service Worker не зарегистрирован:", err.message);
+            });
+    });
+}
+
+
+/* =========================================================
+   ОБРАБОТКА ОШИБОК
+========================================================= */
+
+window.addEventListener("error", function(event) {
+    console.error("Ошибка на странице:", event.error || event.message);
+    showToast("Произошла ошибка на странице");
+});
+
+
+/* =========================================================
+   ОЧИСТКА
+========================================================= */
+
+window.addEventListener("beforeunload", function() {
+    if (typeof registrationRequestsUnsubscribe === "function") {
+        registrationRequestsUnsubscribe();
+        registrationRequestsUnsubscribe = null;
+    }
+    if (typeof messagesUnsubscribe === "function") {
+        messagesUnsubscribe();
+        messagesUnsubscribe = null;
+    }
+    clearTimeout(idleTimer);
+    clearTimeout(warningTimer);
+    clearInterval(warningCountdown);
+});
+
 </script>
 
 </body>

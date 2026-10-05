@@ -1,1 +1,48 @@
 
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() { return request.auth != null; }
+    function myProfile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    function isAdmin() {
+      return isSignedIn() && myProfile().role == 'admin';
+    }
+    function isCurator() {
+      return isSignedIn() && myProfile().role == 'curator';
+    }
+    // Куратор — только свои группы
+    function curatorOwnsGroup(groupId) {
+      return isCurator() 
+        && get(/databases/$(database)/documents/groups/$(groupId)).data.curatorId == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn() && request.auth.uid == userId;
+      allow update, delete: if isAdmin() || (isSignedIn() && request.auth.uid == userId);
+    }
+
+    match /students/{studentId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || isCurator();
+    }
+
+    match /groups/{groupId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() || curatorOwnsGroup(groupId);
+    }
+
+    match /links/{linkId} {
+      allow read: if isSignedIn();
+      // Куратор может создавать связь только для студента своей группы
+      allow create: if isAdmin() 
+        || (isCurator() && curatorOwnsGroup(
+              get(/databases/$(database)/documents/students/$(request.resource.data.studentId)).data.groupId
+            ));
+      allow delete: if isAdmin() || isCurator();
+    }
+  }
+}

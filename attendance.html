@@ -2,42 +2,77 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0">
 <meta name="theme-color" content="#2563eb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="description" content="Система управления посещаемостью студентов">
 <title>Отметка посещаемости</title>
 <style>
-* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* =========================================================
+   RESET + TOKENS
+========================================================= */
+*, *::before, *::after {
+    margin: 0; padding: 0; box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
 :root {
     --blue: #2563eb; --blue-dark: #1d4ed8; --blue-light: #eff6ff;
     --green: #22c55e; --green-dark: #15803d; --green-light: #f0fdf4;
     --orange: #f59e0b; --orange-light: #fffbeb;
     --purple: #8b5cf6; --purple-light: #f5f3ff;
     --red: #ef4444; --red-dark: #dc2626; --red-light: #fef2f2;
-    --text: #111827; --text-secondary: #6b7280; --text-light: #9ca3af;
-    --background: #f4f7fb; --border: #e5e7eb;
-    --shadow: 0 10px 30px rgba(15,23,42,0.07);
-    --shadow-hover: 0 18px 45px rgba(15,23,42,0.13);
-    --radius: 20px;
+    --text: #111827; --text-2: #6b7280; --text-3: #9ca3af;
+    --bg: #f4f7fb; --border: #e5e7eb;
+    --shadow-sm: 0 2px 8px rgba(15,23,42,.05);
+    --shadow: 0 10px 30px rgba(15,23,42,.07);
+    --shadow-lg: 0 18px 45px rgba(15,23,42,.13);
+    --shadow-xl: 0 24px 60px rgba(15,23,42,.18);
+    --r-sm: 12px; --r-md: 16px; --r-lg: 22px; --r-xl: 28px;
+    --ease: cubic-bezier(.22,1,.36,1);
+    --ease-bounce: cubic-bezier(.34,1.56,.64,1);
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
+
 html { scroll-behavior: smooth; }
+
 body {
     min-height: 100vh;
+    min-height: 100dvh;
     font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
     color: var(--text);
     background:
-        radial-gradient(circle at 10% 10%, rgba(37,99,235,0.10), transparent 30%),
-        radial-gradient(circle at 90% 20%, rgba(139,92,246,0.08), transparent 28%),
+        radial-gradient(circle at 10% 10%, rgba(37,99,235,.10), transparent 30%),
+        radial-gradient(circle at 90% 20%, rgba(139,92,246,.08), transparent 28%),
         linear-gradient(135deg, #f8fafc, #eef3f9);
     overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
 }
-button, input, textarea, select { font-family: inherit; font-size: 16px; }
-button { cursor: pointer; }
 
-/* ===== loader ===== */
+button, input, textarea, select { font-family: inherit; font-size: 16px; }
+button { cursor: pointer; border: 0; background: transparent; color: inherit; }
+input, textarea { -webkit-appearance: none; appearance: none; }
+
+:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+    border-radius: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+    }
+}
+
+/* =========================================================
+   LOADER
+========================================================= */
 .page-loader {
     position: fixed; inset: 0; z-index: 5000;
     display: flex; align-items: center; justify-content: center;
@@ -52,7 +87,7 @@ button { cursor: pointer; }
     box-shadow: 0 20px 40px rgba(37,99,235,.25);
     animation: loaderFloat 1.6s infinite ease-in-out;
 }
-.loader-text { text-align: center; font-size: 13px; font-weight: 700; color: var(--text-secondary); }
+.loader-text { text-align: center; font-size: 13px; font-weight: 700; color: var(--text-2); }
 .loader-progress { width: 160px; height: 4px; margin: 16px auto 0; overflow: hidden; border-radius: 999px; background: #e5e7eb; }
 .loader-progress::after {
     content: ""; display: block; width: 45%; height: 100%; border-radius: inherit;
@@ -66,25 +101,29 @@ button { cursor: pointer; }
 .orb-1 { width: 280px; height: 280px; top: -100px; left: -100px; background: rgba(37,99,235,.08); }
 .orb-2 { width: 350px; height: 350px; right: -150px; bottom: -120px; background: rgba(139,92,246,.07); }
 
-/* ===== header ===== */
+/* =========================================================
+   HEADER
+========================================================= */
 header {
     position: sticky; top: 0; z-index: 100;
-    width: 100%; height: calc(60px + var(--safe-top));
-    padding: var(--safe-top) 12px 0;
+    width: 100%;
+    padding: calc(var(--safe-top) + 8px) 12px 8px;
     display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
     color: #fff;
     background: linear-gradient(135deg, #2563eb, #1d4ed8);
     box-shadow: 0 5px 25px rgba(37,99,235,.22);
 }
 .header-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .back-button {
-    width: 40px; height: 40px; flex-shrink: 0;
+    width: 42px; height: 42px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    border: none; border-radius: 12px; color: #fff;
-    background: rgba(255,255,255,.16); font-size: 20px;
-    transition: .2s;
+    border-radius: 12px; color: #fff;
+    background: rgba(255,255,255,.16);
+    font-size: 20px; font-weight: 700;
+    transition: transform .15s var(--ease-bounce), background .15s;
 }
-.back-button:active { transform: scale(.93); background: rgba(255,255,255,.26); }
+.back-button:active { transform: scale(.9); background: rgba(255,255,255,.26); }
 .header-brand { display: flex; flex-direction: column; min-width: 0; }
 .header-title { font-size: 16px; font-weight: 800; letter-spacing: -.3px; white-space: nowrap; }
 .header-subtitle { margin-top: 1px; font-size: 10.5px; opacity: .78; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -99,19 +138,26 @@ header {
 .online-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 0 3px rgba(74,222,128,.18); animation: pulse 2s infinite; }
 @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: .7; } }
 
-/* ===== container ===== */
-.container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 12px 10px calc(90px + var(--safe-bottom)); }
+/* =========================================================
+   CONTAINER
+========================================================= */
+.container {
+    width: 100%; max-width: 1200px; margin: 0 auto;
+    padding: 12px 12px calc(140px + var(--safe-bottom));
+}
 
-/* ===== hero ===== */
+/* =========================================================
+   HERO
+========================================================= */
 .page-hero {
     position: relative; padding: 18px 16px; margin-bottom: 12px;
-    border-radius: 22px; color: #fff; overflow: hidden;
+    border-radius: var(--r-lg); color: #fff; overflow: hidden;
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 55%, #4338ca 100%);
     box-shadow: 0 18px 50px rgba(37,99,235,.22);
-    animation: heroIn .6s cubic-bezier(.2,.8,.3,1);
+    animation: heroIn .6s var(--ease);
 }
 @keyframes heroIn { from { opacity: 0; transform: translateY(-14px) scale(.98); } to { opacity: 1; transform: none; } }
-.page-hero::before, .page-hero::after { content:""; position:absolute; border-radius:50%; background:rgba(255,255,255,.07); }
+.page-hero::before, .page-hero::after { content:""; position:absolute; border-radius:50%; background:rgba(255,255,255,.07); pointer-events: none; }
 .page-hero::before { width: 220px; height: 220px; right: -70px; top: -110px; }
 .page-hero::after { width: 140px; height: 140px; right: 120px; bottom: -80px; }
 .hero-row { position: relative; z-index: 2; display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -119,12 +165,12 @@ header {
 .hero-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; margin-bottom: 10px; border-radius: 999px; font-size: 11px; font-weight: 700; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.14); }
 .page-hero h1 { font-size: 20px; line-height: 1.15; margin-bottom: 6px; letter-spacing: -.6px; }
 .page-hero p { font-size: 12.5px; line-height: 1.5; color: rgba(255,255,255,.82); }
-.hero-clock { flex-shrink: 0; padding: 12px 14px; text-align: center; border-radius: 16px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(15px); }
+.hero-clock { flex-shrink: 0; padding: 12px 14px; text-align: center; border-radius: var(--r-md); background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(15px); }
 .hero-clock-time { font-size: 20px; font-weight: 800; letter-spacing: .5px; font-variant-numeric: tabular-nums; }
 .hero-clock-date { margin-top: 3px; font-size: 10px; color: rgba(255,255,255,.75); }
 .hero-toggle {
     position: absolute; top: 10px; right: 12px; z-index: 3;
-    width: 30px; height: 30px; border: none; border-radius: 10px;
+    width: 32px; height: 32px; border-radius: 10px;
     background: rgba(255,255,255,.18); color: #fff; font-size: 14px;
     display: none; align-items: center; justify-content: center;
     transition: .3s;
@@ -132,24 +178,26 @@ header {
 .page-hero.collapsed p { display: none; }
 .page-hero.collapsed h1 { margin-bottom: 0; }
 
-/* ===== top panel ===== */
+/* =========================================================
+   TOP PANEL (группа, дата, день, период)
+========================================================= */
 .top-panel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
 .info-card {
     padding: 14px 12px;
     background: rgba(255,255,255,.94);
     border: 1px solid rgba(255,255,255,.8);
-    border-radius: 16px; box-shadow: var(--shadow);
+    border-radius: var(--r-md); box-shadow: var(--shadow);
     backdrop-filter: blur(12px);
-    transition: .2s;
-    animation: cardIn .5s cubic-bezier(.2,.8,.3,1) backwards;
+    transition: transform .2s var(--ease), box-shadow .2s;
+    animation: cardIn .5s var(--ease) backwards;
 }
 .info-card:nth-child(1){animation-delay:.05s}
 .info-card:nth-child(2){animation-delay:.1s}
 .info-card:nth-child(3){animation-delay:.15s}
 .info-card:nth-child(4){animation-delay:.2s}
 @keyframes cardIn { from { opacity:0; transform: translateY(14px); } to { opacity:1; transform:none; } }
-.info-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-hover); }
-.info-label { color: var(--text-secondary); font-size: 11px; margin-bottom: 7px; display: flex; align-items: center; gap: 4px; }
+.info-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+.info-label { color: var(--text-2); font-size: 11px; margin-bottom: 7px; display: flex; align-items: center; gap: 4px; }
 .info-value { font-size: 14px; font-weight: 800; }
 .date-input, select.date-input {
     width: 100%; padding: 9px 10px;
@@ -160,9 +208,7 @@ header {
 }
 .date-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
 .date-input:disabled { opacity: .75; background: #eef1f5; }
-.group-hint { margin-top: 6px; font-size: 10.5px; color: var(--text-light); line-height: 1.35; }
-
-/* ===== date nav ===== */
+.group-hint { margin-top: 6px; font-size: 10.5px; color: var(--text-3); line-height: 1.35; }
 .date-nav { display: flex; gap: 6px; margin-top: 6px; }
 .date-nav button {
     flex: 1; min-width: 0;
@@ -173,11 +219,13 @@ header {
 .date-nav button:active { transform: scale(.96); background: #eef1f5; }
 .date-nav button.primary { background: var(--blue-light); color: var(--blue-dark); border-color: #bfdbfe; }
 
-/* ===== quick panel ===== */
+/* =========================================================
+   QUICK MODE PANEL (для десктопа)
+========================================================= */
 .quick-panel {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
     padding: 12px 14px; margin-bottom: 12px;
-    border: 1px solid #dbe4f0; border-radius: 16px;
+    border: 1px solid #dbe4f0; border-radius: var(--r-md);
     background: rgba(255,255,255,.94);
     box-shadow: var(--shadow);
     transition: .25s;
@@ -185,10 +233,10 @@ header {
 .quick-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; min-width: 0; }
 .quick-icon { width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 12px; background: var(--blue-light); color: var(--blue); font-size: 18px; flex-shrink: 0; }
 .quick-title { font-size: 13.5px; font-weight: 800; }
-.quick-description { margin-top: 2px; color: var(--text-secondary); font-size: 11px; }
+.quick-description { margin-top: 2px; color: var(--text-2); font-size: 11px; }
 .quick-actions { display: flex; gap: 6px; flex-wrap: wrap; }
 .quick-button {
-    border: none; border-radius: 11px;
+    border-radius: 11px;
     padding: 10px 14px; font-size: 12.5px; font-weight: 800;
     transition: .15s; white-space: nowrap;
     min-height: 40px;
@@ -204,20 +252,22 @@ header {
 .quick-panel.active[data-mode="present"] .quick-mode-label { background: var(--green-light); color: var(--green-dark); }
 .quick-panel.active[data-mode="absent"] .quick-mode-label { background: var(--red-light); color: var(--red-dark); }
 
-/* ===== выбор пары ===== */
+/* =========================================================
+   LESSON PICKER — КРУПНЫЕ ЧИПЫ
+========================================================= */
 .lesson-picker {
     margin-bottom: 12px;
     padding: 14px;
     background: rgba(255,255,255,.96);
     border: 1px solid var(--border);
-    border-radius: 18px;
+    border-radius: var(--r-lg);
     box-shadow: var(--shadow);
-    animation: cardIn .5s cubic-bezier(.2,.8,.3,1) backwards;
+    animation: cardIn .5s var(--ease) backwards;
     animation-delay: .22s;
 }
 .lesson-picker-head {
     display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; margin-bottom: 10px; flex-wrap: wrap;
+    gap: 10px; margin-bottom: 12px; flex-wrap: wrap;
 }
 .lesson-picker-title {
     font-size: 13px; font-weight: 800; color: var(--text);
@@ -229,75 +279,99 @@ header {
     box-shadow: 0 0 0 4px rgba(37,99,235,.1);
     animation: pulse 2s infinite;
 }
-.lesson-picker-hint { font-size: 10.5px; color: var(--text-light); }
+.lesson-picker-hint { font-size: 10.5px; color: var(--text-3); }
 
-.lesson-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.lesson-chips { display: flex; gap: 10px; flex-wrap: wrap; }
 .lesson-chip {
     position: relative;
-    min-width: 52px; height: 52px;
-    padding: 0 12px;
-    display: flex; align-items: center; justify-content: center;
-    border: 2px solid #e5e7eb; border-radius: 15px;
+    min-width: 64px; height: 64px;
+    padding: 0 14px;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px;
+    border: 2px solid #e5e7eb; border-radius: 18px;
     background: #f8fafc; color: #374151;
-    font-size: 17px; font-weight: 900;
-    transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .18s, border-color .18s, color .18s, box-shadow .18s;
+    font-size: 20px; font-weight: 900;
+    transition: transform .18s var(--ease-bounce), background .18s, border-color .18s, color .18s, box-shadow .18s;
     overflow: hidden;
 }
+.lesson-chip .chip-label { font-size: 9px; font-weight: 700; color: #6b7280; letter-spacing: .3px; }
+.lesson-chip.active .chip-label { color: rgba(255,255,255,.9); }
 .lesson-chip::after {
     content: ""; position: absolute; inset: 0;
     background: radial-gradient(circle, rgba(37,99,235,.25), transparent 60%);
     opacity: 0; transition: opacity .3s;
 }
-.lesson-chip:active { transform: scale(.9); }
+.lesson-chip:active { transform: scale(.92); }
 .lesson-chip:hover { transform: translateY(-2px); border-color: #bfdbfe; }
 .lesson-chip.active {
     background: linear-gradient(135deg, #2563eb, #4f46e5);
     border-color: #2563eb; color: #fff;
     box-shadow: 0 10px 25px rgba(37,99,235,.35);
     transform: translateY(-3px) scale(1.04);
-    animation: chipPop .4s cubic-bezier(.34,1.56,.64,1);
+    animation: chipPop .4s var(--ease-bounce);
 }
 .lesson-chip.active::after { opacity: 1; }
 @keyframes chipPop { 0% { transform: scale(.85); } 60% { transform: scale(1.1); } 100% { transform: translateY(-3px) scale(1.04); } }
 .lesson-chip .chip-pulse {
-    position: absolute; top: 6px; right: 6px;
+    position: absolute; top: 8px; right: 8px;
     width: 7px; height: 7px; border-radius: 50%;
     background: #fff; opacity: .9;
     animation: pulse 1.6s infinite;
 }
+.lesson-chip .chip-progress {
+    position: absolute; bottom: 4px; left: 50%;
+    transform: translateX(-50%);
+    width: 60%; height: 3px;
+    background: rgba(255,255,255,.25);
+    border-radius: 999px; overflow: hidden;
+}
+.lesson-chip .chip-progress::after {
+    content: ""; display: block;
+    width: var(--p, 0%); height: 100%;
+    background: #4ade80;
+    border-radius: inherit;
+    transition: width .4s var(--ease);
+}
 
-.discipline-banner {
-    margin-top: 12px;
-    padding: 14px 16px;
-    border-radius: 15px;
-    background: linear-gradient(135deg, #eff6ff, #f5f3ff);
-    border: 1px solid #dbeafe;
+/* =========================================================
+   PROGRESS BAR
+========================================================= */
+.progress-card {
     display: flex; align-items: center; gap: 12px;
-    opacity: 0; transform: translateY(-8px);
-    transition: opacity .35s ease, transform .35s cubic-bezier(.2,.8,.3,1);
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    background: rgba(255,255,255,.96);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    box-shadow: var(--shadow);
 }
-.discipline-banner.show { opacity: 1; transform: none; }
-.discipline-icon {
-    width: 42px; height: 42px; flex-shrink: 0;
+.progress-icon {
+    width: 40px; height: 40px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    border-radius: 13px; font-size: 20px;
-    background: #fff;
-    box-shadow: 0 6px 18px rgba(37,99,235,.12);
-    animation: bookBob 3s infinite ease-in-out;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #eff6ff, #eef2ff);
+    font-size: 18px;
 }
-@keyframes bookBob { 0%,100%{transform:translateY(0) rotate(0)} 50%{transform:translateY(-3px) rotate(-4deg)} }
-.discipline-text { min-width: 0; }
-.discipline-label { font-size: 10.5px; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: .5px; }
-.discipline-name {
-    font-size: 15px; font-weight: 800; color: var(--text);
-    margin-top: 2px; line-height: 1.25;
-    word-break: break-word;
-    animation: textSlide .4s cubic-bezier(.2,.8,.3,1);
+.progress-body { flex: 1; min-width: 0; }
+.progress-label {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; font-weight: 700; margin-bottom: 6px;
 }
-@keyframes textSlide { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
-.discipline-time { font-size: 11.5px; color: var(--text-secondary); margin-top: 3px; }
+.progress-label span:last-child { color: var(--blue); font-weight: 800; }
+.progress-track {
+    width: 100%; height: 8px; border-radius: 999px;
+    background: #e5e7eb; overflow: hidden;
+}
+.progress-fill {
+    height: 100%; width: 0%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #2563eb, #8b5cf6);
+    transition: width .5s var(--ease);
+}
 
-/* ===== toolbar ===== */
+/* =========================================================
+   TOOLBAR
+========================================================= */
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 .toolbar-left { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .toolbar-title { font-size: 17px; font-weight: 800; letter-spacing: -.3px; }
@@ -308,29 +382,197 @@ header {
     border: 1px solid var(--border); border-radius: 11px;
     background: rgba(255,255,255,.94); color: #374151;
     font-weight: 700; font-size: 12.5px;
-    box-shadow: 0 5px 18px rgba(15,23,42,.05);
+    box-shadow: var(--shadow-sm);
     transition: .15s;
 }
 .refresh-button:active { transform: scale(.96); }
 .refresh-button:hover { border-color: var(--blue); color: var(--blue); }
 .refresh-button.spin span { display:inline-block; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===== search ===== */
-.search-wrap { position: relative; margin-bottom: 10px; }
+/* =========================================================
+   SEARCH
+========================================================= */
+.search-wrap { position: relative; margin-bottom: 12px; }
 .search-wrap input {
-    width: 100%; padding: 11px 14px 11px 38px;
-    border: 1px solid var(--border); border-radius: 13px;
-    background: rgba(255,255,255,.94); font-size: 14px; outline: none;
-    box-shadow: var(--shadow); transition: .15s;
+    width: 100%; padding: 14px 44px 14px 44px;
+    border: 1px solid var(--border); border-radius: 14px;
+    background: rgba(255,255,255,.96); font-size: 15px; outline: none;
+    box-shadow: var(--shadow-sm); transition: .15s;
 }
 .search-wrap input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
-.search-wrap::before { content: "🔍"; position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 14px; opacity: .6; pointer-events: none; }
+.search-icon {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    width: 20px; height: 20px; color: var(--text-3);
+    pointer-events: none;
+}
+.search-clear {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    width: 32px; height: 32px; border-radius: 10px;
+    display: none; align-items: center; justify-content: center;
+    color: var(--text-3); font-size: 18px;
+    transition: .15s;
+}
+.search-clear.show { display: flex; }
+.search-clear:active { background: #f3f4f6; transform: translateY(-50%) scale(.9); }
 
-/* ===== table ===== */
+/* =========================================================
+   🎯 MOBILE STUDENTS LIST — СВАЙП-КАРТОЧКИ
+========================================================= */
+.students-list {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.student-swipe {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--r-md);
+    background: #fff;
+    box-shadow: var(--shadow-sm);
+    animation: rowIn .4s var(--ease) backwards;
+    touch-action: pan-y;
+}
+@keyframes rowIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:none; } }
+
+/* Фон под карточкой (показывается при свайпе) */
+.student-swipe-bg {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+    font-size: 26px;
+    font-weight: 900;
+    color: #fff;
+    pointer-events: none;
+    border-radius: inherit;
+}
+.student-swipe-bg::before,
+.student-swipe-bg::after {
+    content: ""; position: absolute; top: 0; bottom: 0; width: 100px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px; font-weight: 900; color: #fff;
+}
+.student-swipe-bg::before {
+    content: "✓"; left: 0;
+    background: linear-gradient(90deg, var(--green), var(--green-dark));
+    justify-content: flex-start; padding-left: 22px;
+}
+.student-swipe-bg::after {
+    content: "✕"; right: 0;
+    background: linear-gradient(270deg, var(--red), var(--red-dark));
+    justify-content: flex-end; padding-right: 22px;
+}
+
+/* Сама карточка */
+.student-card {
+    position: relative;
+    z-index: 2;
+    display: flex; align-items: center; gap: 12px;
+    padding: 14px 14px 14px 18px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    will-change: transform;
+    transition: transform .25s var(--ease), border-color .2s, box-shadow .2s;
+    touch-action: pan-y;
+}
+.student-card.swiping { transition: none; }
+.student-card.present { border-color: #86efac; background: linear-gradient(90deg, var(--green-light) 0%, #fff 40%); }
+.student-card.absent  { border-color: #fca5a5; background: linear-gradient(90deg, var(--red-light) 0%, #fff 40%); }
+
+/* Цветная полоса слева */
+.student-card::before {
+    content: ""; position: absolute;
+    left: 0; top: 10px; bottom: 10px; width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: #e5e7eb;
+    transition: background .25s;
+}
+.student-card.present::before { background: var(--green); }
+.student-card.absent::before  { background: var(--red); }
+
+.student-index {
+    width: 36px; height: 36px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 12px;
+    background: var(--blue-light); color: var(--blue);
+    font-size: 13px; font-weight: 800;
+    transition: .2s;
+}
+.student-card.present .student-index { background: var(--green-light); color: var(--green-dark); }
+.student-card.absent  .student-index { background: var(--red-light); color: var(--red-dark); }
+
+.student-info { flex: 1; min-width: 0; }
+.student-name {
+    font-size: 14.5px; font-weight: 700; color: var(--text);
+    line-height: 1.25; word-break: break-word;
+}
+.student-status-line {
+    margin-top: 3px;
+    font-size: 11.5px;
+    color: var(--text-2);
+    display: flex; align-items: center; gap: 5px;
+}
+.student-status-badge {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 3px 8px; border-radius: 999px;
+    font-size: 10.5px; font-weight: 800;
+    background: #f3f4f6; color: var(--text-3);
+}
+.student-status-badge.present { background: var(--green-light); color: var(--green-dark); }
+.student-status-badge.absent  { background: var(--red-light);   color: var(--red-dark); }
+.student-status-badge.uv      { background: var(--green-light); color: var(--green-dark); }
+.student-status-badge.bolezn  { background: var(--purple-light); color: var(--purple); }
+
+/* Крупная кнопка действия справа */
+.student-action {
+    width: 52px; height: 52px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 15px;
+    font-size: 24px; font-weight: 900;
+    background: #f3f4f6; color: var(--text-3);
+    transition: transform .18s var(--ease-bounce), background .2s, color .2s, box-shadow .2s;
+}
+.student-action:active { transform: scale(.88); }
+.student-card.present .student-action {
+    background: linear-gradient(135deg, var(--green), var(--green-dark));
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(34,197,94,.35);
+}
+.student-card.absent .student-action {
+    background: linear-gradient(135deg, var(--red), var(--red-dark));
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(239,68,68,.35);
+}
+
+/* Подсказка при первом заходе */
+.swipe-hint {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; margin-bottom: 12px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #eff6ff, #f5f3ff);
+    border: 1px dashed #bfdbfe;
+    font-size: 12px; color: var(--blue-dark);
+    font-weight: 600;
+    animation: cardIn .5s var(--ease);
+}
+.swipe-hint .hint-arrow {
+    font-size: 16px;
+    animation: arrowSlide 1.5s infinite ease-in-out;
+}
+@keyframes arrowSlide {
+    0%, 100% { transform: translateX(0); opacity: .6; }
+    50% { transform: translateX(4px); opacity: 1; }
+}
+
+/* =========================================================
+   DESKTOP TABLE
+========================================================= */
 .table-wrapper {
     width: 100%; overflow: auto;
     background: rgba(255,255,255,.96);
-    border: 1px solid var(--border); border-radius: var(--radius);
+    border: 1px solid var(--border); border-radius: var(--r-lg);
     box-shadow: var(--shadow);
     -webkit-overflow-scrolling: touch;
 }
@@ -355,7 +597,6 @@ tr:hover td { background: #fbfdff; }
 tr:hover td:first-child { background: #fbfdff; }
 .student-name { font-weight: 700; color: var(--text); font-size: 13px; }
 .student-number { display: inline-flex; width: 26px; height: 26px; align-items: center; justify-content: center; margin-right: 7px; border-radius: 9px; background: var(--blue-light); color: var(--blue); font-size: 10.5px; font-weight: 800; }
-
 .attendance-cell { padding: 4px; cursor: pointer; user-select: none; transition: .12s; }
 .attendance-cell:hover { background: #f8fbff; }
 .status {
@@ -371,123 +612,26 @@ tr:hover td:first-child { background: #fbfdff; }
 .status-present { background: var(--green-light); color: var(--green-dark); }
 .status-absent { background: var(--red-light); color: var(--red-dark); }
 .attendance-cell:active .status { transform: scale(.9); }
-.quick-panel.active .attendance-cell { cursor: crosshair; }
-.quick-panel.active .attendance-cell:hover .status { transform: scale(1.06); }
 
-/* ===== список студентов с кнопками ===== */
-.students-list {
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-    padding: 10px;
-}
-.student-row {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 12px;
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    box-shadow: 0 4px 14px rgba(15,23,42,.05);
-    transition: .2s;
-    animation: rowIn .4s cubic-bezier(.2,.8,.3,1) backwards;
-}
-@keyframes rowIn { from { opacity:0; transform: translateX(-12px); } to { opacity:1; transform:none; } }
-.student-row:hover { border-color: #bfdbfe; box-shadow: 0 10px 26px rgba(37,99,235,.10); }
-.student-row .s-index {
-    width: 32px; height: 32px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 10px; background: var(--blue-light); color: var(--blue);
-    font-size: 12px; font-weight: 800;
-}
-.student-row .s-name {
-    flex: 1; min-width: 0;
-    font-size: 14px; font-weight: 700; color: var(--text);
-    word-break: break-word;
-}
-.student-row .s-actions { display: flex; gap: 6px; flex-shrink: 0; }
-.s-btn {
-    width: 42px; height: 42px;
-    display: flex; align-items: center; justify-content: center;
-    border: 2px solid transparent; border-radius: 13px;
-    font-size: 18px; font-weight: 900;
-    transition: transform .18s cubic-bezier(.34,1.56,.64,1), background .18s, border-color .18s, box-shadow .18s;
-}
-.s-btn:active { transform: scale(.85); }
-.s-btn.present { background: var(--green-light); color: var(--green-dark); }
-.s-btn.present:hover { border-color: #86efac; transform: translateY(-2px); box-shadow: 0 8px 18px rgba(34,197,94,.2); }
-.s-btn.present.active { background: var(--green); color: #fff; border-color: var(--green-dark); box-shadow: 0 8px 20px rgba(34,197,94,.35); }
-.s-btn.absent { background: var(--red-light); color: var(--red-dark); }
-.s-btn.absent:hover { border-color: #fca5a5; transform: translateY(-2px); box-shadow: 0 8px 18px rgba(239,68,68,.2); }
-.s-btn.absent.active { background: var(--red); color: #fff; border-color: var(--red-dark); box-shadow: 0 8px 20px rgba(239,68,68,.35); }
-.s-btn.more { background: #f3f4f6; color: #4b5563; font-size: 20px; }
-.s-btn.more:hover { background: #e5e7eb; transform: translateY(-2px); }
-
-.s-status {
-    padding: 5px 10px; border-radius: 999px;
-    font-size: 11px; font-weight: 800;
-    white-space: nowrap;
-    animation: statusIn .35s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes statusIn { from { opacity: 0; transform: scale(.5); } to { opacity: 1; transform: scale(1); } }
-.s-status.present { background: var(--green-light); color: var(--green-dark); }
-.s-status.absent { background: var(--red-light); color: var(--red-dark); }
-.s-status.empty { background: #f3f4f6; color: #9ca3af; }
-
-/* ===== cards (mobile, оставлены) ===== */
-.cards { display: none; padding: 10px; gap: 10px; flex-direction: column; }
-.card {
-    background: #fff; border: 1px solid var(--border);
-    border-radius: 16px; overflow: hidden;
-    box-shadow: 0 4px 14px rgba(15,23,42,.05);
-    animation: rowIn .4s cubic-bezier(.2,.8,.3,1) backwards;
-}
-.card-head {
-    display: flex; align-items: center; gap: 10px;
-    padding: 12px 14px;
-    background: #f8fafc;
-    border-bottom: 1px solid var(--border);
-}
-.card-index {
-    width: 30px; height: 30px; flex-shrink: 0;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 10px; background: var(--blue-light); color: var(--blue);
-    font-size: 12px; font-weight: 800;
-}
-.card-name { font-size: 14.5px; font-weight: 800; color: var(--text); min-width: 0; word-break: break-word; }
-.card-body { padding: 10px; display: grid; grid-template-columns: repeat(auto-fill, minmax(72px, 1fr)); gap: 8px; }
-.card-lesson {
-    position: relative;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 3px; padding: 8px 4px;
-    border: 1px solid #e5e7eb; border-radius: 13px;
-    background: #fbfcfe;
-    min-height: 74px;
-    cursor: pointer; transition: .12s;
-}
-.card-lesson:active { transform: scale(.96); background: #f1f5fb; }
-.card-lesson-num { font-size: 10.5px; font-weight: 800; color: #4b5563; }
-.card-lesson-disc { font-size: 9px; color: var(--text-light); text-align: center; line-height: 1.15; max-width: 100%; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.card-lesson .status { min-width: 36px; height: 32px; font-size: 13px; border-radius: 10px; }
-.card-lesson .status-absent { font-size: 10.5px; }
-.card-lesson.present { border-color: #bbf7d0; background: var(--green-light); }
-.card-lesson.absent { border-color: #fecaca; background: var(--red-light); }
-
-/* ===== loading / empty ===== */
-.loading { padding: 50px 20px; text-align: center; color: var(--text-secondary); font-size: 14px; }
+/* =========================================================
+   EMPTY / LOADING
+========================================================= */
+.loading { padding: 50px 20px; text-align: center; color: var(--text-2); font-size: 14px; }
 .spinner { width: 36px; height: 36px; margin: 0 auto 14px; border-radius: 50%; border: 4px solid #e5e7eb; border-top-color: var(--blue); animation: spin .8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.empty { padding: 50px 20px; text-align: center; color: var(--text-secondary); animation: cardIn .4s ease; }
+.empty { padding: 50px 20px; text-align: center; color: var(--text-2); animation: cardIn .4s ease; }
 .empty-icon { font-size: 44px; margin-bottom: 12px; display: inline-block; animation: floaty 3s infinite ease-in-out; }
 @keyframes floaty { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
 .empty-title { font-size: 17px; font-weight: 800; color: #374151; margin-bottom: 6px; }
 
-/* ===== overlays ===== */
+/* =========================================================
+   OVERLAYS — BOTTOM SHEETS
+========================================================= */
 .menu-overlay, .modal-overlay {
     position: fixed; inset: 0; z-index: 500;
     display: none; align-items: flex-end; justify-content: center;
-    padding: 0;
     background: rgba(15,23,42,.5);
     backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
 }
 .menu-overlay.active, .modal-overlay.active { display: flex; animation: fadeIn .2s ease; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -498,8 +642,9 @@ tr:hover td:first-child { background: #fbfdff; }
     border-radius: 24px 24px 0 0;
     padding: 8px 18px calc(18px + var(--safe-bottom));
     box-shadow: 0 -10px 40px rgba(15,23,42,.22);
-    animation: sheetUp .35s cubic-bezier(.2,.8,.3,1);
+    animation: sheetUp .35s var(--ease);
     max-height: 90vh; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 .choice-menu::before, .modal::before, .lesson-info-modal::before {
     content: ""; display: block; width: 40px; height: 4px;
@@ -508,51 +653,68 @@ tr:hover td:first-child { background: #fbfdff; }
 @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
 
 .menu-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
-.menu-student { color: var(--text-secondary); font-size: 13px; margin-bottom: 14px; }
+.menu-student { color: var(--text-2); font-size: 13px; margin-bottom: 14px; }
+
+/* Крупные кнопки выбора */
 .choice-button {
-    width: 100%; display: flex; align-items: center; gap: 12px;
-    padding: 12px; margin-bottom: 8px;
-    border: 1px solid var(--border); border-radius: 14px;
+    width: 100%; display: flex; align-items: center; gap: 14px;
+    padding: 16px 14px; margin-bottom: 10px;
+    border: 1px solid var(--border); border-radius: 16px;
     background: #fff; text-align: left;
-    transition: .12s;
-    min-height: 60px;
+    transition: transform .15s var(--ease-bounce), background .15s, border-color .15s;
+    min-height: 72px;
 }
-.choice-button:active { transform: scale(.98); background: #f8fbff; }
-.choice-button:hover { border-color: #bfdbfe; }
-.choice-icon { width: 42px; height: 42px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 19px; font-weight: 900; }
-.present-icon { background: var(--green-light); color: var(--green-dark); }
-.absent-icon { background: var(--red-light); color: var(--red-dark); }
+.choice-button:active { transform: scale(.97); background: #f8fbff; border-color: #bfdbfe; }
+.choice-button.present {
+    background: linear-gradient(135deg, var(--green-light), #fff);
+    border-color: #86efac;
+}
+.choice-button.absent {
+    background: linear-gradient(135deg, var(--red-light), #fff);
+    border-color: #fca5a5;
+}
+.choice-icon {
+    width: 52px; height: 52px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 15px; font-size: 26px; font-weight: 900;
+}
+.present-icon { background: var(--green); color: #fff; box-shadow: 0 8px 20px rgba(34,197,94,.3); }
+.absent-icon  { background: var(--red);   color: #fff; box-shadow: 0 8px 20px rgba(239,68,68,.3); }
 .whole-day-icon { background: var(--orange-light); color: #d97706; }
 .delete-icon { background: #f3f4f6; color: #4b5563; }
-.choice-text strong { display: block; font-size: 14px; margin-bottom: 2px; }
-.choice-text span { color: var(--text-secondary); font-size: 11.5px; }
+.choice-text strong { display: block; font-size: 15px; margin-bottom: 3px; font-weight: 800; }
+.choice-text span { color: var(--text-2); font-size: 12px; }
 .cancel-button {
-    width: 100%; margin-top: 4px; padding: 13px;
-    border: none; border-radius: 13px;
+    width: 100%; margin-top: 6px; padding: 16px;
+    border-radius: 14px;
     background: #f3f4f6; color: #4b5563;
-    font-weight: 800; font-size: 14px;
+    font-weight: 800; font-size: 15px;
+    min-height: 52px;
 }
 .cancel-button:active { background: #e5e7eb; }
 
+/* =========================================================
+   MODAL (причина, инфо)
+========================================================= */
 .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; gap: 10px; }
 .modal-title { font-size: 18px; font-weight: 800; }
-.close-button { width: 34px; height: 34px; flex-shrink: 0; border: none; border-radius: 10px; background: #f3f4f6; font-size: 16px; }
+.close-button { width: 38px; height: 38px; flex-shrink: 0; border-radius: 12px; background: #f3f4f6; font-size: 16px; font-weight: 700; }
 .close-button:active { background: #e5e7eb; transform: scale(.94); }
 .modal-info { padding: 12px; margin-bottom: 14px; border-radius: 13px; background: #f8fafc; }
 .modal-info-row { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 12.5px; }
-.modal-info-row span:first-child { color: var(--text-secondary); }
+.modal-info-row span:first-child { color: var(--text-2); }
 .modal-info-row span:last-child { font-weight: 700; text-align: right; min-width: 0; word-break: break-word; }
 .absent-type-label, .reason-label { display: block; margin-bottom: 7px; font-size: 13px; font-weight: 700; }
-.absent-type-group { display: flex; gap: 7px; margin-bottom: 14px; }
+.absent-type-group { display: flex; gap: 8px; margin-bottom: 14px; }
 .absent-type-btn {
-    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
-    padding: 10px 4px; min-height: 60px;
-    border: 2px solid #e5e7eb; border-radius: 13px;
-    background: #f8fafc; transition: .12s;
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    padding: 14px 4px; min-height: 76px;
+    border: 2px solid #e5e7eb; border-radius: 14px;
+    background: #f8fafc; transition: .15s;
 }
-.absent-type-btn:active { transform: scale(.96); }
-.absent-type-btn strong { font-size: 15px; font-weight: 800; }
-.absent-type-btn span { font-size: 10px; font-weight: 600; color: var(--text-secondary); text-align: center; }
+.absent-type-btn:active { transform: scale(.95); }
+.absent-type-btn strong { font-size: 17px; font-weight: 800; }
+.absent-type-btn span { font-size: 10.5px; font-weight: 600; color: var(--text-2); text-align: center; }
 .absent-type-btn[data-type="neuv"].active { border-color: var(--red); background: var(--red-light); }
 .absent-type-btn[data-type="neuv"].active strong { color: var(--red-dark); }
 .absent-type-btn[data-type="uv"].active { border-color: var(--green); background: var(--green-light); }
@@ -561,16 +723,15 @@ tr:hover td:first-child { background: #fbfdff; }
 .absent-type-btn[data-type="bolezn"].active strong { color: var(--purple); }
 .reason-input {
     width: 100%; min-height: 84px; resize: vertical;
-    padding: 11px; border: 1px solid #dbe1ea; border-radius: 13px;
-    outline: none; font-size: 14px;
+    padding: 12px; border: 1px solid #dbe1ea; border-radius: 14px;
+    outline: none; font-size: 15px;
     transition: background .35s ease, border-color .15s, box-shadow .15s;
 }
 .reason-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.10); }
 .reason-hint {
-    margin-top: 6px; font-size: 11px; color: var(--text-secondary);
+    margin-top: 6px; font-size: 11.5px; color: var(--text-2);
     display: flex; align-items: center; gap: 5px;
     min-height: 16px;
-    transition: opacity .25s;
 }
 .reason-hint .hint-dot {
     width: 6px; height: 6px; border-radius: 50%;
@@ -578,30 +739,33 @@ tr:hover td:first-child { background: #fbfdff; }
     animation: pulse 1.6s infinite;
 }
 .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
-.modal-actions button { flex: 1; padding: 13px; min-height: 46px; border: none; border-radius: 13px; font-weight: 800; font-size: 14px; }
+.modal-actions button { flex: 1; padding: 14px; min-height: 50px; border-radius: 14px; font-weight: 800; font-size: 14px; }
 .save-button { background: var(--blue); color: #fff; }
 .save-button:active { background: var(--blue-dark); }
 .modal-cancel { background: #f3f4f6; color: #4b5563; }
 
-.lesson-big-icon { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; border-radius: 16px; background: linear-gradient(135deg, #eff6ff, #eef2ff); font-size: 24px; }
+/* Lesson info */
+.lesson-big-icon { width: 56px; height: 56px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; border-radius: 18px; background: linear-gradient(135deg, #eff6ff, #eef2ff); font-size: 26px; }
 .lesson-info-title { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
-.lesson-info-subtitle { color: var(--text-secondary); font-size: 12.5px; margin-bottom: 16px; }
+.lesson-info-subtitle { color: var(--text-2); font-size: 12.5px; margin-bottom: 16px; }
 .lesson-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .lesson-info-item { padding: 12px; border-radius: 13px; background: #f8fafc; }
-.lesson-info-label { color: var(--text-secondary); font-size: 10.5px; margin-bottom: 4px; }
+.lesson-info-label { color: var(--text-2); font-size: 10.5px; margin-bottom: 4px; }
 .lesson-info-value { font-size: 13.5px; font-weight: 800; word-break: break-word; }
-.lesson-close { width: 100%; margin-top: 16px; padding: 13px; border: none; border-radius: 13px; background: #f3f4f6; color: #374151; font-weight: 800; font-size: 14px; }
+.lesson-close { width: 100%; margin-top: 16px; padding: 14px; border-radius: 14px; background: #f3f4f6; color: #374151; font-weight: 800; font-size: 14px; }
 
-/* ===== toast ===== */
+/* =========================================================
+   TOAST
+========================================================= */
 .toast {
     position: fixed; left: 50%; bottom: calc(24px + var(--safe-bottom)); z-index: 1000;
     transform: translate(-50%, 120px);
-    padding: 12px 18px; border-radius: 14px;
+    padding: 14px 20px; border-radius: 14px;
     color: #fff; background: #111827;
-    font-size: 13px; font-weight: 700;
+    font-size: 13.5px; font-weight: 700;
     box-shadow: 0 10px 30px rgba(0,0,0,.18);
     opacity: 0; pointer-events: none;
-    transition: .35s cubic-bezier(.2,.8,.3,1);
+    transition: .35s var(--ease);
     max-width: calc(100vw - 32px); text-align: center;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
@@ -609,93 +773,126 @@ tr:hover td:first-child { background: #fbfdff; }
 .toast.error { background: #dc2626; }
 .toast.warning { background: #d97706; }
 
-/* ===== floating bar ===== */
-.floating-bar {
-    position: fixed; left: 12px; right: 12px; bottom: calc(12px + var(--safe-bottom));
+/* =========================================================
+   STICKY ACTION BAR (mobile)
+========================================================= */
+.mobile-action-bar {
+    position: fixed; left: 0; right: 0;
+    bottom: 0;
     z-index: 400;
-    display: none; gap: 8px;
-    padding: 10px;
-    background: rgba(17,24,39,.94);
-    border-radius: 18px;
-    box-shadow: 0 20px 50px rgba(0,0,0,.3);
-    backdrop-filter: blur(14px);
-    animation: slideUp .35s cubic-bezier(.2,.8,.3,1);
+    display: none;
+    padding: 10px 12px calc(10px + var(--safe-bottom));
+    background: rgba(255,255,255,.98);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -8px 30px rgba(15,23,42,.08);
+    animation: slideUp .3s var(--ease);
 }
-.floating-bar.active { display: flex; }
-@keyframes slideUp { from { transform: translateY(120%); } to { transform: translateY(0); } }
-.floating-bar button {
-    flex: 1; min-height: 46px; padding: 8px;
-    border: none; border-radius: 12px;
-    font-size: 12.5px; font-weight: 800;
-    display: flex; align-items: center; justify-content: center; gap: 4px;
-    transition: .12s;
+.mobile-action-bar.show { display: flex; gap: 8px; }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.mobile-action-bar button {
+    flex: 1; min-height: 52px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    border-radius: 14px;
+    font-size: 14px; font-weight: 800;
+    transition: transform .15s var(--ease-bounce);
 }
-.floating-bar button:active { transform: scale(.95); }
-.fb-present { background: var(--green); color: #fff; }
-.fb-absent { background: var(--red); color: #fff; }
-.fb-cancel { background: rgba(255,255,255,.14); color: #fff; flex: 0 0 50px !important; }
+.mobile-action-bar button:active { transform: scale(.95); }
+.mab-present { background: linear-gradient(135deg, var(--green), var(--green-dark)); color: #fff; box-shadow: 0 8px 20px rgba(34,197,94,.28); }
+.mab-absent  { background: linear-gradient(135deg, var(--red),   var(--red-dark));   color: #fff; box-shadow: 0 8px 20px rgba(239,68,68,.28); }
+.mab-cancel  { flex: 0 0 52px !important; background: #f3f4f6; color: #4b5563; font-size: 20px; }
 
-/* ===== scroll top ===== */
+/* =========================================================
+   SCROLL TOP
+========================================================= */
 .scroll-top {
-    position: fixed; right: 12px; bottom: calc(84px + var(--safe-bottom));
+    position: fixed; right: 12px; bottom: calc(150px + var(--safe-bottom));
     z-index: 350;
-    width: 42px; height: 42px;
+    width: 44px; height: 44px;
     display: none; align-items: center; justify-content: center;
-    border: none; border-radius: 50%;
+    border-radius: 50%;
     background: #fff; color: #374151;
     box-shadow: 0 8px 25px rgba(15,23,42,.16);
-    font-size: 18px;
-    animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
+    font-size: 18px; font-weight: 700;
+    animation: popIn .3s var(--ease-bounce);
 }
 .scroll-top.show { display: flex; }
 .scroll-top:active { transform: scale(.9); }
 @keyframes popIn { from { transform: scale(.5); opacity:0; } to { transform: scale(1); opacity:1; } }
 
-/* ===== MOBILE ===== */
-@media (max-width: 768px) {
-    .container { padding: 10px 8px calc(100px + var(--safe-bottom)); }
+/* =========================================================
+   DESKTOP ADJUSTMENTS
+========================================================= */
+@media (min-width: 769px) {
+    .students-list { display: none !important; }
+    .mobile-action-bar { display: none !important; }
+    .swipe-hint { display: none; }
+    .scroll-top { bottom: 24px; }
+    .hero-toggle { display: none !important; }
+}
 
-    .page-hero { padding: 14px 14px 16px; border-radius: 18px; }
-    .page-hero h1 { font-size: 17px; }
-    .page-hero p { font-size: 11.5px; }
+/* =========================================================
+   MOBILE (≤768px)
+========================================================= */
+@media (max-width: 768px) {
+    .container { padding: 10px 10px calc(160px + var(--safe-bottom)); }
+
+    .page-hero { padding: 16px 14px 18px; border-radius: 20px; }
+    .page-hero h1 { font-size: 18px; }
+    .page-hero p { font-size: 12px; }
     .hero-clock { display: none; }
     .hero-toggle { display: flex; }
 
     .top-panel { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .info-card { padding: 11px 10px; border-radius: 14px; }
+    .info-card { padding: 12px 11px; border-radius: 14px; }
     .info-label { font-size: 10.5px; margin-bottom: 5px; }
     .info-value { font-size: 13px; }
-    .date-input { font-size: 13.5px; padding: 9px 10px; }
+    .date-input { font-size: 14px; padding: 10px 11px; }
     .group-hint { font-size: 10px; }
 
-    .quick-panel { padding: 11px; border-radius: 14px; flex-direction: column; align-items: stretch; }
-    .quick-actions { justify-content: stretch; }
-    .quick-button { flex: 1; padding: 10px 8px; min-height: 44px; }
-    .quick-description { font-size: 10.5px; }
+    /* Прячем десктопный quick-panel */
+    .quick-panel { display: none; }
 
-    .lesson-picker { padding: 12px; border-radius: 16px; }
-    .lesson-chip { min-width: 46px; height: 46px; font-size: 15px; border-radius: 13px; }
+    /* Чипы пар — крупнее */
+    .lesson-picker { padding: 14px 12px; border-radius: 18px; }
+    .lesson-chips { gap: 8px; }
+    .lesson-chip {
+        min-width: 60px; height: 60px;
+        padding: 0 10px;
+        font-size: 19px;
+        border-radius: 16px;
+    }
+    .lesson-chip .chip-label { font-size: 8.5px; }
 
-    .toolbar-title { font-size: 16px; }
-    .refresh-button { padding: 9px 11px; font-size: 12px; min-height: 42px; }
-
+    /* Таблица скрыта */
     .table-wrapper { display: none; }
-    .cards { display: none; }
+
+    /* Показываем мобильный список */
     .students-list { display: flex; }
-    .student-row { padding: 10px; border-radius: 14px; gap: 8px; }
-    .student-row .s-name { font-size: 13.5px; }
-    .s-btn { width: 40px; height: 40px; font-size: 17px; border-radius: 12px; }
+
+    /* Тулбар компактнее */
+    .toolbar-title { font-size: 16px; }
+    .refresh-button { padding: 10px 12px; font-size: 12.5px; min-height: 42px; }
+
+    /* Прогресс */
+    .progress-card { padding: 11px 12px; }
+    .progress-icon { width: 36px; height: 36px; font-size: 16px; }
+
+    /* Поиск */
+    .search-wrap input { padding: 14px 44px; font-size: 15px; }
 }
 
+/* =========================================================
+   VERY SMALL (≤380px)
+========================================================= */
 @media (max-width: 380px) {
     .top-panel { grid-template-columns: 1fr; }
-    .student-row { flex-wrap: wrap; }
-    .student-row .s-actions { width: 100%; justify-content: flex-end; }
-    .s-btn { width: 38px; height: 38px; font-size: 16px; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    .lesson-chip { min-width: 54px; height: 54px; font-size: 17px; }
+    .student-card { padding: 12px 12px 12px 16px; }
+    .student-action { width: 48px; height: 48px; font-size: 22px; }
+    .student-index { width: 32px; height: 32px; font-size: 12px; }
+    .student-name { font-size: 13.5px; }
 }
 </style>
 </head>
@@ -717,13 +914,13 @@ tr:hover td:first-child { background: #fbfdff; }
         <button class="back-button" onclick="goBack()" aria-label="Назад">←</button>
         <div class="header-brand">
             <div class="header-title">Посещаемость</div>
-            <div class="header-subtitle">Отметка посещаемости</div>
+            <div class="header-subtitle" id="headerSubtitle">Отметка посещаемости</div>
         </div>
     </div>
     <div class="header-right">
         <div class="online-status">
             <span class="online-dot"></span>
-            Работает
+            <span>Онлайн</span>
         </div>
     </div>
 </header>
@@ -734,9 +931,9 @@ tr:hover td:first-child { background: #fbfdff; }
         <button class="hero-toggle" onclick="toggleHero()" aria-label="Свернуть">▾</button>
         <div class="hero-row">
             <div class="hero-content">
-                <div class="hero-badge">✨ Панель администратора</div>
-                <h1>Отметка посещаемости</h1>
-                <p>Выберите дату и отметьте присутствующих или отсутствующих студентов по каждой паре.</p>
+                <div class="hero-badge">✨ Отметка посещаемости</div>
+                <h1>Посещаемость</h1>
+                <p>Выберите пару сверху и отметьте студентов свайпом или тапом.</p>
             </div>
             <div class="hero-clock">
                 <div class="hero-clock-time" id="clock">00:00:00</div>
@@ -751,7 +948,7 @@ tr:hover td:first-child { background: #fbfdff; }
             <select id="groupSelect" class="date-input" aria-label="Выбор группы">
                 <option value="">Загрузка...</option>
             </select>
-            <div class="group-hint" id="groupHint">Загрузка данных о доступе...</div>
+            <div class="group-hint" id="groupHint">Загрузка...</div>
         </div>
         <div class="info-card">
             <div class="info-label">📅 Дата</div>
@@ -767,19 +964,33 @@ tr:hover td:first-child { background: #fbfdff; }
             <div class="info-value" id="dayName">—</div>
         </div>
         <div class="info-card">
-            <div class="info-label">📝 Учебный период</div>
+            <div class="info-label">📝 Период</div>
             <div class="info-value" id="periodInfo">—</div>
         </div>
     </section>
 
-    <!-- выбор пары -->
+    <!-- Прогресс отметки -->
+    <section class="progress-card">
+        <div class="progress-icon">📊</div>
+        <div class="progress-body">
+            <div class="progress-label">
+                <span>Отмечено на паре</span>
+                <span id="progressText">0 / 0</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Выбор пары -->
     <section class="lesson-picker" id="lessonPicker">
         <div class="lesson-picker-head">
             <div class="lesson-picker-title">
                 <span class="dot"></span>
                 Выбор пары
             </div>
-            <div class="lesson-picker-hint" id="lessonPickerHint">Нажмите на номер пары</div>
+            <div class="lesson-picker-hint" id="lessonPickerHint">Нажмите на номер</div>
         </div>
         <div class="lesson-chips" id="lessonChips"></div>
         <div class="discipline-banner" id="disciplineBanner">
@@ -792,12 +1003,13 @@ tr:hover td:first-child { background: #fbfdff; }
         </div>
     </section>
 
+    <!-- Быстрая отметка (только desktop) -->
     <section class="quick-panel" id="quickPanel" data-mode="">
         <div class="quick-left">
             <div class="quick-icon">⚡</div>
             <div>
                 <div class="quick-title">Быстрая отметка</div>
-                <div class="quick-description">Выберите режим и отмечайте студентов прямо в таблице</div>
+                <div class="quick-description">Выберите режим и отмечайте студентов в таблице</div>
             </div>
             <div class="quick-mode-label" id="quickModeLabel">Режим не выбран</div>
         </div>
@@ -817,9 +1029,21 @@ tr:hover td:first-child { background: #fbfdff; }
     </div>
 
     <div class="search-wrap">
-        <input type="search" id="studentSearch" placeholder="Поиск студента..." autocomplete="off">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="search" id="studentSearch" placeholder="Поиск студента..." autocomplete="off" inputmode="search">
+        <button class="search-clear" id="searchClear" type="button" aria-label="Очистить">✕</button>
     </div>
 
+    <!-- Подсказка свайпа (показывается 1 раз) -->
+    <div class="swipe-hint" id="swipeHint" style="display:none;">
+        <span class="hint-arrow">👉</span>
+        <span>Свайп вправо — <b>присутствие</b>, влево — <b>отсутствие</b>. Или тапните по карточке.</span>
+    </div>
+
+    <!-- DESKTOP: таблица -->
     <div class="table-wrapper">
         <div id="tableContainer" class="loading">
             <div class="spinner"></div>
@@ -827,40 +1051,45 @@ tr:hover td:first-child { background: #fbfdff; }
         </div>
     </div>
 
-    <!-- список студентов с кнопками -->
+    <!-- MOBILE: свайп-карточки -->
     <div class="students-list" id="studentsList"></div>
-
-    <div class="cards" id="cardsContainer"></div>
 
 </main>
 
-<!-- choice sheet -->
+<!-- Sticky mobile bar -->
+<div class="mobile-action-bar" id="mobileActionBar">
+    <button class="mab-present" id="mabPresent">✓ Присутствие</button>
+    <button class="mab-absent" id="mabAbsent">Н Отсутствие</button>
+    <button class="mab-cancel" id="mabCancel" aria-label="Отмена">✕</button>
+</div>
+
+<!-- Choice sheet (тап по карточке) -->
 <div class="menu-overlay" id="choiceOverlay" onclick="closeChoiceOutside(event)">
     <div class="choice-menu">
         <div class="menu-title">Отметить посещаемость</div>
         <div class="menu-student" id="choiceStudent">—</div>
 
-        <button class="choice-button" onclick="choosePresent()">
+        <button class="choice-button present" onclick="choosePresent()">
             <div class="choice-icon present-icon">✓</div>
-            <div class="choice-text"><strong>Присутствовал</strong><span>Студент присутствовал на паре</span></div>
+            <div class="choice-text"><strong>Присутствовал</strong><span>Студент был на паре</span></div>
         </button>
-        <button class="choice-button" onclick="chooseAbsent()">
-            <div class="choice-icon absent-icon">Н</div>
-            <div class="choice-text"><strong>Отсутствовал</strong><span>Указать причину отсутствия</span></div>
+        <button class="choice-button absent" onclick="chooseAbsent()">
+            <div class="choice-icon absent-icon">✕</div>
+            <div class="choice-text"><strong>Отсутствовал</strong><span>Указать причину</span></div>
         </button>
         <button class="choice-button" onclick="chooseWholeDay()">
             <div class="choice-icon whole-day-icon">📅</div>
-            <div class="choice-text"><strong>Весь день</strong><span>Отметить Н на всех парах этого дня</span></div>
+            <div class="choice-text"><strong>Весь день</strong><span>Отметить Н на всех парах дня</span></div>
         </button>
         <button class="choice-button" id="deleteButton" onclick="deleteAttendance()">
             <div class="choice-icon delete-icon">🗑️</div>
-            <div class="choice-text"><strong>Удалить отметку</strong><span>Очистить текущую отметку</span></div>
+            <div class="choice-text"><strong>Удалить отметку</strong><span>Очистить текущую</span></div>
         </button>
         <button class="cancel-button" onclick="closeChoice()">Отмена</button>
     </div>
 </div>
 
-<!-- reason sheet -->
+<!-- Reason sheet -->
 <div class="modal-overlay" id="reasonOverlay">
     <div class="modal">
         <div class="modal-header">
@@ -879,7 +1108,7 @@ tr:hover td:first-child { background: #fbfdff; }
             <button type="button" class="absent-type-btn" data-type="bolezn" onclick="selectAbsentType('bolezn')"><strong>Н/Б</strong><span>Болезнь</span></button>
         </div>
         <label class="reason-label" for="reasonInput">Отсутствовал по причине:</label>
-        <textarea id="reasonInput" class="reason-input" placeholder="Опишите причину отсутствия..."></textarea>
+        <textarea id="reasonInput" class="reason-input" placeholder="Опишите причину..."></textarea>
         <div class="reason-hint" id="reasonHint"></div>
         <div class="modal-actions">
             <button class="modal-cancel" onclick="closeReason()">Отмена</button>
@@ -888,7 +1117,7 @@ tr:hover td:first-child { background: #fbfdff; }
     </div>
 </div>
 
-<!-- lesson info -->
+<!-- Lesson info -->
 <div class="modal-overlay" id="lessonInfoOverlay">
     <div class="lesson-info-modal">
         <div class="lesson-big-icon">📚</div>
@@ -902,12 +1131,6 @@ tr:hover td:first-child { background: #fbfdff; }
         </div>
         <button class="lesson-close" onclick="closeLessonInfo()">Закрыть</button>
     </div>
-</div>
-
-<div class="floating-bar" id="floatingBar">
-    <button class="fb-present" onclick="enableQuickMode('present')">✓ Присутствие</button>
-    <button class="fb-absent" onclick="enableQuickMode('absent')">Н Отсутствие</button>
-    <button class="fb-cancel" onclick="disableQuickMode()" aria-label="Отмена">✕</button>
 </div>
 
 <button class="scroll-top" id="scrollTop" onclick="scrollToTop()" aria-label="Наверх">↑</button>
@@ -933,48 +1156,43 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
+/* =========================================================
+   STATE
+========================================================= */
 let homePage = "home.html";
-async function resolveHomePage(user) {
-    try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        const role = snap.exists() ? snap.data().role : null;
-        return role === "admin" ? "adminhome.html" : "home.html";
-    } catch (e) { return "home.html"; }
-}
-
-let currentUser = null, authResolved = false, resolveAuthReady;
+let currentUser = null;
+let authResolved = false;
+let resolveAuthReady;
 const authReady = new Promise(r => { resolveAuthReady = r; });
-
-onAuthStateChanged(auth, async user => {
-    currentUser = user;
-    homePage = user ? await resolveHomePage(user) : "home.html";
-    if (!authResolved) { authResolved = true; resolveAuthReady(); }
-});
 
 let students = [], allStudents = [], allGroupsData = [], userGroups = [];
 let userRole = null, selectedGroupId = "", settings = {}, attendance = {};
 let selectedDate = "", selectedStudent = null, selectedLesson = null, selectedAction = null;
 let selectedAbsentType = "neuv", quickMode = null, studentFilter = "";
 let currentLesson = 0;
+let hintShown = localStorage.getItem("swipeHintShown") === "1";
 
 const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 const dayNames = ["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 
-/* Автоподстановка причин для Н/У и Н/Б */
 const AUTO_REASONS = {
     uv: "Уважительная причина",
     bolezn: "Больничный"
 };
 
-const datePicker = document.getElementById("datePicker");
-const tableContainer = document.getElementById("tableContainer");
-const cardsContainer = document.getElementById("cardsContainer");
-const studentsListEl = document.getElementById("studentsList");
-const lessonChipsEl = document.getElementById("lessonChips");
-const disciplineBanner = document.getElementById("disciplineBanner");
-const reasonInput = document.getElementById("reasonInput");
-const reasonHint = document.getElementById("reasonHint");
+const $ = (id) => document.getElementById(id);
 
+const datePicker = $("datePicker");
+const tableContainer = $("tableContainer");
+const studentsListEl = $("studentsList");
+const lessonChipsEl = $("lessonChips");
+const disciplineBanner = $("disciplineBanner");
+const reasonInput = $("reasonInput");
+const reasonHint = $("reasonHint");
+
+/* =========================================================
+   HELPERS
+========================================================= */
 function formatDate(d) {
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,"0"), day = String(d.getDate()).padStart(2,"0");
     return `${y}-${m}-${day}`;
@@ -991,6 +1209,20 @@ function parseDate(s) {
 function getDayIndex(s) { return parseDate(s).getDay(); }
 function getDayName(s) { return dayNames[getDayIndex(s)]; }
 
+function escapeHtml(v) {
+    return String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
+}
+function escapeJs(v) { return String(v ?? "").replaceAll("\\","\\\\").replaceAll("'","\\'"); }
+
+function vibrate(ms) {
+    if (navigator.vibrate) {
+        try { navigator.vibrate(ms); } catch (e) {}
+    }
+}
+
+/* =========================================================
+   SETTINGS HELPERS
+========================================================= */
 function getLessonCount(dayIndex) {
     if (dayIndex < 1 || dayIndex > 6) return 0;
     const day = days[dayIndex-1];
@@ -1072,6 +1304,23 @@ function getAttestationInfo(dateString) {
     return { semester: m >= 8 || m <= 0 ? "1 семестр" : "2 семестр", attestation: "—" };
 }
 
+/* =========================================================
+   DATA LOADING
+========================================================= */
+async function resolveHomePage(user) {
+    try {
+        const snap = await getDoc(doc(db, "users", user.uid));
+        const role = snap.exists() ? snap.data().role : null;
+        return role === "admin" ? "adminhome.html" : "home.html";
+    } catch (e) { return "home.html"; }
+}
+
+onAuthStateChanged(auth, async user => {
+    currentUser = user;
+    homePage = user ? await resolveHomePage(user) : "home.html";
+    if (!authResolved) { authResolved = true; resolveAuthReady(); }
+});
+
 async function loadGroupsAndRole() {
     userRole = null; allGroupsData = []; userGroups = [];
     if (!currentUser) return;
@@ -1088,8 +1337,8 @@ async function loadGroupsAndRole() {
     else userGroups = allGroupsData.filter(g => g.curatorId === currentUser.uid || g.starostaId === currentUser.uid || g.leaderId === currentUser.uid);
 }
 
-const groupSelect = document.getElementById("groupSelect");
-const groupHint = document.getElementById("groupHint");
+const groupSelect = $("groupSelect");
+const groupHint = $("groupHint");
 
 function populateGroupSelect() {
     const prev = selectedGroupId || localStorage.getItem("selectedGroupId") || "";
@@ -1189,21 +1438,32 @@ async function loadAttendance() {
     } catch (e) { console.error(e); }
 }
 
-function getStudentDay(sid) { return attendance[`${selectedDate}_${sid}`] || { studentId: sid, date: selectedDate, lessons: {} }; }
-function getLessonData(sid, l) { const d = getStudentDay(sid); return d.lessons?.[String(l)] || { status:"", absentType:"", reason:"" }; }
+function getStudentDay(sid) {
+    return attendance[`${selectedDate}_${sid}`] || { studentId: sid, date: selectedDate, lessons: {} };
+}
+function getLessonData(sid, l) {
+    const d = getStudentDay(sid);
+    return d.lessons?.[String(l)] || { status:"", absentType:"", reason:"" };
+}
 
 async function saveStudentDay(student, lessons) {
     const period = getAttestationInfo(selectedDate);
     const ref = doc(db, "attendance", selectedDate);
-    const studentRecord = { studentId: student.id, studentName: student.name || "", lessons, updatedAt: new Date().toISOString() };
-    const meta = { date: selectedDate, groupId: selectedGroupId, semester: period.semester, attestation: period.attestation };
+    const studentRecord = {
+        studentId: student.id,
+        studentName: student.name || "",
+        lessons,
+        updatedAt: new Date().toISOString()
+    };
+    const meta = {
+        date: selectedDate, groupId: selectedGroupId,
+        semester: period.semester, attestation: period.attestation
+    };
 
-    // ВАЖНО: setDoc(..., {merge:true}) делает глубокое слияние вложенных объектов,
-    // поэтому удалённая пара оставалась в базе. updateDoc по пути поля полностью
-    // заменяет запись студента, и удаление работает.
     try {
         await updateDoc(ref, new FieldPath("students", student.id), studentRecord,
-            "date", meta.date, "groupId", meta.groupId, "semester", meta.semester, "attestation", meta.attestation);
+            "date", meta.date, "groupId", meta.groupId,
+            "semester", meta.semester, "attestation", meta.attestation);
     } catch (e) {
         if (e && e.code === "not-found") {
             await setDoc(ref, { ...meta, students: { [student.id]: studentRecord } });
@@ -1214,6 +1474,41 @@ async function saveStudentDay(student, lessons) {
         date: selectedDate, groupId: selectedGroupId,
         lessons, semester: period.semester, attestation: period.attestation
     };
+}
+
+/* =========================================================
+   ACTIONS — отметка
+========================================================= */
+async function quickPresent(student, lesson) {
+    try {
+        vibrate(15);
+        const d = getStudentDay(student.id);
+        const ls = { ...(d.lessons || {}) };
+        ls[String(lesson)] = { status: "present", reason: "" };
+        await saveStudentDay(student, ls);
+        render();
+        showToast(`✓ ${student.name}`, "success");
+    } catch (e) { console.error(e); showToast("Ошибка сохранения", "error"); }
+}
+
+function quickAbsent(student, lesson) {
+    vibrate(20);
+    selectedStudent = student; selectedLesson = lesson; selectedAction = "single";
+    $("modalStudent").textContent = student.name;
+    $("modalDate").textContent = formatDateRu(selectedDate);
+    $("modalLesson").textContent = `${lesson} пара • ${getDiscipline(getDayIndex(selectedDate), lesson)}`;
+    const old = getLessonData(student.id, lesson);
+    selectedAbsentType = old.absentType || "neuv";
+    updateAbsentTypeButtons();
+
+    if (old.reason) {
+        reasonInput.value = old.reason;
+    } else {
+        reasonInput.value = AUTO_REASONS[selectedAbsentType] || "";
+    }
+    updateReasonHint();
+
+    $("reasonOverlay").classList.add("active");
 }
 
 async function deleteAttendance() {
@@ -1232,66 +1527,107 @@ async function deleteAttendance() {
 }
 window.deleteAttendance = deleteAttendance;
 
+/* =========================================================
+   QUICK MODE (desktop)
+========================================================= */
 function enableQuickMode(mode) {
     quickMode = mode;
-    const panel = document.getElementById("quickPanel");
-    const label = document.getElementById("quickModeLabel");
+    const panel = $("quickPanel");
+    const label = $("quickModeLabel");
     panel.classList.add("active");
     panel.dataset.mode = mode;
     label.textContent = mode === "present" ? "✓ Режим присутствия" : "Н Режим отсутствия";
-    document.getElementById("floatingBar").classList.add("active");
     showToast(mode === "present" ? "✓ Режим присутствия" : "Н Режим отсутствия", "success");
 }
-window.enableQuickMode = enableQuickMode;
-
 function disableQuickMode() {
     quickMode = null;
-    const panel = document.getElementById("quickPanel");
+    const panel = $("quickPanel");
     panel.classList.remove("active");
     panel.dataset.mode = "";
-    document.getElementById("quickModeLabel").textContent = "Режим не выбран";
-    document.getElementById("floatingBar").classList.remove("active");
+    $("quickModeLabel").textContent = "Режим не выбран";
     showToast("Режим выключен");
 }
+window.enableQuickMode = enableQuickMode;
 window.disableQuickMode = disableQuickMode;
 
-async function quickPresent(student, lesson) {
-    try {
-        const d = getStudentDay(student.id);
-        const ls = { ...(d.lessons || {}) };
-        ls[String(lesson)] = { status: "present", reason: "" };
-        await saveStudentDay(student, ls);
-        render();
-        showToast(`✓ ${student.name} — ${lesson} пара`, "success");
-    } catch (e) { console.error(e); showToast("Ошибка сохранения", "error"); }
-}
+/* =========================================================
+   SWIPE CARDS (MOBILE)
+========================================================= */
+const SWIPE_THRESHOLD = 90;
+let activeSwipe = null;
 
-function quickAbsent(student, lesson) {
-    selectedStudent = student; selectedLesson = lesson; selectedAction = "single";
-    document.getElementById("modalStudent").textContent = student.name;
-    document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
-    document.getElementById("modalLesson").textContent = `${lesson} пара • ${getDiscipline(getDayIndex(selectedDate), lesson)}`;
-    const old = getLessonData(student.id, lesson);
-    selectedAbsentType = old.absentType || "neuv";
-    updateAbsentTypeButtons();
+function attachSwipeHandlers(cardEl, student, lesson) {
+    let startX = 0, startY = 0, currentX = 0, dragging = false, lockAxis = null;
 
-    if (old.reason) {
-        reasonInput.value = old.reason;
-    } else {
-        reasonInput.value = AUTO_REASONS[selectedAbsentType] || "";
+    function onStart(e) {
+        const t = e.touches ? e.touches[0] : e;
+        startX = t.clientX;
+        startY = t.clientY;
+        currentX = 0;
+        dragging = true;
+        lockAxis = null;
+        cardEl.classList.add("swiping");
     }
-    updateReasonHint();
 
-    document.getElementById("reasonOverlay").classList.add("active");
+    function onMove(e) {
+        if (!dragging) return;
+        const t = e.touches ? e.touches[0] : e;
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+
+        if (!lockAxis) {
+            if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+                lockAxis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+            }
+        }
+        if (lockAxis !== "x") return;
+
+        if (e.cancelable) e.preventDefault();
+
+        currentX = dx;
+        const clamped = Math.max(-140, Math.min(140, dx));
+        cardEl.style.transform = `translateX(${clamped}px)`;
+    }
+
+    function onEnd() {
+        if (!dragging) return;
+        dragging = false;
+        cardEl.classList.remove("swiping");
+
+        if (currentX >= SWIPE_THRESHOLD) {
+            vibrate(15);
+            cardEl.style.transform = "";
+            quickPresent(student, lesson);
+        } else if (currentX <= -SWIPE_THRESHOLD) {
+            vibrate(20);
+            cardEl.style.transform = "";
+            quickAbsent(student, lesson);
+        } else {
+            cardEl.style.transform = "";
+        }
+        currentX = 0;
+    }
+
+    cardEl.addEventListener("touchstart", onStart, { passive: true });
+    cardEl.addEventListener("touchmove", onMove, { passive: false });
+    cardEl.addEventListener("touchend", onEnd);
+    cardEl.addEventListener("touchcancel", onEnd);
+
+    // Mouse fallback для десктопа (для тестов)
+    cardEl.addEventListener("mousedown", onStart);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onEnd);
 }
 
+/* =========================================================
+   RENDERING
+========================================================= */
 function getFilteredStudents() {
     const q = studentFilter.trim().toLowerCase();
     if (!q) return students;
     return students.filter(s => String(s.name||"").toLowerCase().includes(q));
 }
 
-/* переключение пары */
 function selectLesson(lesson) {
     currentLesson = lesson;
     renderLessonChips();
@@ -1310,17 +1646,32 @@ function renderLessonChips() {
     const dayIndex = getDayIndex(selectedDate);
     const count = getLessonCount(dayIndex);
     lessonChipsEl.innerHTML = "";
+    const filtered = getFilteredStudents();
+    const totalStudents = filtered.length;
+
     for (let l = 1; l <= count; l++) {
+        // Считаем заполненность пары
+        let marked = 0;
+        filtered.forEach(s => {
+            const d = getLessonData(s.id, l);
+            if (d.status === "present" || d.status === "absent") marked++;
+        });
+        const pct = totalStudents ? Math.round((marked / totalStudents) * 100) : 0;
+
         const chip = document.createElement("button");
         chip.type = "button";
         chip.className = "lesson-chip" + (l === currentLesson ? " active" : "");
         chip.dataset.lesson = l;
-        chip.innerHTML = `${l}${l === currentLesson ? '<span class="chip-pulse"></span>' : ''}`;
-        chip.style.animationDelay = (l * 0.04) + "s";
+        chip.innerHTML = `
+            ${l}
+            <span class="chip-label">${pct}%</span>
+            ${l === currentLesson ? '<span class="chip-pulse"></span>' : ''}
+            ${pct > 0 && l !== currentLesson ? `<span class="chip-progress" style="--p:${pct}%"></span>` : ''}
+        `;
         chip.onclick = () => selectLesson(l);
         lessonChipsEl.appendChild(chip);
     }
-    const hint = document.getElementById("lessonPickerHint");
+    const hint = $("lessonPickerHint");
     hint.textContent = count ? `${count} ${count === 1 ? "пара" : count >= 2 && count <= 4 ? "пары" : "пар"}` : "Нет пар";
 }
 
@@ -1332,81 +1683,149 @@ function updateDisciplineBanner() {
     }
     const disc = getDiscipline(dayIndex, currentLesson);
     const time = getLessonTime(dayIndex, currentLesson);
-    document.getElementById("disciplineName").textContent = disc;
-    document.getElementById("disciplineTime").textContent = time.text;
+    $("disciplineName").textContent = disc;
+    $("disciplineTime").textContent = time.text;
     disciplineBanner.classList.add("show");
-    const nameEl = document.getElementById("disciplineName");
+    const nameEl = $("disciplineName");
     nameEl.style.animation = 'none';
     void nameEl.offsetWidth;
     nameEl.style.animation = '';
 }
 
-/* список студентов с кнопками ✓ / ✕ / … */
+function updateProgress() {
+    const filtered = getFilteredStudents();
+    const total = filtered.length;
+    let marked = 0;
+    const lesson = currentLesson || 1;
+    filtered.forEach(s => {
+        const d = getLessonData(s.id, lesson);
+        if (d.status === "present" || d.status === "absent") marked++;
+    });
+    const pct = total ? Math.round((marked / total) * 100) : 0;
+
+    $("progressText").textContent = `${marked} / ${total}`;
+    $("progressFill").style.width = pct + "%";
+}
+
 function renderStudentsList(filtered) {
     const lesson = currentLesson || 1;
     studentsListEl.innerHTML = "";
+
     filtered.forEach((student, idx) => {
         const d = getLessonData(student.id, lesson);
-        let statusClass = "empty", statusText = "—";
-        if (d.status === "present") { statusClass = "present"; statusText = "✓ Присутствовал"; }
-        if (d.status === "absent") {
-            statusClass = "absent";
-            statusText = d.absentType === "uv" ? "Н/У Уважит." : d.absentType === "bolezn" ? "Н/Б Болезнь" : "Н Неуважит.";
+        let cardClass = "";
+        let statusBadge = `<span class="student-status-badge">Не отмечен</span>`;
+        let actionIcon = "○";
+        let actionLabel = "Отметить";
+
+        if (d.status === "present") {
+            cardClass = "present";
+            statusBadge = `<span class="student-status-badge present">✓ Присутствовал</span>`;
+            actionIcon = "✓";
+            actionLabel = "Присутствовал";
+        } else if (d.status === "absent") {
+            cardClass = "absent";
+            let typeText = "Н Неуважит.";
+            let badgeClass = "absent";
+            if (d.absentType === "uv") { typeText = "Н/У Уважит."; badgeClass = "uv"; }
+            if (d.absentType === "bolezn") { typeText = "Н/Б Болезнь"; badgeClass = "bolezn"; }
+            statusBadge = `<span class="student-status-badge ${badgeClass}">${typeText}</span>`;
+            actionIcon = "✕";
+            actionLabel = "Отсутствовал";
         }
 
-        const row = document.createElement("div");
-        row.className = "student-row";
-        row.style.animationDelay = Math.min(idx * 0.03, 0.4) + "s";
-        row.innerHTML = `
-            <div class="s-index">${idx+1}</div>
-            <div class="s-name">${escapeHtml(student.name || "Без имени")}</div>
-            <div class="s-status ${statusClass}">${statusText}</div>
-            <div class="s-actions">
-                <button class="s-btn present ${d.status === 'present' ? 'active' : ''}" title="Присутствовал" data-act="present">✓</button>
-                <button class="s-btn absent ${d.status === 'absent' ? 'active' : ''}" title="Отсутствовал" data-act="absent">✕</button>
-                <button class="s-btn more" title="Ещё" data-act="more">…</button>
+        const reasonLine = d.status === "absent" && d.reason
+            ? `<span style="font-size:11px;color:var(--text-3);margin-left:4px;">• ${escapeHtml(d.reason)}</span>`
+            : "";
+
+        // Swipe-wrapper
+        const wrap = document.createElement("div");
+        wrap.className = "student-swipe";
+        wrap.style.animationDelay = Math.min(idx * 0.025, 0.4) + "s";
+
+        wrap.innerHTML = `
+            <div class="student-swipe-bg"></div>
+            <div class="student-card ${cardClass}">
+                <div class="student-index">${idx + 1}</div>
+                <div class="student-info">
+                    <div class="student-name">${escapeHtml(student.name || "Без имени")}</div>
+                    <div class="student-status-line">
+                        ${statusBadge}
+                        ${reasonLine}
+                    </div>
+                </div>
+                <button class="student-action" aria-label="${actionLabel}">${actionIcon}</button>
             </div>
         `;
-        row.querySelectorAll(".s-btn").forEach(btn => {
-            btn.addEventListener("click", (e) => {
-                e.stopPropagation();
-                const act = btn.dataset.act;
-                if (act === "present") {
-                    quickPresent(student, lesson);
-                } else if (act === "absent") {
-                    quickAbsent(student, lesson);
-                } else {
-                    openCellMenu(student, lesson);
-                }
-            });
+
+        const cardEl = wrap.querySelector(".student-card");
+        const actionBtn = wrap.querySelector(".student-action");
+
+        // Тап по кнопке справа — открывает sheet
+        actionBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            openCellMenu(student, lesson);
         });
-        studentsListEl.appendChild(row);
+
+        // Тап по карточке (не свайп) — открывает sheet
+        let tapMoved = false;
+        let tapStartX = 0, tapStartY = 0;
+        cardEl.addEventListener("touchstart", (e) => {
+            const t = e.touches[0];
+            tapStartX = t.clientX;
+            tapStartY = t.clientY;
+            tapMoved = false;
+        }, { passive: true });
+        cardEl.addEventListener("touchmove", (e) => {
+            const t = e.touches[0];
+            if (Math.abs(t.clientX - tapStartX) > 8 || Math.abs(t.clientY - tapStartY) > 8) {
+                tapMoved = true;
+            }
+        }, { passive: true });
+        cardEl.addEventListener("touchend", (e) => {
+            if (!tapMoved) {
+                openCellMenu(student, lesson);
+            }
+        });
+
+        // Десктопный клик
+        cardEl.addEventListener("click", (e) => {
+            if (e.target.closest(".student-action")) return;
+            openCellMenu(student, lesson);
+        });
+
+        // Свайп
+        attachSwipeHandlers(cardEl, student, lesson);
+
+        studentsListEl.appendChild(wrap);
     });
 }
 
 function openCellMenu(student, lesson) {
     selectedStudent = student; selectedLesson = lesson;
     const d = getLessonData(student.id, lesson);
-    document.getElementById("choiceStudent").textContent = `${student.name} • ${lesson} пара`;
-    document.getElementById("deleteButton").style.display = (d.status === "present" || d.status === "absent") ? "flex" : "none";
-    document.getElementById("choiceOverlay").classList.add("active");
+    $("choiceStudent").textContent = `${student.name} • ${lesson} пара`;
+    $("deleteButton").style.display = (d.status === "present" || d.status === "absent") ? "flex" : "none";
+    $("choiceOverlay").classList.add("active");
 }
+window.openCellMenu = openCellMenu;
 
 function render() {
     if (!selectedDate) return;
     const dayIndex = getDayIndex(selectedDate);
     const lessonCount = getLessonCount(dayIndex);
 
-    document.getElementById("dayName").textContent = getDayName(selectedDate);
-    document.getElementById("lessonCountBadge").textContent =
+    $("dayName").textContent = getDayName(selectedDate);
+    $("lessonCountBadge").textContent =
         `${lessonCount} ${lessonCount === 1 ? "пара" : lessonCount >= 2 && lessonCount <= 4 ? "пары" : "пар"}`;
 
     const period = getAttestationInfo(selectedDate);
-    document.getElementById("periodInfo").textContent = `${period.semester} • ${period.attestation}`;
+    $("periodInfo").textContent = `${period.semester} • ${period.attestation}`;
 
     if (currentLesson > lessonCount) currentLesson = 0;
     renderLessonChips();
     updateDisciplineBanner();
+    updateProgress();
 
     const empty = (icon, title, text) => `
         <div class="empty">
@@ -1417,29 +1836,29 @@ function render() {
 
     if (dayIndex === 0) {
         tableContainer.innerHTML = empty("🌴","Воскресенье","В воскресенье занятий нет.");
-        cardsContainer.innerHTML = ""; studentsListEl.innerHTML = "";
+        studentsListEl.innerHTML = "";
         return;
     }
     if (lessonCount <= 0) {
         tableContainer.innerHTML = empty("📚","Нет занятий","Для этого дня не настроено расписание.");
-        cardsContainer.innerHTML = ""; studentsListEl.innerHTML = "";
+        studentsListEl.innerHTML = "";
         return;
     }
     if (!selectedGroupId) {
         const msg = userRole === "admin" ? "В системе пока нет ни одной группы." : "Вам не назначена ни одна группа. Обратитесь к администратору.";
         tableContainer.innerHTML = empty("🔒","Группа недоступна", msg);
-        cardsContainer.innerHTML = ""; studentsListEl.innerHTML = "";
+        studentsListEl.innerHTML = "";
         return;
     }
     if (students.length === 0) {
         tableContainer.innerHTML = empty("👨‍🎓","Студентов пока нет","В этой группе пока нет ни одного студента.");
-        cardsContainer.innerHTML = ""; studentsListEl.innerHTML = "";
+        studentsListEl.innerHTML = "";
         return;
     }
 
     const filtered = getFilteredStudents();
 
-    /* desktop table */
+    /* DESKTOP: таблица */
     let html = `<table><thead><tr><th>Студент</th>`;
     for (let l = 1; l <= lessonCount; l++) {
         const disc = getDiscipline(dayIndex, l);
@@ -1467,37 +1886,23 @@ function render() {
     html += `</tbody></table>`;
     tableContainer.innerHTML = html;
 
-    /* mobile cards (скрыты, но оставлены) */
-    let cards = "";
-    filtered.forEach((student, idx) => {
-        cards += `<div class="card">
-            <div class="card-head">
-                <div class="card-index">${idx+1}</div>
-                <div class="card-name">${escapeHtml(student.name || "Без имени")}</div>
-            </div>
-            <div class="card-body">`;
-        for (let l = 1; l <= lessonCount; l++) {
-            const d = getLessonData(student.id, l);
-            let cls = "status-empty", txt = "—", extraClass = "";
-            if (d.status === "present") { cls = "status-present"; txt = "✓"; extraClass = "present"; }
-            if (d.status === "absent") {
-                cls = "status-absent";
-                txt = d.absentType === "uv" ? "Н/У" : d.absentType === "bolezn" ? "Н/Б" : "Н";
-                extraClass = "absent";
-            }
-            const disc = getDiscipline(dayIndex, l);
-            cards += `<div class="card-lesson ${extraClass}" onclick="window.openCell('${escapeJs(student.id)}', ${l})">
-                <div class="card-lesson-num">${l} пара</div>
-                <div class="status ${cls}">${txt}</div>
-                <div class="card-lesson-disc">${escapeHtml(disc)}</div>
-            </div>`;
-        }
-        cards += `</div></div>`;
-    });
-    cardsContainer.innerHTML = cards;
-
-    /* mobile students list */
+    /* MOBILE: свайп-карточки */
     renderStudentsList(filtered);
+
+    /* Показываем подсказку свайпа 1 раз */
+    if (!hintShown && window.innerWidth <= 768 && filtered.length > 0) {
+        $("swipeHint").style.display = "flex";
+        setTimeout(() => {
+            hintShown = true;
+            localStorage.setItem("swipeHintShown", "1");
+            const el = $("swipeHint");
+            if (el) {
+                el.style.transition = "opacity .4s";
+                el.style.opacity = "0";
+                setTimeout(() => el.style.display = "none", 400);
+            }
+        }, 6000);
+    }
 }
 
 window.openCell = async function(studentId, lesson) {
@@ -1508,9 +1913,12 @@ window.openCell = async function(studentId, lesson) {
     openCellMenu(student, lesson);
 };
 
-function closeChoice() { document.getElementById("choiceOverlay").classList.remove("active"); }
+/* =========================================================
+   CHOICE / REASON
+========================================================= */
+function closeChoice() { $("choiceOverlay").classList.remove("active"); }
+function closeChoiceOutside(e) { if (e.target === $("choiceOverlay")) closeChoice(); }
 window.closeChoice = closeChoice;
-function closeChoiceOutside(e) { if (e.target === document.getElementById("choiceOverlay")) closeChoice(); }
 window.closeChoiceOutside = closeChoiceOutside;
 
 async function choosePresent() {
@@ -1527,7 +1935,6 @@ async function choosePresent() {
 }
 window.choosePresent = choosePresent;
 
-/* ===== Тип отсутствия + автоподстановка причины ===== */
 function selectAbsentType(t) {
     const prev = selectedAbsentType;
     selectedAbsentType = t;
@@ -1542,19 +1949,16 @@ function updateAbsentTypeButtons() {
     updateReasonHint();
 }
 
-/* Поле НЕ скрываем. Для Н/У и Н/Б — просто подставляем текст. */
 function applyAbsentTypeDefaults(prevType) {
     if (!reasonInput) return;
     const auto = AUTO_REASONS[selectedAbsentType] || "";
     const prevAuto = AUTO_REASONS[prevType] || "";
     const trimmed = reasonInput.value.trim();
 
-    // Если поле пустое ИЛИ там предыдущая автоподстановка — заменяем
     if (!trimmed || (prevAuto && trimmed === prevAuto)) {
         reasonInput.value = auto;
     }
 
-    // Мягкая вспышка, чтобы заметить автоподстановку
     if (auto && reasonInput.value.trim() === auto) {
         reasonInput.style.background = "#f0fdf4";
         setTimeout(() => { reasonInput.style.background = ""; }, 500);
@@ -1566,7 +1970,7 @@ function applyAbsentTypeDefaults(prevType) {
 function updateReasonHint() {
     if (!reasonHint) return;
     if (selectedAbsentType === "uv" || selectedAbsentType === "bolezn") {
-        reasonHint.innerHTML = `<span class="hint-dot"></span> Причина подставлена автоматически — при необходимости отредактируйте`;
+        reasonHint.innerHTML = `<span class="hint-dot"></span> Причина подставлена автоматически`;
     } else {
         reasonHint.innerHTML = "";
     }
@@ -1576,9 +1980,9 @@ function chooseAbsent() {
     if (!selectedStudent) return;
     closeChoice();
     const d = getLessonData(selectedStudent.id, selectedLesson);
-    document.getElementById("modalStudent").textContent = selectedStudent.name;
-    document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
-    document.getElementById("modalLesson").textContent =
+    $("modalStudent").textContent = selectedStudent.name;
+    $("modalDate").textContent = formatDateRu(selectedDate);
+    $("modalLesson").textContent =
         `${selectedLesson} пара • ${getDiscipline(getDayIndex(selectedDate), selectedLesson)}`;
     selectedAbsentType = d.absentType || "neuv";
     updateAbsentTypeButtons();
@@ -1591,22 +1995,22 @@ function chooseAbsent() {
     updateReasonHint();
 
     selectedAction = "single";
-    document.getElementById("reasonOverlay").classList.add("active");
+    $("reasonOverlay").classList.add("active");
 }
 window.chooseAbsent = chooseAbsent;
 
 function chooseWholeDay() {
     if (!selectedStudent) return;
     closeChoice();
-    document.getElementById("modalStudent").textContent = selectedStudent.name;
-    document.getElementById("modalDate").textContent = formatDateRu(selectedDate);
-    document.getElementById("modalLesson").textContent = "📅 Весь день";
+    $("modalStudent").textContent = selectedStudent.name;
+    $("modalDate").textContent = formatDateRu(selectedDate);
+    $("modalLesson").textContent = "📅 Весь день";
     selectedAbsentType = "neuv";
     updateAbsentTypeButtons();
     reasonInput.value = "";
     updateReasonHint();
     selectedAction = "wholeDay";
-    document.getElementById("reasonOverlay").classList.add("active");
+    $("reasonOverlay").classList.add("active");
 }
 window.chooseWholeDay = chooseWholeDay;
 
@@ -1614,7 +2018,6 @@ async function saveAbsent() {
     if (!selectedStudent || !selectedAction) return;
     let reason = reasonInput.value.trim();
 
-    // Для Н/У и Н/Б — если пользователь стёр текст, всё равно подставляем автопричину
     if (AUTO_REASONS[selectedAbsentType] && !reason) {
         reason = AUTO_REASONS[selectedAbsentType];
     }
@@ -1641,29 +2044,28 @@ async function saveAbsent() {
 }
 window.saveAbsent = saveAbsent;
 
-function closeReason() { document.getElementById("reasonOverlay").classList.remove("active"); selectedAction = null; }
+function closeReason() { $("reasonOverlay").classList.remove("active"); selectedAction = null; }
 window.closeReason = closeReason;
 
 function openLessonInfo(lesson) {
     const dayIndex = getDayIndex(selectedDate);
     const disc = getDiscipline(dayIndex, lesson);
     const time = getLessonTime(dayIndex, lesson);
-    document.getElementById("lessonInfoTitle").textContent = `${lesson} пара`;
-    document.getElementById("lessonInfoSubtitle").textContent = `${getDayName(selectedDate)} • ${formatDateRu(selectedDate)}`;
-    document.getElementById("lessonDiscipline").textContent = disc;
-    document.getElementById("lessonTime").textContent = time.text;
-    document.getElementById("lessonStart").textContent = time.start;
-    document.getElementById("lessonEnd").textContent = time.end;
-    document.getElementById("lessonInfoOverlay").classList.add("active");
+    $("lessonInfoTitle").textContent = `${lesson} пара`;
+    $("lessonInfoSubtitle").textContent = `${getDayName(selectedDate)} • ${formatDateRu(selectedDate)}`;
+    $("lessonDiscipline").textContent = disc;
+    $("lessonTime").textContent = time.text;
+    $("lessonStart").textContent = time.start;
+    $("lessonEnd").textContent = time.end;
+    $("lessonInfoOverlay").classList.add("active");
 }
 window.openLessonInfo = openLessonInfo;
-function closeLessonInfo() { document.getElementById("lessonInfoOverlay").classList.remove("active"); }
+function closeLessonInfo() { $("lessonInfoOverlay").classList.remove("active"); }
 window.closeLessonInfo = closeLessonInfo;
 
-document.addEventListener("keydown", e => {
-    if (e.key === "Escape") { closeChoice(); closeReason(); closeLessonInfo(); }
-});
-
+/* =========================================================
+   DATE NAV
+========================================================= */
 datePicker.addEventListener("change", async function() {
     selectedDate = this.value;
     currentLesson = 0;
@@ -1690,9 +2092,8 @@ window.goToday = goToday;
 
 async function reloadData() {
     tableContainer.innerHTML = `<div class="loading"><div class="spinner"></div>Загрузка данных...</div>`;
-    cardsContainer.innerHTML = "";
     studentsListEl.innerHTML = "";
-    const refreshBtn = document.getElementById("refreshBtn");
+    const refreshBtn = $("refreshBtn");
     refreshBtn.classList.add("spin");
     try {
         await authReady;
@@ -1712,54 +2113,94 @@ async function reloadData() {
 }
 window.reloadData = reloadData;
 
+/* =========================================================
+   CLOCK / TOAST / MISC
+========================================================= */
 function updateClock() {
     const now = new Date();
-    document.getElementById("clock").textContent = now.toLocaleTimeString("ru-RU");
+    $("clock").textContent = now.toLocaleTimeString("ru-RU");
     const dt = now.toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-    document.getElementById("clockDate").textContent = dt.charAt(0).toUpperCase() + dt.slice(1);
+    $("clockDate").textContent = dt.charAt(0).toUpperCase() + dt.slice(1);
 }
 
 let toastTimer;
 function showToast(message, type = "") {
-    const t = document.getElementById("toast");
+    const t = $("toast");
     t.textContent = message;
     t.className = `toast show ${type}`;
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => { t.className = "toast"; }, 2500);
 }
 
-function escapeHtml(v) {
-    return String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;");
-}
-function escapeJs(v) { return String(v ?? "").replaceAll("\\","\\\\").replaceAll("'","\\'"); }
-
 function goBack() { window.location.replace(homePage); }
 window.goBack = goBack;
 
-document.getElementById("reasonOverlay").addEventListener("click", e => { if (e.target.id === "reasonOverlay") closeReason(); });
-document.getElementById("lessonInfoOverlay").addEventListener("click", e => { if (e.target.id === "lessonInfoOverlay") closeLessonInfo(); });
-
-document.getElementById("studentSearch").addEventListener("input", function() {
-    studentFilter = this.value;
-    render();
-});
-
 function toggleHero() {
-    document.getElementById("pageHero").classList.toggle("collapsed");
+    $("pageHero").classList.toggle("collapsed");
     const btn = document.querySelector(".hero-toggle");
-    btn.textContent = document.getElementById("pageHero").classList.contains("collapsed") ? "▸" : "▾";
+    btn.textContent = $("pageHero").classList.contains("collapsed") ? "▸" : "▾";
 }
 window.toggleHero = toggleHero;
 
 function scrollToTop() { window.scrollTo({ top: 0, behavior: "smooth" }); }
 window.scrollToTop = scrollToTop;
 
-window.addEventListener("scroll", () => {
-    const btn = document.getElementById("scrollTop");
-    if (window.scrollY > 400) btn.classList.add("show");
-    else btn.classList.remove("show");
+/* =========================================================
+   EVENT LISTENERS
+========================================================= */
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape") { closeChoice(); closeReason(); closeLessonInfo(); }
 });
 
+$("reasonOverlay").addEventListener("click", e => { if (e.target.id === "reasonOverlay") closeReason(); });
+$("lessonInfoOverlay").addEventListener("click", e => { if (e.target.id === "lessonInfoOverlay") closeLessonInfo(); });
+
+$("studentSearch").addEventListener("input", function() {
+    studentFilter = this.value;
+    $("searchClear").classList.toggle("show", !!studentFilter);
+    render();
+});
+
+$("searchClear").addEventListener("click", () => {
+    $("studentSearch").value = "";
+    studentFilter = "";
+    $("searchClear").classList.remove("show");
+    render();
+});
+
+/* Mobile action bar: показать когда quickMode активен */
+function updateMobileBar() {
+    const bar = $("mobileActionBar");
+    if (!bar) return;
+    if (quickMode && window.innerWidth <= 768) {
+        bar.classList.add("show");
+    } else {
+        bar.classList.remove("show");
+    }
+}
+
+$("mabPresent").addEventListener("click", () => enableQuickMode("present"));
+$("mabAbsent").addEventListener("click", () => enableQuickMode("absent"));
+$("mabCancel").addEventListener("click", () => { disableQuickMode(); updateMobileBar(); });
+
+const origEnable = enableQuickMode;
+const origDisable = disableQuickMode;
+window.enableQuickMode = (m) => { origEnable(m); updateMobileBar(); };
+window.disableQuickMode = () => { origDisable(); updateMobileBar(); };
+
+window.addEventListener("scroll", () => {
+    const btn = $("scrollTop");
+    if (window.scrollY > 400) btn.classList.add("show");
+    else btn.classList.remove("show");
+}, { passive: true });
+
+window.addEventListener("resize", () => {
+    updateMobileBar();
+});
+
+/* =========================================================
+   START
+========================================================= */
 async function start() {
     const today = new Date();
     selectedDate = formatDate(today);
@@ -1769,7 +2210,7 @@ async function start() {
     try { await reloadData(); }
     catch (e) { console.error(e); }
     setTimeout(() => {
-        const l = document.getElementById("pageLoader");
+        const l = $("pageLoader");
         if (l) l.classList.add("hidden");
     }, 400);
 }

@@ -862,6 +862,7 @@ html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
 .menu-button:nth-child(4) { animation-delay: .51s; }
 .menu-button:nth-child(5) { animation-delay: .58s; }
 .menu-button:nth-child(6) { animation-delay: .65s; }
+.menu-button:nth-child(7) { animation-delay: .72s; }
 .menu-button:last-child:nth-child(odd) { grid-column: 1 / -1; }
 
 .menu-button::after {
@@ -903,6 +904,8 @@ html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
 .messages::before { background: radial-gradient(circle, rgba(225,29,72,.14), transparent 70%); }
 .events::after { background: var(--cyan); }
 .events::before { background: radial-gradient(circle, rgba(8,145,178,.14), transparent 70%); }
+.parents::after { background: var(--cyan); }
+.parents::before { background: radial-gradient(circle, rgba(8,145,178,.14), transparent 70%); }
 
 .menu-button:hover {
     transform: translateY(-6px);
@@ -967,6 +970,7 @@ html[data-theme="dark"] .week-legend-dot.previous { background: #fb7185; }
 .settings .icon   { background: var(--amber-light);   color: var(--amber); }
 .messages .icon   { background: var(--rose-light);    color: var(--rose); position: relative; }
 .events .icon     { background: var(--cyan-light);    color: var(--cyan); }
+.parents .icon    { background: var(--cyan-light);    color: var(--cyan); }
 
 .messages .icon .msg-badge {
     position: absolute;
@@ -1204,7 +1208,6 @@ footer {
 ::-webkit-scrollbar-thumb:hover { background: var(--text-light); background-clip: padding-box; }
 </style>
 </head>
-
 <body>
 
 <div class="grid-texture"></div>
@@ -1452,7 +1455,7 @@ footer {
             <div class="section-subtitle">Выберите необходимый раздел</div>
         </div>
         <div class="section-hint">
-            Нажмите <kbd>1</kbd>—<kbd>6</kbd> для быстрого перехода
+            Нажмите <kbd>1</kbd>—<kbd>7</kbd> для быстрого перехода
         </div>
     </div>
 
@@ -1589,6 +1592,29 @@ footer {
                 </svg>
             </span>
         </button>
+
+        <!-- ===== КНОПКА РОДИТЕЛИ (только для админа и куратора) ===== -->
+        <button class="menu-button parents" id="parentsButton" style="display:none;" onclick="openParents()">
+            <span class="menu-spotlight"></span>
+            <span class="shortcut">7</span>
+            <span class="icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="8" cy="7" r="3"/>
+                    <circle cx="17" cy="8" r="2.5"/>
+                    <path d="M2 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+                    <path d="M15 20v-1a4 4 0 0 1 4-4h1a3 3 0 0 1 3 3v2"/>
+                </svg>
+            </span>
+            <span class="button-content">
+                <span class="button-title">Родители</span>
+                <span class="button-description">Список родителей, привязка к студентам и контактные данные.</span>
+            </span>
+            <span class="menu-arrow">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m9 6 6 6-6 6"/>
+                </svg>
+            </span>
+        </button>
     </section>
 
     <footer>
@@ -1599,7 +1625,6 @@ footer {
 </main>
 
 <div class="toast" id="toast"></div>
-
 <script>
 /* =========================================================
    ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
@@ -1660,6 +1685,7 @@ function openMessages()   { window.location.href = "Usersms.html"; }
 function openEvents()     { window.location.href = "events.html"; }
 function openSecurity()   { window.location.href = "security.html"; }
 function openProperties() { window.location.href = "mybuttons.html"; }
+function openParents()    { window.location.href = "parents.html"; }
 
 /* =========================================================
    АДМИН-ПАНЕЛЬ
@@ -1913,6 +1939,16 @@ function updateUserInterface(user) {
     } else {
         adminButton.style.display = "none";
     }
+
+    // ===== Кнопка «Родители» — только для админа и куратора =====
+    const parentsButton = document.getElementById("parentsButton");
+    if (parentsButton) {
+        if (currentUserRole === "admin" || currentUserRole === "curator") {
+            parentsButton.style.display = "flex";
+        } else {
+            parentsButton.style.display = "none";
+        }
+    }
 }
 
 /* =========================================================
@@ -1927,6 +1963,9 @@ function setGuestInterface() {
     document.getElementById("adminPanelButton").style.display = "none";
     const ws = document.getElementById("weekStats");
     if (ws) ws.classList.remove("visible");
+
+    const parentsButton = document.getElementById("parentsButton");
+    if (parentsButton) parentsButton.style.display = "none";
 }
 
 /* =========================================================
@@ -2013,6 +2052,11 @@ document.addEventListener("keydown", function(event) {
     if (event.key === "4") openSettings();
     if (event.key === "5") openMessages();
     if (event.key === "6") openEvents();
+    if (event.key === "7") {
+        if (currentUserRole === "admin" || currentUserRole === "curator") {
+            openParents();
+        }
+    }
 });
 
 /* =========================================================
@@ -2141,10 +2185,6 @@ document.querySelectorAll(".menu-button").forEach(function(btn) {
 
 /* =========================================================
    СТАТИСТИКА НЕДЕЛИ
-   Связка:
-     users/{uid}.group  →  groups.where("name", "==", "214")
-     groups.studentIds  →  массив ID студентов
-     attendance         →  фильтр по studentId и по датам
 ========================================================= */
 
 function isStatsRole(role) {
@@ -2191,7 +2231,6 @@ function waitForChart(cb, attempts) {
     setTimeout(function() { waitForChart(cb, attempts + 1); }, 200);
 }
 
-/* Нормализация статуса — та же логика, что в history.html */
 function normalizeStatus(status) {
     if (status === null || status === undefined) return "";
     const v = String(status).trim().toLowerCase();
@@ -2200,8 +2239,6 @@ function normalizeStatus(status) {
     return "";
 }
 
-/* Учёт одного студента за день: в total — студент с хотя бы одной отметкой,
-   в absent — студент, у которого хотя бы одна "Н" (считается 1 человек, а не число пар) */
 function countLessons(lessons, acc) {
     let marked = false, missed = false;
     Object.values(lessons || {}).forEach(function(lesson) {
@@ -2215,7 +2252,6 @@ function countLessons(lessons, acc) {
     if (missed) acc.absent += 1;
 }
 
-/* Глобальное состояние статистики */
 let wsGroupName = "—";
 let wsGroupStudentIds = [];
 let wsGroupId = null;
@@ -2235,7 +2271,6 @@ async function initWeekStats(user) {
 
     block.classList.add("visible");
 
-    /* ---------- 1. Что лежит в users/{uid} ---------- */
     let userGroupValue = null;
     try {
         const userDoc = await firebase.firestore()
@@ -2251,7 +2286,6 @@ async function initWeekStats(user) {
 
     console.log("🔎 users.group (сырое значение) =", userGroupValue);
 
-    /* ---------- 2. Ищем группу: сначала по name, потом по docId ---------- */
     let groupData = null;
     let realGroupId = null;
     let groupName = "—";
@@ -2259,7 +2293,6 @@ async function initWeekStats(user) {
     if (userGroupValue) {
         const val = String(userGroupValue).trim();
 
-        // 2.1. Поиск по полю name
         try {
             const byName = await firebase.firestore()
                 .collection("groups")
@@ -2278,7 +2311,6 @@ async function initWeekStats(user) {
             console.warn("groups.where(name==...) err:", e);
         }
 
-        // 2.2. Фолбэк: ищем по docId
         if (!groupData) {
             try {
                 const byIdDoc = await firebase.firestore()
@@ -2303,10 +2335,8 @@ async function initWeekStats(user) {
 
     console.log("🔎 Итог: realGroupId =", realGroupId, "| groupName =", groupName);
 
-    /* ---------- 3. Студенты ---------- */
     let studentIds = [];
 
-    // 3.1. Приоритет — массив в groups/{id}.studentIds
     if (groupData) {
         const raw = groupData.studentIds || groupData.students || [];
         if (Array.isArray(raw) && raw.length > 0) {
@@ -2315,7 +2345,6 @@ async function initWeekStats(user) {
         }
     }
 
-    // 3.2. Фолбэк: students.where(groupId == ID группы)
     if (studentIds.length === 0 && realGroupId) {
         try {
             const snap = await firebase.firestore()
@@ -2330,7 +2359,6 @@ async function initWeekStats(user) {
         }
     }
 
-    // 3.3. Фолбэк: students.where(groupId == название)
     if (studentIds.length === 0 && groupName && groupName !== "—") {
         try {
             const snap = await firebase.firestore()
@@ -2351,10 +2379,8 @@ async function initWeekStats(user) {
 
     console.log("🔎 ИТОГО студентов найдено:", studentIds.length);
 
-    /* ---------- 4. Первая отрисовка ---------- */
     waitForChart(function() { loadWeekStats(); });
 
-    /* ---------- 5. Подписка на attendance ---------- */
     if (weekStatsUnsub) {
         try { weekStatsUnsub(); } catch(e) {}
         weekStatsUnsub = null;
@@ -2398,7 +2424,6 @@ async function loadWeekStats() {
         return;
     }
 
-    /* ---------- Документы attendance за обе недели ---------- */
     let docs = [];
     try {
         const col = firebase.firestore().collection("attendance");
@@ -2463,7 +2488,6 @@ async function loadWeekStats() {
         const acc = { absent: 0, total: 0 };
         let matchedStudents = 0;
 
-        // ФОРМАТ 1: students = объект { studentId: { lessons: {...} } }
         if (item.students && typeof item.students === "object" && !Array.isArray(item.students)) {
             Object.keys(item.students).forEach(function(stKey) {
                 const rec = item.students[stKey] || {};
@@ -2474,7 +2498,6 @@ async function loadWeekStats() {
                 countLessons(rec.lessons, acc);
             });
         }
-        // ФОРМАТ 2: students = массив [ { studentId, lessons: [...] } ]
         else if (Array.isArray(item.students)) {
             item.students.forEach(function(st) {
                 const sid = String(st.studentId || st.id || "").trim();
@@ -2484,7 +2507,6 @@ async function loadWeekStats() {
                 countLessons(st.lessons, acc);
             });
         }
-        // ФОРМАТ 3: один документ = один студент-день
         else if (item.studentId) {
             const sid = String(item.studentId).trim();
             if (!studentIdSet.has(sid)) return;

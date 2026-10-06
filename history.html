@@ -13,6 +13,20 @@
 
 <style>
 /* =========================================================
+   АДАПТИВНЫЙ ЗУМ — на маленьких мониторах 70%
+   Порядок ВАЖЕН: сначала общий, потом @media переопределяют
+========================================================= */
+html { zoom: 1; }
+
+@media (min-width: 1920px) { html { zoom: 1; } }
+@media (min-width: 1600px) and (max-width: 1919px) { html { zoom: 0.92; } }
+@media (min-width: 1440px) and (max-width: 1599px) { html { zoom: 0.85; } }
+@media (min-width: 1280px) and (max-width: 1439px) { html { zoom: 0.78; } }
+@media (min-width: 1024px) and (max-width: 1279px) { html { zoom: 0.70; } }
+@media (min-width: 769px) and (max-width: 1023px) { html { zoom: 0.62; } }
+@media (max-width: 768px) { html { zoom: 1 !important; } }
+
+/* =========================================================
    TOKENS
 ========================================================= */
 :root {
@@ -203,9 +217,18 @@ header {
 ========================================================= */
 .container {
     max-width: 1500px;
+    width: 100%;
     margin: 24px auto 40px;
     padding: 0 20px;
     padding-bottom: calc(40px + var(--safe-bottom));
+}
+
+@media (max-width: 1600px) {
+    .container { max-width: 1300px; }
+}
+
+@media (max-width: 1280px) {
+    .container { max-width: 1100px; }
 }
 
 /* =========================================================
@@ -364,7 +387,7 @@ header {
 }
 
 /* =========================================================
-   TABLE (DESKTOP) — ФИКС НАЕЗДА КОЛОНОК
+   TABLE (DESKTOP)
 ========================================================= */
 .table-container {
     background: var(--surface);
@@ -379,9 +402,8 @@ header {
 table.journal {
     border-collapse: collapse;
     width: 100%;
-    min-width: 1000px;
+    min-width: 900px;
     font-size: 14.5px;
-    /* КРИТИЧНО: fixed — ширины берутся из colgroup, не пересчитываются */
     table-layout: fixed;
 }
 
@@ -482,7 +504,6 @@ body.mode-edit .lesson-cell:hover::after {
     opacity: .7;
 }
 
-/* Report columns */
 td.report-col { font-weight: 700; font-size: 14px; }
 td.report-total { background: var(--slate-light); color: var(--text); }
 td.report-uv { background: var(--teal-light); color: var(--teal); }
@@ -803,15 +824,17 @@ tr.total-row td.student-cell { color: var(--primary-dark); }
 .print-header .ph-range { font-weight: normal; text-decoration: underline; }
 
 @media print {
-    /* Отступ слева 10мм — номера не обрезаются */
     @page {
         size: A4 landscape;
         margin: 10mm 10mm 5mm 10mm;
     }
 
+    html {
+        zoom: 100% !important;
+    }
+
     html, body {
         min-width: 0 !important;
-        zoom: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         background: #fff !important;
@@ -832,6 +855,7 @@ tr.total-row td.student-cell { color: var(--primary-dark); }
         min-width: 0;
         margin: 0;
         padding: 0;
+        max-width: none;
     }
 
     #printSheet {
@@ -910,6 +934,51 @@ tr.total-row td.student-cell { color: var(--primary-dark); }
 }
 
 /* =========================================================
+   КОМПАКТНЫЙ РЕЖИМ ДЛЯ СРЕДНИХ ЭКРАНОВ (769px–1439px)
+========================================================= */
+@media (min-width: 769px) and (max-width: 1439px) {
+    .panel { padding: 16px 18px; }
+    .panel-title { font-size: 17px; margin-bottom: 14px; }
+
+    .controls button {
+        padding: 9px 14px;
+        font-size: 13.5px;
+        min-height: 38px;
+    }
+
+    .mode-switch button {
+        padding: 7px 12px;
+        font-size: 12.5px;
+    }
+
+    .group-select,
+    .group-static,
+    .curator-name-input {
+        height: 36px;
+        font-size: 13px;
+    }
+
+    .curator-name-input { width: 200px; }
+}
+
+/* Очень маленькие десктопы (769px–1279px) */
+@media (min-width: 769px) and (max-width: 1279px) {
+    .controls button {
+        padding: 8px 12px;
+        font-size: 13px;
+        gap: 5px;
+    }
+    .controls button svg { width: 14px; height: 14px; }
+
+    .header-brand { gap: 10px; }
+    .title { font-size: 19px; }
+    .subtitle { font-size: 12px; }
+    .time { font-size: 18px; }
+
+    .panel { padding: 14px 16px; }
+}
+
+/* =========================================================
    MOBILE (≤ 768px)
 ========================================================= */
 @media (max-width: 768px) {
@@ -921,7 +990,7 @@ tr.total-row td.student-cell { color: var(--primary-dark); }
     .clock { display: none; }
     .theme-toggle { width: 38px; height: 38px; }
 
-    .container { margin: 14px auto 20px; padding: 0 12px; }
+    .container { margin: 14px auto 20px; padding: 0 12px; max-width: none; }
 
     .panel { padding: 14px; border-radius: var(--r-md); margin-bottom: 12px; }
     .panel-title { font-size: 16px; margin-bottom: 12px; }
@@ -1713,7 +1782,7 @@ function getMarkDisplay(record) {
 }
 
 /* =========================================================
-   RENDER TABLE — С ЯВНЫМ COLGROUP (фикс наезда)
+   RENDER TABLE
 ========================================================= */
 function renderTable() {
     const wrapper = document.getElementById("tableWrapper");
@@ -1727,28 +1796,25 @@ function renderTable() {
 
     const weekDates = getWeekDates();
 
-    // =========================================================
-    // ФИКС: явные ширины колонок через <colgroup>
-    // Предотвращает "наезд" субботы и следующих колонок
-    // =========================================================
+    // Явные ширины колонок — фикс наезда
     let colgroup = '<colgroup>';
-    colgroup += '<col style="width:220px">';   // Список обучающихся
+    colgroup += '<col style="width:200px">';
 
     weekDates.forEach((date, i) => {
         const count = getLessonCount(i);
         if (count === 0) {
-            colgroup += '<col style="width:72px">';   // "—"
+            colgroup += '<col style="width:60px">';
         } else {
             for (let l = 0; l < count; l++) {
-                colgroup += '<col style="width:56px">';  // Каждая пара
+                colgroup += '<col style="width:50px">';
             }
         }
     });
 
-    colgroup += '<col style="width:80px">';   // Все Н, ч
-    colgroup += '<col style="width:80px">';   // УВ Н, ч
-    colgroup += '<col style="width:80px">';   // Неув Н, ч
-    colgroup += '<col style="width:220px">';  // Примечание
+    colgroup += '<col style="width:70px">';
+    colgroup += '<col style="width:70px">';
+    colgroup += '<col style="width:70px">';
+    colgroup += '<col style="width:180px">';
     colgroup += '</colgroup>';
 
     let html = `<table class="journal">${colgroup}<thead><tr>`;

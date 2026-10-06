@@ -1,1085 +1,998 @@
 <!DOCTYPE html>
 <html lang="ru">
-
 <head>
-
-    <meta charset="UTF-8">
-
-    <title>Посещаемость</title>
-
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-    <style>
-
-        * { box-sizing: border-box; }
-
-        html, body {
-            margin: 0;
-            padding: 0;
-            min-width: 1100px;
-            zoom: 90%;
-        }
-
-        :root {
-            --primary: #2454e8;
-            --primary-dark: #17348f;
-            --primary-light: #eef2ff;
-            --teal: #0d9488;
-            --teal-light: #ecfdf9;
-            --violet: #7c3aed;
-            --violet-light: #f4f0ff;
-            --amber: #d97706;
-            --amber-light: #fef8ec;
-            --red: #dc2626;
-            --red-light: #fef2f2;
-            --slate: #64748b;
-            --slate-light: #f1f5f9;
-
-            --text: #0f1729;
-            --text-secondary: #5b6478;
-            --text-light: #9aa3b5;
-
-            --border: rgba(220, 226, 238, 0.9);
-
-            --shadow-sm: 0 1px 2px rgba(15, 23, 42, .05), 0 1px 1px rgba(15, 23, 42, .03);
-            --shadow-md: 0 10px 24px -8px rgba(15, 23, 42, .10), 0 2px 6px rgba(15, 23, 42, .05);
-            --shadow-lg: 0 26px 50px -16px rgba(15, 23, 42, .18), 0 8px 18px -10px rgba(15, 23, 42, .09);
-
-            --ease: cubic-bezier(.22, 1, .36, 1);
-        }
-
-        body {
-            font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-            background:
-                radial-gradient(circle at 6% 0%, rgba(36, 84, 232, .06), transparent 40%),
-                radial-gradient(circle at 96% 10%, rgba(124, 58, 237, .04), transparent 38%),
-                linear-gradient(160deg, #f9fafc 0%, #f4f6fb 45%, #eef1f9 100%);
-            background-attachment: fixed;
-            color: var(--text);
-            overflow-x: auto;
-        }
-
-        h1, h2, .title, .week-title, .student-name, .popup-title {
-            font-family: "Plus Jakarta Sans", "Inter", sans-serif;
-        }
-
-        button {
-            font-family: inherit;
-        }
-
-        :focus-visible {
-            outline: 2px solid var(--primary);
-            outline-offset: 2px;
-            border-radius: 6px;
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: .001ms !important;
-                transition-duration: .001ms !important;
-            }
-        }
-
-        svg.icon-inline {
-            width: 1em;
-            height: 1em;
-            vertical-align: -0.14em;
-            margin-right: 2px;
-        }
-
-        /* =====================================
-           AUTH GUARD OVERLAY
-        ===================================== */
-
-        #authGuardOverlay {
-            position: fixed;
-            inset: 0;
-            z-index: 99999;
-
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 14px;
-
-            background: linear-gradient(160deg, #f9fafc 0%, #f4f6fb 45%, #eef1f9 100%);
-        }
-
-        #authGuardOverlay .auth-spinner {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            border: 4px solid var(--primary-light);
-            border-top-color: var(--primary);
-            animation: authSpin .8s linear infinite;
-        }
-
-        #authGuardOverlay .auth-guard-text {
-            font-family: "Inter", sans-serif;
-            font-size: 14.5px;
-            font-weight: 600;
-            color: var(--text-secondary);
-        }
-
-        @keyframes authSpin {
-            to { transform: rotate(360deg); }
-        }
-
-        body.auth-pending > header,
-        body.auth-pending > .container {
-            display: none !important;
-        }
-
-        /* =====================================
-           HEADER
-        ===================================== */
-
-        header {
-            background: linear-gradient(120deg, #17348f 0%, #2454e8 60%, #3b5fea 100%);
-            color: white;
-            padding: 18px 28px;
-
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            width: 100%;
-            min-width: 1100px;
-
-            position: sticky;
-            top: 0;
-            z-index: 50;
-
-            box-shadow: 0 12px 30px -12px rgba(36, 84, 232, .38);
-        }
-
-        .header-brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .header-logo {
-            width: 42px;
-            height: 42px;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 13px;
-            background: rgba(255, 255, 255, .14);
-            border: 1px solid rgba(255, 255, 255, .2);
-        }
-
-        .header-logo svg {
-            width: 22px;
-            height: 22px;
-        }
-
-        .title {
-            font-size: 22px;
-            font-weight: 700;
-            letter-spacing: -.3px;
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-
-        .subtitle {
-            margin-top: 4px;
-            font-size: 13px;
-            font-weight: 500;
-            color: rgba(255, 255, 255, .78);
-        }
-
-        .clock {
-            text-align: right;
-            flex-shrink: 0;
-        }
-
-        .time {
-            font-size: 21px;
-            font-weight: 700;
-            font-variant-numeric: tabular-nums;
-        }
-
-        .date {
-            font-size: 13px;
-            margin-top: 3px;
-            color: rgba(255, 255, 255, .78);
-        }
-
-        /* =====================================
-           CONTAINER
-        ===================================== */
-
-        .container {
-            width: 1500px;
-            min-width: 1500px;
-
-            margin: 24px auto 40px;
-            padding: 0 20px;
-        }
-
-        /* =====================================
-           WEEK PANEL
-        ===================================== */
-
-        .week-panel {
-            background: rgba(255, 255, 255, .92);
-            border: 1px solid var(--border);
-            border-radius: 22px;
-
-            padding: 20px 22px;
-
-            box-shadow: var(--shadow-sm);
-
-            margin-bottom: 20px;
-
-            min-width: 1100px;
-        }
-
-        .week-title {
-            font-size: 19px;
-            font-weight: 700;
-            letter-spacing: -.3px;
-
-            margin-bottom: 16px;
-
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-
-        .week-title svg {
-            width: 20px;
-            height: 20px;
-            color: var(--primary);
-        }
-
-        .week-controls {
-            display: flex;
-            align-items: center;
-
-            gap: 10px;
-
-            flex-wrap: nowrap;
-
-            min-width: 1100px;
-        }
-
-        .week-controls button {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-
-            border: 1px solid transparent;
-
-            padding: 11px 18px;
-
-            border-radius: 12px;
-
-            cursor: pointer;
-
-            font-size: 14.5px;
-            font-weight: 600;
-
-            transition:
-                transform .2s var(--ease),
-                background .2s ease,
-                box-shadow .2s ease;
-
-            white-space: nowrap;
-
-            flex-shrink: 0;
-        }
-
-        .week-controls button svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        .week-controls button:hover {
-            transform: translateY(-1px);
-        }
-
-        .week-controls button:active {
-            transform: translateY(0) scale(.97);
-        }
-
-        .previous,
-        .next {
-            background: var(--slate-light);
-            color: var(--text);
-            border-color: var(--border);
-        }
-
-        .previous:hover,
-        .next:hover {
-            background: #e6eaf2;
-        }
-
-        .current {
-            background: var(--primary);
-            color: white;
-            box-shadow: 0 8px 18px -6px rgba(36, 84, 232, .45);
-        }
-
-        .current:hover {
-            background: var(--primary-dark);
-        }
-
-        .list-button {
-            background: var(--violet-light);
-            color: var(--violet);
-        }
-
-        .list-button:hover {
-            background: #e9e0ff;
-        }
-
-        .print-button {
-            background: var(--teal-light);
-            color: var(--teal);
-        }
-
-        .print-button:hover {
-            background: #d9f5ef;
-        }
-
-        .back {
-            margin-left: auto;
-            background: var(--slate-light);
-            color: var(--text-secondary);
-        }
-
-        .back:hover {
-            background: #e6eaf2;
-            color: var(--text);
-        }
-
-        /* =====================================
-           WEEK LIST
-        ===================================== */
-
-        .week-list {
-            display: none;
-
-            margin-top: 15px;
-
-            background: #f7f8fc;
-
-            border: 1px solid var(--border);
-
-            border-radius: 16px;
-
-            padding: 8px;
-
-            max-height: 320px;
-
-            overflow-y: auto;
-        }
-
-        .week-list.show {
-            display: block;
-            animation: rise .25s var(--ease) both;
-        }
-
-        .week-option {
-            width: 100%;
-
-            border: none;
-
-            background: white;
-
-            padding: 12px 15px;
-
-            margin-bottom: 5px;
-
-            border-radius: 11px;
-
-            cursor: pointer;
-
-            text-align: left;
-
-            font-size: 14.5px;
-            font-weight: 500;
-
-            transition:
-                background .15s ease,
-                transform .15s ease;
-        }
-
-        .week-option:hover {
-            background: var(--primary-light);
-        }
-
-        .week-option.selected {
-            background: var(--primary);
-            color: white;
-            font-weight: 600;
-        }
-
-        .week-option.current-week {
-            border-left: 4px solid var(--teal);
-        }
-
-        .week-range {
-            margin-top: 14px;
-
-            color: var(--text-secondary);
-
-            font-size: 14.5px;
-            font-weight: 500;
-        }
-
-        /* =====================================
-           GROUP SWITCHER / CURATOR SIGNATURE
-        ===================================== */
-
-        .group-panel {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px 20px;
-
-            padding-bottom: 16px;
-            margin-bottom: 16px;
-
-            border-bottom: 1px solid var(--border);
-        }
-
-        .group-field {
-            display: flex;
-            align-items: center;
-            gap: 9px;
-        }
-
-        .group-field-label {
-            font-size: 12.5px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            white-space: nowrap;
-        }
-
-        .group-select {
-            height: 40px;
-            padding: 0 12px;
-            border-radius: 11px;
-            border: 1px solid var(--border);
-            background: var(--slate-light);
-            color: var(--text);
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .group-select:focus {
-            outline: 2px solid var(--primary);
-            outline-offset: 1px;
-        }
-
-        .group-static {
-            height: 40px;
-            display: inline-flex;
-            align-items: center;
-            padding: 0 14px;
-            border-radius: 11px;
-            background: var(--primary-light);
-            color: var(--primary-dark);
-            font-size: 14px;
-            font-weight: 700;
-        }
-
-        .curator-name-input {
-            height: 40px;
-            width: 230px;
-            padding: 0 12px;
-            border-radius: 11px;
-            border: 1px solid var(--border);
-            background: white;
-            color: var(--text);
-            font-size: 13.5px;
-            font-weight: 600;
-        }
-
-        .curator-name-input:disabled {
-            background: var(--slate-light);
-            color: var(--text-secondary);
-            cursor: not-allowed;
-        }
-
-        .curator-name-input:focus {
-            outline: 2px solid var(--primary);
-            outline-offset: 1px;
-        }
-
-        .group-panel .empty-groups {
-            color: var(--red);
-            font-size: 13.5px;
-            font-weight: 600;
-        }
-
-        /* =====================================
-           TABLE
-        ===================================== */
-
-        .table-container {
-            background: white;
-
-            border: 1px solid var(--border);
-            border-radius: 22px;
-
-            box-shadow: var(--shadow-sm);
-
-            overflow-x: auto;
-            overflow-y: visible;
-
-            width: 100%;
-        }
-
-        table {
-            border-collapse: collapse;
-
-            width: 100%;
-
-            min-width: 1000px;
-
-            font-size: 14.5px;
-        }
-
-        th {
-            background: linear-gradient(160deg, #2454e8, #1a3aa8);
-
-            color: white;
-
-            padding: 12px 10px;
-
-            border: 1px solid rgba(255, 255, 255, .12);
-
-            font-weight: 600;
-
-            text-align: center;
-
-            white-space: nowrap;
-        }
-
-        th.student-column {
-            text-align: left;
-            padding-left: 18px;
-
-            min-width: 270px;
-
-            width: 270px;
-
-            position: sticky;
-
-            left: 0;
-
-            z-index: 10;
-        }
-
-        td {
-            border: 1px solid #e7ebf2;
-
-            text-align: center;
-
-            padding: 7px;
-
-            transition: background .15s ease;
-        }
-
-        td.student-cell {
-            background: white;
-
-            text-align: left;
-            padding-left: 18px;
-
-            position: sticky;
-
-            left: 0;
-
-            z-index: 5;
-
-            min-width: 270px;
-
-            width: 270px;
-
-            box-shadow: 2px 0 6px -2px rgba(15, 23, 42, .06);
-        }
-
-        tbody tr:hover td.student-cell {
-            background: #fafbff;
-        }
-
-        tbody tr:hover td:not(.student-cell):not(.present):not(.absent) {
-            background: #fafbff;
-        }
-
-        .student-wrapper {
-            display: flex;
-
-            align-items: center;
-
-            gap: 10px;
-
-            white-space: nowrap;
-        }
-
-        .student-number {
-            width: 30px;
-            height: 30px;
-
-            border-radius: 50%;
-
-            background: var(--primary-light);
-            color: var(--primary);
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            font-weight: 700;
-            font-size: 13px;
-
-            flex-shrink: 0;
-        }
-
-        .student-name {
-            font-size: 14.5px;
-            font-weight: 600;
-
-            white-space: nowrap;
-        }
-
-        /* =====================================
-           DAYS
-        ===================================== */
-
-        .day-header {
-            min-width: 100px;
-        }
-
-        .day-name {
-            font-weight: 700;
-        }
-
-        .day-date {
-            font-size: 11.5px;
-
-            margin-top: 3px;
-
-            opacity: .85;
-            font-weight: 400;
-        }
-
-        /* =====================================
-           LESSON CELLS
-        ===================================== */
-
-        .lesson-cell {
-            min-width: 55px;
-
-            height: 45px;
-
-            cursor: pointer;
-
-            transition:
-                transform .12s ease,
-                box-shadow .12s ease;
-        }
-
-        .lesson-cell:hover {
-            background: var(--primary-light);
-            box-shadow: inset 0 0 0 1.5px rgba(36, 84, 232, .3);
-        }
-
-        .present {
-            color: #0a7a3d;
-
-            background: #eafbf1;
-
-            font-size: 18px;
-
-            font-weight: 700;
-        }
-
-        .absent {
-            color: #c0272d;
-
-            background: #fdedee;
-
-            font-size: 17px;
-
-            font-weight: 700;
-        }
-
-        .empty-mark {
-            color: var(--text-light);
-        }
-
-        /* =====================================
-           REPORT COLUMNS
-        ===================================== */
-
-        th.report-col {
-            min-width: 68px;
-        }
-
-        th.report-note-col,
-        td.report-note-col {
-            min-width: 180px;
-            max-width: 260px;
-        }
-
-        td.report-col {
-            font-weight: 700;
-            font-size: 14px;
-        }
-
-        td.report-total {
-            background: var(--slate-light);
-            color: var(--text);
-        }
-
-        td.report-uv {
-            background: var(--teal-light);
-            color: var(--teal);
-        }
-
-        td.report-neuv {
-            background: var(--red-light);
-            color: var(--red);
-        }
-
-        td.report-note-col {
-            font-weight: 400;
-            font-size: 13px;
-            text-align: left;
-            padding-left: 10px;
-            color: var(--text-secondary);
-            white-space: normal;
-        }
-
-        tr.total-row td {
-            background: var(--primary-light);
-            font-weight: 700;
-        }
-
-        tr.total-row td.student-cell {
-            color: var(--primary-dark);
-        }
-
-        tr.total-row td.report-uv {
-            background: var(--teal-light);
-            color: var(--teal);
-        }
-
-        tr.total-row td.report-neuv {
-            background: var(--red-light);
-            color: var(--red);
-        }
-
-        /* =====================================
-           POPUP
-        ===================================== */
-
-        .info-popup {
-            position: fixed;
-
-            display: none;
-
-            background: white;
-
-            padding: 18px;
-
-            border-radius: 16px;
-
-            border: 1px solid var(--border);
-
-            box-shadow: var(--shadow-lg);
-
-            width: 290px;
-
-            z-index: 1000;
-
-            animation: rise .2s var(--ease) both;
-        }
-
-        .popup-title {
-            font-weight: 700;
-
-            font-size: 16.5px;
-
-            margin-bottom: 11px;
-        }
-
-        .popup-row {
-            margin-bottom: 7px;
-
-            font-size: 13.5px;
-            color: var(--text-secondary);
-        }
-
-        .popup-reason {
-            background: var(--slate-light);
-
-            padding: 10px 11px;
-
-            border-radius: 11px;
-
-            margin-top: 10px;
-
-            font-size: 13.5px;
-            line-height: 1.5;
-        }
-
-        .popup-reason strong {
-            color: var(--text);
-        }
-
-        /* =====================================
-           EMPTY
-        ===================================== */
-
-        .empty {
-            text-align: center;
-
-            padding: 55px;
-
-            color: var(--text-secondary);
-
-            font-size: 15.5px;
-        }
-
-        /* =====================================
-           STATUS
-        ===================================== */
-
-        .status {
-            position: fixed;
-
-            right: 20px;
-            bottom: 20px;
-
-            background: #101a30;
-
-            color: white;
-
-            padding: 13px 19px;
-
-            border-radius: 14px;
-
-            font-size: 13.5px;
-            font-weight: 600;
-
-            box-shadow: var(--shadow-lg);
-
-            display: none;
-
-            z-index: 3000;
-        }
-
-        .status.show {
-            display: block;
-            animation: rise .25s var(--ease) both;
-        }
-
-        @keyframes rise {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* =====================================
-           PRINT
-        ===================================== */
-
-        .print-only {
-            display: none;
-        }
-
-        .print-header {
-            text-align: center;
-            font-family: "Times New Roman", Times, "Liberation Serif", serif;
-            font-size: 12pt;
-            line-height: 3.6mm;
-            height: 7.8mm;
-            box-sizing: border-box;
-            padding-left: 5.1mm;
-            margin: 0;
-            color: #000;
-            white-space: pre;
-            page-break-after: avoid;
-            break-after: avoid;
-        }
-
-        .print-header .ph-main {
-            font-weight: bold;
-        }
-
-        .print-header .ph-range {
-            font-weight: normal;
-            text-decoration: underline;
-        }
-
-        .print-footer {
-            display: none;
-        }
-
-        @media print {
-
-            @page {
-                size: A4 landscape;
-                margin: 10mm 10mm 5mm 4.9mm;
-            }
-
-            html,
-            body {
-                min-width: 0 !important;
-                zoom: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                background: #fff !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-
-            header,
-            .week-panel,
-            .table-container,
-            .info-popup,
-            .status {
-                display: none !important;
-            }
-
-            .print-only {
-                display: block !important;
-            }
-
-            .container {
-                width: auto;
-                min-width: 0;
-                margin: 0;
-                padding: 0;
-            }
-
-            #printSheet {
-                font-family: "Times New Roman", Times, "Liberation Serif", serif;
-                color: #000;
-                width: 281.9mm;
-                page-break-inside: avoid;
-                break-inside: avoid;
-                page-break-after: avoid;
-                break-after: avoid;
-            }
-
-            #printSheet table.pt {
-                width: 281.9mm;
-                min-width: 0;
-                margin-left: 0;
-                border-collapse: separate;
-                border-spacing: 0;
-                table-layout: fixed;
-                background: #fff;
-                box-shadow: 0 0 0 0.25pt #000;
-                page-break-inside: avoid;
-                break-inside: avoid;
-                page-break-after: avoid;
-                break-after: avoid;
-            }
-
-            #printSheet table.pt th,
-            #printSheet table.pt td {
-                background: none;
-                color: #000;
-                border: 0;
-                box-shadow: inset 0 0 0 0.25pt #000;
-                padding: 0;
-                font-weight: normal;
-                white-space: normal;
-                text-align: center;
-                vertical-align: top;
-                line-height: normal;
-                overflow: visible;
-                position: static;
-                min-width: 0;
-                transition: none;
-            }
-
-            #printSheet table.pt td.c-num {
-                text-align: left;
-                padding: 0 1.9mm;
-            }
-
-            #printSheet table.pt td.c-name {
-                text-align: left;
-                padding: 0 1.9mm;
-            }
-
-            #printSheet table.pt td.c-note {
-                text-align: left;
-                padding: 0 1mm;
-                overflow-wrap: anywhere;
-            }
-
-            #printSheet table.pt td.c-signature {
-                text-align: left;
-                font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
-                font-weight: normal;
-                padding: 3mm 0 0 42.6mm;
-                border: none !important;
-                box-shadow: none !important;
-                white-space: nowrap;
-                vertical-align: bottom;
-                line-height: normal;
-            }
-
-            #printSheet table.pt td.c-signature .pf-name {
-                text-decoration: underline;
-            }
-
-            #printSheet .pt-sign {
-                width: 281.9mm;
-                box-sizing: border-box;
-                padding: 3mm 0 0 42.6mm;
-                font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
-                white-space: nowrap;
-                page-break-inside: avoid;
-                break-inside: avoid;
-            }
-
-            #printSheet .pt-sign .pf-name {
-                text-decoration: underline;
-            }
-
-            /* Шапка НЕ повторяется на второй странице */
-            #printSheet table.pt thead {
-                display: table-row-group;
-            }
-
-            /* Подпись не переносится */
-            #printSheet table.pt tbody tr:last-child {
-                page-break-after: avoid;
-                break-after: avoid;
-            }
-
-            .print-footer {
-                display: none !important;
-            }
-        }
-
-    </style>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=5.0">
+<meta name="theme-color" content="#2454e8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Посещаемость — журнал</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* =========================================================
+   TOKENS
+========================================================= */
+:root {
+    --primary: #2454e8;
+    --primary-dark: #17348f;
+    --primary-light: #eef2ff;
+    --primary-glow: rgba(36,84,232,.35);
+    --teal: #0d9488;       --teal-light: #ecfdf9;
+    --violet: #7c3aed;     --violet-light: #f4f0ff;
+    --amber: #d97706;      --amber-light: #fef8ec;
+    --red: #dc2626;        --red-light: #fef2f2;
+    --green: #16a34a;      --green-light: #f0fdf4;
+    --slate: #64748b;      --slate-light: #f1f5f9;
+
+    --text: #0f1729;
+    --text-2: #5b6478;
+    --text-3: #9aa3b5;
+
+    --surface: #ffffff;
+    --surface-2: #f8fafc;
+    --border: rgba(220,226,238,.9);
+    --border-2: rgba(203,213,225,.9);
+
+    --bg-1: #f9fafc;
+    --bg-2: #f4f6fb;
+    --bg-3: #eef1f9;
+
+    --shadow-sm: 0 1px 2px rgba(15,23,42,.05), 0 1px 1px rgba(15,23,42,.03);
+    --shadow-md: 0 10px 24px -8px rgba(15,23,42,.10), 0 2px 6px rgba(15,23,42,.05);
+    --shadow-lg: 0 26px 50px -16px rgba(15,23,42,.18), 0 8px 18px -10px rgba(15,23,42,.09);
+
+    --r-sm: 10px; --r-md: 16px; --r-lg: 22px; --r-xl: 28px;
+    --ease: cubic-bezier(.22,1,.36,1);
+    --ease-bounce: cubic-bezier(.34,1.56,.64,1);
+
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html[data-theme="dark"] {
+    --primary: #5b83ff;
+    --primary-dark: #3b5fd6;
+    --primary-light: rgba(91,131,255,.14);
+    --teal: #2dd4bf;      --teal-light: rgba(45,212,191,.14);
+    --violet: #a78bfa;    --violet-light: rgba(167,139,250,.14);
+    --amber: #fbbf24;     --amber-light: rgba(251,191,36,.14);
+    --red: #fb7185;       --red-light: rgba(251,113,133,.14);
+    --green: #4ade80;     --green-light: rgba(74,222,128,.14);
+    --slate: #94a3b8;     --slate-light: rgba(148,163,184,.14);
+
+    --text: #f1f5f9;
+    --text-2: #94a3b8;
+    --text-3: #64748b;
+
+    --surface: #1e293b;
+    --surface-2: #172033;
+    --border: rgba(71,85,105,.5);
+    --border-2: rgba(71,85,105,.8);
+
+    --bg-1: #0b1220;
+    --bg-2: #0f172a;
+    --bg-3: #111c33;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
+    --shadow-md: 0 10px 24px -8px rgba(0,0,0,.5);
+    --shadow-lg: 0 26px 50px -16px rgba(0,0,0,.6);
+}
+
+/* =========================================================
+   RESET
+========================================================= */
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color: var(--text);
+    background:
+        radial-gradient(circle at 6% 0%, rgba(36,84,232,.06), transparent 40%),
+        radial-gradient(circle at 96% 10%, rgba(124,58,237,.04), transparent 38%),
+        linear-gradient(160deg, var(--bg-1) 0%, var(--bg-2) 45%, var(--bg-3) 100%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    transition: background .4s ease, color .3s ease;
+}
+
+h1, h2, .title, .week-title, .student-name, .popup-title {
+    font-family: "Plus Jakarta Sans", "Inter", sans-serif;
+}
+
+button { font-family: inherit; cursor: pointer; border: 0; background: transparent; color: inherit; }
+input, select, textarea { font-family: inherit; }
+
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: .01ms !important;
+        transition-duration: .01ms !important;
+    }
+}
+
+/* =========================================================
+   AUTH GUARD
+========================================================= */
+#authGuardOverlay {
+    position: fixed; inset: 0; z-index: 99999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+    background: var(--bg-1);
+}
+#authGuardOverlay .auth-spinner {
+    width: 42px; height: 42px; border-radius: 50%;
+    border: 4px solid var(--primary-light);
+    border-top-color: var(--primary);
+    animation: authSpin .8s linear infinite;
+}
+#authGuardOverlay .auth-guard-text {
+    font-size: 14.5px; font-weight: 600; color: var(--text-2);
+}
+@keyframes authSpin { to { transform: rotate(360deg); } }
+
+body.auth-pending > header,
+body.auth-pending > .container { display: none !important; }
+
+/* =========================================================
+   HEADER
+========================================================= */
+header {
+    background: linear-gradient(120deg, #17348f 0%, #2454e8 60%, #3b5fea 100%);
+    color: #fff;
+    padding: calc(var(--safe-top) + 14px) 20px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+    gap: 14px;
+    position: sticky; top: 0; z-index: 50;
+    box-shadow: 0 12px 30px -12px rgba(36,84,232,.38);
+}
+
+.header-brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+
+.header-logo {
+    width: 42px; height: 42px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 13px;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.2);
+}
+.header-logo svg { width: 22px; height: 22px; }
+
+.title {
+    font-size: 22px; font-weight: 700; letter-spacing: -.3px;
+    display: flex; align-items: center; gap: 9px;
+}
+.subtitle {
+    margin-top: 4px; font-size: 13px; font-weight: 500;
+    color: rgba(255,255,255,.78);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 480px;
+}
+
+.header-right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+
+.clock { text-align: right; }
+.time { font-size: 21px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.date { font-size: 13px; margin-top: 3px; color: rgba(255,255,255,.78); }
+
+.theme-toggle {
+    width: 40px; height: 40px; border-radius: 12px;
+    background: rgba(255,255,255,.14);
+    border: 1px solid rgba(255,255,255,.2);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff;
+    transition: transform .25s var(--ease-bounce), background .15s;
+}
+.theme-toggle:hover { background: rgba(255,255,255,.22); }
+.theme-toggle:active { transform: scale(.9); }
+.theme-toggle svg { width: 20px; height: 20px; }
+
+/* =========================================================
+   CONTAINER
+========================================================= */
+.container {
+    max-width: 1500px;
+    margin: 24px auto 40px;
+    padding: 0 20px;
+    padding-bottom: calc(40px + var(--safe-bottom));
+}
+
+/* =========================================================
+   PANEL
+========================================================= */
+.panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    padding: 20px 22px;
+    box-shadow: var(--shadow-sm);
+    margin-bottom: 20px;
+}
+
+.panel-title {
+    font-size: 19px; font-weight: 700; letter-spacing: -.3px;
+    margin-bottom: 16px;
+    display: flex; align-items: center; gap: 9px;
+}
+.panel-title svg { width: 20px; height: 20px; color: var(--primary); }
+
+/* =========================================================
+   GROUP PANEL
+========================================================= */
+.group-panel {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 12px 20px;
+    padding-bottom: 16px; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+}
+.group-field { display: flex; align-items: center; gap: 9px; }
+.group-field-label {
+    font-size: 12.5px; font-weight: 600; color: var(--text-2); white-space: nowrap;
+}
+.group-select {
+    height: 40px; padding: 0 12px;
+    border-radius: 11px; border: 1px solid var(--border);
+    background: var(--slate-light); color: var(--text);
+    font-size: 14px; font-weight: 600; cursor: pointer;
+}
+.group-select:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+.group-static {
+    height: 40px; display: inline-flex; align-items: center;
+    padding: 0 14px; border-radius: 11px;
+    background: var(--primary-light); color: var(--primary-dark);
+    font-size: 14px; font-weight: 700;
+}
+.curator-name-input {
+    height: 40px; width: 230px; padding: 0 12px;
+    border-radius: 11px; border: 1px solid var(--border);
+    background: var(--surface); color: var(--text);
+    font-size: 13.5px; font-weight: 600;
+}
+.curator-name-input:disabled {
+    background: var(--slate-light); color: var(--text-2); cursor: not-allowed;
+}
+.curator-name-input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
+.empty-groups { color: var(--red); font-size: 13.5px; font-weight: 600; }
+
+/* =========================================================
+   MODE SWITCH (Просмотр / Редактирование)
+========================================================= */
+.mode-switch {
+    display: inline-flex; align-items: center;
+    padding: 4px;
+    background: var(--slate-light);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    gap: 2px;
+}
+.mode-switch button {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 14px;
+    border-radius: 9px;
+    font-size: 13px; font-weight: 700;
+    color: var(--text-2);
+    transition: background .2s, color .2s, box-shadow .2s;
+    white-space: nowrap;
+    min-height: 36px;
+}
+.mode-switch button svg { width: 14px; height: 14px; }
+.mode-switch button:hover { color: var(--text); }
+.mode-switch button.active {
+    background: var(--surface);
+    color: var(--primary);
+    box-shadow: var(--shadow-sm);
+}
+.mode-switch button.active svg { color: var(--primary); }
+
+/* =========================================================
+   CONTROLS
+========================================================= */
+.controls {
+    display: flex; align-items: center; flex-wrap: wrap;
+    gap: 10px;
+}
+
+.controls button {
+    display: inline-flex; align-items: center; gap: 7px;
+    border: 1px solid transparent;
+    padding: 11px 18px;
+    border-radius: 12px;
+    font-size: 14.5px; font-weight: 600;
+    transition: transform .2s var(--ease), background .2s, box-shadow .2s;
+    white-space: nowrap;
+    min-height: 42px;
+}
+.controls button svg { width: 16px; height: 16px; }
+.controls button:hover { transform: translateY(-1px); }
+.controls button:active { transform: translateY(0) scale(.97); }
+
+.btn-secondary { background: var(--slate-light); color: var(--text); border-color: var(--border); }
+.btn-secondary:hover { background: var(--border); }
+
+.btn-primary { background: var(--primary); color: #fff; box-shadow: 0 8px 18px -6px var(--primary-glow); }
+.btn-primary:hover { background: var(--primary-dark); }
+
+.btn-violet { background: var(--violet-light); color: var(--violet); }
+.btn-violet:hover { background: var(--violet-light); filter: brightness(.95); }
+
+.btn-teal { background: var(--teal-light); color: var(--teal); }
+.btn-teal:hover { background: var(--teal-light); filter: brightness(.95); }
+
+.btn-back { margin-left: auto; background: var(--slate-light); color: var(--text-2); }
+.btn-back:hover { background: var(--border); color: var(--text); }
+
+/* =========================================================
+   WEEK LIST
+========================================================= */
+.week-list {
+    display: none;
+    margin-top: 15px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 8px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+.week-list.show { display: block; animation: rise .25s var(--ease); }
+.week-option {
+    width: 100%; border: 0; background: var(--surface);
+    padding: 12px 15px; margin-bottom: 5px;
+    border-radius: 11px; cursor: pointer; text-align: left;
+    font-size: 14.5px; font-weight: 500;
+    color: var(--text);
+    transition: background .15s, transform .15s;
+}
+.week-option:hover { background: var(--primary-light); }
+.week-option.selected { background: var(--primary); color: #fff; font-weight: 600; }
+.week-option.current-week { border-left: 4px solid var(--teal); }
+
+.week-range {
+    margin-top: 14px;
+    color: var(--text-2);
+    font-size: 14.5px; font-weight: 500;
+}
+
+/* =========================================================
+   TABLE (DESKTOP)
+========================================================= */
+.table-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+    width: 100%;
+    -webkit-overflow-scrolling: touch;
+}
+
+table.journal {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 900px;
+    font-size: 14.5px;
+    table-layout: fixed;
+}
+
+table.journal th {
+    background: linear-gradient(160deg, #2454e8, #1a3aa8);
+    color: #fff;
+    padding: 10px 8px;
+    border: 1px solid rgba(255,255,255,.12);
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+    font-size: 13px;
+}
+
+table.journal th.student-column {
+    text-align: left;
+    padding-left: 18px;
+    min-width: 220px;
+    width: 220px;
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    background: linear-gradient(160deg, #2454e8, #1a3aa8);
+}
+
+table.journal td {
+    border: 1px solid var(--border);
+    text-align: center;
+    padding: 6px;
+    transition: background .15s;
+    background: var(--surface);
+}
+
+table.journal td.student-cell {
+    text-align: left;
+    padding-left: 18px;
+    position: sticky;
+    left: 0;
+    z-index: 5;
+    min-width: 220px;
+    width: 220px;
+    box-shadow: 2px 0 6px -2px rgba(15,23,42,.06);
+    background: var(--surface);
+}
+
+table.journal tbody tr:hover td.student-cell { background: var(--surface-2); }
+table.journal tbody tr:hover td:not(.student-cell):not(.present):not(.absent) {
+    background: var(--surface-2);
+}
+
+.student-wrapper { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.student-number {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--primary-light); color: var(--primary);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 13px;
+    flex-shrink: 0;
+}
+.student-name {
+    font-size: 14.5px; font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.day-header { min-width: 90px; }
+.day-name { font-weight: 700; }
+.day-date { font-size: 11.5px; margin-top: 3px; opacity: .85; font-weight: 400; }
+
+.lesson-cell {
+    min-width: 48px; height: 42px;
+    cursor: pointer;
+    transition: transform .12s, box-shadow .12s, background .12s;
+    position: relative;
+    font-weight: 700;
+    font-size: 15px;
+}
+.lesson-cell:hover {
+    background: var(--primary-light);
+    box-shadow: inset 0 0 0 1.5px rgba(36,84,232,.3);
+}
+.lesson-cell.present { color: #0a7a3d; background: #eafbf1; font-size: 18px; }
+.lesson-cell.absent { color: #c0272d; background: #fdedee; font-size: 15px; }
+.lesson-cell.absent.uv  { color: var(--teal); background: var(--teal-light); }
+.lesson-cell.absent.bolezn { color: var(--violet); background: var(--violet-light); }
+.lesson-cell.empty-mark { color: var(--text-3); }
+
+/* Подсветка в режиме редактирования */
+body.mode-edit .lesson-cell {
+    cursor: pointer;
+}
+body.mode-edit .lesson-cell:hover {
+    background: var(--primary-light);
+    box-shadow: inset 0 0 0 2px var(--primary);
+}
+body.mode-edit .lesson-cell:hover::after {
+    content: "✎";
+    position: absolute;
+    top: 2px; right: 3px;
+    font-size: 10px;
+    color: var(--primary);
+    opacity: .7;
+}
+
+/* =========================================================
+   REPORT COLUMNS
+========================================================= */
+th.report-col { min-width: 60px; }
+th.report-note-col, td.report-note-col {
+    min-width: 160px;
+    max-width: 240px;
+}
+td.report-col { font-weight: 700; font-size: 14px; }
+td.report-total { background: var(--slate-light); color: var(--text); }
+td.report-uv { background: var(--teal-light); color: var(--teal); }
+td.report-neuv { background: var(--red-light); color: var(--red); }
+td.report-note-col {
+    font-weight: 400; font-size: 13px; text-align: left;
+    padding-left: 10px;
+    color: var(--text-2);
+    white-space: normal;
+}
+tr.total-row td {
+    background: var(--primary-light);
+    font-weight: 700;
+}
+tr.total-row td.student-cell { color: var(--primary-dark); }
+
+/* =========================================================
+   MOBILE CARDS
+========================================================= */
+.mobile-cards { display: none; }
+.mobile-day-tabs {
+    display: flex; gap: 8px;
+    overflow-x: auto;
+    padding: 4px 2px 10px;
+    margin-bottom: 10px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+.mobile-day-tabs::-webkit-scrollbar { display: none; }
+.mobile-day-tab {
+    flex-shrink: 0;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    font-size: 13px; font-weight: 700;
+    color: var(--text-2);
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    min-width: 76px;
+    transition: all .2s var(--ease);
+}
+.mobile-day-tab .mdt-day { font-size: 11.5px; font-weight: 700; opacity: .8; }
+.mobile-day-tab .mdt-date { font-size: 13px; font-weight: 800; }
+.mobile-day-tab.active {
+    background: var(--primary); color: #fff;
+    border-color: var(--primary);
+    box-shadow: 0 8px 18px -6px var(--primary-glow);
+}
+.mobile-day-tab.active .mdt-day { opacity: 1; }
+
+.mobile-students { display: flex; flex-direction: column; gap: 10px; }
+
+.mobile-student {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+    padding: 12px 14px;
+    box-shadow: var(--shadow-sm);
+    animation: rise .35s var(--ease) backwards;
+}
+.mobile-student-head {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 10px;
+}
+.mobile-student-index {
+    width: 32px; height: 32px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 10px;
+    background: var(--primary-light); color: var(--primary);
+    font-size: 12.5px; font-weight: 800;
+}
+.mobile-student-name {
+    font-size: 14.5px; font-weight: 700;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    flex: 1;
+}
+
+.mobile-lessons {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+    gap: 6px;
+}
+
+.mobile-lesson {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 2px;
+    min-height: 56px;
+    padding: 6px 4px;
+    border-radius: 12px;
+    border: 1.5px solid var(--border);
+    background: var(--surface-2);
+    cursor: pointer;
+    transition: transform .12s var(--ease-bounce), background .15s, border-color .15s;
+    position: relative;
+}
+.mobile-lesson:active { transform: scale(.94); }
+.mobile-lesson-num {
+    font-size: 10px; font-weight: 800;
+    color: var(--text-3);
+}
+.mobile-lesson-mark {
+    font-size: 16px; font-weight: 900;
+    color: var(--text-3);
+}
+.mobile-lesson.present {
+    background: var(--green-light);
+    border-color: var(--green);
+}
+.mobile-lesson.present .mobile-lesson-mark { color: var(--green); }
+.mobile-lesson.present .mobile-lesson-num { color: var(--green); }
+
+.mobile-lesson.absent {
+    background: var(--red-light);
+    border-color: var(--red);
+}
+.mobile-lesson.absent .mobile-lesson-mark { color: var(--red); }
+.mobile-lesson.absent .mobile-lesson-num { color: var(--red); }
+
+.mobile-lesson.absent.uv { background: var(--teal-light); border-color: var(--teal); }
+.mobile-lesson.absent.uv .mobile-lesson-mark,
+.mobile-lesson.absent.uv .mobile-lesson-num { color: var(--teal); }
+
+.mobile-lesson.absent.bolezn { background: var(--violet-light); border-color: var(--violet); }
+.mobile-lesson.absent.bolezn .mobile-lesson-mark,
+.mobile-lesson.absent.bolezn .mobile-lesson-num { color: var(--violet); }
+
+/* =========================================================
+   POPUP
+========================================================= */
+.info-popup {
+    position: fixed;
+    display: none;
+    background: var(--surface);
+    padding: 18px;
+    border-radius: var(--r-md);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    width: 290px;
+    z-index: 1000;
+    animation: rise .2s var(--ease);
+}
+.popup-title { font-weight: 700; font-size: 16.5px; margin-bottom: 11px; }
+.popup-row { margin-bottom: 7px; font-size: 13.5px; color: var(--text-2); }
+.popup-reason {
+    background: var(--slate-light);
+    padding: 10px 11px; border-radius: 11px;
+    margin-top: 10px;
+    font-size: 13.5px; line-height: 1.5;
+}
+.popup-reason strong { color: var(--text); }
+
+/* =========================================================
+   EMPTY / LOADING
+========================================================= */
+.empty {
+    text-align: center;
+    padding: 55px 20px;
+    color: var(--text-2);
+    font-size: 15.5px;
+}
+.spinner {
+    width: 36px; height: 36px;
+    margin: 0 auto 14px;
+    border-radius: 50%;
+    border: 4px solid var(--border);
+    border-top-color: var(--primary);
+    animation: authSpin .8s linear infinite;
+}
+
+/* =========================================================
+   STATUS / TOAST
+========================================================= */
+.status {
+    position: fixed;
+    right: 20px; bottom: calc(20px + var(--safe-bottom));
+    background: #101a30;
+    color: #fff;
+    padding: 13px 19px;
+    border-radius: 14px;
+    font-size: 13.5px; font-weight: 600;
+    box-shadow: var(--shadow-lg);
+    display: none;
+    z-index: 3000;
+    max-width: calc(100vw - 40px);
+}
+.status.show { display: block; animation: rise .25s var(--ease); }
+.status.success { background: var(--green); }
+.status.error { background: var(--red); }
+
+@keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   BOTTOM SHEET (для выбора отметки)
+========================================================= */
+.sheet-overlay {
+    position: fixed; inset: 0; z-index: 800;
+    display: none; align-items: flex-end; justify-content: center;
+    background: rgba(15,23,42,.5);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+.sheet-overlay.active { display: flex; animation: fadeIn .2s ease; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.sheet {
+    width: 100%; max-width: 520px;
+    background: var(--surface);
+    border-radius: 24px 24px 0 0;
+    padding: 8px 18px calc(18px + var(--safe-bottom));
+    box-shadow: 0 -10px 40px rgba(15,23,42,.22);
+    animation: sheetUp .35s var(--ease);
+    max-height: 90vh; overflow-y: auto;
+}
+.sheet::before {
+    content: ""; display: block;
+    width: 40px; height: 4px;
+    margin: 6px auto 14px;
+    border-radius: 999px;
+    background: var(--border-2);
+}
+@keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.sheet-title { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+.sheet-subtitle { color: var(--text-2); font-size: 13px; margin-bottom: 14px; }
+
+/* Кнопки отметки П / Н / Н/У / Н/Б */
+.mark-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.mark-btn {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px;
+    padding: 14px 6px;
+    border-radius: 14px;
+    border: 2px solid var(--border);
+    background: var(--surface-2);
+    min-height: 76px;
+    transition: transform .15s var(--ease-bounce), border-color .15s, background .15s;
+}
+.mark-btn:active { transform: scale(.94); }
+.mark-btn .mb-icon { font-size: 20px; font-weight: 900; }
+.mark-btn .mb-label { font-size: 10.5px; font-weight: 700; color: var(--text-2); }
+
+.mark-btn[data-mark="present"] { color: var(--green); }
+.mark-btn[data-mark="present"]:hover,
+.mark-btn[data-mark="present"].active {
+    border-color: var(--green);
+    background: var(--green-light);
+}
+.mark-btn[data-mark="absent"] { color: var(--red); }
+.mark-btn[data-mark="absent"]:hover,
+.mark-btn[data-mark="absent"].active {
+    border-color: var(--red);
+    background: var(--red-light);
+}
+.mark-btn[data-mark="uv"] { color: var(--teal); }
+.mark-btn[data-mark="uv"]:hover,
+.mark-btn[data-mark="uv"].active {
+    border-color: var(--teal);
+    background: var(--teal-light);
+}
+.mark-btn[data-mark="bolezn"] { color: var(--violet); }
+.mark-btn[data-mark="bolezn"]:hover,
+.mark-btn[data-mark="bolezn"].active {
+    border-color: var(--violet);
+    background: var(--violet-light);
+}
+
+/* Reason form (внутри sheet) */
+.reason-form { display: none; margin-top: 10px; padding-top: 14px; border-top: 1px solid var(--border); }
+.reason-form.show { display: block; animation: rise .25s var(--ease); }
+.reason-label { display: block; margin-bottom: 7px; font-size: 13px; font-weight: 700; }
+.reason-input {
+    width: 100%; min-height: 84px; resize: vertical;
+    padding: 12px; border: 1px solid var(--border); border-radius: 14px;
+    background: var(--surface);
+    color: var(--text);
+    outline: none; font-size: 15px;
+}
+.reason-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+
+.sheet-actions { display: flex; gap: 8px; margin-top: 14px; }
+.sheet-actions button {
+    flex: 1; padding: 14px; min-height: 50px;
+    border-radius: 14px;
+    font-weight: 800; font-size: 14px;
+}
+.btn-save { background: var(--primary); color: #fff; }
+.btn-save:active { background: var(--primary-dark); }
+.btn-cancel { background: var(--slate-light); color: var(--text-2); }
+
+/* =========================================================
+   PRINT
+========================================================= */
+.print-only { display: none; }
+
+.print-header {
+    text-align: center;
+    font-family: "Times New Roman", Times, "Liberation Serif", serif;
+    font-size: 12pt;
+    line-height: 3.6mm;
+    height: 7.8mm;
+    box-sizing: border-box;
+    padding-left: 10mm;
+    margin: 0;
+    color: #000;
+    white-space: pre;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+.print-header .ph-main { font-weight: bold; }
+.print-header .ph-range { font-weight: normal; text-decoration: underline; }
+
+@media print {
+    /* Фикс обрезки номеров: +10mm слева от края листа */
+    @page {
+        size: A4 landscape;
+        margin: 10mm 10mm 5mm 10mm;
+    }
+
+    html, body {
+        min-width: 0 !important;
+        zoom: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    header, .panel, .table-container, .mobile-cards, .info-popup, .status,
+    .mode-switch, .controls, .group-panel, .week-list, .week-range,
+    .mobile-day-tabs, .theme-toggle {
+        display: none !important;
+    }
+
+    .print-only { display: block !important; }
+
+    .container {
+        width: auto;
+        min-width: 0;
+        margin: 0;
+        padding: 0;
+    }
+
+    #printSheet {
+        font-family: "Times New Roman", Times, "Liberation Serif", serif;
+        color: #000;
+        /* Было 281.9mm — теперь меньше на 10mm слева, чтобы номера не обрезались */
+        width: 271.9mm;
+        margin-left: 0;
+        padding-left: 0;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+
+    #printSheet table.pt {
+        width: 271.9mm;
+        min-width: 0;
+        margin-left: 0;
+        border-collapse: separate;
+        border-spacing: 0;
+        table-layout: fixed;
+        background: #fff;
+        box-shadow: 0 0 0 0.25pt #000;
+        page-break-inside: avoid;
+        break-inside: avoid;
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+
+    #printSheet table.pt th,
+    #printSheet table.pt td {
+        background: none;
+        color: #000;
+        border: 0;
+        box-shadow: inset 0 0 0 0.25pt #000;
+        padding: 0;
+        font-weight: normal;
+        white-space: normal;
+        text-align: center;
+        vertical-align: top;
+        line-height: normal;
+        overflow: visible;
+        position: static;
+        min-width: 0;
+        transition: none;
+    }
+
+    /* Номера строк — с внутренним отступом, чтобы не липли к краю */
+    #printSheet table.pt td.c-num {
+        text-align: left;
+        padding: 0 1.5mm 0 2.5mm;
+        vertical-align: top;
+    }
+    #printSheet table.pt td.c-name {
+        text-align: left;
+        padding: 0 1.9mm;
+        vertical-align: top;
+    }
+    #printSheet table.pt td.c-note {
+        text-align: left;
+        padding: 0 1mm;
+        overflow-wrap: anywhere;
+        vertical-align: top;
+    }
+    #printSheet table.pt td.c-signature {
+        text-align: left;
+        font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+        font-weight: normal;
+        padding: 3mm 0 0 42.6mm;
+        border: none !important;
+        box-shadow: none !important;
+        white-space: nowrap;
+        vertical-align: bottom;
+        line-height: normal;
+    }
+    #printSheet table.pt td.c-signature .pf-name { text-decoration: underline; }
+
+    #printSheet .pt-sign {
+        width: 271.9mm;
+        box-sizing: border-box;
+        padding: 3mm 0 0 42.6mm;
+        font-family: Calibri, Carlito, "Segoe UI", Arial, sans-serif;
+        white-space: nowrap;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    #printSheet .pt-sign .pf-name { text-decoration: underline; }
+
+    #printSheet table.pt thead { display: table-row-group; }
+    #printSheet table.pt tbody tr:last-child {
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+}
+
+/* =========================================================
+   MOBILE (≤ 768px)
+========================================================= */
+@media (max-width: 768px) {
+    header { padding: calc(var(--safe-top) + 12px) 14px 12px; gap: 10px; }
+    .header-logo { width: 36px; height: 36px; border-radius: 11px; }
+    .header-logo svg { width: 18px; height: 18px; }
+    .title { font-size: 17px; }
+    .subtitle { font-size: 11.5px; max-width: 200px; }
+    .clock { display: none; }
+    .theme-toggle { width: 38px; height: 38px; }
+
+    .container { margin: 14px auto 20px; padding: 0 12px; }
+
+    .panel { padding: 14px; border-radius: var(--r-md); margin-bottom: 12px; }
+    .panel-title { font-size: 16px; margin-bottom: 12px; }
+
+    .group-panel { gap: 10px; }
+    .group-field { flex: 1 1 100%; }
+    .group-field-label { font-size: 11.5px; }
+    .group-select, .group-static { width: 100%; }
+    .curator-name-input { width: 100%; }
+
+    .mode-switch { width: 100%; }
+    .mode-switch button { flex: 1; justify-content: center; padding: 8px 10px; font-size: 12.5px; }
+
+    .controls { gap: 8px; }
+    .controls button {
+        flex: 1 1 calc(50% - 4px);
+        justify-content: center;
+        padding: 10px 12px;
+        font-size: 12.5px;
+        min-height: 44px;
+    }
+    .controls .btn-back { flex: 1 1 100%; margin-left: 0; }
+
+    .week-option { padding: 10px 12px; font-size: 13.5px; }
+
+    /* Прячем таблицу, показываем карточки */
+    .table-container { display: none; }
+    .mobile-cards { display: block; }
+}
+
+@media (max-width: 400px) {
+    .title { font-size: 15.5px; }
+    .controls button { font-size: 12px; padding: 9px 10px; }
+    .mark-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Desktop: hide mobile cards */
+@media (min-width: 769px) {
+    .mobile-cards { display: none !important; }
+    .mobile-day-tabs { display: none; }
+}
+</style>
 </head>
 
 <body class="auth-pending">
@@ -1090,9 +1003,7 @@
 </div>
 
 <header>
-
     <div class="header-brand">
-
         <div class="header-logo">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M4 20V11"/>
@@ -1101,1914 +1012,1479 @@
                 <path d="M3 20h18"/>
             </svg>
         </div>
-
         <div>
-
-            <div class="title">
-                Посещаемость
-            </div>
-
-            <div
-                class="subtitle"
-                id="semesterInfo"
-            >
-                Загрузка...
-            </div>
-
+            <div class="title">Посещаемость</div>
+            <div class="subtitle" id="semesterInfo">Загрузка...</div>
         </div>
-
     </div>
-
-    <div class="clock">
-
-        <div
-            class="time"
-            id="currentTime"
-        >
-            --:--:--
+    <div class="header-right">
+        <div class="clock">
+            <div class="time" id="currentTime">--:--:--</div>
+            <div class="date" id="currentDate">--.--.----</div>
         </div>
-
-        <div
-            class="date"
-            id="currentDate"
-        >
-            --.--.----
-        </div>
-
+        <button class="theme-toggle" id="themeToggle" aria-label="Сменить тему">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>
+            </svg>
+        </button>
     </div>
-
 </header>
 
 <div class="container">
 
-    <div class="week-panel">
-
-        <div class="week-title">
-
+    <div class="panel">
+        <div class="panel-title">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="3.5" y="5" width="17" height="16" rx="3"/>
                 <path d="M8 3v4M16 3v4M3.5 10h17"/>
             </svg>
-
             Посещаемость за неделю
-
         </div>
 
         <div class="group-panel" id="groupPanel">
-
             <div class="group-field">
                 <span class="group-field-label">Группа:</span>
                 <span id="groupSwitcherSlot"><span class="group-static">Загрузка...</span></span>
             </div>
-
             <div class="group-field">
-                <span class="group-field-label">Классный руководитель (для печати):</span>
-                <input
-                    type="text"
-                    id="curatorPrintName"
-                    class="curator-name-input"
-                    placeholder="ФИО куратора"
-                    disabled
-                    oninput="onCuratorNameEdited()"
-                >
+                <span class="group-field-label">Классный руководитель:</span>
+                <input type="text" id="curatorPrintName" class="curator-name-input"
+                       placeholder="ФИО куратора" disabled oninput="onCuratorNameEdited()">
             </div>
-
         </div>
 
-        <div class="week-controls">
+        <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:14px;">
+            <div class="mode-switch" role="tablist" aria-label="Режим работы">
+                <button type="button" id="modeViewBtn" class="active" data-mode="view" role="tab" aria-selected="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
+                    Просмотр
+                </button>
+                <button type="button" id="modeEditBtn" data-mode="edit" role="tab" aria-selected="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 20h9"/>
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5Z"/>
+                    </svg>
+                    Редактирование
+                </button>
+            </div>
+        </div>
 
-            <button
-                class="previous"
-                onclick="previousWeek()"
-            >
+        <div class="controls">
+            <button class="btn-secondary" onclick="previousWeek()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m15 6-6 6 6 6"/>
                 </svg>
-                Предыдущая неделя
+                Предыдущая
             </button>
-
-            <button
-                class="current"
-                onclick="currentWeek()"
-            >
+            <button class="btn-primary" onclick="currentWeek()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="8.5"/>
                     <path d="M12 7.5V12l3 2"/>
                 </svg>
-                Текущая неделя
+                Текущая
             </button>
-
-            <button
-                class="next"
-                onclick="nextWeek()"
-            >
-                Следующая неделя
-
+            <button class="btn-secondary" onclick="nextWeek()">
+                Следующая
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m9 6 6 6-6 6"/>
                 </svg>
-
             </button>
-
-            <button
-                class="list-button"
-                onclick="toggleWeekList()"
-            >
+            <button class="btn-violet" onclick="toggleWeekList()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M8 6h13M8 12h13M8 18h13"/>
                     <path d="M3 6h.01M3 12h.01M3 18h.01"/>
                 </svg>
                 Список
             </button>
-
-            <button
-                class="print-button"
-                onclick="printReport()"
-            >
+            <button class="btn-teal" onclick="printReport()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M6 9V3h12v6"/>
                     <path d="M6 18H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-2"/>
                     <path d="M6 14h12v8H6z"/>
                 </svg>
-                Печать отчёта
+                Печать
             </button>
-
-            <button
-                class="back"
-                onclick="goBack()"
-            >
+            <button class="btn-back" onclick="goBack()">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 12H5M11 6l-6 6 6 6"/>
                 </svg>
                 Главное меню
             </button>
-
         </div>
 
-        <div
-            id="weekList"
-            class="week-list"
-        ></div>
-
-        <div
-            class="week-range"
-            id="weekRange"
-        >
-            —
-        </div>
-
+        <div id="weekList" class="week-list"></div>
+        <div class="week-range" id="weekRange">—</div>
     </div>
 
     <div class="table-container">
-
         <div id="tableWrapper">
-
             <div class="empty">
+                <div class="spinner"></div>
                 Загрузка посещаемости...
             </div>
-
         </div>
-
     </div>
 
-    <div
-        class="print-header print-only"
-        id="printHeader"
-    >
+    <div class="mobile-cards" id="mobileCards">
+        <div class="empty">
+            <div class="spinner"></div>
+            Загрузка...
+        </div>
+    </div>
+
+    <div class="print-header print-only" id="printHeader">
         <span class="ph-main">Информация о ежедневной посещаемости занятий <span id="printGroupName">—</span>    группы</span><span class="ph-gap">       </span><span class="ph-range" id="printHeaderRange">—</span>
     </div>
 
-    <div
-        class="print-only"
-        id="printSheet"
-    ></div>
-
+    <div class="print-only" id="printSheet"></div>
 </div>
 
-<div
-    id="infoPopup"
-    class="info-popup"
->
-
-    <div
-        class="popup-title"
-        id="popupTitle"
-    >
-        —
-    </div>
-
-    <div
-        class="popup-row"
-        id="popupStudent"
-    >
-        —
-    </div>
-
-    <div
-        class="popup-row"
-        id="popupDate"
-    >
-        —
-    </div>
-
-    <div
-        class="popup-row"
-        id="popupLesson"
-    >
-        —
-    </div>
-
+<div id="infoPopup" class="info-popup">
+    <div class="popup-title" id="popupTitle">—</div>
+    <div class="popup-row" id="popupStudent">—</div>
+    <div class="popup-row" id="popupDate">—</div>
+    <div class="popup-row" id="popupLesson">—</div>
     <div class="popup-reason">
+        <strong>Причина:</strong>
+        <div id="popupReason">—</div>
+    </div>
+</div>
 
-        <strong>
-            Причина:
-        </strong>
+<!-- Bottom sheet для редактирования -->
+<div class="sheet-overlay" id="markSheetOverlay">
+    <div class="sheet">
+        <div class="sheet-title" id="sheetTitle">Отметить посещаемость</div>
+        <div class="sheet-subtitle" id="sheetSubtitle">—</div>
 
-        <div id="popupReason">
-            —
+        <div class="mark-grid" id="markGrid">
+            <button type="button" class="mark-btn" data-mark="present">
+                <span class="mb-icon">✓</span>
+                <span class="mb-label">Присутствие</span>
+            </button>
+            <button type="button" class="mark-btn" data-mark="absent">
+                <span class="mb-icon">Н</span>
+                <span class="mb-label">Отсутствие</span>
+            </button>
+            <button type="button" class="mark-btn" data-mark="uv">
+                <span class="mb-icon">Н/У</span>
+                <span class="mb-label">Уважит.</span>
+            </button>
+            <button type="button" class="mark-btn" data-mark="bolezn">
+                <span class="mb-icon">Н/Б</span>
+                <span class="mb-label">Болезнь</span>
+            </button>
         </div>
 
-    </div>
+        <div class="reason-form" id="reasonForm">
+            <label class="reason-label" for="reasonInput">Причина:</label>
+            <textarea id="reasonInput" class="reason-input" placeholder="Опишите причину..."></textarea>
+        </div>
 
+        <div class="sheet-actions">
+            <button type="button" class="btn-cancel" onclick="closeMarkSheet()">Отмена</button>
+            <button type="button" class="btn-save" id="saveMarkBtn">💾 Сохранить</button>
+        </div>
+    </div>
 </div>
 
-<div
-    id="status"
-    class="status"
-></div>
+<div id="status" class="status"></div>
 
 <script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
+import {
+    getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc,
+    query, where, FieldPath
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-    // =========================================
-    // FIREBASE
-    // =========================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+    authDomain: "othets-1aa03.firebaseapp.com",
+    projectId: "othets-1aa03",
+    storageBucket: "othets-1aa03.firebasestorage.app",
+    messagingSenderId: "528392191591",
+    appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+    measurementId: "G-F50WVZRXZJ"
+};
 
-    import {
-        initializeApp
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* =========================================================
+   STATE
+========================================================= */
+let students = [];
+let settings = {};
+let attendance = {};
+let weekStart;
+let currentUid = null;
+let userRole = null;
+let userGroups = [];
+let currentGroupId = null;
+let curatorNameManuallyEdited = false;
+let currentMode = "view"; // 'view' | 'edit'
+let activeMobileDay = 0;
+
+const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+const HOURS_PER_LESSON = 2;
+
+const AUTO_REASONS = {
+    uv: "Уважительная причина",
+    bolezn: "Больничный"
+};
+
+/* =========================================================
+   THEME
+========================================================= */
+const Theme = (() => {
+    const KEY = "theme";
+    function getPreferred() {
+        const saved = localStorage.getItem(KEY);
+        if (saved === "light" || saved === "dark") return saved;
+        return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
-    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-
-    import {
-        getAuth,
-        onAuthStateChanged
+    function apply(theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", theme === "dark" ? "#0f172a" : "#2454e8");
     }
-    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-
-    import {
-        getFirestore,
-        collection,
-        getDocs,
-        doc,
-        getDoc,
-        query,
-        where
+    function toggle() {
+        const cur = document.documentElement.getAttribute("data-theme") || "light";
+        const next = cur === "dark" ? "light" : "dark";
+        localStorage.setItem(KEY, next);
+        apply(next);
     }
-    from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
-
-
-    const firebaseConfig = {
-
-        apiKey:
-            "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
-
-        authDomain:
-            "othets-1aa03.firebaseapp.com",
-
-        projectId:
-            "othets-1aa03",
-
-        storageBucket:
-            "othets-1aa03.firebasestorage.app",
-
-        messagingSenderId:
-            "528392191591",
-
-        appId:
-            "1:528392191591:web:1e97790e6f9f0a6e175ec2",
-
-        measurementId:
-            "G-F50WVZRXZJ"
-
-    };
-
-
-    const app =
-        initializeApp(
-            firebaseConfig
-        );
-
-
-    const auth =
-        getAuth(
-            app
-        );
-
-
-    const db =
-        getFirestore(
-            app
-        );
-
-
-    // =========================================
-    // VARIABLES
-    // =========================================
-
-    let students = [];
-
-    let settings = {};
-
-    let attendance = {};
-
-    let weekStart;
-
-
-    let currentUid = null;
-
-    let userRole = null;
-
-    let userGroups = [];
-
-    let currentGroupId = null;
-
-    let curatorNameManuallyEdited = false;
-
-
-    const days = [
-
-        "Понедельник",
-        "Вторник",
-        "Среда",
-        "Четверг",
-        "Пятница",
-        "Суббота"
-
-    ];
-
-
-    const HOURS_PER_LESSON = 2;
-
-
-    // =========================================
-    // CLOCK
-    // =========================================
-
-    function updateClock() {
-
-        const now = new Date();
-
-        document.getElementById("currentTime").textContent =
-            now.toLocaleTimeString("ru-RU", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit"
-            });
-
-        document.getElementById("currentDate").textContent =
-            now.toLocaleDateString("ru-RU", {
-                day: "2-digit",
-                month: "2-digit",
-                year: "numeric"
-            });
-    }
-
-    updateClock();
-    setInterval(updateClock, 1000);
-
-
-    // =========================================
-    // DATE FORMAT
-    // =========================================
-
-    function formatDate(date) {
-
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-
-        return `${year}-${month}-${day}`;
-    }
-
-
-    function normalizeDate(value) {
-
-        if (!value) return "";
-
-        if (typeof value === "object" && typeof value.toDate === "function") {
-            return formatDate(value.toDate());
-        }
-
-        if (value instanceof Date) {
-            return formatDate(value);
-        }
-
-        const string = String(value).trim();
-
-        if (/^\d{4}-\d{2}-\d{2}$/.test(string)) {
-            return string;
-        }
-
-        const ruMatch = string.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-
-        if (ruMatch) {
-            return `${ruMatch[3]}-${ruMatch[2]}-${ruMatch[1]}`;
-        }
-
-        return "";
-    }
-
-
-    function formatDateRu(dateString) {
-
-        const normalized = normalizeDate(dateString);
-
-        if (!normalized) return "—";
-
-        const date = new Date(normalized + "T00:00:00");
-
-        return date.toLocaleDateString("ru-RU", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric"
+    function init() {
+        apply(getPreferred());
+        window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", e => {
+            if (!localStorage.getItem(KEY)) apply(e.matches ? "dark" : "light");
         });
     }
+    return { init, toggle, apply };
+})();
+Theme.init();
+document.getElementById("themeToggle").addEventListener("click", () => Theme.toggle());
 
+/* =========================================================
+   HELPERS
+========================================================= */
+function formatDate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
 
-    function getMonday(date) {
+function normalizeDate(value) {
+    if (!value) return "";
+    if (typeof value === "object" && typeof value.toDate === "function") return formatDate(value.toDate());
+    if (value instanceof Date) return formatDate(value);
+    const s = String(value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+    return "";
+}
 
-        const result = new Date(date);
-        result.setHours(0, 0, 0, 0);
+function formatDateRu(s) {
+    const n = normalizeDate(s);
+    if (!n) return "—";
+    const d = new Date(n + "T00:00:00");
+    return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
 
-        let day = result.getDay();
-        if (day === 0) day = 7;
+function formatShortDate(date, withYear) {
+    const dd = String(date.getDate()).padStart(2, "0");
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    if (!withYear) return `${dd}.${mm}`;
+    const yy = String(date.getFullYear()).slice(-2);
+    return `${dd}.${mm}.${yy}`;
+}
 
-        result.setDate(result.getDate() - day + 1);
+function getMonday(date) {
+    const r = new Date(date);
+    r.setHours(0, 0, 0, 0);
+    let day = r.getDay();
+    if (day === 0) day = 7;
+    r.setDate(r.getDate() - day + 1);
+    return r;
+}
 
-        return result;
+function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = String(text ?? "");
+    return div.innerHTML;
+}
+
+function vibrate(ms) {
+    if (navigator.vibrate) {
+        try { navigator.vibrate(ms); } catch (e) {}
+    }
+}
+
+/* =========================================================
+   CLOCK
+========================================================= */
+function updateClock() {
+    const now = new Date();
+    document.getElementById("currentTime").textContent =
+        now.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    document.getElementById("currentDate").textContent =
+        now.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* =========================================================
+   RBAC
+========================================================= */
+function toShortFio(fullName) {
+    const parts = String(fullName || "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "";
+    const surname = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
+    const initials = parts.slice(1, 3).map(w => w.charAt(0).toUpperCase());
+    return initials.length ? `${surname} ${initials.join(".")}` : surname;
+}
+
+function getCurrentGroup() {
+    return userGroups.find(g => g.id === currentGroupId) || null;
+}
+
+function groupsFromSnapshot(s) {
+    return s.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+async function loadUserAndGroups() {
+    currentUid = auth.currentUser ? auth.currentUser.uid : null;
+    if (!currentUid) {
+        userRole = null; userGroups = []; currentGroupId = null; return;
     }
 
+    const userSnap = await getDoc(doc(db, "users", currentUid));
+    const userData = userSnap.exists() ? userSnap.data() : {};
+    userRole = userData.role || "starosta";
 
-    // =========================================
-    // RBAC / ГРУППЫ
-    // =========================================
+    let groupsMap = new Map();
 
-    function toShortFio(fullName) {
-
-        const parts = String(fullName || "")
-            .trim()
-            .split(/\s+/)
-            .filter(Boolean);
-
-        if (parts.length === 0) return "";
-
-        const surname =
-            parts[0].charAt(0).toUpperCase() +
-            parts[0].slice(1).toLowerCase();
-
-        const initials = parts
-            .slice(1, 3)
-            .map(w => w.charAt(0).toUpperCase());
-
-        return initials.length
-            ? `${surname} ${initials.join(".")}`
-            : surname;
+    if (userRole === "admin") {
+        const snap = await getDocs(collection(db, "groups"));
+        groupsFromSnapshot(snap).filter(g => g.active !== false).forEach(g => groupsMap.set(g.id, g));
+    } else if (userRole === "curator") {
+        const snap = await getDocs(query(collection(db, "groups"), where("curatorId", "==", currentUid)));
+        groupsFromSnapshot(snap).filter(g => g.active !== false).forEach(g => groupsMap.set(g.id, g));
+    } else {
+        const [sA, sB] = await Promise.all([
+            getDocs(query(collection(db, "groups"), where("starostaId", "==", currentUid))),
+            getDocs(query(collection(db, "groups"), where("leaderId", "==", currentUid)))
+        ]);
+        [...groupsFromSnapshot(sA), ...groupsFromSnapshot(sB)]
+            .filter(g => g.active !== false)
+            .forEach(g => groupsMap.set(g.id, g));
     }
 
+    userGroups = Array.from(groupsMap.values())
+        .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ru"));
 
-    function getCurrentGroup() {
-        return userGroups.find(g => g.id === currentGroupId) || null;
+    const remembered = sessionStorage.getItem("selectedGroupId");
+    if (remembered && userGroups.some(g => g.id === remembered)) currentGroupId = remembered;
+    else currentGroupId = userGroups.length > 0 ? userGroups[0].id : null;
+}
+
+function renderGroupSwitcher() {
+    const slot = document.getElementById("groupSwitcherSlot");
+    const curatorInput = document.getElementById("curatorPrintName");
+
+    if (!userGroups.length) {
+        slot.innerHTML = '<span class="empty-groups">Нет доступных групп</span>';
+        curatorInput.value = "";
+        curatorInput.disabled = true;
+        return;
     }
 
-
-    function groupsFromSnapshot(snapshot) {
-        return snapshot.docs.map(d => ({
-            id: d.id,
-            ...d.data()
-        }));
+    const showDropdown = userRole === "admin" || userGroups.length > 1;
+    if (showDropdown) {
+        slot.innerHTML = '<select class="group-select" id="groupSelect" onchange="switchGroup(this.value)"></select>';
+        const select = document.getElementById("groupSelect");
+        select.innerHTML = userGroups
+            .map(g => `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name || g.id)}</option>`)
+            .join("");
+        select.value = currentGroupId;
+    } else {
+        const g = getCurrentGroup();
+        slot.innerHTML = `<span class="group-static">${escapeHtml(g ? (g.name || g.id) : "—")}</span>`;
     }
+    updateCuratorNameField();
+}
 
+function updateCuratorNameField() {
+    const curatorInput = document.getElementById("curatorPrintName");
+    const g = getCurrentGroup();
+    const dbCuratorName = g ? toShortFio(g.curatorName || "") : "";
 
-    async function loadUserAndGroups() {
-
-        currentUid = auth.currentUser ? auth.currentUser.uid : null;
-
-        if (!currentUid) {
-            userRole = null;
-            userGroups = [];
-            currentGroupId = null;
-            return;
-        }
-
-        const userSnap = await getDoc(doc(db, "users", currentUid));
-
-        const userData = userSnap.exists() ? userSnap.data() : {};
-
-        userRole = userData.role || "starosta";
-
-        let groupsMap = new Map();
-
-        if (userRole === "admin") {
-
-            const snapshot = await getDocs(collection(db, "groups"));
-
-            groupsFromSnapshot(snapshot)
-                .filter(g => g.active !== false)
-                .forEach(g => groupsMap.set(g.id, g));
-
-        }
-        else if (userRole === "curator") {
-
-            const snapshot = await getDocs(
-                query(
-                    collection(db, "groups"),
-                    where("curatorId", "==", currentUid)
-                )
-            );
-
-            groupsFromSnapshot(snapshot)
-                .filter(g => g.active !== false)
-                .forEach(g => groupsMap.set(g.id, g));
-
-        }
-        else {
-
-            const [snapA, snapB] = await Promise.all([
-                getDocs(
-                    query(
-                        collection(db, "groups"),
-                        where("starostaId", "==", currentUid)
-                    )
-                ),
-                getDocs(
-                    query(
-                        collection(db, "groups"),
-                        where("leaderId", "==", currentUid)
-                    )
-                )
-            ]);
-
-            [...groupsFromSnapshot(snapA), ...groupsFromSnapshot(snapB)]
-                .filter(g => g.active !== false)
-                .forEach(g => groupsMap.set(g.id, g));
-        }
-
-        userGroups = Array.from(groupsMap.values())
-            .sort((a, b) =>
-                String(a.name || "").localeCompare(String(b.name || ""), "ru")
-            );
-
-        const remembered = sessionStorage.getItem("selectedGroupId");
-
-        if (remembered && userGroups.some(g => g.id === remembered)) {
-            currentGroupId = remembered;
-        }
-        else {
-            currentGroupId =
-                userGroups.length > 0 ? userGroups[0].id : null;
-        }
+    if (userRole === "admin") {
+        curatorInput.disabled = false;
+        if (!curatorNameManuallyEdited) curatorInput.value = dbCuratorName;
+    } else {
+        curatorInput.disabled = true;
+        curatorInput.value = dbCuratorName;
     }
+}
 
+window.onCuratorNameEdited = () => { curatorNameManuallyEdited = true; };
 
-    function renderGroupSwitcher() {
-
-        const slot = document.getElementById("groupSwitcherSlot");
-        const curatorInput = document.getElementById("curatorPrintName");
-
-        if (userGroups.length === 0) {
-
-            slot.innerHTML =
-                '<span class="empty-groups">Нет доступных групп</span>';
-
-            curatorInput.value = "";
-            curatorInput.disabled = true;
-            return;
-        }
-
-        const showDropdown =
-            userRole === "admin" ||
-            userGroups.length > 1;
-
-        if (showDropdown) {
-
-            slot.innerHTML =
-                '<select class="group-select" id="groupSelect" onchange="switchGroup(this.value)"></select>';
-
-            const select = document.getElementById("groupSelect");
-
-            select.innerHTML = userGroups
-                .map(g =>
-                    `<option value="${escapeHtml(g.id)}">${escapeHtml(g.name || g.id)}</option>`
-                )
-                .join("");
-
-            select.value = currentGroupId;
-
-        }
-        else {
-
-            const group = getCurrentGroup();
-
-            slot.innerHTML =
-                `<span class="group-static">${escapeHtml(group ? (group.name || group.id) : "—")}</span>`;
-
-        }
-
+window.switchGroup = async (groupId) => {
+    if (!groupId || groupId === currentGroupId) return;
+    currentGroupId = groupId;
+    curatorNameManuallyEdited = false;
+    sessionStorage.setItem("selectedGroupId", groupId);
+    try {
+        showStatus("Загрузка группы...");
+        await loadSettings();
+        await loadStudents();
+        await loadAttendance();
+        updateWeekRange();
+        renderTable();
+        renderMobile();
+        renderWeekList();
         updateCuratorNameField();
+    } catch (e) {
+        console.error(e);
+        showStatus("Не удалось загрузить группу", "error");
+    }
+};
+
+/* =========================================================
+   LOAD DATA
+========================================================= */
+async function loadSettings() {
+    settings = { schedule: {}, disciplines: {}, bells: {}, semester1: {}, semester2: {} };
+    if (!currentGroupId) return;
+    try {
+        const snap = await getDoc(doc(db, "groupSettings", currentGroupId));
+        if (snap.exists()) {
+            const d = snap.data() || {};
+            settings = {
+                schedule: d.schedule || {},
+                disciplines: d.disciplines || {},
+                bells: d.bells || {},
+                semester1: d.semester1 || {},
+                semester2: d.semester2 || {}
+            };
+        }
+    } catch (e) { console.error(e); showStatus("Не удалось загрузить настройки", "error"); }
+}
+
+async function loadStudents() {
+    students = [];
+    if (!currentGroupId) return;
+    const g = getCurrentGroup();
+    const explicitIds = g && Array.isArray(g.studentIds) ? g.studentIds.map(String) : [];
+
+    let byGroupId = [];
+    try {
+        const snap = await getDocs(query(collection(db, "students"), where("groupId", "==", currentGroupId)));
+        byGroupId = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch (e) { console.warn(e); }
+
+    let byExplicit = [];
+    if (explicitIds.length > 0) {
+        const full = await getDocs(collection(db, "students"));
+        byExplicit = full.docs
+            .filter(d => explicitIds.includes(String(d.id)))
+            .map(d => ({ id: d.id, ...d.data() }));
     }
 
+    const map = new Map();
+    [...byGroupId, ...byExplicit].forEach(s => map.set(s.id, s));
+    students = Array.from(map.values());
+    students.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ru"));
+}
 
-    function updateCuratorNameField() {
+function getStudentName(studentId) {
+    const s = students.find(i => String(i.id) === String(studentId));
+    return s ? (s.name || "Без имени") : "Неизвестный студент";
+}
 
-        const curatorInput = document.getElementById("curatorPrintName");
-        const group = getCurrentGroup();
+function normalizeStatus(status) {
+    if (status === null || status === undefined) return "";
+    const v = String(status).trim().toLowerCase();
+    if (["present","присутствовал","присутствует","присутствие","п","✓"].includes(v)) return "present";
+    if (["absent","отсутствовал","отсутствует","отсутствие","н"].includes(v)) return "absent";
+    return "";
+}
 
-        const dbCuratorName = group
-            ? toShortFio(group.curatorName || "")
-            : "";
+async function loadAttendance() {
+    attendance = {};
+    if (!currentGroupId || students.length === 0) return;
 
-        if (userRole === "admin") {
-            curatorInput.disabled = false;
-            if (!curatorNameManuallyEdited) {
-                curatorInput.value = dbCuratorName;
-            }
-        }
-        else {
-            curatorInput.disabled = true;
-            curatorInput.value = dbCuratorName;
-        }
-    }
+    const studentIdsSet = new Set(students.map(s => String(s.id)));
 
+    try {
+        const snap = await getDocs(collection(db, "attendance"));
 
-    window.onCuratorNameEdited = function () {
-        curatorNameManuallyEdited = true;
-    };
+        function pushStudentDay(date, studentId, studentName, lessons, meta) {
+            if (!date || !studentId) return;
+            const sid = String(studentId);
+            if (!studentIdsSet.has(sid)) return;
 
+            Object.entries(lessons || {}).forEach(([lessonNum, ld]) => {
+                if (!ld) return;
+                const status = normalizeStatus(ld.status);
+                if (!status) return;
 
-    window.switchGroup = async function (groupId) {
+                const reason = ld.reason || ld.comment || ld.description || "";
+                const absentType = String(ld.absentType || "").trim().toLowerCase();
+                const key = `${date}_${sid}_${lessonNum}`;
 
-        if (!groupId || groupId === currentGroupId) return;
-
-        currentGroupId = groupId;
-        curatorNameManuallyEdited = false;
-
-        sessionStorage.setItem("selectedGroupId", groupId);
-
-        try {
-
-            showStatus("Загрузка группы...");
-
-            await loadSettings();
-            await loadStudents();
-            await loadAttendance();
-
-            updateWeekRange();
-            renderTable();
-            renderWeekList();
-            updateCuratorNameField();
-
-        }
-        catch (error) {
-            console.error("Ошибка переключения группы:", error);
-            showStatus("Не удалось загрузить данные группы");
-        }
-    };
-
-
-    // =========================================
-    // LOAD SETTINGS
-    // =========================================
-
-    async function loadSettings() {
-
-        settings = {
-            schedule: {},
-            disciplines: {},
-            bells: {},
-            semester1: {},
-            semester2: {}
-        };
-
-        if (!currentGroupId) return;
-
-        try {
-
-            const snapshot = await getDoc(
-                doc(db, "groupSettings", currentGroupId)
-            );
-
-            if (snapshot.exists()) {
-
-                const data = snapshot.data() || {};
-
-                settings = {
-                    schedule: data.schedule || {},
-                    disciplines: data.disciplines || {},
-                    bells: data.bells || {},
-                    semester1: data.semester1 || {},
-                    semester2: data.semester2 || {}
+                attendance[key] = {
+                    id: meta.docId || "",
+                    documentId: meta.docId || "",
+                    date, studentId: sid,
+                    studentName: studentName || getStudentName(sid),
+                    lesson: String(lessonNum),
+                    status, absentType,
+                    reason: String(reason),
+                    semester: meta.semester || "",
+                    attestation: meta.attestation || "",
+                    updatedAt: meta.updatedAt || ""
                 };
-
-                console.log("📥 groupSettings загружены:", currentGroupId, settings);
-
-            }
-            else {
-                console.warn("⚠ groupSettings не найдены для", currentGroupId);
-            }
-
-        }
-        catch (error) {
-            console.error("Ошибка загрузки настроек:", error);
-            showStatus("Не удалось загрузить настройки");
-        }
-    }
-
-
-    // =========================================
-    // LOAD STUDENTS
-    // =========================================
-
-    async function loadStudents() {
-
-        try {
-
-            students = [];
-
-            if (!currentGroupId) return;
-
-            const group = getCurrentGroup();
-
-            const explicitIds =
-                group && Array.isArray(group.studentIds)
-                    ? group.studentIds.map(String)
-                    : [];
-
-
-            let byGroupId = [];
-
-            try {
-
-                const snapshot = await getDocs(
-                    query(
-                        collection(db, "students"),
-                        where("groupId", "==", currentGroupId)
-                    )
-                );
-
-                byGroupId = snapshot.docs.map(d => ({
-                    id: d.id,
-                    ...d.data()
-                }));
-
-            }
-            catch (e) {
-                console.warn("Фильтр students по groupId не сработал:", e);
-                byGroupId = [];
-            }
-
-
-            let byExplicit = [];
-
-            if (explicitIds.length > 0) {
-
-                const fullSnap = await getDocs(collection(db, "students"));
-
-                byExplicit = fullSnap.docs
-                    .filter(d => explicitIds.includes(String(d.id)))
-                    .map(d => ({
-                        id: d.id,
-                        ...d.data()
-                    }));
-            }
-
-
-            const map = new Map();
-
-            [...byGroupId, ...byExplicit].forEach(s => map.set(s.id, s));
-
-            students = Array.from(map.values());
-
-            students.sort((a, b) =>
-                String(a.name || "").localeCompare(String(b.name || ""), "ru")
-            );
-
-            console.log(
-                "📥 Студентов загружено:",
-                students.length,
-                "| по groupId:", byGroupId.length,
-                "| по studentIds группы:", byExplicit.length
-            );
-
-        }
-        catch (error) {
-
-            console.error("Ошибка студентов:", error);
-            showStatus("Ошибка загрузки студентов");
-
-        }
-    }
-
-
-    function getStudentName(studentId) {
-
-        const student = students.find(
-            item => String(item.id) === String(studentId)
-        );
-
-        return student ? (student.name || "Без имени") : "Неизвестный студент";
-    }
-
-
-    // =========================================
-    // NORMALIZE STATUS
-    // =========================================
-
-    function normalizeStatus(status) {
-
-        if (status === null || status === undefined) return "";
-
-        const value = String(status).trim().toLowerCase();
-
-        if (
-            value === "present" ||
-            value === "присутствовал" ||
-            value === "присутствует" ||
-            value === "присутствие" ||
-            value === "п" ||
-            value === "✓"
-        ) {
-            return "present";
+            });
         }
 
-        if (
-            value === "absent" ||
-            value === "отсутствовал" ||
-            value === "отсутствует" ||
-            value === "отсутствие" ||
-            value === "н"
-        ) {
-            return "absent";
-        }
+        snap.forEach(attDoc => {
+            const data = attDoc.data();
 
-        return "";
-    }
-
-
-    // =========================================
-    // === ИЗМЕНЕНО ===
-    // LOAD ATTENDANCE
-    //
-    // Поддерживает ДВА формата:
-    //
-    // 1) НОВЫЙ (1 документ на дату):
-    //    attendance/2026-09-25 = {
-    //        date: "2026-09-25",
-    //        groupId: "...",
-    //        semester, attestation, updatedAt,
-    //        students: {
-    //            "studentId1": { studentId, studentName, lessons },
-    //            "studentId2": { ... }
-    //        }
-    //    }
-    //
-    // 2) СТАРЫЙ (1 документ на студента-день):
-    //    attendance/2026-09-25_abc123 = {
-    //        date, studentId, studentName, lessons
-    //    }
-    //
-    // В обоих случаях данные приводятся к плоскому виду:
-    //    attendance["YYYY-MM-DD_studentId_lesson"] = { ... }
-    // =========================================
-
-    async function loadAttendance() {
-
-        try {
-
-            attendance = {};
-
-            if (!currentGroupId) return;
-
-            if (students.length === 0) {
-                console.warn("⚠ Нет студентов — attendance не загружаем");
+            // Новый формат
+            if (data.students && typeof data.students === "object") {
+                const date = normalizeDate(data.date);
+                if (!date) return;
+                Object.values(data.students).forEach(rec => {
+                    if (!rec || !rec.studentId) return;
+                    pushStudentDay(date, rec.studentId, rec.studentName, rec.lessons, {
+                        docId: attDoc.id,
+                        semester: data.semester,
+                        attestation: data.attestation,
+                        updatedAt: rec.updatedAt || data.updatedAt
+                    });
+                });
                 return;
             }
 
-            const studentIdsSet = new Set(students.map(s => String(s.id)));
-
-            console.log(
-                "🔎 Ищем attendance для студентов:",
-                studentIdsSet.size
-            );
-
-
-            const snapshot = await getDocs(collection(db, "attendance"));
-
-            console.log(
-                "📦 Всего документов attendance:",
-                snapshot.docs.length
-            );
-
-            let matched = 0;
-
-
-            /* Вспомогательная функция:
-               раскладывает один "студенто-день" в плоские ключи */
-            function pushStudentDay(date, studentId, studentName, lessons, meta) {
-
-                if (!date || !studentId) return;
-
-                const sid = String(studentId);
-
-                if (!studentIdsSet.has(sid)) return;
-
-                matched++;
-
-                Object.entries(lessons || {}).forEach(([lessonNumber, lessonData]) => {
-
-                    if (!lessonData) return;
-
-                    const status = normalizeStatus(lessonData.status);
-                    if (!status) return;
-
-                    const reason =
-                        lessonData.reason ||
-                        lessonData.comment ||
-                        lessonData.description ||
-                        "";
-
-                    const absentType = String(lessonData.absentType || "")
-                        .trim()
-                        .toLowerCase();
-
-                    const key = `${date}_${sid}_${lessonNumber}`;
-
-                    attendance[key] = {
-                        id: meta.docId || "",
-                        documentId: meta.docId || "",
-                        date: date,
-                        studentId: sid,
-                        studentName: studentName || getStudentName(sid),
-                        lesson: String(lessonNumber),
-                        status: status,
-                        absentType: absentType,
-                        reason: String(reason),
-                        semester: meta.semester || "",
-                        attestation: meta.attestation || "",
-                        updatedAt: meta.updatedAt || ""
-                    };
+            // Старый формат
+            if (data.date && data.studentId) {
+                const date = normalizeDate(data.date);
+                pushStudentDay(date, data.studentId, data.studentName, data.lessons, {
+                    docId: attDoc.id,
+                    semester: data.semester,
+                    attestation: data.attestation,
+                    updatedAt: data.updatedAt
                 });
             }
-
-
-            snapshot.forEach(attendanceDoc => {
-
-                const data = attendanceDoc.data();
-
-                /* ---------- НОВЫЙ ФОРМАТ ---------- */
-
-                if (data.students && typeof data.students === "object") {
-
-                    const date = normalizeDate(data.date);
-
-                    if (!date) return;
-
-                    Object.values(data.students).forEach(studentRecord => {
-
-                        if (!studentRecord || !studentRecord.studentId) return;
-
-                        pushStudentDay(
-                            date,
-                            studentRecord.studentId,
-                            studentRecord.studentName,
-                            studentRecord.lessons,
-                            {
-                                docId: attendanceDoc.id,
-                                semester: data.semester,
-                                attestation: data.attestation,
-                                updatedAt:
-                                    studentRecord.updatedAt || data.updatedAt
-                            }
-                        );
-                    });
-
-                    return;
-                }
-
-                /* ---------- СТАРЫЙ ФОРМАТ ---------- */
-
-                if (data.date && data.studentId) {
-
-                    const date = normalizeDate(data.date);
-
-                    pushStudentDay(
-                        date,
-                        data.studentId,
-                        data.studentName,
-                        data.lessons,
-                        {
-                            docId: attendanceDoc.id,
-                            semester: data.semester,
-                            attestation: data.attestation,
-                            updatedAt: data.updatedAt
-                        }
-                    );
-                }
-            });
-
-            console.log(
-                "✅ Совпало записей:",
-                matched,
-                "| ключей собрано:",
-                Object.keys(attendance).length
-            );
-
-        }
-        catch (error) {
-            console.error("Ошибка загрузки посещаемости:", error);
-            showStatus("Ошибка загрузки посещаемости");
-        }
-    }
-
-
-    // =========================================
-    // GET LESSON COUNT
-    // =========================================
-
-    function getLessonCount(dayIndex) {
-
-        const schedule = settings.schedule || {};
-        const day = days[dayIndex];
-        const value = schedule[day];
-
-        if (value === undefined || value === null) return 0;
-
-        if (Array.isArray(value)) return value.length;
-
-        if (typeof value === "object") {
-            if (Array.isArray(value.lessons)) return value.lessons.length;
-            if (typeof value.count !== "undefined") return Number(value.count) || 0;
-        }
-
-        return Number(value) || 0;
-    }
-
-
-    // =========================================
-    // GET WEEK DATES
-    // =========================================
-
-    function getWeekDates() {
-
-        const result = [];
-
-        for (let i = 0; i < 6; i++) {
-            const date = new Date(weekStart);
-            date.setDate(date.getDate() + i);
-            result.push(date);
-        }
-
-        return result;
-    }
-
-
-    function updateWeekRange() {
-
-        const dates = getWeekDates();
-
-        const first = formatDateRu(formatDate(dates[0]));
-        const last = formatDateRu(formatDate(dates[5]));
-
-        document.getElementById("weekRange").textContent =
-            `Период: ${first} — ${last}`;
-    }
-
-
-    // =========================================
-    // RENDER TABLE
-    // =========================================
-
-    function renderTable() {
-
-        const wrapper = document.getElementById("tableWrapper");
-
-        if (students.length === 0) {
-
-            wrapper.innerHTML = `
-                <div class="empty">
-                    👨‍🎓 Студентов пока нет.
-                    <br><br>
-                    Добавьте студентов в разделе «Студенты»
-                    или проверьте, что группа выбрана правильно.
-                </div>
-            `;
-
-            const printSheet = document.getElementById("printSheet");
-            if (printSheet) printSheet.innerHTML = "";
-
-            return;
-        }
-
-
-        const weekDates = getWeekDates();
-
-
-        let html = `
-            <table>
-                <thead>
-                    <tr>
-                        <th class="student-column" rowspan="2">
-                            Список обучающихся
-                        </th>
-        `;
-
-
-        weekDates.forEach((date, index) => {
-
-            const count = getLessonCount(index);
-
-            html += `
-                <th class="day-header" colspan="${Math.max(count, 1)}">
-                    <div class="day-name">${days[index]}</div>
-                    <div class="day-date">${formatDateRu(formatDate(date))}</div>
-                </th>
-            `;
         });
+    } catch (e) {
+        console.error("Ошибка загрузки посещаемости:", e);
+        showStatus("Ошибка загрузки посещаемости", "error");
+    }
+}
 
+/* =========================================================
+   SAVE (для режима редактирования)
+========================================================= */
+async function saveLessonMark(date, studentId, lessonNum, markData) {
+    const ref = doc(db, "attendance", date);
+    const snap = await getDoc(ref);
 
-        html += `
-                    <th class="day-header report-col" rowspan="2">
-                        <div class="day-name">Все Н, ч</div>
-                    </th>
-                    <th class="day-header report-col report-uv" rowspan="2">
-                        <div class="day-name">УВ Н, ч</div>
-                    </th>
-                    <th class="day-header report-col report-neuv" rowspan="2">
-                        <div class="day-name">Неув Н, ч</div>
-                    </th>
-                    <th class="day-header report-col report-note-col" rowspan="2">
-                        <div class="day-name">Примечание</div>
-                    </th>
-                    </tr>
-                    <tr>
-        `;
+    const current = snap.exists() ? (snap.data() || {}) : {};
+    const studentsMap = { ...(current.students || {}) };
 
+    const record = studentsMap[studentId] || {
+        studentId,
+        studentName: getStudentName(studentId),
+        lessons: {}
+    };
+    const lessons = { ...(record.lessons || {}) };
 
-        weekDates.forEach((date, dayIndex) => {
+    const key = String(lessonNum);
 
-            const count = getLessonCount(dayIndex);
-
-            if (count === 0) {
-                html += `<th>—</th>`;
-                return;
-            }
-
-            for (let lesson = 1; lesson <= count; lesson++) {
-                html += `<th>${lesson}</th>`;
-            }
-        });
-
-
-        html += `
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-
-        let groupAll = 0;
-        let groupUv = 0;
-        let groupNeuv = 0;
-
-
-        students.forEach((student, studentIndex) => {
-
-            let studentAll = 0;
-            let studentUv = 0;
-            let studentNeuv = 0;
-            const studentReasons = [];
-
-
-            html += `
-                <tr>
-                    <td class="student-cell">
-                        <div class="student-wrapper">
-                            <div class="student-number">${studentIndex + 1}</div>
-                            <div class="student-name">${escapeHtml(student.name || "Без имени")}</div>
-                        </div>
-                    </td>
-            `;
-
-
-            weekDates.forEach((date, dayIndex) => {
-
-                const dateString = formatDate(date);
-                const lessonCount = getLessonCount(dayIndex);
-
-                if (lessonCount === 0) {
-                    html += `<td class="lesson-cell empty-mark">—</td>`;
-                    return;
-                }
-
-                for (let lesson = 1; lesson <= lessonCount; lesson++) {
-
-                    const key = `${dateString}_${student.id}_${lesson}`;
-                    const record = attendance[key];
-
-                    let mark = "—";
-                    let className = "empty-mark";
-
-                    if (record && record.status === "present") {
-                        mark = "✓";
-                        className = "present";
-                    }
-
-                    if (record && record.status === "absent") {
-
-                        mark = "Н";
-                        className = "absent";
-
-                        studentAll += HOURS_PER_LESSON;
-
-                        const reasonText = String(record.reason || "").trim();
-                        const absentType = record.absentType || "";
-
-                        const isExcused =
-                            absentType === "uv" ||
-                            absentType === "bolezn" ||
-                            (!absentType && Boolean(reasonText));
-
-                        if (isExcused) {
-
-                            studentUv += HOURS_PER_LESSON;
-
-                            if (reasonText && !studentReasons.includes(reasonText)) {
-                                studentReasons.push(reasonText);
-                            }
-
-                        }
-                        else {
-                            studentNeuv += HOURS_PER_LESSON;
-                        }
-                    }
-
-
-                    html += `
-                        <td class="lesson-cell ${className}" data-record-key="${escapeHtml(key)}">
-                            ${mark}
-                        </td>
-                    `;
-                }
-            });
-
-
-            groupAll += studentAll;
-            groupUv += studentUv;
-            groupNeuv += studentNeuv;
-
-
-            html += `
-                    <td class="report-col report-total">${studentAll}</td>
-                    <td class="report-col report-uv">${studentUv}</td>
-                    <td class="report-col report-neuv">${studentNeuv}</td>
-                    <td class="report-col report-note-col ${studentReasons.length ? "" : "empty-mark"}">
-                        ${studentReasons.length ? escapeHtml(studentReasons.join("; ")) : "—"}
-                    </td>
-                </tr>
-            `;
-        });
-
-
-        html += `
-                <tr class="total-row">
-                    <td class="student-cell"><strong>Итого по группе</strong></td>
-        `;
-
-
-        weekDates.forEach((date, dayIndex) => {
-
-            const count = getLessonCount(dayIndex);
-            const slots = Math.max(count, 1);
-
-            for (let i = 0; i < slots; i++) {
-                html += `<td class="empty-mark">—</td>`;
-            }
-        });
-
-
-        html += `
-                    <td class="report-col report-total">${groupAll}</td>
-                    <td class="report-col report-uv">${groupUv}</td>
-                    <td class="report-col report-neuv">${groupNeuv}</td>
-                    <td class="report-col report-note-col empty-mark">—</td>
-                </tr>
-                </tbody>
-            </table>
-        `;
-
-
-        wrapper.innerHTML = html;
-
-
-        wrapper.querySelectorAll(".lesson-cell").forEach(cell => {
-            cell.addEventListener("click", event => {
-                showRecordInfo(event, cell);
-            });
-        });
-
+    if (markData === null) {
+        delete lessons[key];
+    } else {
+        lessons[key] = {
+            status: markData.status,
+            absentType: markData.absentType || "",
+            reason: markData.reason || ""
+        };
     }
 
+    record.lessons = lessons;
+    record.updatedAt = new Date().toISOString();
+    studentsMap[studentId] = record;
 
-    // =========================================
-    // SHOW RECORD
-    // =========================================
+    const group = getCurrentGroup();
+    const info = getAttestationInfo(date);
+    const meta = {
+        date,
+        groupId: currentGroupId,
+        semester: info ? `${info.semester} семестр` : "",
+        attestation: info ? `Аттестация №${info.attestation}` : "",
+        updatedAt: new Date().toISOString()
+    };
 
-    function showRecordInfo(event, cell) {
-
-        const key = cell.dataset.recordKey;
-        const record = attendance[key];
-
-        if (!record) {
-            hidePopup();
-            return;
+    try {
+        await updateDoc(ref, new FieldPath("students", studentId), record,
+            "date", meta.date, "groupId", meta.groupId,
+            "semester", meta.semester, "attestation", meta.attestation,
+            "updatedAt", meta.updatedAt);
+    } catch (e) {
+        if (e && e.code === "not-found") {
+            await setDoc(ref, { ...meta, students: { [studentId]: record } });
+        } else {
+            throw e;
         }
-
-        const popup = document.getElementById("infoPopup");
-
-        if (record.status === "absent") {
-            document.getElementById("popupTitle").textContent = "⚠️ Отсутствие";
-        }
-        else {
-            document.getElementById("popupTitle").textContent = "✓ Присутствие";
-        }
-
-        document.getElementById("popupStudent").textContent =
-            "ФИО: " + record.studentName;
-
-        document.getElementById("popupDate").textContent =
-            "Дата: " + formatDateRu(record.date);
-
-        document.getElementById("popupLesson").textContent =
-            "Пара: " + record.lesson;
-
-        document.getElementById("popupReason").textContent =
-            record.reason ||
-            (record.status === "absent"
-                ? "Причина не указана"
-                : "Студент присутствовал");
-
-        popup.style.display = "block";
-
-        const rect = cell.getBoundingClientRect();
-
-        let left = rect.left;
-        let top = rect.bottom + 5;
-
-        if (left + 290 > window.innerWidth) left = window.innerWidth - 300;
-        if (top + 190 > window.innerHeight) top = rect.top - 195;
-        if (left < 5) left = 5;
-        if (top < 5) top = 5;
-
-        popup.style.left = left + "px";
-        popup.style.top = top + "px";
-
-        event.stopPropagation();
     }
 
+    // Обновляем локальное состояние
+    const attKey = `${date}_${studentId}_${lessonNum}`;
+    if (markData === null) {
+        delete attendance[attKey];
+    } else {
+        attendance[attKey] = {
+            id: date, documentId: date,
+            date, studentId, studentName: getStudentName(studentId),
+            lesson: String(lessonNum),
+            status: markData.status,
+            absentType: markData.absentType || "",
+            reason: markData.reason || "",
+            semester: meta.semester, attestation: meta.attestation,
+            updatedAt: meta.updatedAt
+        };
+    }
+}
 
-    function hidePopup() {
-        document.getElementById("infoPopup").style.display = "none";
+/* =========================================================
+   WEEK / SCHEDULE HELPERS
+========================================================= */
+function getLessonCount(dayIndex) {
+    const schedule = settings.schedule || {};
+    const day = days[dayIndex];
+    const v = schedule[day];
+    if (v === undefined || v === null) return 0;
+    if (Array.isArray(v)) return v.length;
+    if (typeof v === "object") {
+        if (Array.isArray(v.lessons)) return v.lessons.length;
+        if (typeof v.count !== "undefined") return Number(v.count) || 0;
+    }
+    return Number(v) || 0;
+}
+
+function getWeekDates() {
+    const result = [];
+    for (let i = 0; i < 6; i++) {
+        const d = new Date(weekStart);
+        d.setDate(d.getDate() + i);
+        result.push(d);
+    }
+    return result;
+}
+
+function updateWeekRange() {
+    const dates = getWeekDates();
+    const first = formatDateRu(formatDate(dates[0]));
+    const last = formatDateRu(formatDate(dates[5]));
+    document.getElementById("weekRange").textContent = `Период: ${first} — ${last}`;
+}
+
+function getAttestationInfo(dateString) {
+    const date = new Date(dateString + "T00:00:00");
+    const periods = [
+        { semester: 1, attestation: 1, period: settings.semester1?.attestation1 },
+        { semester: 1, attestation: 2, period: settings.semester1?.attestation2 },
+        { semester: 2, attestation: 1, period: settings.semester2?.attestation1 },
+        { semester: 2, attestation: 2, period: settings.semester2?.attestation2 }
+    ];
+    for (const item of periods) {
+        if (!item.period?.start || !item.period?.end) continue;
+        const start = new Date(item.period.start + "T00:00:00");
+        const end = new Date(item.period.end + "T23:59:59");
+        if (date >= start && date <= end) return item;
+    }
+    return null;
+}
+
+/* =========================================================
+   MODE
+========================================================= */
+function setMode(mode) {
+    currentMode = mode;
+    document.body.classList.toggle("mode-edit", mode === "edit");
+    document.getElementById("modeViewBtn").classList.toggle("active", mode === "view");
+    document.getElementById("modeEditBtn").classList.toggle("active", mode === "edit");
+    document.getElementById("modeViewBtn").setAttribute("aria-selected", String(mode === "view"));
+    document.getElementById("modeEditBtn").setAttribute("aria-selected", String(mode === "edit"));
+    showStatus(mode === "edit" ? "✎ Режим редактирования" : "👁 Режим просмотра");
+    renderTable();
+    renderMobile();
+}
+
+document.getElementById("modeViewBtn").addEventListener("click", () => setMode("view"));
+document.getElementById("modeEditBtn").addEventListener("click", () => setMode("edit"));
+
+/* =========================================================
+   TABLE (DESKTOP)
+========================================================= */
+function getMarkDisplay(record) {
+    if (!record) return { mark: "—", cls: "empty-mark" };
+    if (record.status === "present") return { mark: "✓", cls: "present" };
+    if (record.status === "absent") {
+        const at = record.absentType || "";
+        if (at === "uv") return { mark: "Н/У", cls: "absent uv" };
+        if (at === "bolezn") return { mark: "Н/Б", cls: "absent bolezn" };
+        return { mark: "Н", cls: "absent" };
+    }
+    return { mark: "—", cls: "empty-mark" };
+}
+
+function renderTable() {
+    const wrapper = document.getElementById("tableWrapper");
+
+    if (students.length === 0) {
+        wrapper.innerHTML = `<div class="empty">👨‍🎓 Студентов пока нет.<br><br>Добавьте студентов в разделе «Студенты» или проверьте, что группа выбрана правильно.</div>`;
+        const ps = document.getElementById("printSheet");
+        if (ps) ps.innerHTML = "";
+        return;
     }
 
+    const weekDates = getWeekDates();
 
-    document.addEventListener("click", event => {
+    let html = `<table class="journal"><thead><tr>`;
+    html += `<th class="student-column" rowspan="2">Список обучающихся</th>`;
 
-        const popup = document.getElementById("infoPopup");
-
-        if (!popup.contains(event.target)) {
-            hidePopup();
-        }
+    weekDates.forEach((date, i) => {
+        const count = getLessonCount(i);
+        html += `<th class="day-header" colspan="${Math.max(count, 1)}">
+            <div class="day-name">${days[i]}</div>
+            <div class="day-date">${formatDateRu(formatDate(date))}</div>
+        </th>`;
     });
 
-
-    // =========================================
-    // WEEK NAVIGATION
-    // =========================================
-
-    window.previousWeek = function () {
-        weekStart.setDate(weekStart.getDate() - 7);
-        updateWeekRange();
-        renderTable();
-        renderWeekList();
-    };
-
-
-    window.nextWeek = function () {
-        weekStart.setDate(weekStart.getDate() + 7);
-        updateWeekRange();
-        renderTable();
-        renderWeekList();
-    };
-
-
-    window.currentWeek = function () {
-        weekStart = getMonday(new Date());
-        updateWeekRange();
-        renderTable();
-        renderWeekList();
-    };
-
-
-    window.toggleWeekList = function () {
-
-        const list = document.getElementById("weekList");
-
-        list.classList.toggle("show");
-
-        if (list.classList.contains("show")) {
-            renderWeekList();
-        }
-    };
-
-
-    function renderWeekList() {
-
-        const list = document.getElementById("weekList");
-
-        list.innerHTML = "";
-
-        const currentMonday = getMonday(new Date());
-
-        for (let i = -20; i <= 20; i++) {
-
-            const monday = new Date(currentMonday);
-            monday.setDate(monday.getDate() + i * 7);
-
-            const saturday = new Date(monday);
-            saturday.setDate(saturday.getDate() + 5);
-
-            const mondayText = formatDateRu(formatDate(monday));
-            const saturdayText = formatDateRu(formatDate(saturday));
-
-            const button = document.createElement("button");
-
-            button.className = "week-option";
-
-            if (formatDate(monday) === formatDate(weekStart)) {
-                button.classList.add("selected");
-            }
-
-            if (i === 0) button.classList.add("current-week");
-
-            button.textContent = i === 0
-                ? `⭐ Текущая неделя — ${mondayText} — ${saturdayText}`
-                : `${mondayText} — ${saturdayText}`;
-
-            button.addEventListener("click", () => selectWeek(monday));
-
-            list.appendChild(button);
-        }
-    }
-
-
-    function selectWeek(date) {
-
-        weekStart = getMonday(date);
-
-        updateWeekRange();
-        renderTable();
-
-        document.getElementById("weekList").classList.remove("show");
-
-        renderWeekList();
-    }
-
-
-    // =========================================
-    // PRINT
-    // =========================================
-
-    function formatShortDate(date, withYear) {
-
-        const dd = String(date.getDate()).padStart(2, "0");
-        const mm = String(date.getMonth() + 1).padStart(2, "0");
-
-        if (!withYear) return `${dd}.${mm}`;
-
-        const yy = String(date.getFullYear()).slice(-2);
-        return `${dd}.${mm}.${yy}`;
-    }
-
-
-    // =========================================
-    // BUILD PRINT SHEET
-    // =========================================
-
-    function buildPrintSheet(scaleFactor) {
-
-        const sheet = document.getElementById("printSheet");
-        if (!sheet) return;
-
-        const group = getCurrentGroup();
-
-        const printGroupNameEl = document.getElementById("printGroupName");
-        if (printGroupNameEl) {
-            printGroupNameEl.textContent = group ? (group.name || group.id) : "—";
-        }
-
-        const curatorInputEl = document.getElementById("curatorPrintName");
-
-        const table = document.querySelector("#tableWrapper table");
-
-        if (!table || students.length === 0) {
-            sheet.innerHTML = "";
-            return;
-        }
-
-        const weekDates = getWeekDates();
-        const lessonCounts = weekDates.map((date, index) => getLessonCount(index));
-
-        const rows = Array.from(
-            table.querySelectorAll("tbody tr:not(.total-row)")
-        );
-
-        const s = scaleFactor || 1.0;
-
-        const baseRowHeight  = 7.5;
-        const baseHeadHeight = 7.0;
-        const baseSignHeight = 14;
-
-        const rowHeight  = baseRowHeight  * s;
-        const headHeight = baseHeadHeight * s;
-        const signHeight = baseSignHeight * s;
-
-        const fontBody  = (11  * s).toFixed(2);
-        const fontName  = (11  * s).toFixed(2);
-        const fontNum   = (12  * s).toFixed(2);
-        const fontSmall = (10  * s).toFixed(2);
-        const fontNote  = (9   * s).toFixed(2);
-        const fontHead  = (10  * s).toFixed(2);
-        const fontLineH = (14.5 * s).toFixed(2);
-
-        let cols =
-            '<col style="width:10.92mm">' +
-            '<col style="width:59.07mm">';
-
-        lessonCounts.forEach(count => {
-            if (count === 0) {
-                cols += '<col style="width:21mm">';
-            } else {
-                cols += "<col>".repeat(count);
-            }
-        });
-
-        cols +=
-            '<col style="width:10.65mm">' +
-            '<col style="width:6.83mm">' +
-            '<col style="width:10.04mm">' +
-            '<col style="width:24.02mm">';
-
-        let head1 = '<th rowspan="2"></th><th rowspan="2">Ф.И.О.</th>';
-        let head2 = "";
-
-        weekDates.forEach((date, index) => {
-            const count = lessonCounts[index];
-            head1 +=
-                `<th colspan="${Math.max(count, 1)}">` +
-                `${days[index]}<br>${formatShortDate(date, false)}</th>`;
-
-            if (count === 0) {
-                head2 += "<th>—</th>";
-            } else {
-                for (let lesson = 1; lesson <= count; lesson++) {
-                    head2 += `<th>${lesson}</th>`;
-                }
-            }
-        });
-
-        head1 +=
-            '<th class="sm">Всего</th>' +
-            "<th>Ув</th>" +
-            '<th class="sm">Неув</th>' +
-            "<th>Примечания</th>";
-
-        head2 += "<th></th><th></th><th></th><th></th>";
-
-        let body = "";
-
-        rows.forEach((row, rowIndex) => {
-
-            const nameElement = row.querySelector(".student-name");
-            const name = nameElement ? nameElement.textContent.trim() : "";
-
-            let cells = "";
-            row.querySelectorAll(".lesson-cell").forEach(cell => {
-                const mark = cell.classList.contains("absent") ? "Н" : "";
-                cells += `<td class="c-l">${mark}</td>`;
-            });
-
-            const readCell = selector => {
-                const cell = row.querySelector(selector);
-                return cell ? cell.textContent.trim() : "";
-            };
-
-            const noteCell = row.querySelector("td.report-note-col");
-            const note = (noteCell && !noteCell.classList.contains("empty-mark"))
-                ? noteCell.textContent.trim()
-                : "";
-
-            body +=
-                `<tr style="height:${rowHeight}mm">` +
-                `<td class="c-num" style="height:${rowHeight}mm">${rowIndex + 1}.</td>` +
-                `<td class="c-name">${escapeHtml(name)}</td>` +
-                cells +
-                `<td class="c-t">${escapeHtml(readCell("td.report-total"))}</td>` +
-                `<td class="c-t">${escapeHtml(readCell("td.report-uv"))}</td>` +
-                `<td class="c-t">${escapeHtml(readCell("td.report-neuv"))}</td>` +
-                `<td class="c-note">${escapeHtml(note)}</td>` +
-                `</tr>`;
-        });
-
-        const totalCols =
-            2 + lessonCounts.reduce((s, c) => s + Math.max(c, 1), 0) + 4;
-
-        const curatorName = (curatorInputEl && curatorInputEl.value.trim())
-            ? curatorInputEl.value.trim()
-            : "________________";
-
-        const signatureRow = `
-            <div class="pt-sign" style="height:${signHeight}mm">
-                Классный руководитель&nbsp;&nbsp;&nbsp;&nbsp;______________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="pf-name">${escapeHtml(curatorName)}</span>
+    html += `
+        <th class="report-col" rowspan="2">Все Н, ч</th>
+        <th class="report-col" rowspan="2">УВ Н, ч</th>
+        <th class="report-col" rowspan="2">Неув Н, ч</th>
+        <th class="report-note-col" rowspan="2">Примечание</th>
+        </tr><tr>`;
+
+    weekDates.forEach((date, i) => {
+        const count = getLessonCount(i);
+        if (count === 0) { html += `<th>—</th>`; return; }
+        for (let l = 1; l <= count; l++) html += `<th>${l}</th>`;
+    });
+
+    html += `</tr></thead><tbody>`;
+
+    let groupAll = 0, groupUv = 0, groupNeuv = 0;
+
+    students.forEach((student, idx) => {
+        let sAll = 0, sUv = 0, sNeuv = 0;
+        const reasons = [];
+
+        html += `<tr><td class="student-cell">
+            <div class="student-wrapper">
+                <div class="student-number">${idx + 1}</div>
+                <div class="student-name">${escapeHtml(student.name || "Без имени")}</div>
             </div>
-        `;
+        </td>`;
 
-        const oldStyle = document.getElementById("ptDynamicStyle");
-        if (oldStyle) oldStyle.remove();
+        weekDates.forEach((date, dayIndex) => {
+            const dateStr = formatDate(date);
+            const count = getLessonCount(dayIndex);
 
-        sheet.innerHTML =
-            `<table class="pt">` +
-                `<colgroup>${cols}</colgroup>` +
-                `<thead>
-                    <tr style="height:${headHeight}mm">${head1}</tr>
-                    <tr style="height:${headHeight}mm">${head2}</tr>
-                </thead>` +
-                `<tbody>${body}</tbody>` +
-            `</table>` +
-            signatureRow;
-
-        const styleTag = document.createElement("style");
-        styleTag.id = "ptDynamicStyle";
-        styleTag.textContent = `
-            #printSheet table.pt { font-size: ${fontBody}pt; }
-            #printSheet table.pt thead th { font-size: ${fontHead}pt; }
-            #printSheet table.pt thead th.sm { font-size: ${fontSmall}pt; }
-            #printSheet table.pt td.c-num { font-size: ${fontNum}pt; }
-            #printSheet table.pt td.c-name { font-size: ${fontName}pt; line-height: ${fontLineH}pt; }
-            #printSheet table.pt td.c-l { font-size: ${fontSmall}pt; }
-            #printSheet table.pt td.c-t { font-size: ${fontSmall}pt; }
-            #printSheet table.pt td.c-note { font-size: ${fontNote}pt; }
-            #printSheet .pt-sign { font-size: ${fontBody}pt; }
-        `;
-        document.head.appendChild(styleTag);
-    }
-
-
-    // =========================================
-    // PRINT REPORT — РАСЧЁТ МАСШТАБА ЗАРАНЕЕ
-    // =========================================
-
-    function printReport() {
-
-        const dates = getWeekDates();
-
-        const rangeText =
-            `с ${formatShortDate(dates[0], true)}` +
-            ` - ${formatShortDate(dates[5], true)}гг`;
-
-        document.getElementById("printHeaderRange").textContent = rangeText;
-
-        // ============================================================
-        // Доступная высота таблицы (A4 landscape 210мм):
-        //   210 - 10 (верх) - 5 (низ) - 8 (заголовок) - 9 (запас) = 178мм
-        //
-        // Расход при scale=1.0:
-        //   - шапка таблицы (2 строки)  ≈ 14мм
-        //   - строка подписи            ≈ 14мм
-        //   - N строк студентов × 7.5мм        // ============================================================
-
-        const AVAILABLE_MM = 178;
-        const HEAD_MM  = 14;
-        const SIGN_MM  = 14;
-        const ROW_MM   = 7.5;
-
-        const studentCount = students.length;
-        const neededMm = HEAD_MM + SIGN_MM + studentCount * ROW_MM;
-
-        let scale = 1.0;
-
-        if (neededMm > AVAILABLE_MM) {
-            scale = AVAILABLE_MM / neededMm;
-        }
-
-        if (scale < 0.55) scale = 0.55;
-
-        console.log(
-            "🖨 Студентов:", studentCount,
-            "| нужно:", neededMm.toFixed(1), "мм",
-            "| доступно:", AVAILABLE_MM, "мм",
-            "| масштаб:", scale.toFixed(3)
-        );
-
-        buildPrintSheet(scale);
-
-        setTimeout(() => {
-            window.print();
-        }, 150);
-    }
-
-
-    window.printReport = printReport;
-
-
-    // =========================================
-    // MAIN MENU
-    // =========================================
-
-    window.goBack = async function () {
-
-        try {
-
-            const user = auth.currentUser;
-
-            if (!user) {
-                window.location.href = "login.html";
+            if (count === 0) {
+                html += `<td class="lesson-cell empty-mark">—</td>`;
                 return;
             }
 
-            const userDoc = await getDoc(doc(db, "users", user.uid));
+            for (let l = 1; l <= count; l++) {
+                const key = `${dateStr}_${student.id}_${l}`;
+                const rec = attendance[key];
+                const { mark, cls } = getMarkDisplay(rec);
 
-            if (userDoc.exists() && userDoc.data().role === "admin") {
-                window.location.href = "adminhome.html";
-                return;
+                if (rec && rec.status === "absent") {
+                    sAll += HOURS_PER_LESSON;
+                    const rt = String(rec.reason || "").trim();
+                    const at = rec.absentType || "";
+                    const isExcused = at === "uv" || at === "bolezn" || (!at && Boolean(rt));
+                    if (isExcused) {
+                        sUv += HOURS_PER_LESSON;
+                        if (rt && !reasons.includes(rt)) reasons.push(rt);
+                    } else {
+                        sNeuv += HOURS_PER_LESSON;
+                    }
+                }
+
+                const isEditable = currentMode === "edit";
+                const cellAttrs = isEditable
+                    ? `data-student="${escapeHtml(student.id)}" data-date="${dateStr}" data-lesson="${l}"`
+                    : `data-record-key="${escapeHtml(key)}"`;
+
+                html += `<td class="lesson-cell ${cls}" ${cellAttrs}>${mark}</td>`;
             }
+        });
 
-            window.location.href = "home.html";
+        groupAll += sAll; groupUv += sUv; groupNeuv += sNeuv;
 
-        }
-        catch (error) {
+        html += `
+            <td class="report-col report-total">${sAll}</td>
+            <td class="report-col report-uv">${sUv}</td>
+            <td class="report-col report-neuv">${sNeuv}</td>
+            <td class="report-note-col ${reasons.length ? "" : "empty-mark"}">
+                ${reasons.length ? escapeHtml(reasons.join("; ")) : "—"}
+            </td>
+        </tr>`;
+    });
 
-            console.error("Ошибка определения роли:", error);
-            window.location.href = "home.html";
-        }
-    };
+    html += `<tr class="total-row"><td class="student-cell"><strong>Итого по группе</strong></td>`;
 
+    weekDates.forEach((date, i) => {
+        const count = getLessonCount(i);
+        const slots = Math.max(count, 1);
+        for (let x = 0; x < slots; x++) html += `<td class="empty-mark">—</td>`;
+    });
 
-    // =========================================
-    // ESCAPE HTML
-    // =========================================
+    html += `
+        <td class="report-col report-total">${groupAll}</td>
+        <td class="report-col report-uv">${groupUv}</td>
+        <td class="report-col report-neuv">${groupNeuv}</td>
+        <td class="report-note-col empty-mark">—</td>
+    </tr></tbody></table>`;
 
-    function escapeHtml(text) {
+    wrapper.innerHTML = html;
 
-        const div = document.createElement("div");
-        div.textContent = String(text ?? "");
-        return div.innerHTML;
+    // Обработчики
+    wrapper.querySelectorAll(".lesson-cell").forEach(cell => {
+        cell.addEventListener("click", e => {
+            if (currentMode === "edit") {
+                const sid = cell.dataset.student;
+                const date = cell.dataset.date;
+                const lesson = parseInt(cell.dataset.lesson, 10);
+                if (sid && date && lesson) openMarkSheet(sid, date, lesson);
+            } else {
+                showRecordInfo(e, cell);
+            }
+        });
+    });
+}
+
+/* =========================================================
+   MOBILE RENDER
+========================================================= */
+function renderMobile() {
+    const root = document.getElementById("mobileCards");
+
+    if (students.length === 0) {
+        root.innerHTML = `<div class="empty">👨‍🎓 Студентов пока нет.</div>`;
+        return;
     }
 
+    const weekDates = getWeekDates();
 
-    // =========================================
-    // STATUS
-    // =========================================
+    // Tabs по дням
+    let tabsHtml = `<div class="mobile-day-tabs">`;
+    weekDates.forEach((date, i) => {
+        const count = getLessonCount(i);
+        const isActive = i === activeMobileDay;
+        tabsHtml += `<button type="button" class="mobile-day-tab ${isActive ? "active" : ""}"
+            data-day-index="${i}">
+            <span class="mdt-day">${days[i].slice(0, 3)}</span>
+            <span class="mdt-date">${formatDateRu(formatDate(date)).slice(0, 5)}</span>
+        </button>`;
+    });
+    tabsHtml += `</div>`;
 
-    function showStatus(message) {
+    // Выбранный день
+    const dayIndex = activeMobileDay;
+    const date = weekDates[dayIndex];
+    const dateStr = formatDate(date);
+    const lessonCount = getLessonCount(dayIndex);
 
-        const status = document.getElementById("status");
+    let listHtml = `<div class="mobile-students">`;
 
-        status.textContent = message;
-        status.classList.add("show");
-
-        setTimeout(() => {
-            status.classList.remove("show");
-        }, 2500);
-    }
-
-
-    // =========================================
-    // START
-    // =========================================
-
-    async function start() {
-
-        try {
-
-            weekStart = getMonday(new Date());
-
-            await loadUserAndGroups();
-
-            renderGroupSwitcher();
-
-            if (!currentGroupId) {
-
-                document.getElementById("tableWrapper").innerHTML = `
-                    <div class="empty">
-                        ⚠️ Вам не назначена ни одна группа.
-                        <br><br>
-                        Обратитесь к администратору для назначения
-                        группы (куратор / староста).
-                    </div>
-                `;
-
-                return;
-            }
-
-            await loadSettings();
-            await loadStudents();
-            await loadAttendance();
-
-            updateWeekRange();
-            renderTable();
-            renderWeekList();
-
-            const today = formatDate(new Date());
-            const info = getAttestationInfo(today);
-
-            if (info) {
-                document.getElementById("semesterInfo").textContent =
-                    `${info.semester} семестр • Аттестация №${info.attestation}`;
-            }
-            else {
-                document.getElementById("semesterInfo").textContent =
-                    "Семестр / аттестация не определены";
-            }
-
-        }
-        catch (error) {
-
-            console.error("Ошибка запуска:", error);
-
-            document.getElementById("tableWrapper").innerHTML = `
-                <div class="empty">
-                    ❌ Ошибка загрузки данных.
-                    <br><br>
-                    Откройте консоль браузера (F12 → Console) для подробностей.
+    if (lessonCount === 0) {
+        listHtml += `<div class="empty">📚 В этот день нет занятий</div>`;
+    } else {
+        students.forEach((student, idx) => {
+            listHtml += `<div class="mobile-student" style="animation-delay:${Math.min(idx * 0.02, 0.3)}s">
+                <div class="mobile-student-head">
+                    <div class="mobile-student-index">${idx + 1}</div>
+                    <div class="mobile-student-name">${escapeHtml(student.name || "Без имени")}</div>
                 </div>
-            `;
+                <div class="mobile-lessons">`;
+
+            for (let l = 1; l <= lessonCount; l++) {
+                const key = `${dateStr}_${student.id}_${l}`;
+                const rec = attendance[key];
+                const { mark, cls } = getMarkDisplay(rec);
+
+                const extraClass = rec && rec.status === "absent"
+                    ? (rec.absentType === "uv" ? "uv" : rec.absentType === "bolezn" ? "bolezn" : "")
+                    : "";
+
+                listHtml += `<button type="button" class="mobile-lesson ${cls} ${extraClass}"
+                    data-student="${escapeHtml(student.id)}"
+                    data-date="${dateStr}"
+                    data-lesson="${l}">
+                    <span class="mobile-lesson-num">${l} пара</span>
+                    <span class="mobile-lesson-mark">${mark}</span>
+                </button>`;
+            }
+
+            listHtml += `</div></div>`;
+        });
+    }
+    listHtml += `</div>`;
+
+    root.innerHTML = tabsHtml + listHtml;
+
+    // Обработчики табов
+    root.querySelectorAll(".mobile-day-tab").forEach(tab => {
+        tab.addEventListener("click", () => {
+            activeMobileDay = parseInt(tab.dataset.dayIndex, 10);
+            renderMobile();
+        });
+    });
+
+    // Обработчики ячеек
+    root.querySelectorAll(".mobile-lesson").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const sid = btn.dataset.student;
+            const date = btn.dataset.date;
+            const lesson = parseInt(btn.dataset.lesson, 10);
+
+            if (currentMode === "edit") {
+                openMarkSheet(sid, date, lesson);
+            } else {
+                // В просмотре — открываем попап
+                const key = `${date}_${sid}_${lesson}`;
+                const rec = attendance[key];
+                if (!rec) return;
+                showMobileRecordPopup(rec);
+            }
+        });
+    });
+}
+
+/* =========================================================
+   INFO POPUP (VIEW)
+========================================================= */
+function showRecordInfo(event, cell) {
+    const key = cell.dataset.recordKey;
+    const rec = attendance[key];
+    if (!rec) { hidePopup(); return; }
+
+    const popup = document.getElementById("infoPopup");
+    document.getElementById("popupTitle").textContent =
+        rec.status === "absent" ? "⚠️ Отсутствие" : "✓ Присутствие";
+    document.getElementById("popupStudent").textContent = "ФИО: " + rec.studentName;
+    document.getElementById("popupDate").textContent = "Дата: " + formatDateRu(rec.date);
+    document.getElementById("popupLesson").textContent = "Пара: " + rec.lesson;
+    document.getElementById("popupReason").textContent =
+        rec.reason || (rec.status === "absent" ? "Причина не указана" : "Студент присутствовал");
+
+    popup.style.display = "block";
+
+    const rect = cell.getBoundingClientRect();
+    let left = rect.left;
+    let top = rect.bottom + 5;
+
+    if (left + 290 > window.innerWidth) left = window.innerWidth - 300;
+    if (top + 190 > window.innerHeight) top = rect.top - 195;
+    if (left < 5) left = 5;
+    if (top < 5) top = 5;
+
+    popup.style.left = left + "px";
+    popup.style.top = top + "px";
+
+    event.stopPropagation();
+}
+
+function showMobileRecordPopup(rec) {
+    // На мобиле вместо попапа — просто toast с инфой
+    const text = rec.status === "absent"
+        ? `Н: ${rec.reason || "причина не указана"}`
+        : "✓ Присутствовал";
+    showStatus(text);
+}
+
+function hidePopup() {
+    document.getElementById("infoPopup").style.display = "none";
+}
+
+document.addEventListener("click", e => {
+    const popup = document.getElementById("infoPopup");
+    if (!popup.contains(e.target)) hidePopup();
+});
+
+/* =========================================================
+   MARK SHEET (EDIT MODE)
+========================================================= */
+let sheetState = {
+    studentId: null,
+    date: null,
+    lesson: null,
+    selectedMark: null
+};
+
+function openMarkSheet(studentId, date, lesson) {
+    vibrate(15);
+    sheetState = { studentId, date, lesson, selectedMark: null };
+
+    const student = students.find(s => String(s.id) === String(studentId));
+    const studentName = student ? (student.name || "Без имени") : "—";
+
+    document.getElementById("sheetTitle").textContent = "Отметка посещаемости";
+    document.getElementById("sheetSubtitle").textContent =
+        `${studentName} • ${lesson} пара • ${formatDateRu(date)}`;
+
+    // Загружаем текущее значение
+    const key = `${date}_${studentId}_${lesson}`;
+    const rec = attendance[key];
+
+    document.querySelectorAll(".mark-btn").forEach(b => b.classList.remove("active"));
+    document.getElementById("reasonForm").classList.remove("show");
+    document.getElementById("reasonInput").value = "";
+
+    if (rec) {
+        if (rec.status === "present") {
+            document.querySelector('[data-mark="present"]').classList.add("active");
+        } else if (rec.status === "absent") {
+            const at = rec.absentType || "neuv";
+            const markEl = at === "uv"
+                ? document.querySelector('[data-mark="uv"]')
+                : at === "bolezn"
+                    ? document.querySelector('[data-mark="bolezn"]')
+                    : document.querySelector('[data-mark="absent"]');
+            markEl.classList.add("active");
+            document.getElementById("reasonInput").value = rec.reason || "";
+            document.getElementById("reasonForm").classList.add("show");
         }
     }
 
+    document.getElementById("markSheetOverlay").classList.add("active");
+}
 
-    // =========================================
-    // ATTESTATION
-    // =========================================
+function closeMarkSheet() {
+    document.getElementById("markSheetOverlay").classList.remove("active");
+    sheetState = { studentId: null, date: null, lesson: null, selectedMark: null };
+}
+window.closeMarkSheet = closeMarkSheet;
 
-    function getAttestationInfo(dateString) {
+// Обработка кнопок выбора
+document.querySelectorAll(".mark-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const mark = btn.dataset.mark;
+        sheetState.selectedMark = mark;
 
-        const date = new Date(dateString + "T00:00:00");
+        document.querySelectorAll(".mark-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
 
-        const periods = [
-            { semester: 1, attestation: 1, period: settings.semester1?.attestation1 },
-            { semester: 1, attestation: 2, period: settings.semester1?.attestation2 },
-            { semester: 2, attestation: 1, period: settings.semester2?.attestation1 },
-            { semester: 2, attestation: 2, period: settings.semester2?.attestation2 }
-        ];
-
-        for (const item of periods) {
-
-            if (!item.period?.start || !item.period?.end) continue;
-
-            const start = new Date(item.period.start + "T00:00:00");
-            const end = new Date(item.period.end + "T23:59:59");
-
-            if (date >= start && date <= end) {
-                return item;
+        if (mark === "present") {
+            document.getElementById("reasonForm").classList.remove("show");
+        } else {
+            const form = document.getElementById("reasonForm");
+            form.classList.add("show");
+            const input = document.getElementById("reasonInput");
+            // Автоподстановка
+            if (mark === "uv") {
+                if (!input.value.trim()) input.value = AUTO_REASONS.uv;
+            } else if (mark === "bolezn") {
+                if (!input.value.trim()) input.value = AUTO_REASONS.bolezn;
+            } else if (mark === "absent") {
+                if (input.value.trim() === AUTO_REASONS.uv || input.value.trim() === AUTO_REASONS.bolezn) {
+                    input.value = "";
+                }
             }
         }
+    });
+});
 
-        return null;
+// Сохранение
+document.getElementById("saveMarkBtn").addEventListener("click", async () => {
+    if (!sheetState.studentId || !sheetState.date || !sheetState.lesson) return;
+    const mark = sheetState.selectedMark;
+    if (!mark) {
+        showStatus("Выберите отметку", "error");
+        return;
     }
 
+    vibrate(20);
 
-    // =========================================
-    // AUTH STATE
-    // =========================================
+    let markData;
+    if (mark === "present") {
+        markData = { status: "present", absentType: "", reason: "" };
+    } else {
+        const reasonInput = document.getElementById("reasonInput");
+        let reason = reasonInput.value.trim();
+        const absentType = mark === "uv" ? "uv" : mark === "bolezn" ? "bolezn" : "neuv";
 
-    onAuthStateChanged(auth, user => {
+        if (!reason && AUTO_REASONS[absentType]) reason = AUTO_REASONS[absentType];
 
-        if (!user) {
-            console.warn("Пользователь не авторизован. Перенаправление на login.html");
-            window.location.href = "login.html";
+        markData = { status: "absent", absentType, reason };
+    }
+
+    try {
+        document.getElementById("saveMarkBtn").textContent = "⏳ Сохранение...";
+        document.getElementById("saveMarkBtn").disabled = true;
+
+        await saveLessonMark(sheetState.date, sheetState.studentId, sheetState.lesson, markData);
+
+        showStatus("✓ Сохранено", "success");
+        closeMarkSheet();
+
+        renderTable();
+        renderMobile();
+    } catch (e) {
+        console.error(e);
+        showStatus("Ошибка сохранения", "error");
+    } finally {
+        document.getElementById("saveMarkBtn").textContent = "💾 Сохранить";
+        document.getElementById("saveMarkBtn").disabled = false;
+    }
+});
+
+// Клик по оверлею — закрыть
+document.getElementById("markSheetOverlay").addEventListener("click", e => {
+    if (e.target.id === "markSheetOverlay") closeMarkSheet();
+});
+
+// Escape
+document.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+        closeMarkSheet();
+        hidePopup();
+    }
+});
+
+/* =========================================================
+   WEEK NAVIGATION
+========================================================= */
+window.previousWeek = () => {
+    weekStart.setDate(weekStart.getDate() - 7);
+    updateWeekRange();
+    renderTable();
+    renderMobile();
+    renderWeekList();
+};
+
+window.nextWeek = () => {
+    weekStart.setDate(weekStart.getDate() + 7);
+    updateWeekRange();
+    renderTable();
+    renderMobile();
+    renderWeekList();
+};
+
+window.currentWeek = () => {
+    weekStart = getMonday(new Date());
+    updateWeekRange();
+    renderTable();
+    renderMobile();
+    renderWeekList();
+};
+
+window.toggleWeekList = () => {
+    const list = document.getElementById("weekList");
+    list.classList.toggle("show");
+    if (list.classList.contains("show")) renderWeekList();
+};
+
+function renderWeekList() {
+    const list = document.getElementById("weekList");
+    list.innerHTML = "";
+    const currentMonday = getMonday(new Date());
+
+    for (let i = -20; i <= 20; i++) {
+        const monday = new Date(currentMonday);
+        monday.setDate(monday.getDate() + i * 7);
+        const saturday = new Date(monday);
+        saturday.setDate(saturday.getDate() + 5);
+
+        const mText = formatDateRu(formatDate(monday));
+        const sText = formatDateRu(formatDate(saturday));
+
+        const btn = document.createElement("button");
+        btn.className = "week-option";
+        if (formatDate(monday) === formatDate(weekStart)) btn.classList.add("selected");
+        if (i === 0) btn.classList.add("current-week");
+
+        btn.textContent = i === 0
+            ? `⭐ Текущая неделя — ${mText} — ${sText}`
+            : `${mText} — ${sText}`;
+
+        btn.addEventListener("click", () => selectWeek(monday));
+        list.appendChild(btn);
+    }
+}
+
+function selectWeek(date) {
+    weekStart = getMonday(date);
+    updateWeekRange();
+    renderTable();
+    renderMobile();
+    document.getElementById("weekList").classList.remove("show");
+    renderWeekList();
+}
+
+/* =========================================================
+   PRINT (фикс отступа слева 10мм)
+========================================================= */
+function buildPrintSheet(scaleFactor) {
+    const sheet = document.getElementById("printSheet");
+    if (!sheet) return;
+
+    const group = getCurrentGroup();
+    const printGroupNameEl = document.getElementById("printGroupName");
+    if (printGroupNameEl) printGroupNameEl.textContent = group ? (group.name || group.id) : "—";
+
+    const curatorInputEl = document.getElementById("curatorPrintName");
+    const table = document.querySelector("#tableWrapper table.journal");
+
+    if (!table || students.length === 0) { sheet.innerHTML = ""; return; }
+
+    const weekDates = getWeekDates();
+    const lessonCounts = weekDates.map((d, i) => getLessonCount(i));
+
+    const rows = Array.from(table.querySelectorAll("tbody tr:not(.total-row)"));
+    const s = scaleFactor || 1.0;
+
+    const rowHeight = 7.5 * s;
+    const headHeight = 7.0 * s;
+    const signHeight = 14 * s;
+
+    const fontBody = (11 * s).toFixed(2);
+    const fontName = (11 * s).toFixed(2);
+    const fontNum = (12 * s).toFixed(2);
+    const fontSmall = (10 * s).toFixed(2);
+    const fontNote = (9 * s).toFixed(2);
+    const fontHead = (10 * s).toFixed(2);
+    const fontLineH = (14.5 * s).toFixed(2);
+
+    // Ширины под новую общую ширину 271.9mm
+    let cols =
+        '<col style="width:10mm">' +   // №
+        '<col style="width:56mm">';    // ФИО
+
+    lessonCounts.forEach(count => {
+        if (count === 0) cols += '<col style="width:20mm">';
+        else cols += "<col>".repeat(count);
+    });
+
+    cols +=
+        '<col style="width:10.5mm">' +  // Всего
+        '<col style="width:6.8mm">' +   // Ув
+        '<col style="width:10mm">' +    // Неув
+        '<col style="width:24mm">';     // Примечания
+
+    let head1 = '<th rowspan="2"></th><th rowspan="2">Ф.И.О.</th>';
+    let head2 = "";
+
+    weekDates.forEach((date, i) => {
+        const count = lessonCounts[i];
+        head1 += `<th colspan="${Math.max(count, 1)}">${days[i]}<br>${formatShortDate(date, false)}</th>`;
+        if (count === 0) head2 += "<th>—</th>";
+        else for (let l = 1; l <= count; l++) head2 += `<th>${l}</th>`;
+    });
+
+    head1 +=
+        '<th class="sm">Всего</th>' +
+        "<th>Ув</th>" +
+        '<th class="sm">Неув</th>' +
+        "<th>Примечания</th>";
+    head2 += "<th></th><th></th><th></th><th></th>";
+
+    let body = "";
+
+    rows.forEach((row, idx) => {
+        const nameEl = row.querySelector(".student-name");
+        const name = nameEl ? nameEl.textContent.trim() : "";
+
+        let cells = "";
+        row.querySelectorAll(".lesson-cell").forEach(cell => {
+            const mark = cell.classList.contains("present") ? "✓"
+                : cell.classList.contains("absent")
+                    ? (cell.textContent.trim() || "Н")
+                    : "";
+            cells += `<td class="c-l">${mark}</td>`;
+        });
+
+        const readCell = sel => {
+            const c = row.querySelector(sel);
+            return c ? c.textContent.trim() : "";
+        };
+
+        const noteCell = row.querySelector("td.report-note-col");
+        const note = (noteCell && !noteCell.classList.contains("empty-mark"))
+            ? noteCell.textContent.trim() : "";
+
+        body +=
+            `<tr style="height:${rowHeight}mm">` +
+            `<td class="c-num" style="height:${rowHeight}mm">${idx + 1}.</td>` +
+            `<td class="c-name">${escapeHtml(name)}</td>` +
+            cells +
+            `<td class="c-t">${escapeHtml(readCell("td.report-total"))}</td>` +
+            `<td class="c-t">${escapeHtml(readCell("td.report-uv"))}</td>` +
+            `<td class="c-t">${escapeHtml(readCell("td.report-neuv"))}</td>` +
+            `<td class="c-note">${escapeHtml(note)}</td>` +
+            `</tr>`;
+    });
+
+    const curatorName = (curatorInputEl && curatorInputEl.value.trim())
+        ? curatorInputEl.value.trim()
+        : "________________";
+
+    const signatureRow = `
+        <div class="pt-sign" style="height:${signHeight}mm">
+            Классный руководитель&nbsp;&nbsp;&nbsp;&nbsp;______________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="pf-name">${escapeHtml(curatorName)}</span>
+        </div>
+    `;
+
+    const oldStyle = document.getElementById("ptDynamicStyle");
+    if (oldStyle) oldStyle.remove();
+
+    sheet.innerHTML =
+        `<table class="pt">` +
+            `<colgroup>${cols}</colgroup>` +
+            `<thead>
+                <tr style="height:${headHeight}mm">${head1}</tr>
+                <tr style="height:${headHeight}mm">${head2}</tr>
+            </thead>` +
+            `<tbody>${body}</tbody>` +
+        `</table>` +
+        signatureRow;
+
+    const styleTag = document.createElement("style");
+    styleTag.id = "ptDynamicStyle";
+    styleTag.textContent = `
+        #printSheet table.pt { font-size: ${fontBody}pt; }
+        #printSheet table.pt thead th { font-size: ${fontHead}pt; }
+        #printSheet table.pt thead th.sm { font-size: ${fontSmall}pt; }
+        #printSheet table.pt td.c-num { font-size: ${fontNum}pt; }
+        #printSheet table.pt td.c-name { font-size: ${fontName}pt; line-height: ${fontLineH}pt; }
+        #printSheet table.pt td.c-l { font-size: ${fontSmall}pt; }
+        #printSheet table.pt td.c-t { font-size: ${fontSmall}pt; }
+        #printSheet table.pt td.c-note { font-size: ${fontNote}pt; }
+        #printSheet .pt-sign { font-size: ${fontBody}pt; }
+    `;
+    document.head.appendChild(styleTag);
+}
+
+function printReport() {
+    const dates = getWeekDates();
+    const rangeText = `с ${formatShortDate(dates[0], true)} - ${formatShortDate(dates[5], true)}гг`;
+    document.getElementById("printHeaderRange").textContent = rangeText;
+
+    // Доступная высота: A4 landscape 210мм минус отступы 10+5 = 195мм
+    // минус заголовок 8мм, минус подпись 14мм, минус запас 9мм → 164мм
+    const AVAILABLE_MM = 164;
+    const HEAD_MM = 14;
+    const SIGN_MM = 14;
+    const ROW_MM = 7.5;
+
+    const studentCount = students.length;
+    const needed = HEAD_MM + SIGN_MM + studentCount * ROW_MM;
+    let scale = 1.0;
+    if (needed > AVAILABLE_MM) scale = AVAILABLE_MM / needed;
+    if (scale < 0.55) scale = 0.55;
+
+    buildPrintSheet(scale);
+    setTimeout(() => window.print(), 150);
+}
+window.printReport = printReport;
+
+/* =========================================================
+   MAIN MENU
+========================================================= */
+window.goBack = async function () {
+    try {
+        const user = auth.currentUser;
+        if (!user) { window.location.href = "login.html"; return; }
+        const ud = await getDoc(doc(db, "users", user.uid));
+        if (ud.exists() && ud.data().role === "admin") {
+            window.location.href = "adminhome.html"; return;
+        }
+        window.location.href = "home.html";
+    } catch (e) {
+        console.error(e);
+        window.location.href = "home.html";
+    }
+};
+
+/* =========================================================
+   STATUS
+========================================================= */
+let statusTimer;
+function showStatus(msg, type = "") {
+    const el = document.getElementById("status");
+    el.textContent = msg;
+    el.className = `status show ${type}`;
+    clearTimeout(statusTimer);
+    statusTimer = setTimeout(() => { el.className = "status"; }, 2500);
+}
+
+/* =========================================================
+   START
+========================================================= */
+async function start() {
+    try {
+        weekStart = getMonday(new Date());
+        await loadUserAndGroups();
+        renderGroupSwitcher();
+
+        if (!currentGroupId) {
+            document.getElementById("tableWrapper").innerHTML = `<div class="empty">⚠️ Вам не назначена ни одна группа.<br><br>Обратитесь к администратору.</div>`;
+            document.getElementById("mobileCards").innerHTML = `<div class="empty">⚠️ Вам не назначена ни одна группа.</div>`;
             return;
         }
 
-        console.log("Авторизован:", user.uid);
+        await loadSettings();
+        await loadStudents();
+        await loadAttendance();
 
-        document.body.classList.remove("auth-pending");
+        updateWeekRange();
+        renderTable();
+        renderMobile();
+        renderWeekList();
 
-        const overlay = document.getElementById("authGuardOverlay");
-        if (overlay) overlay.remove();
+        const today = formatDate(new Date());
+        const info = getAttestationInfo(today);
+        document.getElementById("semesterInfo").textContent = info
+            ? `${info.semester} семестр • Аттестация №${info.attestation}`
+            : "Семестр / аттестация не определены";
 
-        start();
-    });
+    } catch (e) {
+        console.error("Ошибка запуска:", e);
+        document.getElementById("tableWrapper").innerHTML = `<div class="empty">❌ Ошибка загрузки данных.<br>Откройте консоль (F12).</div>`;
+    }
+}
 
+/* =========================================================
+   AUTH
+========================================================= */
+onAuthStateChanged(auth, user => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+    document.body.classList.remove("auth-pending");
+    const overlay = document.getElementById("authGuardOverlay");
+    if (overlay) overlay.remove();
+    start();
+});
 </script>
 
 </body>
-
 </html>

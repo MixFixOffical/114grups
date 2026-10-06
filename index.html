@@ -3,14 +3,34 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#2563eb">
+<meta name="theme-color" content="#2563eb" id="themeColorMeta">
 <meta name="description" content="ТТИиП — Тираспольский техникум информатики и права. Электронный журнал куратора.">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <link rel="canonical" href="https://kurator-jurnal.pages.dev/">
 <title>ТТИиП — Тираспольский техникум информатики и права</title>
 
+<!-- Open Graph -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ТТИиП">
+<meta property="og:title" content="ТТИиП — Тираспольский техникум информатики и права">
+<meta property="og:description" content="Электронный журнал куратора. Образовательное пространство, объединяющее IT и право.">
+<meta property="og:url" content="https://kurator-jurnal.pages.dev/">
+<meta property="og:image" content="https://kurator-jurnal.pages.dev/og.png">
+<meta property="og:locale" content="ru_RU">
+
+<!-- Twitter -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ТТИиП — Тираспольский техникум информатики и права">
+<meta name="twitter:description" content="Электронный журнал куратора. IT и право.">
+<meta name="twitter:image" content="https://kurator-jurnal.pages.dev/og.png">
+
+<!-- Favicon (положи favicon.svg в корень) -->
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Manrope:wght@700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
 
 <style>
 /* =========================================
@@ -86,7 +106,7 @@
 
 html {
     scroll-behavior: smooth;
-    scroll-padding-top: 100px;
+    scroll-padding-top: 110px;
     -webkit-text-size-adjust: 100%;
 }
 
@@ -120,6 +140,7 @@ img, svg { max-width: 100%; height: auto; }
 
 /* =========================================
    CUSTOM CURSOR (desktop only)
+   Убран mix-blend-mode: difference — тяжёлая операция
 ========================================= */
 .cursor-dot,
 .cursor-ring {
@@ -128,28 +149,27 @@ img, svg { max-width: 100%; height: auto; }
     pointer-events: none;
     z-index: 99998;
     border-radius: 50%;
-    mix-blend-mode: difference;
     will-change: transform;
 }
 
 .cursor-dot {
     width: 6px; height: 6px;
-    background: #fff;
+    background: var(--blue);
     transform: translate(-50%, -50%);
 }
 
 .cursor-ring {
     width: 34px; height: 34px;
-    border: 1.5px solid rgba(255,255,255,.6);
+    border: 1.5px solid var(--blue);
+    opacity: .6;
     transform: translate(-50%, -50%);
-    transition: width .25s ease, height .25s ease, border-color .25s ease, background .25s ease;
+    transition: width .18s ease, height .18s ease, border-color .18s ease, opacity .18s ease;
 }
 
 .cursor-ring.hover {
-    width: 56px;
-    height: 56px;
-    border-color: rgba(255,255,255,.35);
-    background: rgba(255,255,255,.08);
+    width: 52px;
+    height: 52px;
+    opacity: .35;
 }
 
 @media (hover: none), (pointer: coarse), (max-width: 900px) {
@@ -167,7 +187,7 @@ img, svg { max-width: 100%; height: auto; }
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: opacity .6s ease, visibility .6s ease;
+    transition: opacity .5s ease, visibility .5s ease;
 }
 
 [data-theme="dark"] #preloader {
@@ -199,17 +219,21 @@ img, svg { max-width: 100%; height: auto; }
 
 /* =========================================
    SCROLL PROGRESS
+   Используем transform: scaleX вместо width — GPU
 ========================================= */
 #scrollProgress {
     position: fixed;
     top: 0; left: 0;
     height: 3px;
-    width: 0;
+    width: 100%;
     background: var(--gradient-rainbow);
     background-size: 300% 100%;
     z-index: 10000;
-    transition: width .1s linear;
+    transform: scaleX(0);
+    transform-origin: left center;
+    will-change: transform;
     animation: gradientShift 4s linear infinite;
+    pointer-events: none;
 }
 
 @keyframes gradientShift {
@@ -219,6 +243,7 @@ img, svg { max-width: 100%; height: auto; }
 
 /* =========================================
    AURORA BACKGROUND
+   Упрощено: 3 блоба вместо 4 + меньше blur на мобилке
 ========================================= */
 .aurora {
     position: fixed;
@@ -231,22 +256,25 @@ img, svg { max-width: 100%; height: auto; }
 .aurora-blob {
     position: absolute;
     border-radius: 50%;
-    filter: blur(100px);
-    opacity: .55;
+    filter: blur(80px);
+    opacity: .5;
     will-change: transform;
 }
 
 .aurora-1 { width: 620px; height: 620px; background: radial-gradient(circle, rgba(37,99,235,.55), transparent 70%); top: -220px; left: -220px; animation: auroraFloat1 24s ease-in-out infinite; }
 .aurora-2 { width: 560px; height: 560px; background: radial-gradient(circle, rgba(124,58,237,.45), transparent 70%); right: -200px; top: 380px; animation: auroraFloat2 28s ease-in-out infinite; }
 .aurora-3 { width: 480px; height: 480px; background: radial-gradient(circle, rgba(6,182,212,.40), transparent 70%); bottom: -160px; left: 22%; animation: auroraFloat3 32s ease-in-out infinite; }
-.aurora-4 { width: 460px; height: 460px; background: radial-gradient(circle, rgba(236,72,153,.32), transparent 70%); top: 42%; right: 28%; animation: auroraFloat4 26s ease-in-out infinite; }
 
-[data-theme="dark"] .aurora-blob { opacity: .38; }
+[data-theme="dark"] .aurora-blob { opacity: .35; }
 
 @keyframes auroraFloat1 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(90px,70px) scale(1.15);} 66%{transform:translate(-50px,130px) scale(.92);} }
 @keyframes auroraFloat2 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(-110px,-90px) scale(1.22);} }
 @keyframes auroraFloat3 { 0%,100%{transform:translate(0,0) scale(1);} 33%{transform:translate(130px,-70px) scale(1.12);} 66%{transform:translate(-70px,50px) scale(.94);} }
-@keyframes auroraFloat4 { 0%,100%{transform:translate(0,0) scale(1);} 50%{transform:translate(100px,110px) scale(1.18);} }
+
+@media (max-width: 700px) {
+    .aurora-blob { filter: blur(50px); }
+    .aurora-2 { display: none; } /* Экономим ресурсы на мобилке */
+}
 
 .bg-grid {
     position: fixed;
@@ -991,7 +1019,6 @@ section {
     font-size: clamp(14px, 1.2vw, 16px);
 }
 
-/* Section wave divider */
 .wave-divider {
     position: absolute;
     bottom: -1px;
@@ -1067,7 +1094,6 @@ section {
         transform: translateY(-7px) scale(1.01);
         box-shadow: 0 25px 60px rgba(37,99,235,.15);
     }
-    .fact-card:hover .fact-number { transform: scale(1.15) rotate(-6deg); color: rgba(37,99,235,.20); }
     .fact-card:hover .fact-icon { transform: rotate(-10deg) scale(1.12); }
 }
 
@@ -1078,9 +1104,9 @@ section {
     color: rgba(37,99,235,.10);
     position: absolute;
     right: 22px; top: 5px;
-    transition: transform .4s ease, color .4s ease;
     line-height: 1;
     pointer-events: none;
+    user-select: none;
 }
 
 .fact-icon {
@@ -1394,19 +1420,24 @@ section {
     padding: 20px 0;
 }
 
+/* Линия таймлайна: используем scaleY вместо height — GPU */
 .timeline::before {
     content: "";
     position: absolute;
     left: 50%;
     top: 0;
-    transform: translateX(-50%);
+    transform: translateX(-50%) scaleY(0);
+    transform-origin: top center;
     width: 2px;
-    height: 0;
+    height: 100%;
     background: linear-gradient(180deg, var(--blue), #c4b5fd, var(--violet));
-    transition: height 1.4s var(--ease-out);
+    transition: transform 1.4s var(--ease-out);
+    will-change: transform;
 }
 
-.timeline.filled::before { height: 100%; }
+.timeline.filled::before {
+    transform: translateX(-50%) scaleY(1);
+}
 
 .timeline-item {
     width: 50%;
@@ -1962,15 +1993,7 @@ footer::before {
     .burger { width: 38px; height: 38px; }
 
     .login-button { padding: 10px 14px; font-size: 13px; gap: 6px; }
-    .login-button span { display: none; }
-    .login-button::after {
-        content: "→";
-        font-size: 16px;
-        font-weight: 700;
-        position: relative;
-        z-index: 1;
-    }
-    .login-icon { display: none; }
+    .login-button .login-text { display: none; }
 
     .hero { padding: 110px 5% 50px; }
     .hero h1 { letter-spacing: -1.5px; line-height: 1.05; }
@@ -2036,20 +2059,32 @@ footer::before {
     .spec-card h3 { font-size: 16px; }
     .spec-card p { font-size: 13px; }
 
+    /* Timeline мобильный — выравниваем линию и точки */
     .timeline { margin-top: 40px; padding: 0; }
-    .timeline::before { left: 8px; transform: none; }
+    .timeline::before {
+        left: 8px;
+        transform: translateX(0) scaleY(0);
+        transform-origin: top center;
+    }
+    .timeline.filled::before {
+        transform: translateX(0) scaleY(1);
+    }
 
     .timeline-item,
     .timeline-item:nth-child(even) {
         width: 100%;
         margin-left: 0;
-        padding: 0 0 32px 36px;
+        padding: 0 0 32px 40px;
     }
 
+    /* Точка: центр должен совпадать с линией на left:8px.
+       Точка 13px + border 4px = внешний диаметр 21px.
+       Чтобы центр был на 8px от левого края контейнера:
+       left = 8 - (21/2) = -2.5px */
     .timeline-item::before,
     .timeline-item:nth-child(odd)::before,
     .timeline-item:nth-child(even)::before {
-        left: 2px;
+        left: -3px;
         right: auto;
         top: 4px;
     }
@@ -2100,7 +2135,6 @@ footer::before {
     .card-1974, .card-1999, .card-it, .card-education { transform: scale(.9); }
 }
 
-/* Landscape mobile */
 @media (max-width: 900px) and (orientation: landscape) {
     .hero { min-height: auto; padding: 110px 5% 50px; }
     .hero-visual { min-height: 300px; }
@@ -2122,6 +2156,10 @@ footer::before {
         opacity: 1 !important;
         transform: none !important;
     }
+    .timeline::before { transform: translateX(-50%) scaleY(1) !important; }
+    @media (max-width: 700px) {
+        .timeline::before { transform: translateX(0) scaleY(1) !important; }
+    }
 }
 
 /* =========================================
@@ -2134,13 +2172,11 @@ button:focus-visible {
     border-radius: 8px;
 }
 
-/* Selection */
 ::selection {
     background: rgba(37,99,235,.25);
     color: var(--text);
 }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb {
@@ -2160,20 +2196,19 @@ button:focus-visible {
 </div>
 
 <!-- CURSOR -->
-<div class="cursor-dot" id="cursorDot"></div>
-<div class="cursor-ring" id="cursorRing"></div>
+<div class="cursor-dot" id="cursorDot" aria-hidden="true"></div>
+<div class="cursor-ring" id="cursorRing" aria-hidden="true"></div>
 
 <!-- SCROLL PROGRESS -->
-<div id="scrollProgress"></div>
+<div id="scrollProgress" aria-hidden="true"></div>
 
 <!-- AURORA BG -->
-<div class="aurora">
+<div class="aurora" aria-hidden="true">
     <div class="aurora-blob aurora-1"></div>
     <div class="aurora-blob aurora-2"></div>
     <div class="aurora-blob aurora-3"></div>
-    <div class="aurora-blob aurora-4"></div>
 </div>
-<div class="bg-grid"></div>
+<div class="bg-grid" aria-hidden="true"></div>
 
 <!-- =========================================
      HEADER
@@ -2182,7 +2217,7 @@ button:focus-visible {
     <div class="header-inner">
 
         <a href="#" class="brand" aria-label="ТТИиП — на главную">
-            <div class="brand-logo">ТТИиП</div>
+            <div class="brand-logo" aria-hidden="true">ТТИиП</div>
             <div class="brand-text">
                 <div class="brand-title">Тираспольский техникум</div>
                 <div class="brand-subtitle">информатики и права</div>
@@ -2197,29 +2232,29 @@ button:focus-visible {
         </nav>
 
         <div class="header-actions">
-            <button class="theme-toggle" id="themeToggle" aria-label="Переключить тему">
-                <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <button class="theme-toggle" id="themeToggle" type="button" aria-label="Переключить тему">
+                <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <circle cx="12" cy="12" r="4"/>
                     <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
                 </svg>
-                <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
                 </svg>
             </button>
 
-            <button class="burger" id="burger" aria-label="Меню" aria-expanded="false">
+            <button class="burger" id="burger" type="button" aria-label="Меню" aria-expanded="false" aria-controls="nav">
                 <span></span>
                 <span></span>
                 <span></span>
             </button>
 
             <a class="login-button" href="login.html" aria-label="Войти в систему">
-                <svg class="login-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg class="login-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                     <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
                     <polyline points="10 17 15 12 10 7"/>
                     <line x1="15" y1="12" x2="3" y2="12"/>
                 </svg>
-                <span>Войти</span>
+                <span class="login-text">Войти</span>
             </a>
         </div>
 
@@ -2236,7 +2271,7 @@ button:focus-visible {
 
         <div class="hero-content">
             <div class="hero-badge">
-                <span class="badge-dot"></span>
+                <span class="badge-dot" aria-hidden="true"></span>
                 ТТИиП · 1974 → 2026
             </div>
 
@@ -2256,11 +2291,11 @@ button:focus-visible {
             <div class="hero-buttons">
                 <a class="primary-button" href="login.html">
                     Войти в систему
-                    <span>→</span>
+                    <span aria-hidden="true">→</span>
                 </a>
                 <a href="#history" class="secondary-button" data-scroll>
                     Узнать историю
-                    <span>↓</span>
+                    <span aria-hidden="true">↓</span>
                 </a>
             </div>
         </div>
@@ -2298,12 +2333,12 @@ button:focus-visible {
     <div class="stats-grid stagger">
 
         <div class="stat">
-            <div class="stat-number" data-count="1974">0</div>
+            <div class="stat-number">1974</div>
             <div class="stat-label">год основания</div>
         </div>
 
         <div class="stat">
-            <div class="stat-number" data-count="1999">0</div>
+            <div class="stat-number">1999</div>
             <div class="stat-label">название ТТИиП</div>
         </div>
 
@@ -2316,18 +2351,10 @@ button:focus-visible {
 </div>
 
 <!-- =========================================
-     MARQUEE
+     MARQUEE (второй набор span генерируется в JS)
 ========================================= -->
 <div class="marquee-wrap">
-    <div class="marquee">
-        <span>IT</span>
-        <span>Право</span>
-        <span>Технологии</span>
-        <span>Тирасполь</span>
-        <span>Программирование</span>
-        <span>Информатика</span>
-        <span>Образование</span>
-        <span>Будущее</span>
+    <div class="marquee" id="marquee">
         <span>IT</span>
         <span>Право</span>
         <span>Технологии</span>
@@ -2362,43 +2389,43 @@ button:focus-visible {
         <div class="facts-grid stagger">
 
             <article class="fact-card">
-                <div class="fact-number">01</div>
-                <div class="fact-icon">🏛️</div>
+                <div class="fact-number" aria-hidden="true">01</div>
+                <div class="fact-icon" aria-hidden="true">🏛️</div>
                 <h3>История начинается в 1974</h3>
                 <p>30 августа 1974 года учреждение было создано как городское профессионально-техническое училище №16.</p>
             </article>
 
             <article class="fact-card">
-                <div class="fact-number">02</div>
-                <div class="fact-icon">🔄</div>
+                <div class="fact-number" aria-hidden="true">02</div>
+                <div class="fact-icon" aria-hidden="true">🔄</div>
                 <h3>Несколько названий</h3>
                 <p>За историю учреждение прошло несколько этапов развития: от ГПТУ и СПТУ до лицея, колледжа и современного техникума.</p>
             </article>
 
             <article class="fact-card">
-                <div class="fact-number">03</div>
-                <div class="fact-icon">💻</div>
+                <div class="fact-number" aria-hidden="true">03</div>
+                <div class="fact-icon" aria-hidden="true">💻</div>
                 <h3>Информатика и технологии</h3>
                 <p>Современное название подчёркивает технологическую направленность учреждения и развитие IT-образования. Сегодня здесь готовят программистов, системных администраторов и специалистов по информационным системам.</p>
             </article>
 
             <article class="fact-card">
-                <div class="fact-number">04</div>
-                <div class="fact-icon">⚖️</div>
+                <div class="fact-number" aria-hidden="true">04</div>
+                <div class="fact-icon" aria-hidden="true">⚖️</div>
                 <h3>Право</h3>
                 <p>Информатика и правовые дисциплины объединены в одном образовательном пространстве.</p>
             </article>
 
             <article class="fact-card">
-                <div class="fact-number">05</div>
-                <div class="fact-icon">📍</div>
+                <div class="fact-number" aria-hidden="true">05</div>
+                <div class="fact-icon" aria-hidden="true">📍</div>
                 <h3>Тирасполь</h3>
                 <p>Сегодня техникум располагается по адресу: проезд Магистральный, 5.</p>
             </article>
 
             <article class="fact-card">
-                <div class="fact-number">06</div>
-                <div class="fact-icon">🚀</div>
+                <div class="fact-number" aria-hidden="true">06</div>
+                <div class="fact-icon" aria-hidden="true">🚀</div>
                 <h3>Смотрим в будущее</h3>
                 <p>Традиции образования соединяются с современными технологиями, цифровыми инструментами и проектной работой.</p>
             </article>
@@ -2427,10 +2454,9 @@ button:focus-visible {
             инфраструктуры.
         </p>
 
-        <!-- IT -->
         <div class="department reveal" id="dept-it">
             <div class="department-header">
-                <div class="department-icon">💻</div>
+                <div class="department-icon" aria-hidden="true">💻</div>
                 <div class="department-title">Отделение информационных технологий</div>
             </div>
 
@@ -2500,10 +2526,9 @@ button:focus-visible {
             </div>
         </div>
 
-        <!-- LAW -->
         <div class="department law reveal" id="dept-law">
             <div class="department-header">
-                <div class="department-icon">⚖️</div>
+                <div class="department-icon" aria-hidden="true">⚖️</div>
                 <div class="department-title">Юридическое отделение</div>
             </div>
 
@@ -2650,25 +2675,25 @@ button:focus-visible {
         <div class="modern-grid stagger">
 
             <article class="modern-card">
-                <div class="modern-icon">💻</div>
+                <div class="modern-icon" aria-hidden="true">💻</div>
                 <h3>IT и цифровые технологии</h3>
                 <p>Программирование, информационные системы, компьютерные технологии и цифровые решения для профессиональной деятельности.</p>
             </article>
 
             <article class="modern-card">
-                <div class="modern-icon">🌐</div>
+                <div class="modern-icon" aria-hidden="true">🌐</div>
                 <h3>Сеть и инфраструктура</h3>
                 <p>Работа с компьютерными системами, сетями, программным обеспечением и современной IT-инфраструктурой.</p>
             </article>
 
             <article class="modern-card">
-                <div class="modern-icon">⚖️</div>
+                <div class="modern-icon" aria-hidden="true">⚖️</div>
                 <h3>Право и цифровая среда</h3>
                 <p>Подготовка специалистов, способных работать на пересечении профессиональных знаний, законодательства и технологий.</p>
             </article>
 
             <article class="modern-card">
-                <div class="modern-icon">🚀</div>
+                <div class="modern-icon" aria-hidden="true">🚀</div>
                 <h3>Проекты и будущее</h3>
                 <p>Идея этой системы — сделать учебную и административную среду удобнее, понятнее и современнее.</p>
             </article>
@@ -2699,8 +2724,8 @@ button:focus-visible {
 
         <div class="contacts-grid stagger">
 
-            <a class="contact-card" href="https://t.me/streamlabx" target="_blank" rel="noopener">
-                <div class="contact-icon tg">
+            <a class="contact-card" href="https://t.me/streamlabx" target="_blank" rel="noopener noreferrer">
+                <div class="contact-icon tg" aria-hidden="true">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/>
                     </svg>
@@ -2710,11 +2735,11 @@ button:focus-visible {
                     <div class="contact-value">@streamlabx</div>
                     <div class="contact-hint">Техническая поддержка и администрирование</div>
                 </div>
-                <div class="contact-arrow">→</div>
+                <div class="contact-arrow" aria-hidden="true">→</div>
             </a>
 
             <a class="contact-card" href="tel:+37377933149">
-                <div class="contact-icon phone">
+                <div class="contact-icon phone" aria-hidden="true">
                     <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
                     </svg>
@@ -2724,7 +2749,7 @@ button:focus-visible {
                     <div class="contact-value">+373 77 933 149</div>
                     <div class="contact-hint">Звонки по вопросам поддержки</div>
                 </div>
-                <div class="contact-arrow">→</div>
+                <div class="contact-arrow" aria-hidden="true">→</div>
             </a>
 
         </div>
@@ -2732,8 +2757,7 @@ button:focus-visible {
     </div>
 </section>
 
-<!-- =========================================
-     MADE FOR TTIIP
+<!-- =========================================     MADE FOR TTIIP
 ========================================= -->
 <section class="made-section">
     <div class="made-box reveal-zoom">
@@ -2754,7 +2778,7 @@ button:focus-visible {
 
         <a class="primary-button" href="login.html">
             Войти в систему
-            <span>→</span>
+            <span aria-hidden="true">→</span>
         </a>
 
     </div>
@@ -2766,18 +2790,18 @@ button:focus-visible {
      FAB
 ========================================= -->
 <div class="fab" id="fab">
-    <a class="tg" href="https://t.me/streamlabx" target="_blank" rel="noopener" aria-label="Telegram">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+    <a class="tg" href="https://t.me/streamlabx" target="_blank" rel="noopener noreferrer" aria-label="Telegram">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z"/>
         </svg>
     </a>
     <a class="phone" href="tel:+37377933149" aria-label="Позвонить">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
         </svg>
     </a>
     <a class="top" href="#" id="backTop" aria-label="Наверх">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <polyline points="18 15 12 9 6 15"/>
         </svg>
     </a>
@@ -2793,7 +2817,7 @@ button:focus-visible {
 
             <div class="footer-col">
                 <div class="footer-brand">
-                    <div class="footer-brand-logo">ТТИиП</div>
+                    <div class="footer-brand-logo" aria-hidden="true">ТТИиП</div>
                     ТТИиП
                 </div>
                 <p class="footer-text">
@@ -2813,7 +2837,7 @@ button:focus-visible {
 
             <div class="footer-col">
                 <div class="footer-col-title">Контакты</div>
-                <a href="https://t.me/streamlabx" target="_blank" rel="noopener">Telegram: @streamlabx</a>
+                <a href="https://t.me/streamlabx" target="_blank" rel="noopener noreferrer">Telegram: @streamlabx</a>
                 <a href="tel:+37377933149">+373 77 933 149</a>
                 <p>проезд Магистральный, 5</p>
             </div>
@@ -2821,14 +2845,14 @@ button:focus-visible {
             <div class="footer-col">
                 <div class="footer-col-title">Ссылки</div>
                 <a href="login.html">Войти в систему</a>
-                <a href="https://www.ttiip.ru/" target="_blank" rel="noopener">Официальный сайт ТТИиП →</a>
+                <a href="https://www.ttiip.ru/" target="_blank" rel="noopener noreferrer">Официальный сайт ТТИиП →</a>
             </div>
 
         </div>
 
         <div class="footer-bottom">
             <div>© <span id="year"></span> ТТИиП · Тираспольский техникум информатики и права</div>
-            <a href="https://www.ttiip.ru/" target="_blank" rel="noopener" class="footer-link">
+            <a href="https://www.ttiip.ru/" target="_blank" rel="noopener noreferrer" class="footer-link">
                 ttiip.ru →
             </a>
         </div>
@@ -2836,314 +2860,445 @@ button:focus-visible {
     </div>
 </footer>
 
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="firebase-config.js"></script>
+<!--
+=========================================================
+  ВАЖНО: Firebase SDK УБРАН с этой страницы.
+  Причины:
+  - Лендинг статичный, Firebase не используется.
+  - 150+ КБ JS блокировали загрузку.
+  - firebase-config.js светил ключи без надобности.
+
+  Где подключать Firebase:
+  - login.html (аутентификация)
+  - страницы с данными (журнал, карта и т.д.)
+
+  НЕ ЗАБУДЬ в Firebase Console:
+  1. Firestore Rules — запретить анонимную запись.
+  2. App Check — включить reCAPTCHA v3.
+  3. Authentication → Settings → Email verification.
+
+  Пример правил Firestore (firestore.rules):
+    rules_version = '2';
+    service cloud.firestore {
+      match /databases/{database}/documents {
+        match /markers/{markerId} {
+          allow read: if request.auth != null;
+          allow write: if request.auth != null
+                       && request.auth.token.email_verified == true
+                       && request.resource.data.name is string
+                       && request.resource.data.name.size() < 200;
+        }
+      }
+    }
+
+  CSP-заголовки для Cloudflare Pages (файл _headers в корне):
+
+    /*
+      Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.cloudfunctions.net; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+      X-Content-Type-Options: nosniff
+      Referrer-Policy: strict-origin-when-cross-origin
+      Permissions-Policy: geolocation=(), microphone=(), camera=()
+      Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
+-->
 
 <script>
-/* =========================================
-   PRELOADER
-========================================= */
-window.addEventListener("load", function () {
-    setTimeout(function () {
-        document.getElementById("preloader").classList.add("hide");
-    }, 500);
-});
+(function () {
+    'use strict';
 
-document.getElementById("year").textContent = new Date().getFullYear();
-
-/* =========================================
-   THEME TOGGLE
-========================================= */
-(function initTheme() {
-    const saved = localStorage.getItem("ttiip-theme");
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const theme = saved || (prefersDark ? "dark" : "light");
-    document.documentElement.setAttribute("data-theme", theme);
-})();
-
-document.getElementById("themeToggle").addEventListener("click", function () {
-    const current = document.documentElement.getAttribute("data-theme");
-    const next = current === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next);
-    localStorage.setItem("ttiip-theme", next);
-});
-
-/* =========================================
-   SCROLL HANDLERS
-========================================= */
-const header = document.getElementById("header");
-const scrollProgress = document.getElementById("scrollProgress");
-const fab = document.getElementById("fab");
-
-function onScroll() {
-    const y = window.scrollY;
-
-    if (y > 30) header.classList.add("scrolled");
-    else header.classList.remove("scrolled");
-
-    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    const progress = docHeight > 0 ? (y / docHeight) * 100 : 0;
-    scrollProgress.style.width = progress + "%";
-
-    if (y > 400) fab.classList.add("show");
-    else fab.classList.remove("show");
-
-    const sections = ["about", "history", "specialties", "contacts"];
-    let active = null;
-    sections.forEach(function(id) {
-        const el = document.getElementById(id);
-        if (!el) return;
-        const top = el.offsetTop - 150;
-        const bottom = top + el.offsetHeight;
-        if (y >= top && y < bottom) active = id;
-    });
-    document.querySelectorAll(".nav a").forEach(function(link) {
-        link.classList.remove("active");
-        if (active && link.getAttribute("href") === "#" + active) {
-            link.classList.add("active");
+    /* =========================================
+       SAFE STORAGE (Safari private mode)
+    ========================================= */
+    var storage = {
+        get: function (k) {
+            try { return localStorage.getItem(k); } catch (e) { return null; }
+        },
+        set: function (k, v) {
+            try { localStorage.setItem(k, v); } catch (e) { /* noop */ }
         }
-    });
-}
+    };
 
-window.addEventListener("scroll", onScroll, { passive: true });
-onScroll();
-
-/* =========================================
-   BURGER MENU
-========================================= */
-const burger = document.getElementById("burger");
-const nav = document.getElementById("nav");
-
-burger.addEventListener("click", function () {
-    const isOpen = burger.classList.toggle("open");
-    nav.classList.toggle("open", isOpen);
-    burger.setAttribute("aria-expanded", isOpen);
-    document.body.style.overflow = isOpen ? "hidden" : "";
-});
-
-/* Close nav on link click */
-document.querySelectorAll(".nav a").forEach(function(link) {
-    link.addEventListener("click", function() {
-        burger.classList.remove("open");
-        nav.classList.remove("open");
-        burger.setAttribute("aria-expanded", "false");
-        document.body.style.overflow = "";
-    });
-});
-
-/* Close on outside click */
-document.addEventListener("click", function(e) {
-    if (!nav.classList.contains("open")) return;
-    if (!nav.contains(e.target) && !burger.contains(e.target)) {
-        burger.classList.remove("open");
-        nav.classList.remove("open");
-        burger.setAttribute("aria-expanded", "false");
-        document.body.style.overflow = "";
+    /* =========================================
+       PRELOADER — прячем по DOMContentLoaded + RAF
+       (не ждём window.load, который тянет картинки)
+    ========================================= */
+    function hidePreloader() {
+        var p = document.getElementById('preloader');
+        if (p) p.classList.add('hide');
     }
-});
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function () {
+            requestAnimationFrame(hidePreloader);
+        });
+    } else {
+        requestAnimationFrame(hidePreloader);
+    }
 
-/* =========================================
-   REVEAL OBSERVER
-========================================= */
-const observer = new IntersectionObserver(
-    function (entries) {
-        entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-                entry.target.classList.add("visible");
-                observer.unobserve(entry.target);
+    /* =========================================
+       YEAR
+    ========================================= */
+    var yearEl = document.getElementById('year');
+    if (yearEl) yearEl.textContent = new Date().getFullYear();
+
+    /* =========================================
+       THEME TOGGLE (with theme-color meta)
+    ========================================= */
+    (function initTheme() {
+        var saved = storage.get('ttiip-theme');
+        var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        var theme = saved || (prefersDark ? 'dark' : 'light');
+        document.documentElement.setAttribute('data-theme', theme);
+    })();
+
+    var themeMeta = document.getElementById('themeColorMeta');
+    function updateThemeColor(theme) {
+        if (themeMeta) themeMeta.setAttribute('content', theme === 'dark' ? '#070b16' : '#2563eb');
+    }
+    updateThemeColor(document.documentElement.getAttribute('data-theme'));
+
+    var themeToggle = document.getElementById('themeToggle');
+    if (themeToggle) {
+        themeToggle.addEventListener('click', function () {
+            var current = document.documentElement.getAttribute('data-theme');
+            var next = current === 'dark' ? 'light' : 'dark';
+            document.documentElement.setAttribute('data-theme', next);
+            storage.set('ttiip-theme', next);
+            updateThemeColor(next);
+        });
+    }
+
+    /* =========================================
+       MARQUEE — генерируем второй набор в JS
+    ========================================= */
+    var marquee = document.getElementById('marquee');
+    if (marquee) {
+        marquee.innerHTML += marquee.innerHTML; // 2× набор для бесшовного скролла
+    }
+
+    /* =========================================
+       SCROLL HANDLERS (rAF-throttled)
+    ========================================= */
+    var header = document.getElementById('header');
+    var scrollProgress = document.getElementById('scrollProgress');
+    var fab = document.getElementById('fab');
+    var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav a'));
+    var sectionIds = ['about', 'history', 'specialties', 'contacts'];
+    var sectionEls = sectionIds.map(function (id) { return document.getElementById(id); });
+
+    var ticking = false;
+    var lastScrollY = 0;
+
+    function updateScroll() {
+        var y = lastScrollY;
+
+        if (header) {
+            if (y > 30) header.classList.add('scrolled');
+            else header.classList.remove('scrolled');
+        }
+
+        var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+        var progress = docHeight > 0 ? (y / docHeight) : 0;
+        if (scrollProgress) scrollProgress.style.transform = 'scaleX(' + progress + ')';
+
+        if (fab) {
+            if (y > 400) fab.classList.add('show');
+            else fab.classList.remove('show');
+        }
+
+        // Активная ссылка в навигации
+        var active = null;
+        for (var i = 0; i < sectionEls.length; i++) {
+            var el = sectionEls[i];
+            if (!el) continue;
+            var top = el.offsetTop - 150;
+            var bottom = top + el.offsetHeight;
+            if (y >= top && y < bottom) { active = sectionIds[i]; }
+        }
+        navLinks.forEach(function (link) {
+            link.classList.remove('active');
+            if (active && link.getAttribute('href') === '#' + active) {
+                link.classList.add('active');
             }
         });
-    },
-    { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
-);
 
-document.querySelectorAll(
-    ".reveal, .reveal-left, .reveal-right, .reveal-zoom, .stagger, .department"
-).forEach(function (el) {
-    observer.observe(el);
-});
+        ticking = false;
+    }
 
-/* =========================================
-   TIMELINE FILL
-========================================= */
-const timeline = document.getElementById("timeline");
-if (timeline) {
-    const tlObserver = new IntersectionObserver(
-        function (entries) {
+    function onScroll() {
+        lastScrollY = window.scrollY;
+        if (!ticking) {
+            ticking = true;
+            requestAnimationFrame(updateScroll);
+        }
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    /* =========================================
+       BURGER MENU
+    ========================================= */
+    var burger = document.getElementById('burger');
+    var nav = document.getElementById('nav');
+
+    function closeNav() {
+        if (!burger || !nav) return;
+        burger.classList.remove('open');
+        nav.classList.remove('open');
+        burger.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+    }
+
+    function openNav() {
+        if (!burger || !nav) return;
+        burger.classList.add('open');
+        nav.classList.add('open');
+        burger.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+    }
+
+    if (burger && nav) {
+        burger.addEventListener('click', function () {
+            if (nav.classList.contains('open')) closeNav();
+            else openNav();
+        });
+
+        nav.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', closeNav);
+        });
+
+        document.addEventListener('click', function (e) {
+            if (!nav.classList.contains('open')) return;
+            if (!nav.contains(e.target) && !burger.contains(e.target)) closeNav();
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && nav.classList.contains('open')) closeNav();
+        });
+    }
+
+    /* =========================================
+       REVEAL OBSERVER (единый для всех)
+    ========================================= */
+    if ('IntersectionObserver' in window) {
+        var revealObserver = new IntersectionObserver(function (entries) {
             entries.forEach(function (entry) {
                 if (entry.isIntersecting) {
-                    timeline.classList.add("filled");
-                    tlObserver.unobserve(entry.target);
+                    entry.target.classList.add('visible');
+                    revealObserver.unobserve(entry.target);
                 }
             });
-        },
-        { threshold: 0.1 }
-    );
-    tlObserver.observe(timeline);
-}
+        }, { threshold: 0.1, rootMargin: '0px 0px -50px 0px' });
 
-/* Timeline items visible */
-const timelineItems = document.querySelectorAll(".timeline-item");
-const tlItemObserver = new IntersectionObserver(
-    function (entries) {
-        entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-                entry.target.classList.add("visible");
-                tlItemObserver.unobserve(entry.target);
-            }
+        document.querySelectorAll(
+            '.reveal, .reveal-left, .reveal-right, .reveal-zoom, .stagger, .department'
+        ).forEach(function (el) { revealObserver.observe(el); });
+
+        /* Timeline fill */
+        var timeline = document.getElementById('timeline');
+        if (timeline) {
+            var tlObserver = new IntersectionObserver(function (entries) {
+                entries.forEach(function (entry) {
+                    if (entry.isIntersecting) {
+                        timeline.classList.add('filled');
+                        tlObserver.unobserve(entry.target);
+                    }
+                });
+            }, { threshold: 0.1 });
+            tlObserver.observe(timeline);
+        }
+
+        /* Timeline items */
+        var tlItemObserver = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    tlItemObserver.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.3 });
+
+        document.querySelectorAll('.timeline-item').forEach(function (item) {
+            tlItemObserver.observe(item);
         });
-    },
-    { threshold: 0.3 }
-);
-timelineItems.forEach(function(item) { tlItemObserver.observe(item); });
 
-/* =========================================
-   COUNTERS
-========================================= */
-const counters = document.querySelectorAll("[data-count]");
-
-const counterObserver = new IntersectionObserver(
-    function (entries) {
-        entries.forEach(function (entry) {
-            if (entry.isIntersecting) {
-                const el = entry.target;
-                const target = parseInt(el.dataset.count, 10);
-                const suffix = el.dataset.suffix || "";
-                const duration = 1600;
-                const start = performance.now();
+        /* Counters — только для [data-count], у годов убран */
+        var counterObserver = new IntersectionObserver(function (entries) {
+            entries.forEach(function (entry) {
+                if (!entry.isIntersecting) return;
+                var el = entry.target;
+                var target = parseInt(el.dataset.count, 10);
+                if (isNaN(target)) { counterObserver.unobserve(el); return; }
+                var suffix = el.dataset.suffix || '';
+                var duration = 1600;
+                var start = performance.now();
 
                 function step(now) {
-                    const p = Math.min((now - start) / duration, 1);
-                    const eased = 1 - Math.pow(1 - p, 3);
-                    el.textContent = Math.floor(target * eased) + (p === 1 ? suffix : "");
+                    var p = Math.min((now - start) / duration, 1);
+                    var eased = 1 - Math.pow(1 - p, 3);
+                    el.textContent = Math.floor(target * eased) + (p === 1 ? suffix : '');
                     if (p < 1) requestAnimationFrame(step);
                 }
-
                 requestAnimationFrame(step);
                 counterObserver.unobserve(el);
+            });
+        }, { threshold: 0.5 });
+
+        document.querySelectorAll('[data-count]').forEach(function (el) {
+            counterObserver.observe(el);
+        });
+    }
+
+    /* =========================================
+       RIPPLE EFFECT
+    ========================================= */
+    document.querySelectorAll('.primary-button, .login-button').forEach(function (btn) {
+        btn.addEventListener('click', function (e) {
+            var rect = btn.getBoundingClientRect();
+            var ripple = document.createElement('span');
+            var size = Math.max(rect.width, rect.height);
+            ripple.className = 'ripple';
+            ripple.style.width = ripple.style.height = size + 'px';
+            ripple.style.left = (e.clientX - rect.left - size / 2) + 'px';
+            ripple.style.top = (e.clientY - rect.top - size / 2) + 'px';
+            btn.appendChild(ripple);
+            setTimeout(function () { ripple.remove(); }, 700);
+        });
+    });
+
+    /* =========================================
+       3D TILT (hero visual) — desktop only
+    ========================================= */
+    var visualMain = document.getElementById('visualMain');
+    var heroSection = document.querySelector('.hero');
+
+    if (visualMain && heroSection && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        var heroTicking = false;
+        var lastHeroEvent = null;
+
+        heroSection.addEventListener('mousemove', function (e) {
+            lastHeroEvent = e;
+            if (heroTicking) return;
+            heroTicking = true;
+            requestAnimationFrame(function () {
+                var rect = heroSection.getBoundingClientRect();
+                var x = (lastHeroEvent.clientX - rect.left) / rect.width - 0.5;
+                var y = (lastHeroEvent.clientY - rect.top) / rect.height - 0.5;
+                visualMain.style.transform =
+                    'rotateY(' + (x * 14) + 'deg) rotateX(' + (-y * 14) + 'deg)';
+                heroTicking = false;
+            });
+        });
+
+        heroSection.addEventListener('mouseleave', function () {
+            visualMain.style.transform = 'rotateY(0) rotateX(0)';
+        });
+    }
+
+    /* =========================================
+       CUSTOM CURSOR — desktop only
+    ========================================= */
+    var cursorDot = document.getElementById('cursorDot');
+    var cursorRing = document.getElementById('cursorRing');
+
+    if (cursorDot && cursorRing && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        var mouseX = 0, mouseY = 0;
+        var ringX = 0, ringY = 0;
+        var cursorActive = false;
+
+        document.addEventListener('mousemove', function (e) {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+            if (!cursorActive) {
+                cursorActive = true;
+                cursorDot.style.opacity = '1';
+                cursorRing.style.opacity = '';
+                animateRing();
+            }
+            cursorDot.style.transform = 'translate(' + mouseX + 'px, ' + mouseY + 'px) translate(-50%, -50%)';
+        }, { passive: true });
+
+        document.addEventListener('mouseleave', function () {
+            cursorActive = false;
+            cursorDot.style.opacity = '0';
+            cursorRing.style.opacity = '0';
+        });
+
+        function animateRing() {
+            if (!cursorActive) return;
+            ringX += (mouseX - ringX) * 0.15;
+            ringY += (mouseY - ringY) * 0.15;
+            cursorRing.style.transform = 'translate(' + ringX + 'px, ' + ringY + 'px) translate(-50%, -50%)';
+            requestAnimationFrame(animateRing);
+        }
+
+        // Оптимизированный селектор + не вешаем на .fact-card (там cursor: default)
+        document.querySelectorAll('a, button, .spec-card, .modern-card, .contact-card, .timeline-card')
+            .forEach(function (el) {
+                el.addEventListener('mouseenter', function () { cursorRing.classList.add('hover'); });
+                el.addEventListener('mouseleave', function () { cursorRing.classList.remove('hover'); });
+            });
+    }
+
+    /* =========================================
+       PARTICLES
+    ========================================= */
+    (function createParticles() {
+        var hero = document.querySelector('.hero');
+        if (!hero) return;
+        // Не создаём частицы на reduced-motion
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        var count = window.innerWidth < 700 ? 5 : 10;
+
+        var frag = document.createDocumentFragment();
+        for (var i = 0; i < count; i++) {
+            var p = document.createElement('div');
+            p.className = 'hero-particle';
+            p.setAttribute('aria-hidden', 'true');
+            p.style.left = Math.random() * 100 + '%';
+            p.style.top = (60 + Math.random() * 40) + '%';
+            p.style.animationDuration = (6 + Math.random() * 8) + 's';
+            p.style.animationDelay = (Math.random() * 6) + 's';
+            p.style.opacity = (0.2 + Math.random() * 0.4);
+            var size = 4 + Math.random() * 6;
+            p.style.width = size + 'px';
+            p.style.height = size + 'px';
+            frag.appendChild(p);
+        }
+        hero.appendChild(frag);
+    })();
+
+    /* =========================================
+       SMOOTH SCROLL
+       Высота хедера ~80-100px, скроллим с запасом 110px
+    ========================================= */
+    document.querySelectorAll('[data-scroll]').forEach(function (link) {
+        link.addEventListener('click', function (e) {
+            var href = link.getAttribute('href');
+            if (href && href.charAt(0) === '#') {
+                e.preventDefault();
+                var target = document.querySelector(href);
+                if (target) {
+                    var top = target.getBoundingClientRect().top + window.pageYOffset - 110;
+                    window.scrollTo({ top: top, behavior: 'smooth' });
+                    // Обновляем URL без прыжка
+                    if (history.replaceState) history.replaceState(null, '', href);
+                }
             }
         });
-    },
-    { threshold: 0.5 }
-);
-
-counters.forEach(function (el) { counterObserver.observe(el); });
-
-/* =========================================
-   RIPPLE EFFECT
-========================================= */
-document.querySelectorAll(".primary-button, .login-button").forEach(function (btn) {
-    btn.addEventListener("click", function (e) {
-        const rect = btn.getBoundingClientRect();
-        const ripple = document.createElement("span");
-        const size = Math.max(rect.width, rect.height);
-        ripple.className = "ripple";
-        ripple.style.width = ripple.style.height = size + "px";
-        ripple.style.left = (e.clientX - rect.left - size / 2) + "px";
-        ripple.style.top = (e.clientY - rect.top - size / 2) + "px";
-        btn.appendChild(ripple);
-        setTimeout(function () { ripple.remove(); }, 700);
-    });
-});
-
-/* =========================================
-   3D TILT (hero visual) - desktop only
-========================================= */
-const visualMain = document.getElementById("visualMain");
-const heroSection = document.querySelector(".hero");
-
-if (visualMain && heroSection && window.matchMedia("(hover: hover)").matches) {
-    heroSection.addEventListener("mousemove", function (e) {
-        const rect = heroSection.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / rect.width - 0.5;
-        const y = (e.clientY - rect.top) / rect.height - 0.5;
-        visualMain.style.transform =
-            "rotateY(" + (x * 14) + "deg) rotateX(" + (-y * 14) + "deg)";
-    });
-    heroSection.addEventListener("mouseleave", function () {
-        visualMain.style.transform = "rotateY(0) rotateX(0)";
-    });
-}
-
-/* =========================================
-   CUSTOM CURSOR - desktop only
-========================================= */
-const cursorDot = document.getElementById("cursorDot");
-const cursorRing = document.getElementById("cursorRing");
-
-if (cursorDot && cursorRing && window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
-    let mouseX = 0, mouseY = 0;
-    let ringX = 0, ringY = 0;
-
-    document.addEventListener("mousemove", function (e) {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-        cursorDot.style.transform = "translate(" + mouseX + "px, " + mouseY + "px) translate(-50%, -50%)";
     });
 
-    function animateRing() {
-        ringX += (mouseX - ringX) * 0.15;
-        ringY += (mouseY - ringY) * 0.15;
-        cursorRing.style.transform = "translate(" + ringX + "px, " + ringY + "px) translate(-50%, -50%)";
-        requestAnimationFrame(animateRing);
-    }
-    animateRing();
-
-    document.querySelectorAll("a, button, .fact-card, .spec-card, .modern-card, .contact-card").forEach(function(el) {
-        el.addEventListener("mouseenter", function() { cursorRing.classList.add("hover"); });
-        el.addEventListener("mouseleave", function() { cursorRing.classList.remove("hover"); });
-    });
-}
-
-/* =========================================
-   PARTICLES
-========================================= */
-(function createParticles() {
-    const hero = document.querySelector(".hero");
-    if (!hero) return;
-    const count = window.innerWidth < 700 ? 6 : 14;
-
-    for (let i = 0; i < count; i++) {
-        const p = document.createElement("div");
-        p.className = "hero-particle";
-        p.style.left = Math.random() * 100 + "%";
-        p.style.top = (60 + Math.random() * 40) + "%";
-        p.style.animationDuration = (6 + Math.random() * 8) + "s";
-        p.style.animationDelay = (Math.random() * 6) + "s";
-        p.style.opacity = (0.2 + Math.random() * 0.4);
-        const size = 4 + Math.random() * 6;
-        p.style.width = size + "px";
-        p.style.height = size + "px";
-        hero.appendChild(p);
-    }
-})();
-
-/* =========================================
-   SMOOTH SCROLL
-========================================= */
-document.querySelectorAll("[data-scroll]").forEach(function (link) {
-    link.addEventListener("click", function (e) {
-        const href = link.getAttribute("href");
-        if (href && href.startsWith("#")) {
+    /* =========================================
+       BACK TO TOP
+    ========================================= */
+    var backTop = document.getElementById('backTop');
+    if (backTop) {
+        backTop.addEventListener('click', function (e) {
             e.preventDefault();
-            const target = document.querySelector(href);
-            if (target) {
-                const top = target.offsetTop - 90;
-                window.scrollTo({ top: top, behavior: "smooth" });
-            }
-        }
-    });
-});
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
 
-/* =========================================
-   BACK TO TOP
-========================================= */
-document.getElementById("backTop").addEventListener("click", function (e) {
-    e.preventDefault();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-});
+})();
 </script>
 
 </body>

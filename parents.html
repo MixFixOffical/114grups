@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2454e8">
 <title>Родители — Панель управления</title>
 
@@ -12,13 +12,12 @@
 
 <style>
 /* ==========================================================
-   PARENTS — Всё в одном файле
+   TOKENS
    ========================================================== */
-
 *{margin:0;padding:0;box-sizing:border-box}
 
 :root{
-  color-scheme: light dark;
+  color-scheme:light dark;
   --primary:#2454e8; --primary-dark:#17348f; --primary-light:#eef2ff;
   --teal:#0d9488; --teal-light:#ecfdf9;
   --violet:#7c3aed; --violet-light:#f4f0ff;
@@ -35,13 +34,12 @@
   --shadow-lg:0 24px 60px -20px rgba(15,23,42,.22);
   --radius-lg:22px; --radius-md:16px; --radius-sm:12px;
   --topbar-h:64px;
-  --tabs-h:52px;
   --ease:cubic-bezier(.22,1,.36,1);
   --ease-spring:cubic-bezier(.34,1.56,.64,1);
 }
 
 [data-theme="dark"]{
-  color-scheme: dark;
+  color-scheme:dark;
   --primary:#5b7dff; --primary-dark:#3b5fea; --primary-light:#1a2547;
   --teal:#2dd4bf; --teal-light:#0f2e2b;
   --violet:#a78bfa; --violet-light:#231a3d;
@@ -65,7 +63,6 @@ body{
   color:var(--text);
   background:#f4f6fb;
   -webkit-font-smoothing:antialiased;
-  -moz-osx-font-smoothing:grayscale;
   transition:background .3s ease,color .3s ease;
   padding-bottom:env(safe-area-inset-bottom);
 }
@@ -84,34 +81,36 @@ button{font-family:inherit}
 }
 
 /* ============ ANIMATIONS ============ */
-@keyframes fadeUpStagger{
-  from{opacity:0;transform:translateY(16px)}
-  to{opacity:1;transform:translateY(0)}
-}
+@keyframes fadeUpStagger{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
-@keyframes fadeSlide{
-  from{opacity:0;transform:translateY(-8px)}
-  to{opacity:1;transform:translateY(0)}
-}
-@keyframes shimmer{
-  0%{background-position:200% 0}
-  100%{background-position:-200% 0}
-}
+@keyframes fadeSlide{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 @keyframes spin{to{transform:rotate(360deg)}}
-@keyframes modalSlide{
-  from{opacity:0;transform:scale(.92) translateY(20px)}
-  to{opacity:1;transform:scale(1) translateY(0)}
-}
-@keyframes pulse{
-  0%,100%{transform:scale(1);opacity:1}
-  50%{transform:scale(1.3);opacity:.75}
-}
-@keyframes offlinePulse{
-  0%,100%{opacity:1;transform:scale(1)}
-  50%{opacity:.6;transform:scale(1.15)}
-}
+@keyframes modalSlide{from{opacity:0;transform:scale(.92) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.3);opacity:.75}}
+@keyframes offlinePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.15)}}
 
 .stagger-row{animation:fadeUpStagger .4s var(--ease) backwards}
+
+/* ============ SPLASH ============ */
+.splash{
+  position:fixed;inset:0;z-index:2000;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface);
+  transition:opacity .4s ease,visibility .4s ease;
+}
+.splash.hide{opacity:0;visibility:hidden}
+.splash-box{text-align:center}
+.splash-logo{
+  width:64px;height:64px;margin:0 auto 16px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:20px;font-size:26px;font-weight:800;color:#fff;
+  background:linear-gradient(135deg,#3b82f6 0%,#2454e8 55%,#1a3aa8 100%);
+  box-shadow:0 12px 32px -8px rgba(36,84,232,.5);
+  animation:pulse 1.6s ease-in-out infinite;
+}
+.splash-text{font-size:13.5px;color:var(--text-secondary);font-weight:600}
+.splash-sub{font-size:11.5px;color:var(--text-light);margin-top:4px}
 
 /* ============ OFFLINE BANNER ============ */
 .offline-banner{
@@ -125,10 +124,7 @@ button{font-family:inherit}
   transition:transform .4s var(--ease);
 }
 .offline-banner.show{transform:translateY(0)}
-.offline-banner svg{
-  width:16px;height:16px;flex-shrink:0;
-  animation:offlinePulse 1.8s ease-in-out infinite;
-}
+.offline-banner svg{width:16px;height:16px;flex-shrink:0;animation:offlinePulse 1.8s ease-in-out infinite}
 .offline-banner .retry-btn{
   margin-left:10px;padding:5px 12px;
   border:1px solid rgba(255,255,255,.4);
@@ -138,26 +134,19 @@ button{font-family:inherit}
 }
 .offline-banner .retry-btn:hover{background:rgba(255,255,255,.22)}
 
-/* ============ TOP PROGRESS BAR ============ */
+/* ============ TOP PROGRESS ============ */
 .top-progress{
   position:fixed;top:0;left:0;right:0;height:3px;
-  background:transparent;z-index:1100;
-  pointer-events:none;
+  background:transparent;z-index:1100;pointer-events:none;
 }
 .top-progress::after{
-  content:"";position:absolute;top:0;left:0;height:100%;
-  width:0;background:linear-gradient(90deg,#3b82f6,#2454e8,#7c3aed);
+  content:"";position:absolute;top:0;left:0;height:100%;width:0;
+  background:linear-gradient(90deg,#3b82f6,#2454e8,#7c3aed);
   box-shadow:0 0 10px rgba(36,84,232,.6);
   transition:width .3s ease;
 }
-.top-progress.loading::after{
-  width:90%;
-  transition:width 8s cubic-bezier(.1,.8,.3,1);
-}
-.top-progress.done::after{
-  width:100%;opacity:0;
-  transition:width .2s ease,opacity .3s ease .2s;
-}
+.top-progress.loading::after{width:90%;transition:width 8s cubic-bezier(.1,.8,.3,1)}
+.top-progress.done::after{width:100%;opacity:0;transition:width .2s ease,opacity .3s ease .2s}
 
 /* ============ HEADER ============ */
 header.topbar{
@@ -185,50 +174,32 @@ header.topbar{
   transition:transform .2s var(--ease),background .2s ease,box-shadow .2s ease;
 }
 .btn-home svg{width:16px;height:16px}
-.btn-home:hover{
-  background:var(--primary);color:#fff;
-  box-shadow:0 8px 20px -6px rgba(36,84,232,.5);
-  transform:translateX(-2px);
-}
+.btn-home:hover{background:var(--primary);color:#fff;box-shadow:0 8px 20px -6px rgba(36,84,232,.5);transform:translateX(-2px)}
 .btn-home:active{transform:translateX(-2px) scale(.97)}
 
 .topbar-title{display:flex;flex-direction:column;gap:2px;min-width:0}
-.topbar-title h1{
-  font-size:16px;font-weight:700;letter-spacing:-.3px;
-  color:var(--text);white-space:nowrap;
-  overflow:hidden;text-overflow:ellipsis;
-}
-.topbar-title span{
-  font-size:11.5px;font-weight:500;
-  color:var(--text-secondary);
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-}
+.topbar-title h1{font-size:16px;font-weight:700;letter-spacing:-.3px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-title span{font-size:11.5px;font-weight:500;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .topbar-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
 
 .topbar-icon-btn{
-  position:relative;width:40px;height:40px;
+  width:40px;height:40px;
   display:flex;align-items:center;justify-content:center;
   border:1px solid var(--border);border-radius:50%;
   background:var(--surface);color:var(--text-secondary);
   cursor:pointer;box-shadow:var(--shadow-xs);
-  transition:color .2s ease,border-color .2s ease,
-             transform .25s var(--ease),box-shadow .25s ease;
+  transition:color .2s ease,border-color .2s ease,transform .25s var(--ease),box-shadow .25s ease;
 }
 .topbar-icon-btn svg{width:18px;height:18px}
-.topbar-icon-btn:hover{
-  color:var(--primary);border-color:rgba(36,84,232,.3);
-  transform:translateY(-1px) rotate(-30deg);
-  box-shadow:var(--shadow-sm);
-}
+.topbar-icon-btn:hover{color:var(--primary);border-color:rgba(36,84,232,.3);transform:translateY(-1px) rotate(-30deg);box-shadow:var(--shadow-sm)}
 .topbar-icon-btn:active{transform:translateY(0) scale(.96) rotate(0)}
 
 .user-info{
   display:flex;align-items:center;gap:10px;
   padding:6px 12px 6px 6px;border-radius:999px;
   background:var(--surface);border:1px solid var(--border);
-  box-shadow:var(--shadow-xs);
-  font-size:12.5px;font-weight:600;
+  box-shadow:var(--shadow-xs);font-size:12.5px;font-weight:600;
   transition:box-shadow .2s ease;
 }
 .user-info:hover{box-shadow:var(--shadow-sm)}
@@ -243,11 +214,8 @@ header.topbar{
 }
 .user-info:hover .user-avatar{transform:rotate(-6deg) scale(1.08)}
 
-.user-name{
-  max-width:140px;overflow:hidden;
-  text-overflow:ellipsis;white-space:nowrap;
-  color:var(--text);
-}
+.user-name{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+
 .role-badge{
   padding:3px 10px;border-radius:20px;
   font-size:10.5px;font-weight:700;
@@ -257,6 +225,7 @@ header.topbar{
 .role-badge.admin{background:var(--violet-light);color:var(--violet)}
 .role-badge.curator{background:var(--teal-light);color:var(--teal)}
 .role-badge.parent{background:var(--primary-light);color:var(--primary)}
+.role-badge.guest{background:var(--surface-3);color:var(--text-light)}
 
 .theme-toggle{
   width:40px;height:40px;
@@ -267,10 +236,7 @@ header.topbar{
   transition:color .2s ease,border-color .2s ease,transform .25s var(--ease);
   position:relative;overflow:hidden;
 }
-.theme-toggle:hover{
-  color:var(--primary);border-color:rgba(36,84,232,.3);
-  transform:translateY(-1px);
-}
+.theme-toggle:hover{color:var(--primary);border-color:rgba(36,84,232,.3);transform:translateY(-1px)}
 .theme-toggle svg{
   width:18px;height:18px;position:absolute;
   transition:transform .35s var(--ease-spring),opacity .25s ease;
@@ -280,14 +246,29 @@ header.topbar{
 [data-theme="dark"] .theme-toggle .icon-sun{opacity:0;transform:rotate(90deg) scale(.6)}
 [data-theme="dark"] .theme-toggle .icon-moon{opacity:1;transform:rotate(0) scale(1)}
 
+/* ============ ACCESS BANNER ============ */
+.access-banner{
+  display:none;
+  margin:0 24px 16px;
+  padding:14px 18px;
+  border-radius:14px;
+  background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);
+  border:1px solid #fbbf24;
+  color:#78350f;
+  font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:10px;
+}
+.access-banner.show{display:flex}
+.access-banner svg{width:20px;height:20px;flex-shrink:0}
+[data-theme="dark"] .access-banner{background:linear-gradient(135deg,#33260d 0%,#4a3510 100%);color:#fbbf24;border-color:#78350f}
+
 /* ============ TABS ============ */
 nav.tabs{
   background:var(--surface);border-bottom:1px solid var(--border);
   padding:0 24px;display:flex;gap:4px;
   position:sticky;top:var(--topbar-h);z-index:40;
-  overflow-x:auto;
+  overflow-x:auto;scrollbar-width:none;
   transition:background .3s ease,border-color .3s ease;
-  scrollbar-width:none;
 }
 nav.tabs::-webkit-scrollbar{display:none}
 nav.tabs button{
@@ -313,7 +294,7 @@ main{
   max-width:1400px;width:100%;margin:0 auto;
 }
 .tab-content{display:none}
-.tab-content.active{display:block}
+.tab-content.active{display:block;animation:fadeSlide .3s var(--ease)}
 
 /* ============ PAGE HEADER ============ */
 .page-header{
@@ -330,10 +311,7 @@ main{
 .btn{
   padding:10px 18px;border-radius:12px;border:none;
   font-size:13px;font-weight:600;cursor:pointer;
-  transition:transform .2s var(--ease),
-             box-shadow .2s ease,
-             background .2s ease,
-             color .2s ease;
+  transition:transform .2s var(--ease),box-shadow .2s ease,background .2s ease,color .2s ease;
   font-family:inherit;display:inline-flex;align-items:center;
   gap:8px;white-space:nowrap;
 }
@@ -350,18 +328,12 @@ main{
   background:linear-gradient(135deg,#3b82f6 0%,#2454e8 100%);
   color:#fff;box-shadow:0 8px 20px -8px rgba(36,84,232,.5);
 }
-.btn-primary:hover{
-  box-shadow:0 12px 28px -8px rgba(36,84,232,.65);
-  transform:translateY(-1px);
-}
+.btn-primary:hover{box-shadow:0 12px 28px -8px rgba(36,84,232,.65);transform:translateY(-1px)}
 .btn-secondary{
   background:var(--surface);color:var(--text-secondary);
   border:1px solid var(--border);box-shadow:var(--shadow-xs);
 }
-.btn-secondary:hover{
-  background:var(--surface-2);color:var(--text);
-  border-color:var(--border-soft);
-}
+.btn-secondary:hover{background:var(--surface-2);color:var(--text);border-color:var(--border-soft)}
 .btn-sm{padding:8px 12px;font-size:12px}
 .btn-sm svg{width:14px;height:14px}
 
@@ -372,13 +344,10 @@ main{
   display:inline-flex;align-items:center;justify-content:center;line-height:0;
 }
 .btn-icon svg{width:16px;height:16px}
-.btn-icon:hover{
-  background:var(--primary-light);color:var(--primary);
-  transform:scale(1.08);
-}
+.btn-icon:hover{background:var(--primary-light);color:var(--primary);transform:scale(1.08)}
 .btn-icon.danger:hover{background:var(--red-light);color:var(--red)}
 
-/* ============ TOOLBAR / SEARCH ============ */
+/* ============ TOOLBAR ============ */
 .toolbar{
   display:flex;gap:10px;margin-bottom:16px;
   flex-wrap:wrap;align-items:center;
@@ -396,10 +365,7 @@ main{
   transition:.2s;box-shadow:var(--shadow-xs);
 }
 .search-wrap input::placeholder{color:var(--text-light)}
-.search-wrap input:focus{
-  outline:none;border-color:var(--primary);
-  box-shadow:0 0 0 4px rgba(36,84,232,.12);
-}
+.search-wrap input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 4px rgba(36,84,232,.12)}
 .search-clear{
   position:absolute;right:10px;top:50%;transform:translateY(-50%);
   width:22px;height:22px;display:none;
@@ -412,7 +378,7 @@ main{
 .search-clear svg{width:12px;height:12px}
 .search-wrap input:not(:placeholder-shown) ~ .search-clear{display:flex}
 
-/* ============ STATS MINI ============ */
+/* ============ STATS ============ */
 .stats-mini{
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
@@ -438,9 +404,8 @@ main{
 .stat-mini-body{min-width:0}
 .stat-mini-label{
   font-size:11.5px;font-weight:500;
-  color:var(--text-secondary);
-  margin-bottom:2px;text-transform:uppercase;
-  letter-spacing:.03em;
+  color:var(--text-secondary);margin-bottom:2px;
+  text-transform:uppercase;letter-spacing:.03em;
 }
 .stat-mini-value{
   font-family:"Plus Jakarta Sans",sans-serif;
@@ -455,11 +420,7 @@ main{
   border:1px solid var(--border);
   transition:background .3s ease,border-color .3s ease;
 }
-.table-scroll{
-  overflow-x:auto;
-  max-height:calc(100vh - 460px);
-  min-height:200px;
-}
+.table-scroll{overflow-x:auto;max-height:calc(100vh - 460px);min-height:200px}
 table{width:100%;border-collapse:collapse}
 thead{
   background:var(--surface-2);border-bottom:1px solid var(--border);
@@ -482,10 +443,8 @@ tr.expandable{cursor:pointer}
 tr.expandable:hover td{background:var(--primary-light)}
 
 mark.hl{
-  background:var(--amber-light);
-  color:var(--amber);
-  padding:1px 3px;border-radius:4px;
-  font-weight:600;
+  background:var(--amber-light);color:var(--amber);
+  padding:1px 3px;border-radius:4px;font-weight:600;
 }
 
 .skeleton{
@@ -496,14 +455,8 @@ mark.hl{
 }
 
 .empty{padding:60px 24px;text-align:center;color:var(--text-light)}
-.empty svg{
-  width:56px;height:56px;margin:0 auto 14px;
-  opacity:.35;display:block;
-}
-.empty-title{
-  font-size:15px;font-weight:700;
-  color:var(--text-secondary);margin-bottom:6px;
-}
+.empty svg{width:56px;height:56px;margin:0 auto 14px;opacity:.35;display:block}
+.empty-title{font-size:15px;font-weight:700;color:var(--text-secondary);margin-bottom:6px}
 .empty-text{
   font-size:13px;color:var(--text-light);
   margin-bottom:16px;max-width:340px;
@@ -517,10 +470,7 @@ mark.hl{
   cursor:pointer;transition:transform .2s var(--ease),box-shadow .2s ease;
   box-shadow:0 8px 20px -8px rgba(36,84,232,.5);
 }
-.empty-cta:hover{
-  transform:translateY(-1px);
-  box-shadow:0 12px 28px -8px rgba(36,84,232,.65);
-}
+.empty-cta:hover{transform:translateY(-1px);box-shadow:0 12px 28px -8px rgba(36,84,232,.65)}
 .empty-cta svg{width:15px;height:15px;margin:0;opacity:1}
 
 /* ============ BADGES ============ */
@@ -536,6 +486,7 @@ mark.hl{
 .badge-violet{background:var(--violet-light);color:var(--violet)}
 .badge-teal{background:var(--teal-light);color:var(--teal)}
 .badge-amber{background:var(--amber-light);color:var(--amber)}
+.badge-rose{background:var(--rose-light);color:var(--rose)}
 
 .uid-badge{
   display:inline-flex;align-items:center;gap:6px;
@@ -556,25 +507,14 @@ mark.hl{
   background:var(--primary-light);color:var(--primary);
   cursor:pointer;user-select:none;
   transition:transform .15s var(--ease),background .2s ease;
+  border:none;
 }
 .children-badge:hover{background:var(--primary);color:#fff;transform:scale(1.04)}
-.children-badge .count{
-  font-family:"Plus Jakarta Sans",sans-serif;
-  font-weight:800;
-}
-.children-badge .chevron{
-  width:10px;height:10px;
-  transition:transform .25s var(--ease);
-}
+.children-badge .count{font-family:"Plus Jakarta Sans",sans-serif;font-weight:800}
+.children-badge .chevron{width:10px;height:10px;transition:transform .25s var(--ease)}
 .children-badge.open .chevron{transform:rotate(180deg)}
-.children-badge.zero{
-  background:var(--surface-3);color:var(--text-light);
-  cursor:default;
-}
-.children-badge.zero:hover{
-  background:var(--surface-3);color:var(--text-light);
-  transform:none;
-}
+.children-badge.zero{background:var(--surface-3);color:var(--text-light);cursor:default}
+.children-badge.zero:hover{background:var(--surface-3);color:var(--text-light);transform:none}
 
 tr.expanded-row td{
   background:var(--surface-2);padding:0;
@@ -624,10 +564,7 @@ tr.expanded-row td{
   background:var(--primary);border-color:var(--primary);
   color:#fff;box-shadow:0 4px 12px -4px rgba(36,84,232,.5);
 }
-.pagination .info{
-  margin:0 8px;font-size:12px;
-  font-weight:500;color:var(--text-light);
-}
+.pagination .info{margin:0 8px;font-size:12px;font-weight:500;color:var(--text-light)}
 
 /* ============ MODAL ============ */
 .modal-overlay{
@@ -654,13 +591,8 @@ tr.expanded-row td{
   color:var(--primary);flex-shrink:0;
 }
 .modal-icon svg{width:22px;height:22px}
-.modal h3{
-  font-size:17px;font-weight:700;
-  letter-spacing:-.3px;color:var(--text);
-}
-.modal-subtitle{
-  font-size:12.5px;color:var(--text-secondary);margin-top:2px;
-}
+.modal h3{font-size:17px;font-weight:700;letter-spacing:-.3px;color:var(--text)}
+.modal-subtitle{font-size:12.5px;color:var(--text-secondary);margin-top:2px}
 
 .form-group{margin-bottom:16px}
 .form-group > label{
@@ -680,22 +612,16 @@ tr.expanded-row td{
   outline:none;border-color:var(--primary);
   box-shadow:0 0 0 4px rgba(36,84,232,.12);
 }
-.form-hint{
-  font-size:11.5px;color:var(--text-light);margin-top:6px;
-}
+.form-hint{font-size:11.5px;color:var(--text-light);margin-top:6px}
 .form-error{
   background:var(--red-light);color:var(--red);
   padding:10px 14px;border-radius:10px;
   font-size:12.5px;font-weight:500;margin-bottom:16px;
 }
-.modal-actions{
-  display:flex;justify-content:flex-end;
-  gap:10px;margin-top:24px;
-}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
 
 /* ============ SEARCH SELECT ============ */
 .search-select{position:relative}
-
 .search-select-value{
   display:flex;align-items:center;justify-content:space-between;
   padding:11px 14px;border:1px solid var(--border);
@@ -749,16 +675,7 @@ tr.expanded-row td{
   gap:10px;
 }
 .search-dropdown-item:hover,
-.search-dropdown-item.highlight{
-  background:var(--primary-light);color:var(--primary);
-}
-.search-dropdown-item .opt-group{
-  font-size:10.5px;font-weight:700;
-  color:var(--text-light);text-transform:uppercase;
-  letter-spacing:.04em;
-}
-.search-dropdown-item:hover .opt-group,
-.search-dropdown-item.highlight .opt-group{color:var(--primary)}
+.search-dropdown-item.highlight{background:var(--primary-light);color:var(--primary)}
 
 .search-dropdown-group{
   padding:8px 12px 4px;
@@ -801,46 +718,43 @@ tr.expanded-row td{
 .bottom-nav-btn.active{color:var(--primary)}
 .bottom-nav-btn:active{background:var(--surface-2)}
 
-/* ============ LOADING / TOAST ============ */
-#loading{
-  position:fixed;top:50%;left:50%;
-  transform:translate(-50%,-50%);
-  background:linear-gradient(135deg,#101a30 0%,#1a2547 100%);
-  color:#fff;padding:14px 26px;border-radius:14px;
-  font-size:13.5px;font-weight:600;z-index:999;
-  display:none;box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 20px 44px rgba(15,23,42,.32);
-  align-items:center;gap:10px;
-}
-#loading::before{
-  content:"";
-  width:14px;height:14px;
-  border:2px solid rgba(255,255,255,.3);
-  border-top-color:#fff;
-  border-radius:50%;
-  animation:spin .7s linear infinite;
-}
-
-#toast{
+/* ============ TOAST ============ */
+.toast-wrap{
   position:fixed;bottom:24px;right:24px;
+  z-index:999;display:flex;flex-direction:column;gap:10px;
+  pointer-events:none;max-width:340px;
+}
+.toast{
   background:linear-gradient(135deg,#101a30 0%,#1a2547 100%);
   color:#fff;padding:14px 22px;border-radius:14px;
-  font-size:13.5px;font-weight:600;z-index:999;
+  font-size:13.5px;font-weight:600;
   opacity:0;transform:translateY(20px);
   transition:.35s var(--ease);
-  pointer-events:none;max-width:340px;
   box-shadow:0 1px 0 rgba(255,255,255,.1) inset,0 20px 44px rgba(15,23,42,.32);
   display:flex;align-items:center;gap:10px;
+  pointer-events:auto;
 }
-#toast::before{
+.toast::before{
   content:"";width:8px;height:8px;border-radius:50%;
   background:#5b7dff;flex-shrink:0;
   box-shadow:0 0 0 4px rgba(91,125,255,.2);
 }
-#toast.show{opacity:1;transform:translateY(0)}
-#toast.error{background:linear-gradient(135deg,#7f1d1d 0%,#b91c1c 100%)}
-#toast.error::before{background:#fca5a5;box-shadow:0 0 0 4px rgba(252,165,165,.25)}
-#toast.success{background:linear-gradient(135deg,#14532d 0%,#15803d 100%)}
-#toast.success::before{background:#86efac;box-shadow:0 0 0 4px rgba(134,239,172,.25)}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{background:linear-gradient(135deg,#7f1d1d 0%,#b91c1c 100%)}
+.toast.error::before{background:#fca5a5;box-shadow:0 0 0 4px rgba(252,165,165,.25)}
+.toast.success{background:linear-gradient(135deg,#14532d 0%,#15803d 100%)}
+.toast.success::before{background:#86efac;box-shadow:0 0 0 4px rgba(134,239,172,.25)}
+
+/* ============ FOOTER ============ */
+.footer{
+  padding:24px;
+  text-align:center;
+  color:var(--text-light);
+  font-size:11.5px;
+  border-top:1px solid var(--border);
+  margin-top:40px;
+}
+.footer strong{color:var(--text-secondary);font-weight:700}
 
 /* ============ RESPONSIVE ============ */
 @media (max-width:1024px){
@@ -863,6 +777,7 @@ tr.expanded-row td{
   .user-name{max-width:90px}
   .stat-mini{padding:12px 14px}
   .stat-mini-value{font-size:18px}
+  .access-banner{margin-left:14px;margin-right:14px}
 }
 
 @media (max-width:700px){
@@ -886,7 +801,7 @@ tr.expanded-row td{
   .toolbar{flex-direction:column;align-items:stretch}
   .search-wrap{max-width:100%}
   .toolbar .btn-sm{justify-content:center}
-  #toast{left:16px;right:16px;bottom:calc(80px + env(safe-area-inset-bottom));max-width:none}
+  .toast-wrap{left:16px;right:16px;bottom:calc(80px + env(safe-area-inset-bottom));max-width:none}
   .page-header{align-items:flex-start;flex-direction:column}
   .page-header .btn-primary{width:100%;justify-content:center}
   .stats-mini{grid-template-columns:1fr 1fr}
@@ -896,6 +811,36 @@ tr.expanded-row td{
   .stat-mini-value{font-size:17px}
   .pagination button{padding:6px 10px;font-size:12px;min-width:32px}
   .pagination .info{font-size:11px;margin:0 4px}
+
+  /* Мобильные карточки вместо таблицы */
+  .table-wrap{background:transparent;border:none;box-shadow:none}
+  .table-scroll{overflow:visible}
+  table,thead,tbody,tr,td{display:block;width:100%}
+  thead{display:none}
+  tbody tr{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:14px;
+    margin-bottom:10px;
+    padding:14px;
+    box-shadow:var(--shadow-xs);
+    position:relative;
+  }
+  tbody tr:hover td{background:transparent}
+  tr.expanded-row{
+    background:var(--surface-2);
+    padding:0;
+  }
+  tr.expanded-row td{padding:0;border:none}
+  td{
+    padding:4px 0;
+    border-bottom:none;
+    font-size:13px;
+  }
+  td:first-child{display:none}
+  td:last-child{padding-top:10px;border-top:1px solid var(--border-soft);margin-top:8px}
+  .actions{justify-content:flex-start}
+  .pagination{background:transparent;border:none;padding:10px 0}
 }
 
 @media (max-width:400px){
@@ -907,6 +852,15 @@ tr.expanded-row td{
 </style>
 </head>
 <body>
+
+<!-- ===== SPLASH ===== -->
+<div class="splash" id="splash">
+  <div class="splash-box">
+    <div class="splash-logo">👨‍👩‍👧</div>
+    <div class="splash-text">Загрузка данных…</div>
+    <div class="splash-sub">Проверяем права доступа</div>
+  </div>
+</div>
 
 <!-- ===== OFFLINE BANNER ===== -->
 <div class="offline-banner" id="offlineBanner">
@@ -920,13 +874,13 @@ tr.expanded-row td{
   <button class="retry-btn" onclick="window.location.reload()">Обновить</button>
 </div>
 
-<!-- ===== TOP PROGRESS BAR ===== -->
+<!-- ===== TOP PROGRESS ===== -->
 <div class="top-progress" id="topProgress"></div>
 
 <!-- ===== HEADER ===== -->
 <header class="topbar">
   <div class="topbar-left">
-    <a href="#" class="btn-home" id="btnHome" title="На главную" onclick="goHome(event)">
+    <a href="#" class="btn-home" title="На главную" onclick="goHome(event)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
         <polyline points="9 22 9 12 15 12 15 22"/>
@@ -968,6 +922,14 @@ tr.expanded-row td{
   </div>
 </header>
 
+<!-- ===== ACCESS BANNER ===== -->
+<div class="access-banner" id="accessBanner">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/>
+  </svg>
+  <span id="accessBannerText">Только чтение — редактирование доступно администратору.</span>
+</div>
+
 <!-- ===== TABS ===== -->
 <nav class="tabs">
   <button class="active" data-tab="parents">
@@ -1007,7 +969,7 @@ tr.expanded-row td{
         <h2>Родители</h2>
         <p>Управление списком родителей и их привязкой к студентам</p>
       </div>
-      <button class="btn btn-primary" onclick="openParentModal()">
+      <button class="btn btn-primary" id="addParentBtn" onclick="openParentModal()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 5v14"/><path d="M5 12h14"/>
         </svg>
@@ -1111,7 +1073,7 @@ tr.expanded-row td{
         <h2>Связи</h2>
         <p>Привязка родителей к студентам</p>
       </div>
-      <button class="btn btn-primary" onclick="openLinkModal()">
+      <button class="btn btn-primary" id="addLinkBtn" onclick="openLinkModal()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 5v14"/><path d="M5 12h14"/>
         </svg>
@@ -1195,6 +1157,11 @@ tr.expanded-row td{
 
 </main>
 
+<!-- ===== FOOTER ===== -->
+<div class="footer">
+  Система <strong>KURATOR</strong> · Панель родителей
+</div>
+
 <!-- ===== МОБИЛЬНЫЙ BOTTOM NAV ===== -->
 <nav class="bottom-nav">
   <button class="bottom-nav-btn active" data-tab="parents">
@@ -1275,7 +1242,7 @@ tr.expanded-row td{
       <div id="linkFormError" class="form-error" style="display:none"></div>
 
       <div class="form-group">
-        <label for="linkParent">Родитель *</label>
+        <label>Родитель *</label>
         <div class="search-select" id="linkParentSelect">
           <div class="search-select-value" onclick="toggleParentSelect()">
             <span class="placeholder" id="linkParentLabel">— выберите родителя —</span>
@@ -1297,7 +1264,7 @@ tr.expanded-row td{
       </div>
 
       <div class="form-group">
-        <label for="linkStudent">Студент *</label>
+        <label>Студент *</label>
         <div class="search-select" id="linkStudentSelect">
           <div class="search-select-value" onclick="toggleStudentSelect()">
             <span class="placeholder" id="linkStudentLabel">— выберите студента —</span>
@@ -1327,10 +1294,10 @@ tr.expanded-row td{
   </div>
 </div>
 
-<!-- ===== LOADING / TOAST ===== -->
-<div id="loading">Загрузка...</div>
-<div id="toast"></div>
-<!-- ===== FIREBASE COMPAT SDK ===== -->
+<!-- ===== TOAST ===== -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ===== FIREBASE SDK ===== -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -1345,6 +1312,7 @@ tr.expanded-row td{
 let currentUser = null;
 let isAdmin = false;
 let isCurator = false;
+let canEdit = false;
 let curatorGroupIds = [];
 let curatorStudentIds = new Set();
 
@@ -1368,12 +1336,10 @@ let expandedParents = new Set();
 let selectedParentId = null;
 let selectedStudentId = null;
 
-
 /* ===================== HELPERS ===================== */
 const $ = id => document.getElementById(id);
 
 function showLoading(v){
-  $('loading').style.display = v ? 'flex' : 'none';
   const tp = $('topProgress');
   if (v){
     tp.classList.remove('done');
@@ -1386,11 +1352,16 @@ function showLoading(v){
 }
 
 function toast(msg, type = ''){
-  const el = $('toast');
+  const wrap = $('toastWrap');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
   el.textContent = msg;
-  el.className = 'show ' + type;
-  clearTimeout(el._t);
-  el._t = setTimeout(() => el.className = '', 2800);
+  wrap.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 350);
+  }, 2800);
 }
 
 function esc(s){
@@ -1403,6 +1374,7 @@ function norm(s){ return String(s ?? '').toLowerCase().trim(); }
 
 function showFormError(id, msg){
   const el = $(id);
+  if (!el) return;
   if (msg){ el.textContent = msg; el.style.display = 'block'; }
   else { el.style.display = 'none'; }
 }
@@ -1476,30 +1448,28 @@ function fallbackCopy(text){
   document.body.removeChild(ta);
 }
 
-
-/* ===================== ПЕРЕХОД НА ГЛАВНУЮ ===================== */
+/* ===================== ИСПРАВЛЕНО: переход на главную ===================== */
 function goHome(e){
   if (e) e.preventDefault();
 
-  const role = currentUser?.role || null;
-
-  if (role === 'curator') {
-    window.location.href = 'curatorhome.html';
-  } else if (role === 'admin') {
-    window.location.href = 'adminhome.html';
-  } else if (role === 'parent') {
-    window.location.href = 'parenthome.html';
-  } else {
-    window.location.href = 'adminhome.html';
-  }
+  const role = currentUser?.role || '';
+  // Карта переходов — роль → файл
+  const routes = {
+    admin:   'adminhome.html',
+    curator: 'home.html',
+    parent:  'phome.html'   // ← ИСПРАВЛЕНО: было parenthome.html
+  };
+  window.location.href = routes[role] || 'login.html';
 }
-
 
 /* ===================== ЗАГРУЗКА ===================== */
 async function loadAll(){
   showLoading(true);
   try {
-    const grSnap = await firebase.firestore().collection('groups').get();
+    const db = firebase.firestore();
+
+    // группы
+    const grSnap = await db.collection('groups').get();
     groups = {};
     groupMap.clear();
     grSnap.docs.forEach(d => {
@@ -1520,7 +1490,8 @@ async function loadAll(){
       });
     }
 
-    const studSnap = await firebase.firestore().collection('students').get();
+    // студенты
+    const studSnap = await db.collection('students').get();
     students = [];
     studentMap.clear();
     studSnap.docs.forEach(d => {
@@ -1528,11 +1499,14 @@ async function loadAll(){
       studentMap.set(d.id, s);
       if (isCurator){
         if (curatorStudentIds.has(d.id) || curatorGroupIds.includes(s.groupId)) students.push(s);
-      } else students.push(s);
+      } else if (isAdmin) {
+        students.push(s);
+      }
+      // parent не должен видеть студентов вообще
     });
 
-    const parSnap = await firebase.firestore()
-      .collection('users').where('role', '==', 'parent').get();
+    // родители
+    const parSnap = await db.collection('users').where('role', '==', 'parent').get();
     parents = [];
     parentMap.clear();
     parSnap.docs.forEach(d => {
@@ -1541,14 +1515,17 @@ async function loadAll(){
       parents.push(p);
     });
 
-    const linksSnap = await firebase.firestore().collection('links').get();
+    // связи
+    const linksSnap = await db.collection('links').get();
     links = [];
     const studentIdsSet = new Set(students.map(s => s.id));
     linksSnap.docs.forEach(d => {
       const l = { id: d.id, ...d.data() };
       if (isCurator){
         if (studentIdsSet.has(l.studentId)) links.push(l);
-      } else links.push(l);
+      } else if (isAdmin) {
+        links.push(l);
+      }
     });
 
     if (isCurator){
@@ -1572,6 +1549,11 @@ async function loadAll(){
       $('topbarSubtitle').textContent = 'Полный доступ';
     }
 
+    // Кнопки редактирования — только для админа/куратора
+    document.querySelectorAll('#addParentBtn, #addLinkBtn').forEach(btn => {
+      btn.style.display = canEdit ? '' : 'none';
+    });
+
     renderParents();
     renderLinks();
     renderStudents();
@@ -1580,6 +1562,7 @@ async function loadAll(){
     toast('Ошибка загрузки: ' + (e.message || e), 'error');
   } finally {
     showLoading(false);
+    $('splash').classList.add('hide');
   }
 }
 
@@ -1588,7 +1571,6 @@ async function reloadData(){
   await loadAll();
   toast('Данные обновлены', 'success');
 }
-
 
 /* ===================== ОБЩИЕ ===================== */
 function getChildrenOfParent(parentId){
@@ -1629,7 +1611,6 @@ function renderPagination(containerId, total, current, onChange){
   });
 }
 
-
 /* ===================== РОДИТЕЛИ ===================== */
 function renderParents(){
   const tb = $('parentsTable');
@@ -1658,9 +1639,9 @@ function renderParents(){
       : emptyState(
           '<circle cx="9" cy="7" r="3"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/><circle cx="17" cy="8" r="2.5"/>',
           'Пока нет родителей',
-          'Добавьте первого родителя, чтобы начать работу',
+          canEdit ? 'Добавьте первого родителя, чтобы начать работу' : 'Администратор ещё не добавил родителей',
           6,
-          { label: 'Добавить родителя', onclick: 'openParentModal()' }
+          canEdit ? { label: 'Добавить родителя', onclick: 'openParentModal()' } : null
         );
     renderPagination('parentsPagination', 0, 1, () => {});
     return;
@@ -1672,27 +1653,40 @@ function renderParents(){
     const children = isExpanded ? getChildrenOfParent(p.id) : [];
 
     const childBadge = childCount > 0
-      ? `<span class="children-badge ${isExpanded ? 'open' : ''}"
-              onclick="event.stopPropagation(); toggleParent('${p.id}')">
+      ? `<button class="children-badge ${isExpanded ? 'open' : ''}" data-toggle-parent="${p.id}">
           <span>👶</span><span class="count">${childCount}</span>
           <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
             <path d="m6 9 6 6 6-6"/>
           </svg>
-         </span>`
+         </button>`
       : `<span class="children-badge zero">— нет</span>`;
 
     const uidShort = p.id.slice(0, 8) + '…';
 
+    const editBtns = canEdit
+      ? `<button class="btn-icon" data-edit-parent="${p.id}" title="Редактировать">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M12 20h9"/>
+             <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+           </svg>
+         </button>
+         <button class="btn-icon danger" data-remove-parent="${p.id}" title="Удалить">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M3 6h18"/>
+             <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+           </svg>
+         </button>`
+      : '';
+
     let html = `
-      <tr class="stagger-row ${childCount ? 'expandable' : ''}"
-          style="animation-delay:${i * 0.03}s"
-          ${childCount ? `onclick="toggleParent('${p.id}')" ondblclick="editParent('${p.id}')"` : `ondblclick="editParent('${p.id}')"`}>
+      <tr class="stagger-row ${childCount ? 'expandable' : ''}" style="animation-delay:${i * 0.03}s" data-id="${p.id}">
         <td><span style="color:var(--text-light);font-weight:600">${start + i + 1}</span></td>
         <td><strong>${highlight(p.name || '—', filters.parents)}</strong></td>
         <td class="hide-mobile">${highlight(p.email || '—', filters.parents)}</td>
         <td>${childBadge}</td>
         <td class="hide-mobile">
-          <button class="uid-badge" onclick="event.stopPropagation(); copyToClipboard('${p.id}')" title="Нажмите, чтобы скопировать">
+          <button class="uid-badge" data-copy-uid="${p.id}" title="Нажмите, чтобы скопировать">
             <span>${esc(uidShort)}</span>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <rect x="9" y="9" width="13" height="13" rx="2"/>
@@ -1700,23 +1694,7 @@ function renderParents(){
             </svg>
           </button>
         </td>
-        <td>
-          <div class="actions" onclick="event.stopPropagation()">
-            <button class="btn-icon" title="Редактировать" onclick="editParent('${p.id}')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 20h9"/>
-                <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/>
-              </svg>
-            </button>
-            <button class="btn-icon danger" title="Удалить" onclick="removeParent('${p.id}', '${esc(p.name || '')}')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/>
-                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-              </svg>
-            </button>
-          </div>
-        </td>
+        <td><div class="actions">${editBtns}</div></td>
       </tr>
     `;
 
@@ -1759,7 +1737,6 @@ function onParentsSearch(){
   renderParents();
 }
 
-
 /* ===================== СВЯЗИ ===================== */
 function renderLinks(){
   const tb = $('linksTable');
@@ -1797,9 +1774,9 @@ function renderLinks(){
       : emptyState(
           '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
           'Пока нет связей',
-          'Привяжите студента к родителю, чтобы начать',
+          canEdit ? 'Привяжите студента к родителю, чтобы начать' : 'Связи появятся здесь после добавления',
           5,
-          { label: 'Привязать студента', onclick: 'openLinkModal()' }
+          canEdit ? { label: 'Привязать студента', onclick: 'openLinkModal()' } : null
         );
     renderPagination('linksPagination', 0, 1, () => {});
     return;
@@ -1809,23 +1786,24 @@ function renderLinks(){
     const parent = parentMap.get(l.parentId);
     const student = studentMap.get(l.studentId);
     const groupName = student ? (groups[student.groupId] || student.groupId || '—') : '—';
+
+    const removeBtn = canEdit
+      ? `<button class="btn-icon danger" data-remove-link="${l.id}" title="Отвязать">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M3 6h18"/>
+             <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+           </svg>
+         </button>`
+      : '';
+
     return `
       <tr class="stagger-row" style="animation-delay:${i * 0.03}s">
         <td><span style="color:var(--text-light);font-weight:600">${start + i + 1}</span></td>
         <td><strong>${highlight(parent?.name || '— (удалён)', filters.links)}</strong></td>
         <td>${highlight(student?.fullName || student?.name || '— (удалён)', filters.links)}</td>
         <td class="hide-mobile"><span class="badge badge-green">${esc(groupName)}</span></td>
-        <td>
-          <div class="actions">
-            <button class="btn-icon danger" title="Отвязать" onclick="removeLink('${l.id}')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 6h18"/>
-                <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
-              </svg>
-            </button>
-          </div>
-        </td>
+        <td><div class="actions">${removeBtn}</div></td>
       </tr>
     `;
   }).join('');
@@ -1841,7 +1819,6 @@ function onLinksSearch(){
   pagination.links = 1;
   renderLinks();
 }
-
 
 /* ===================== СТУДЕНТЫ ===================== */
 function renderStudents(){
@@ -1912,9 +1889,49 @@ function clearSearch(tab){
   if (tab === 'students') renderStudents();
 }
 
+/* ===================== ДЕЛЕГИРОВАНИЕ КЛИКОВ В ТАБЛИЦАХ ===================== */
+document.addEventListener('click', e => {
+  const target = e.target.closest('[data-toggle-parent],[data-edit-parent],[data-remove-parent],[data-copy-uid],[data-remove-link]');
+  if (!target) return;
+
+  if (target.dataset.toggleParent){
+    e.stopPropagation();
+    toggleParent(target.dataset.toggleParent);
+    return;
+  }
+  if (target.dataset.editParent){
+    e.stopPropagation();
+    editParent(target.dataset.editParent);
+    return;
+  }
+  if (target.dataset.removeParent){
+    e.stopPropagation();
+    const p = parentMap.get(target.dataset.removeParent);
+    removeParent(target.dataset.removeParent, p?.name || '');
+    return;
+  }
+  if (target.dataset.copyUid){
+    e.stopPropagation();
+    copyToClipboard(target.dataset.copyUid);
+    return;
+  }
+  if (target.dataset.removeLink){
+    removeLink(target.dataset.removeLink);
+    return;
+  }
+});
+
+// Двойной клик по строке родителя → редактировать
+document.addEventListener('dblclick', e => {
+  const row = e.target.closest('tr[data-id]');
+  if (row && canEdit){
+    editParent(row.dataset.id);
+  }
+});
 
 /* ===================== РОДИТЕЛЬ: модалка ===================== */
 function openParentModal(id = null){
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
   $('parentId').value = '';
   $('parentName').value = '';
   $('parentEmail').value = '';
@@ -1940,6 +1957,8 @@ function editParent(id){ openParentModal(id); }
 
 async function saveParent(e){
   e.preventDefault();
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
+
   const id = $('parentId').value;
   const name = $('parentName').value.trim();
   const email = $('parentEmail').value.trim().toLowerCase();
@@ -1964,11 +1983,12 @@ async function saveParent(e){
 
   showLoading(true);
   try {
+    const db = firebase.firestore();
     if (id){
-      await firebase.firestore().collection('users').doc(id).update({ name, email });
+      await db.collection('users').doc(id).update({ name, email });
       toast('Родитель обновлён', 'success');
     } else {
-      await firebase.firestore().collection('users').add({
+      await db.collection('users').add({
         name,
         email,
         role: 'parent',
@@ -1987,6 +2007,7 @@ async function saveParent(e){
 }
 
 async function removeParent(id, name){
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
   const children = getChildrenOfParent(id);
   const msg = children.length
     ? `Удалить родителя «${name}»?\n\nУ него ${children.length} привязанных детей — связи тоже будут удалены.`
@@ -1995,11 +2016,12 @@ async function removeParent(id, name){
 
   showLoading(true);
   try {
-    const batch = firebase.firestore().batch();
+    const db = firebase.firestore();
+    const batch = db.batch();
     links.filter(l => l.parentId === id).forEach(l => {
-      batch.delete(firebase.firestore().collection('links').doc(l.id));
+      batch.delete(db.collection('links').doc(l.id));
     });
-    batch.delete(firebase.firestore().collection('users').doc(id));
+    batch.delete(db.collection('users').doc(id));
     await batch.commit();
     toast('Родитель удалён', 'success');
     await loadAll();
@@ -2011,9 +2033,9 @@ async function removeParent(id, name){
   }
 }
 
-
 /* ===================== СВЯЗЬ: модалка ===================== */
 function openLinkModal(){
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
   if (!parents.length){
     toast('Сначала добавьте родителей', 'error');
     return;
@@ -2057,7 +2079,7 @@ function renderParentOptions(query){
 
   container.innerHTML = filtered.map(p => `
     <div class="search-dropdown-item ${selectedParentId === p.id ? 'highlight' : ''}"
-         onclick="selectParent('${p.id}')">
+         data-select-parent="${p.id}">
       <span>${highlight(p.name || p.id, query)}</span>
     </div>
   `).join('');
@@ -2125,7 +2147,7 @@ function renderStudentOptions(query){
     html += `<div class="search-dropdown-group">${esc(groupName)} · ${gStud.length}</div>`;
     html += gStud.map(s => `
       <div class="search-dropdown-item ${selectedStudentId === s.id ? 'highlight' : ''}"
-           onclick="selectStudent('${s.id}')">
+           data-select-student="${s.id}">
         <span>${highlight(s.fullName || s.name || s.id, query)}</span>
       </div>
     `).join('');
@@ -2165,8 +2187,18 @@ function closeSelects(){
   document.querySelectorAll('.search-select.open').forEach(el => el.classList.remove('open'));
 }
 
+// Делегирование кликов в дропдаунах
+document.addEventListener('click', e => {
+  const parentItem = e.target.closest('[data-select-parent]');
+  if (parentItem){ selectParent(parentItem.dataset.selectParent); return; }
+  const studentItem = e.target.closest('[data-select-student]');
+  if (studentItem){ selectStudent(studentItem.dataset.selectStudent); return; }
+});
+
 async function saveLink(e){
   e.preventDefault();
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
+
   const parentId = $('linkParent').value;
   const studentId = $('linkStudent').value;
   if (!parentId || !studentId) return;
@@ -2183,8 +2215,9 @@ async function saveLink(e){
 
   showLoading(true);
   try {
+    const db = firebase.firestore();
     const linkId = `${parentId}_${studentId}`;
-    await firebase.firestore().collection('links').doc(linkId).set({
+    await db.collection('links').doc(linkId).set({
       parentId,
       studentId,
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
@@ -2202,6 +2235,7 @@ async function saveLink(e){
 }
 
 async function removeLink(id){
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
   if (!confirm('Отвязать студента от родителя?')) return;
   showLoading(true);
   try {
@@ -2215,7 +2249,6 @@ async function removeLink(id){
     showLoading(false);
   }
 }
-
 
 /* ===================== CSV ===================== */
 function exportParentsCSV(){
@@ -2241,6 +2274,7 @@ function exportParentsCSV(){
 }
 
 async function importParentsCSV(e){
+  if (!canEdit){ toast('Недостаточно прав', 'error'); e.target.value = ''; return; }
   const file = e.target.files?.[0];
   if (!file) return;
   e.target.value = '';
@@ -2295,24 +2329,29 @@ async function importParentsCSV(e){
   if (!confirm(`Найдено ${items.length} записей для импорта.\n\nДубликаты будут пропущены.\n\nИмпортировать?`)) return;
 
   showLoading(true);
-  let added = 0, skipped = 0;
+  let added = 0, skipped = 0, failed = 0;
   try {
+    const db = firebase.firestore();
     for (const item of items){
       const dupEmail = item.email && parents.some(p => norm(p.email) === item.email);
       const dupName = !item.email && parents.some(p => norm(p.name) === norm(item.name));
       if (dupEmail || dupName){ skipped++; continue; }
 
-      await firebase.firestore().collection('users').add({
-        name: item.name,
-        email: item.email,
-        role: 'parent',
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        importedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-      parents.push({ id: 'tmp' + Math.random(), name: item.name, email: item.email });
-      added++;
+      try {
+        await db.collection('users').add({
+          name: item.name,
+          email: item.email,
+          role: 'parent',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          importedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        added++;
+      } catch (err){
+        console.error(err);
+        failed++;
+      }
     }
-    toast(`Добавлено: ${added}, пропущено: ${skipped}`, 'success');
+    toast(`Добавлено: ${added}, пропущено: ${skipped}${failed ? `, ошибок: ${failed}` : ''}`, 'success');
     await loadAll();
   } catch (err){
     console.error(err);
@@ -2321,7 +2360,6 @@ async function importParentsCSV(e){
     showLoading(false);
   }
 }
-
 
 /* ===================== UI ===================== */
 function closeModal(id){
@@ -2361,7 +2399,6 @@ document.querySelectorAll('nav.tabs button, .bottom-nav-btn').forEach(btn => {
   });
 });
 
-
 /* ===================== ТЕМА ===================== */
 function toggleTheme(){
   const cur = document.documentElement.getAttribute('data-theme');
@@ -2377,7 +2414,6 @@ function toggleTheme(){
   }
 })();
 
-
 /* ===================== ОФФЛАЙН ===================== */
 function updateOnlineStatus(){
   const banner = $('offlineBanner');
@@ -2387,7 +2423,6 @@ function updateOnlineStatus(){
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 window.addEventListener('load', updateOnlineStatus);
-
 
 /* ===================== ГОРЯЧИЕ КЛАВИШИ ===================== */
 document.addEventListener('keydown', e => {
@@ -2410,7 +2445,7 @@ document.addEventListener('keydown', e => {
 
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
     e.preventDefault();
-    if (!document.querySelector('.modal-overlay.active')) openParentModal();
+    if (canEdit && !document.querySelector('.modal-overlay.active')) openParentModal();
     return;
   }
 
@@ -2432,7 +2467,6 @@ document.addEventListener('keydown', e => {
   }
 });
 
-
 /* ===================== АВТОРИЗАЦИЯ ===================== */
 firebase.auth().onAuthStateChanged(async function(user){
   if (!user){
@@ -2440,21 +2474,24 @@ firebase.auth().onAuthStateChanged(async function(user){
     $('userAvatar').textContent = '?';
     $('roleBadge').textContent = '—';
     $('topbarSubtitle').textContent = 'Требуется вход в систему';
-    showLoading(false);
+    $('splash').classList.add('hide');
     toast('Вы не авторизованы. Войдите в систему.', 'error');
+    setTimeout(() => { window.location.href = 'login.html'; }, 1200);
     return;
   }
 
   try {
-    const doc = await firebase.firestore().collection('users').doc(user.uid).get();
+    const db = firebase.firestore();
+    const doc = await db.collection('users').doc(user.uid).get();
     if (doc.exists){
       currentUser = { uid: user.uid, id: doc.id, ...doc.data() };
     } else {
-      currentUser = { uid: user.uid, email: user.email, role: 'parent' };
+      currentUser = { uid: user.uid, email: user.email, role: 'guest' };
     }
 
     isAdmin = currentUser.role === 'admin';
     isCurator = currentUser.role === 'curator';
+    canEdit = isAdmin || isCurator;
 
     const fio = currentUser.name || currentUser.email || user.uid;
     $('userName').textContent = fio;
@@ -2462,16 +2499,21 @@ firebase.auth().onAuthStateChanged(async function(user){
 
     const badge = $('roleBadge');
     badge.textContent = isAdmin ? 'Админ' : isCurator ? 'Куратор' : (currentUser.role || 'Гость');
-    badge.className = 'role-badge ' + (isAdmin ? 'admin' : isCurator ? 'curator' : 'parent');
+    badge.className = 'role-badge ' + (isAdmin ? 'admin' : isCurator ? 'curator' : (currentUser.role === 'parent' ? 'parent' : 'guest'));
+
+    // Плашка для не-админов
+    if (!canEdit){
+      $('accessBanner').classList.add('show');
+      $('accessBannerText').textContent = 'Только чтение — редактирование доступно администратору и куратору.';
+    }
 
     await loadAll();
   } catch (err){
     console.error(err);
     toast('Ошибка инициализации: ' + (err.message || err), 'error');
-    showLoading(false);
+    $('splash').classList.add('hide');
   }
 });
-
 
 /* ===================== ЭКСПОРТ В ГЛОБАЛ ===================== */
 Object.assign(window, {

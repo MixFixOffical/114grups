@@ -249,14 +249,14 @@ header.topbar{
 /* ============ ACCESS BANNER ============ */
 .access-banner{
   display:none;
-  margin:0 24px 16px;
+  margin:16px 24px 0;
   padding:14px 18px;
   border-radius:14px;
   background:linear-gradient(135deg,#fef3c7 0%,#fde68a 100%);
   border:1px solid #fbbf24;
   color:#78350f;
   font-size:13px;font-weight:600;
-  display:flex;align-items:center;gap:10px;
+  align-items:center;gap:10px;
 }
 .access-banner.show{display:flex}
 .access-banner svg{width:20px;height:20px;flex-shrink:0}
@@ -620,8 +620,11 @@ tr.expanded-row td{
 }
 .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
 
-/* ============ SEARCH SELECT ============ */
+/* ==========================================================
+   SEARCH SELECT — ИСПРАВЛЕНО
+   ========================================================== */
 .search-select{position:relative}
+
 .search-select-value{
   display:flex;align-items:center;justify-content:space-between;
   padding:11px 14px;border:1px solid var(--border);
@@ -636,12 +639,13 @@ tr.expanded-row td{
   color:var(--primary);font-weight:600;
 }
 .search-select-value .placeholder{color:var(--text-light)}
-.search-select-value svg{
+.search-select-value > svg{
   width:14px;height:14px;color:var(--text-light);
   transition:transform .25s var(--ease);
+  flex:none;
 }
-.search-select-value.selected svg{color:var(--primary)}
-.search-select.open .search-select-value svg{transform:rotate(180deg)}
+.search-select-value.selected > svg{color:var(--primary)}
+.search-select.open .search-select-value > svg{transform:rotate(180deg)}
 
 .search-dropdown{
   position:absolute;top:calc(100% + 6px);left:0;right:0;
@@ -653,12 +657,51 @@ tr.expanded-row td{
 }
 .search-select.open .search-dropdown{display:block}
 
+/* Обёртка с инпутом поиска внутри дропдауна */
 .search-dropdown .search-select-wrap{
+  position:relative;
   padding:10px;
   border-bottom:1px solid var(--border-soft);
-  position:sticky;top:0;background:var(--surface);z-index:1;
+  position:sticky;
+  top:0;
+  background:var(--surface);
+  z-index:1;
   max-width:none;
 }
+
+/* Маленькая иконка лупы слева */
+.search-select-wrap > svg{
+  position:absolute;
+  left:22px;
+  top:50%;
+  transform:translateY(-50%);
+  width:16px;
+  height:16px;
+  color:var(--text-light);
+  pointer-events:none;
+  flex:none;
+}
+
+/* Инпут с отступом под иконку */
+.search-select-wrap input{
+  width:100%;
+  height:40px;
+  padding:0 12px 0 38px;
+  border:1px solid var(--border);
+  border-radius:10px;
+  background:var(--surface-2);
+  color:var(--text);
+  font-family:inherit;
+  font-size:13px;
+  outline:none;
+  transition:.2s;
+}
+.search-select-wrap input:focus{
+  border-color:var(--primary);
+  background:var(--surface);
+  box-shadow:0 0 0 4px rgba(36,84,232,.12);
+}
+.search-select-wrap input::placeholder{color:var(--text-light)}
 
 #linkParentOptions,
 #linkStudentOptions{
@@ -676,6 +719,14 @@ tr.expanded-row td{
 }
 .search-dropdown-item:hover,
 .search-dropdown-item.highlight{background:var(--primary-light);color:var(--primary)}
+
+.search-dropdown-item .opt-group{
+  font-size:10.5px;font-weight:700;
+  color:var(--text-light);text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.search-dropdown-item:hover .opt-group,
+.search-dropdown-item.highlight .opt-group{color:var(--primary)}
 
 .search-dropdown-group{
   padding:8px 12px 4px;
@@ -1448,16 +1499,15 @@ function fallbackCopy(text){
   document.body.removeChild(ta);
 }
 
-/* ===================== ИСПРАВЛЕНО: переход на главную ===================== */
+/* ===================== ПЕРЕХОД НА ГЛАВНУЮ ===================== */
 function goHome(e){
   if (e) e.preventDefault();
 
   const role = currentUser?.role || '';
-  // Карта переходов — роль → файл
   const routes = {
     admin:   'adminhome.html',
     curator: 'home.html',
-    parent:  'phome.html'   // ← ИСПРАВЛЕНО: было parenthome.html
+    parent:  'phome.html'
   };
   window.location.href = routes[role] || 'login.html';
 }
@@ -1502,7 +1552,6 @@ async function loadAll(){
       } else if (isAdmin) {
         students.push(s);
       }
-      // parent не должен видеть студентов вообще
     });
 
     // родители
@@ -1549,7 +1598,6 @@ async function loadAll(){
       $('topbarSubtitle').textContent = 'Полный доступ';
     }
 
-    // Кнопки редактирования — только для админа/куратора
     document.querySelectorAll('#addParentBtn, #addLinkBtn').forEach(btn => {
       btn.style.display = canEdit ? '' : 'none';
     });
@@ -1889,7 +1937,7 @@ function clearSearch(tab){
   if (tab === 'students') renderStudents();
 }
 
-/* ===================== ДЕЛЕГИРОВАНИЕ КЛИКОВ В ТАБЛИЦАХ ===================== */
+/* ===================== ДЕЛЕГИРОВАНИЕ КЛИКОВ ===================== */
 document.addEventListener('click', e => {
   const target = e.target.closest('[data-toggle-parent],[data-edit-parent],[data-remove-parent],[data-copy-uid],[data-remove-link]');
   if (!target) return;
@@ -2501,7 +2549,6 @@ firebase.auth().onAuthStateChanged(async function(user){
     badge.textContent = isAdmin ? 'Админ' : isCurator ? 'Куратор' : (currentUser.role || 'Гость');
     badge.className = 'role-badge ' + (isAdmin ? 'admin' : isCurator ? 'curator' : (currentUser.role === 'parent' ? 'parent' : 'guest'));
 
-    // Плашка для не-админов
     if (!canEdit){
       $('accessBanner').classList.add('show');
       $('accessBannerText').textContent = 'Только чтение — редактирование доступно администратору и куратору.';

@@ -906,7 +906,7 @@ input[type="password"]{letter-spacing:.5px}
 }
 
 /* =========================================================
-   AGREEMENT MODAL (уведомление при первом посещении)
+   AGREEMENT MODAL
 ========================================================= */
 .agree-overlay{
     position:fixed;inset:0;z-index:10000;
@@ -923,7 +923,7 @@ input[type="password"]{letter-spacing:.5px}
     position:relative;width:100%;max-width:460px;
     max-height:calc(100svh - 40px);
     display:flex;flex-direction:column;
-    padding:26px 22px 20px;
+    padding:24px 22px 20px;
     border-radius:24px;
     background:linear-gradient(180deg,#ffffff 0%,#f8fbff 100%);
     border:1px solid #fff;
@@ -938,29 +938,6 @@ input[type="password"]{letter-spacing:.5px}
     background:linear-gradient(90deg,transparent,#fff,transparent);
 }
 
-/* ПЕЧАТЬ */
-.agree-seal{
-    width:110px;height:110px;margin:0 auto 12px;flex:none;
-    filter:drop-shadow(0 8px 18px rgba(30,58,138,.25));
-    animation:sealIn .9s var(--ease-spring) both;
-}
-.agree-seal svg{width:100%;height:100%;display:block}
-@keyframes sealIn{
-    from{opacity:0;transform:scale(.6) rotate(-25deg)}
-    to{opacity:1;transform:none}
-}
-.seal-arc-text{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-    font-size:11px;font-weight:800;letter-spacing:.6px;
-    fill:#1e3a8a;text-transform:uppercase;
-}
-.seal-arc-bottom{font-size:14px;letter-spacing:1.6px}
-.seal-brand{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;
-    font-size:24px;font-weight:900;letter-spacing:1px;fill:#1e3a8a;
-}
-
-/* ЗАГОЛОВОК */
 .agree-title{
     font-size:19px;font-weight:800;letter-spacing:-.4px;
     text-align:center;color:var(--ink-900);
@@ -1000,8 +977,53 @@ input[type="password"]{letter-spacing:.5px}
 .agree-scroll ul{margin:0 0 8px 18px;padding:0}
 .agree-scroll li{margin-bottom:4px}
 .agree-scroll b{color:var(--ink-900)}
-.agree-date{margin-top:14px!important;color:var(--ink-500);font-size:11.5px}
-.agree-sign{color:var(--ink-700);font-size:12px;letter-spacing:.5px}
+
+/* ====== ДАТА + ПОДПИСЬ + ПЕЧАТЬ ====== */
+.agree-date{
+    margin-top:14px!important;
+    color:var(--ink-500);
+    font-size:11.5px;
+}
+
+/* обёртка, внутри которой лежит печать */
+.agree-sign-block{
+    position:relative;
+    margin-top:8px;
+    min-height:130px;
+    padding-right:140px;     /* место справа под печать */
+    padding-bottom:14px;
+}
+
+.agree-sign{
+    color:var(--ink-700);
+    font-size:12px;
+    letter-spacing:.5px;
+    line-height:1.4;
+}
+
+/* САМА ПЕЧАТЬ — PNG с прозрачным фоном */
+.agree-seal-stamp{
+    position:absolute;
+    right:-6px;
+    bottom:-8px;
+    width:140px;
+    height:140px;
+    object-fit:contain;
+    pointer-events:none;
+    user-select:none;
+    -webkit-user-drag:none;
+    opacity:.85;                                  /* лёгкая прозрачность */
+    transform:rotate(-12deg);
+    transform-origin:center;
+    filter:drop-shadow(0 6px 16px rgba(30,58,138,.18));
+    animation:stampIn 1s var(--ease-spring) .35s both;
+}
+
+@keyframes stampIn{
+    0%  {opacity:0;   transform:rotate(-28deg) scale(1.55)}
+    60% {opacity:.95; transform:rotate(-8deg)  scale(.94)}
+    100%{opacity:.85; transform:rotate(-12deg) scale(1)}
+}
 
 /* КНОПКА */
 .agree-btn{
@@ -1044,16 +1066,21 @@ input[type="password"]{letter-spacing:.5px}
     .status-title{font-size:18px}
     .status-sub{font-size:12px}
 
-    .agree-card{padding:22px 16px 16px;border-radius:22px;max-height:calc(100svh - 24px)}
-    .agree-seal{width:92px;height:92px}
+    .agree-card{padding:20px 16px 16px;border-radius:22px;max-height:calc(100svh - 24px)}
     .agree-title{font-size:17px}
     .agree-lead{font-size:12px}
     .agree-scroll{font-size:12px;padding:12px}
     .agree-btn{height:52px;font-size:14.5px}
+
+    /* печать меньше и не давит текст */
+    .agree-sign-block{min-height:110px;padding-right:112px}
+    .agree-seal-stamp{width:112px;height:112px;right:-4px;bottom:-6px}
 }
 @media (max-width:360px){
     .card{padding:22px 16px 18px}
     .title{font-size:19px}
+    .agree-sign-block{min-height:100px;padding-right:100px}
+    .agree-seal-stamp{width:100px;height:100px}
 }
 @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{
@@ -1062,7 +1089,7 @@ input[type="password"]{letter-spacing:.5px}
         transition-duration:.001ms !important;
     }
     .bg-orb,.bg-stars span{display:none}
-    .agree-overlay,.agree-card,.agree-seal{transition:none!important;animation:none!important}
+    .agree-overlay,.agree-card,.agree-seal-stamp{transition:none!important;animation:none!important}
 }
 </style>
 </head>
@@ -1070,48 +1097,10 @@ input[type="password"]{letter-spacing:.5px}
 <body>
 
 <!-- =========================================================
-     AGREEMENT MODAL (уведомление при первом посещении)
+     AGREEMENT MODAL
 ========================================================= -->
 <div class="agree-overlay" id="agreeOverlay" aria-hidden="true">
     <div class="agree-card" role="dialog" aria-modal="true" aria-labelledby="agreeTitle">
-
-        <!-- ПЕЧАТЬ -->
-        <div class="agree-seal" aria-hidden="true">
-            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                <defs>
-                    <path id="sealTopArc" d="M 100,100 m -78,0 a 78,78 0 1,1 156,0" />
-                    <path id="sealBottomArc" d="M 100,100 m -66,0 a 66,66 0 1,0 132,0" />
-                </defs>
-
-                <circle cx="100" cy="100" r="94" fill="none" stroke="#1e3a8a" stroke-width="4"/>
-                <circle cx="100" cy="100" r="88" fill="none" stroke="#1e3a8a" stroke-width="2"/>
-                <circle cx="100" cy="100" r="60" fill="none" stroke="#1e3a8a" stroke-width="2"/>
-
-                <text class="seal-arc-text">
-                    <textPath href="#sealTopArc" startOffset="50%" text-anchor="middle">
-                        СИСТЕМА ОТМЕТКИ ПОСЕЩАЕМОСТИ СТУДЕНТОВ
-                    </textPath>
-                </text>
-                <text class="seal-arc-text seal-arc-bottom">
-                    <textPath href="#sealBottomArc" startOffset="50%" text-anchor="middle">
-                        ★ KURATOR ★
-                    </textPath>
-                </text>
-
-                <path d="M 18,100 l 3.5,7 7.5,1 -5.5,5.5 1.3,7.5 -6.8,-3.6 -6.8,3.6 1.3,-7.5 -5.5,-5.5 7.5,-1 z" fill="#1e3a8a"/>
-                <path d="M 182,100 l 3.5,7 7.5,1 -5.5,5.5 1.3,7.5 -6.8,-3.6 -6.8,3.6 1.3,-7.5 -5.5,-5.5 7.5,-1 z" fill="#1e3a8a"/>
-
-                <text x="100" y="72" text-anchor="middle" class="seal-brand">KURATOR</text>
-
-                <g fill="#1e3a8a">
-                    <path d="M 62,88 q 0,-6 6,-6 h 22 q 6,0 10,4 v 42 q -4,-4 -10,-4 h -22 q -6,0 -6,6 z"/>
-                    <path d="M 138,88 q 0,-6 -6,-6 h -22 q -6,0 -10,4 v 42 q 4,-4 10,-4 h 22 q 6,0 6,6 z"/>
-                    <rect x="96" y="86" width="8" height="46" rx="2"/>
-                    <path d="M 128,66 l 10,10 -34,34 -12,4 4,-12 z"/>
-                    <path d="M 132,62 l 8,8 -4,4 -8,-8 z"/>
-                </g>
-            </svg>
-        </div>
 
         <h2 class="agree-title" id="agreeTitle">Уведомление об использовании системы</h2>
         <p class="agree-lead">
@@ -1171,8 +1160,19 @@ input[type="password"]{letter-spacing:.5px}
                 что ознакомились с настоящим уведомлением, понимаете его содержание
                 и соглашаетесь соблюдать установленные правила.
             </p>
+
+            <!-- ДАТА + ПОДПИСЬ + ПЕЧАТЬ -->
             <p class="agree-date"><b>Дата последнего обновления: 07.10.2026</b></p>
-            <p class="agree-sign"><b>Kurator</b></p>
+
+            <div class="agree-sign-block">
+                <p class="agree-sign"><b>Kurator</b></p>
+
+                <!-- ЗАМЕНИТЕ ИМЯ ФАЙЛА, ЕСЛИ НУЖНО -->
+                <img class="agree-seal-stamp"
+                     src="seal.png"
+                     alt="Печать KURATOR"
+                     draggable="false">
+            </div>
         </div>
 
         <button type="button" class="agree-btn" id="agreeBtn" disabled>
@@ -2259,7 +2259,7 @@ if (matchMedia("(hover: hover) and (pointer: fine)").matches){
 }
 
 /* =========================================
-   AGREEMENT (уведомление при первом посещении)
+   AGREEMENT
 ========================================= */
 const AGREEMENT_KEY = "kurator_agreement_accepted_v1";
 

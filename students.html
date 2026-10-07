@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#2563eb">
 <meta name="description" content="Управление студентами и учебными группами">
+<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22%D0%9A%D1%83%D1%80%D0%B0%D1%82%D0%BE%D1%80-%D0%B6%D1%83%D1%80%D0%BD%D0%B0%D0%BB%22%2C%22short_name%22%3A%22%D0%9A%D0%96%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23f5f7fb%22%2C%22theme_color%22%3A%22%232563eb%22%7D">
 <title>Студенты — Куратор-журнал</title>
 
 <style>
@@ -47,7 +48,6 @@
     --safe-top:env(safe-area-inset-top,0px);
 }
 
-/* dark theme */
 html[data-theme="dark"]{
     --text:#e5e9f0;
     --text-2:#cbd5e1;
@@ -81,18 +81,32 @@ html,body{
     -webkit-tap-highlight-color:transparent;
     transition:background .2s,color .2s;
 }
-
 body{overflow-x:hidden}
+body.dragging{cursor:grabbing;user-select:none}
 
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer;border:0;background:none}
-button:focus-visible,
-input:focus-visible,
-select:focus-visible{
+button:focus-visible,input:focus-visible,select:focus-visible{
     outline:2px solid var(--blue);
     outline-offset:2px;
 }
 button:disabled{opacity:.55;cursor:not-allowed}
+
+/* =========================================================
+   SKIP LINK
+========================================================= */
+.skip-link{
+    position:absolute;
+    left:-9999px;
+    top:0;
+    background:var(--blue);
+    color:#fff;
+    padding:10px 16px;
+    border-radius:0 0 10px 0;
+    z-index:9999;
+    font-weight:700;
+}
+.skip-link:focus{left:0}
 
 /* =========================================================
    OFFLINE BANNER
@@ -105,6 +119,9 @@ button:disabled{opacity:.55;cursor:not-allowed}
     padding:8px 14px;
     font-size:12px;
     font-weight:700;
+    position:sticky;
+    top:0;
+    z-index:60;
 }
 .offline.show{display:block}
 
@@ -184,6 +201,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
     color:var(--text-2);
     transition:.15s;
     font-size:16px;
+    position:relative;
 }
 .icon-btn:hover{border-color:var(--blue-line);background:var(--blue-soft);color:var(--blue2)}
 .icon-btn:active{transform:scale(.95)}
@@ -329,7 +347,11 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     justify-content:space-between;
     align-items:center;
     gap:10px;
+    transition:.15s;
+    cursor:pointer;
 }
+.stat:hover{border-color:var(--blue-line);transform:translateY(-1px)}
+.stat.active{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
 
 .stat-label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.04em}
 .stat-value{font-size:24px;font-weight:800;margin-top:4px;line-height:1;font-variant-numeric:tabular-nums}
@@ -374,6 +396,7 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     margin:-4px -4px -4px 0;
     scrollbar-width:none;
     -webkit-overflow-scrolling:touch;
+    scroll-snap-type:x proximity;
 }
 .group-pills::-webkit-scrollbar{display:none}
 
@@ -388,6 +411,10 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     font-weight:700;
     transition:.15s;
     white-space:nowrap;
+    scroll-snap-align:start;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
 }
 .pill:hover{border-color:var(--blue-line);background:var(--blue-soft);color:var(--blue2)}
 .pill.active{
@@ -395,6 +422,18 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     border-color:transparent;
     color:#fff;
     box-shadow:0 6px 14px rgba(37,99,235,.28);
+}
+.pill .pill-count{
+    background:rgba(255,255,255,.25);
+    padding:1px 7px;
+    border-radius:999px;
+    font-size:11px;
+    font-weight:800;
+    line-height:1.4;
+}
+.pill:not(.active) .pill-count{
+    background:var(--gray-soft);
+    color:var(--muted);
 }
 
 .select{
@@ -469,6 +508,29 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 }
 .info-item strong{font-size:13px;display:block;overflow:hidden;text-overflow:ellipsis}
 
+/* прогресс группы */
+.group-progress{
+    margin-top:12px;
+    height:6px;
+    background:var(--gray-soft);
+    border-radius:999px;
+    overflow:hidden;
+}
+.group-progress span{
+    display:block;
+    height:100%;
+    background:linear-gradient(90deg,var(--blue),#60a5fa);
+    border-radius:999px;
+    transition:width .4s ease;
+}
+.group-progress-label{
+    margin-top:6px;
+    font-size:11px;
+    color:var(--muted);
+    display:flex;
+    justify-content:space-between;
+}
+
 /* =========================================================
    PANEL HEAD + FILTERS
 ========================================================= */
@@ -480,12 +542,8 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     justify-content:space-between;
     gap:12px;
     flex-wrap:wrap;
-    position:sticky;
-    top:var(--header-h);
-    background:var(--card);
-    z-index:20;
 }
-.panel-title{font-size:16px;font-weight:800}
+.panel-title{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px}
 .panel-count{color:var(--muted);font-size:12px;margin-top:3px}
 
 .panel-tools{
@@ -508,7 +566,23 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 }
 .input:focus{border-color:#93c5fd;box-shadow:0 0 0 4px rgba(37,99,235,.1)}
 
-.search{min-width:0;flex:1 1 180px;max-width:260px}
+.search-wrap{position:relative;flex:1 1 180px;max-width:280px;min-width:0}
+.search-wrap .input{padding-right:32px}
+.search-clear{
+    position:absolute;
+    right:6px;
+    top:50%;
+    transform:translateY(-50%);
+    width:26px;height:26px;
+    border-radius:8px;
+    color:var(--muted);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+}
+.search-clear.show{display:inline-flex}
+.search-clear:hover{background:var(--gray-soft);color:var(--text-2)}
 
 .filters{
     display:flex;
@@ -528,6 +602,9 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     font-weight:700;
     color:var(--text-2);
     transition:.15s;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
 }
 .filter-chip:hover{border-color:var(--blue-line)}
 .filter-chip.active{
@@ -535,6 +612,15 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     border-color:var(--blue);
     color:#fff;
 }
+.filter-chip .filter-count{
+    background:rgba(0,0,0,.08);
+    padding:1px 6px;
+    border-radius:999px;
+    font-size:10px;
+    font-weight:800;
+}
+.filter-chip.active .filter-count{background:rgba(255,255,255,.25)}
+
 .sort-select{
     padding:7px 30px 7px 12px;
     border-radius:999px;
@@ -550,7 +636,7 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 }
 
 /* =========================================================
-   BULK PANEL
+   BULK BAR
 ========================================================= */
 .bulk-bar{
     display:none;
@@ -564,6 +650,9 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     font-weight:700;
     color:var(--blue2);
     flex-wrap:wrap;
+    position:sticky;
+    top:var(--header-h);
+    z-index:19;
 }
 .bulk-bar.show{display:flex}
 .bulk-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -613,11 +702,17 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     align-items:center;
     padding:12px;
     border-radius:12px;
-    transition:.15s;
+    transition:background .15s;
     animation:fadeIn .18s ease both;
+    position:relative;
 }
 .student:hover{background:var(--card-2)}
 .student.selected{background:var(--blue-soft)}
+.student.drag-over{
+    background:var(--blue-soft);
+    outline:2px dashed var(--blue);
+    outline-offset:-4px;
+}
 .student input[type="checkbox"]{
     width:18px;height:18px;
     accent-color:var(--blue);
@@ -638,6 +733,19 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     font-weight:800;
     font-size:14px;
     color:#fff;
+    position:relative;
+}
+.avatar .star-mark{
+    position:absolute;
+    top:-4px;right:-4px;
+    background:#fbbf24;
+    color:#78350f;
+    width:18px;height:18px;
+    border-radius:50%;
+    display:grid;
+    place-items:center;
+    font-size:10px;
+    border:2px solid var(--card);
 }
 
 .student-main{min-width:0}
@@ -647,6 +755,15 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     overflow:hidden;
     text-overflow:ellipsis;
     white-space:nowrap;
+    display:flex;
+    align-items:center;
+    gap:6px;
+}
+.student-name .match{
+    background:var(--yellow-soft);
+    color:var(--yellow-text);
+    padding:0 2px;
+    border-radius:3px;
 }
 .student-sub{
     font-size:12px;
@@ -717,6 +834,22 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 .edit-btn{color:var(--blue)}
 .delete-btn,.remove-btn{color:var(--red);border-color:var(--red-line)}
 .delete-btn:hover,.remove-btn:hover{background:var(--red-soft)}
+.star-btn{color:var(--yellow-text);border-color:var(--yellow-soft)}
+.star-btn:hover{background:var(--yellow-soft)}
+
+/* drag handle */
+.drag-handle{
+    position:absolute;
+    left:-2px;
+    top:50%;
+    transform:translateY(-50%);
+    width:6px;
+    height:28px;
+    border-radius:3px;
+    background:transparent;
+    cursor:grab;
+}
+.student:hover .drag-handle{background:var(--line)}
 
 /* empty */
 .empty{
@@ -734,10 +867,7 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     height:68px;
     margin:8px;
     border-radius:12px;
-    background:linear-gradient(90deg,
-        var(--card-2) 25%,
-        var(--gray-soft) 37%,
-        var(--card-2) 63%);
+    background:linear-gradient(90deg,var(--card-2) 25%,var(--gray-soft) 37%,var(--card-2) 63%);
     background-size:400% 100%;
     animation:shimmer 1.4s ease infinite;
 }
@@ -746,7 +876,9 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     100%{background-position:0 0}
 }
 
-/* back-to-top */
+/* =========================================================
+   TO-TOP
+========================================================= */
 .to-top{
     position:fixed;
     right:20px;
@@ -769,28 +901,40 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 /* =========================================================
    TOAST
 ========================================================= */
-.toast{
+.toast-wrap{
     position:fixed;
     left:50%;
     bottom:calc(20px + var(--safe-bottom));
-    transform:translate(-50%,20px);
+    transform:translateX(-50%);
     z-index:2000;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    pointer-events:none;
+    width:min(420px,calc(100vw - 32px));
+}
+.toast{
     padding:12px 16px;
     border-radius:12px;
     background:#0f172a;
     color:#fff;
     box-shadow:var(--shadow-lg);
-    opacity:0;
-    pointer-events:none;
-    transition:.25s;
     font-size:13px;
     font-weight:600;
-    max-width:calc(100vw - 32px);
     text-align:center;
+    opacity:0;
+    transform:translateY(20px);
+    transition:.25s;
+    pointer-events:auto;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    justify-content:center;
 }
-.toast.show{opacity:1;transform:translate(-50%,0)}
+.toast.show{opacity:1;transform:none}
 .toast.success{background:#166534}
 .toast.error{background:#991b1b}
+.toast.info{background:#1e40af}
 
 /* =========================================================
    MODAL
@@ -822,6 +966,7 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     animation:modalIn .2s ease;
 }
 .modal-card.sm{max-width:440px}
+.modal-card.lg{max-width:760px}
 
 .modal-head{
     padding:16px 18px;
@@ -882,8 +1027,7 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     display:none;
 }
 .field.invalid .err{display:block}
-.field.invalid .input,
-.field.invalid .select{border-color:var(--red)}
+.field.invalid .input,.field.invalid .select{border-color:var(--red)}
 
 .confirm-text{
     color:var(--text-2);
@@ -892,6 +1036,27 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     margin:0;
 }
 .confirm-text strong{color:var(--text)}
+
+/* students list in modal (для выбора группы перевода) */
+.pick-list{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
+    gap:8px;
+    margin-top:6px;
+}
+.pick-item{
+    padding:12px 14px;
+    border:1px solid var(--line);
+    border-radius:12px;
+    background:var(--card);
+    text-align:left;
+    font-weight:700;
+    font-size:13px;
+    transition:.15s;
+    cursor:pointer;
+}
+.pick-item:hover{border-color:var(--blue-line);background:var(--blue-soft);color:var(--blue2)}
+.pick-item.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 
 /* candidates */
 .multi-list{
@@ -937,7 +1102,7 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 }
 .link-btn:hover{background:var(--blue-soft)}
 
-/* theme swatches */
+/* тема */
 .theme-row{display:flex;gap:10px;margin-top:6px}
 .theme-opt{
     flex:1;
@@ -952,11 +1117,6 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 }
 .theme-opt:hover{border-color:var(--blue-line)}
 .theme-opt.active{border-color:var(--blue);background:var(--blue-soft);color:var(--blue2)}
-
-@keyframes modalIn{
-    from{opacity:0;transform:translateY(12px) scale(.98)}
-    to{opacity:1;transform:none}
-}
 
 /* =========================================================
    LOADING
@@ -987,18 +1147,43 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 .loading-sub{margin-top:4px;font-size:12px;color:var(--muted)}
 
 /* =========================================================
-   TABLET
+   TABS MOBILE
+========================================================= */
+.mobile-tabs{
+    display:none;
+    position:fixed;
+    left:0;right:0;bottom:0;
+    background:var(--card);
+    border-top:1px solid var(--line);
+    padding:6px 8px calc(6px + var(--safe-bottom));
+    z-index:40;
+    box-shadow:0 -4px 16px rgba(15,23,42,.06);
+}
+.mobile-tabs .tab{
+    flex:1;
+    padding:8px 6px;
+    border-radius:10px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:2px;
+    font-size:10px;
+    font-weight:700;
+    color:var(--muted);
+    transition:.15s;
+}
+.mobile-tabs .tab .tab-icon{font-size:18px;line-height:1}
+.mobile-tabs .tab.active{color:var(--blue);background:var(--blue-soft)}
+
+/* =========================================================
+   MEDIA
 ========================================================= */
 @media (max-width:900px){
     .clock{display:none}
     .info-grid{grid-template-columns:1fr 1fr}
 }
 
-/* =========================================================
-   MOBILE
-========================================================= */
 @media (max-width:640px){
-
     :root{--header-h:56px}
 
     .header{padding:0 12px;gap:8px}
@@ -1010,21 +1195,18 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     .home-btn .home-label{display:none}
     .home-btn .home-arrow{font-size:16px}
 
-    .container{padding:16px 12px calc(90px + var(--safe-bottom))}
+    .container{padding:16px 12px calc(96px + var(--safe-bottom))}
 
-    .page-head{
-        flex-direction:column;
-        align-items:stretch;
-        gap:12px;
-        margin-bottom:16px;
-    }
+    .page-head{flex-direction:column;align-items:stretch;gap:12px;margin-bottom:16px}
     h1{font-size:22px}
     .subtitle{font-size:13px}
     .primary{width:100%;justify-content:center;padding:13px 16px}
 
-    .stats{grid-template-columns:1fr;gap:10px}
-    .stat{padding:14px}
-    .stat-value{font-size:22px}
+    .stats{grid-template-columns:repeat(3,1fr);gap:8px}
+    .stat{padding:11px;flex-direction:column;align-items:flex-start;gap:6px}
+    .stat-value{font-size:19px}
+    .stat-icon{width:30px;height:30px;font-size:14px;border-radius:9px}
+    .stat-label{font-size:9px}
 
     .selector{padding:14px;flex-direction:column;align-items:stretch;gap:10px}
     .selector-label{font-size:13px}
@@ -1035,26 +1217,22 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     .info-grid{grid-template-columns:1fr;gap:8px}
     .info-item{padding:11px}
 
-    .panel-head{
-        padding:14px;
-        flex-direction:column;
-        align-items:stretch;
-        gap:10px;
-        position:static;
-    }
-    .panel-tools{
-        flex-direction:column;
-        align-items:stretch;
-        flex:1 1 auto;
-    }
-    .search{max-width:none;width:100%}
+    .panel-head{padding:14px;flex-direction:column;align-items:stretch;gap:10px}
+    .panel-tools{flex-direction:column;align-items:stretch;flex:1 1 auto}
+    .search-wrap{max-width:none;width:100%}
     .small-primary{width:100%}
 
     .filters{padding:10px 14px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
     .filters::-webkit-scrollbar{display:none}
     .filter-chip,.sort-select{flex:none}
 
-    .bulk-bar{padding:10px 14px;flex-direction:column;align-items:stretch;gap:10px}
+    .bulk-bar{
+        padding:10px 14px;
+        flex-direction:column;
+        align-items:stretch;
+        gap:10px;
+        top:var(--header-h);
+    }
     .bulk-actions{flex-wrap:wrap}
     .bulk-btn{flex:1 1 auto}
 
@@ -1075,18 +1253,14 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     .student input[type="checkbox"]{grid-area:chk;margin-top:11px}
     .avatar{grid-area:avt;width:40px;height:40px}
     .student-main{grid-area:main;align-self:start}
-    .student-right{
-        grid-area:right;
-        justify-content:flex-start;
-        padding-top:4px;
-        gap:6px;
-    }
+    .student-right{grid-area:right;justify-content:flex-start;padding-top:4px;gap:6px}
     .student-name{font-size:14px;white-space:normal}
     .student-sub{white-space:normal;flex-wrap:wrap}
 
     .action-btn{flex:1 1 auto;justify-content:center;min-height:38px;font-size:12px}
     .action-btn.edit-btn,
-    .action-btn.delete-btn{flex:0 0 auto;min-width:42px}
+    .action-btn.delete-btn,
+    .action-btn.star-btn{flex:0 0 auto;min-width:42px}
 
     .section-head{padding:12px 10px 4px}
 
@@ -1109,15 +1283,24 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     .modal-foot .danger{flex:1 1 auto;justify-content:center}
 
     .candidate{padding:12px}
-
     .theme-row{flex-direction:column}
+    .pick-list{grid-template-columns:1fr 1fr}
+
+    .mobile-tabs{display:flex}
+    .toast-wrap{bottom:calc(80px + var(--safe-bottom))}
+    .to-top{bottom:calc(80px + var(--safe-bottom))}
 }
 
 @media (max-width:380px){
-    .stat-value{font-size:20px}
+    .stat-value{font-size:17px}
     h1{font-size:20px}
+    .pick-list{grid-template-columns:1fr}
 }
 
+@keyframes modalIn{
+    from{opacity:0;transform:translateY(12px) scale(.98)}
+    to{opacity:1;transform:none}
+}
 @keyframes sheetIn{
     from{opacity:0;transform:translateY(24px)}
     to{opacity:1;transform:none}
@@ -1134,10 +1317,10 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 
 <body>
 
-<!-- OFFLINE -->
+<a class="skip-link" href="#studentsList">Перейти к списку студентов</a>
+
 <div class="offline" id="offlineBar">⚠ Нет соединения с интернетом</div>
 
-<!-- LOADING -->
 <div class="loading-screen" id="loadingScreen">
     <div class="loading-box">
         <div class="loading-logo">КЖ</div>
@@ -1146,7 +1329,6 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     </div>
 </div>
 
-<!-- HEADER -->
 <header class="header">
     <div class="brand" onclick="goHome()" title="На главную">
         <div class="brand-logo">КЖ</div>
@@ -1187,21 +1369,21 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
     </div>
 
     <section class="stats">
-        <div class="stat">
+        <div class="stat" onclick="selectGroup('')" id="statAll">
             <div>
-                <div class="stat-label">Всего студентов</div>
+                <div class="stat-label">Всего</div>
                 <div class="stat-value" id="totalCount">0</div>
             </div>
             <div class="stat-icon">👨‍🎓</div>
         </div>
-        <div class="stat">
+        <div class="stat" id="statGroup">
             <div>
-                <div class="stat-label">В выбранной группе</div>
+                <div class="stat-label" id="statGroupLabel">В группе</div>
                 <div class="stat-value" id="groupCount">0</div>
             </div>
             <div class="stat-icon">👥</div>
         </div>
-        <div class="stat">
+        <div class="stat" id="statFree" onclick="filterFree()">
             <div>
                 <div class="stat-label">Без группы</div>
                 <div class="stat-value" id="freeCount">0</div>
@@ -1228,13 +1410,16 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
             </div>
 
             <div class="panel-tools">
-                <input
-                    id="studentSearch"
-                    class="input search"
-                    placeholder="Поиск по ФИО…"
-                    oninput="onSearchInput()"
-                    aria-label="Поиск студентов"
-                >
+                <div class="search-wrap">
+                    <input
+                        id="studentSearch"
+                        class="input"
+                        placeholder="Поиск по ФИО…"
+                        oninput="onSearchInput()"
+                        aria-label="Поиск студентов"
+                    >
+                    <button class="search-clear" id="searchClear" onclick="clearSearch()" aria-label="Очистить поиск">×</button>
+                </div>
                 <button class="small-primary" onclick="openAssignModal()" id="assignBtn">
                     ＋ Добавить в группу
                 </button>
@@ -1242,11 +1427,21 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
         </div>
 
         <div class="filters" id="filtersBar">
-            <button class="filter-chip active" data-status="" onclick="setStatusFilter('')">Все</button>
-            <button class="filter-chip" data-status="Учится" onclick="setStatusFilter('Учится')">Учится</button>
-            <button class="filter-chip" data-status="Академический отпуск" onclick="setStatusFilter('Академический отпуск')">Академ</button>
-            <button class="filter-chip" data-status="Отчислен" onclick="setStatusFilter('Отчислен')">Отчислен</button>
-            <button class="filter-chip" data-status="Выпустился" onclick="setStatusFilter('Выпустился')">Выпуск</button>
+            <button class="filter-chip active" data-status="" onclick="setStatusFilter('')">
+                Все <span class="filter-count" id="fcAll">0</span>
+            </button>
+            <button class="filter-chip" data-status="Учится" onclick="setStatusFilter('Учится')">
+                Учится <span class="filter-count" id="fcStudy">0</span>
+            </button>
+            <button class="filter-chip" data-status="Академический отпуск" onclick="setStatusFilter('Академический отпуск')">
+                Академ <span class="filter-count" id="fcAcad">0</span>
+            </button>
+            <button class="filter-chip" data-status="Отчислен" onclick="setStatusFilter('Отчислен')">
+                Отчислен <span class="filter-count" id="fcDrop">0</span>
+            </button>
+            <button class="filter-chip" data-status="Выпустился" onclick="setStatusFilter('Выпустился')">
+                Выпуск <span class="filter-count" id="fcGrad">0</span>
+            </button>
 
             <select class="sort-select" id="sortSelect" onchange="setSort(this.value)" aria-label="Сортировка">
                 <option value="name">По ФИО ↑</option>
@@ -1261,9 +1456,10 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
         <div class="bulk-bar" id="bulkBar">
             <span>Выбрано: <strong id="bulkCount">0</strong></span>
             <div class="bulk-actions">
-                <button class="bulk-btn" onclick="bulkAssign()">→ В группу</button>
+                <button class="bulk-btn" onclick="bulkAssignToGroup()">→ В группу</button>
                 <button class="bulk-btn" onclick="bulkRemove()">Убрать из группы</button>
-                <button class="bulk-btn" onclick="clearSelection()">Снять выбор</button>
+                <button class="bulk-btn" onclick="bulkSetStatus()">Сменить статус</button>
+                <button class="bulk-btn" onclick="clearSelection()">Снять</button>
                 <button class="bulk-btn danger" onclick="bulkDelete()">🗑 Удалить</button>
             </div>
         </div>
@@ -1280,14 +1476,34 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 
 <button class="to-top" id="toTop" onclick="scrollTop()" aria-label="Наверх">↑</button>
 
-<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<!-- MOBILE TABS -->
+<nav class="mobile-tabs" id="mobileTabs">
+    <button class="tab active" onclick="openAddStudent()">
+        <span class="tab-icon">＋</span>
+        <span>Добавить</span>
+    </button>
+    <button class="tab" onclick="scrollToList()">
+        <span class="tab-icon">📋</span>
+        <span>Список</span>
+    </button>
+    <button class="tab" onclick="openAssignModal()" id="tabAssign">
+        <span class="tab-icon">👥</span>
+        <span>Зачислить</span>
+    </button>
+    <button class="tab" onclick="openThemeModal()">
+        <span class="tab-icon">🌓</span>
+        <span>Тема</span>
+    </button>
+</nav>
+
+<div id="toastWrap" class="toast-wrap" aria-live="polite"></div>
 
 
 <!-- ADD STUDENT -->
 <div id="addStudentModal" class="modal" onclick="backdropClose(event,'addStudentModal')">
-    <div class="modal-card" role="dialog" aria-modal="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="addTitle">
         <div class="modal-head">
-            <div class="modal-title">＋ Новый студент</div>
+            <div class="modal-title" id="addTitle">＋ Новый студент</div>
             <button class="close" onclick="closeModal('addStudentModal')" aria-label="Закрыть">×</button>
         </div>
         <div class="modal-body">
@@ -1374,6 +1590,40 @@ h1{margin:4px 0 6px;font-size:28px;letter-spacing:-.02em;line-height:1.1}
 </div>
 
 
+<!-- BULK ASSIGN GROUP -->
+<div id="pickGroupModal" class="modal" onclick="backdropClose(event,'pickGroupModal')">
+    <div class="modal-card sm" role="dialog" aria-modal="true">
+        <div class="modal-head">
+            <div class="modal-title">Выберите группу</div>
+            <button class="close" onclick="closeModal('pickGroupModal')" aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="pick-list" id="pickGroupList"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="cancel" onclick="closeModal('pickGroupModal')">Отмена</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- BULK STATUS -->
+<div id="pickStatusModal" class="modal" onclick="backdropClose(event,'pickStatusModal')">
+    <div class="modal-card sm" role="dialog" aria-modal="true">
+        <div class="modal-head">
+            <div class="modal-title">Выберите статус</div>
+            <button class="close" onclick="closeModal('pickStatusModal')" aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="pick-list" id="pickStatusList"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="cancel" onclick="closeModal('pickStatusModal')">Отмена</button>
+        </div>
+    </div>
+</div>
+
+
 <!-- CONFIRM -->
 <div id="confirmModal" class="modal" onclick="backdropClose(event,'confirmModal')">
     <div class="modal-card sm" role="dialog" aria-modal="true">
@@ -1452,6 +1702,7 @@ let curatorGroupName = "";
 let curatorGroupId = "";
 
 let statusFilter = "";
+let onlyFree = false;
 let sortMode = "name";
 let searchDebounce = null;
 
@@ -1468,7 +1719,6 @@ const LS = {
    HELPERS
 ========================================================= */
 const $ = id => document.getElementById(id);
-
 const normalizeRole = role => String(role || "").trim().toLowerCase();
 
 function nameOf(x){
@@ -1476,8 +1726,7 @@ function nameOf(x){
 }
 
 function initials(name){
-    return String(name)
-        .split(/\s+/).filter(Boolean).slice(0,2)
+    return String(name).split(/\s+/).filter(Boolean).slice(0,2)
         .map(x => x[0]).join("").toUpperCase() || "?";
 }
 
@@ -1485,6 +1734,18 @@ function esc(value){
     const div = document.createElement("div");
     div.textContent = value ?? "";
     return div.innerHTML;
+}
+
+/* подсветка совпадений в имени */
+function highlight(text, query){
+    const s = String(text ?? "");
+    if(!query) return esc(s);
+    const q = query.toLowerCase();
+    const idx = s.toLowerCase().indexOf(q);
+    if(idx < 0) return esc(s);
+    return esc(s.slice(0,idx)) +
+        `<span class="match">${esc(s.slice(idx, idx+q.length))}</span>` +
+        esc(s.slice(idx+q.length));
 }
 
 function groupById(id){ return groups.find(g => g.id === id); }
@@ -1518,16 +1779,11 @@ function validateName(name){
     return /^[А-Яа-яЁёA-Za-z\- ]+$/.test(v);
 }
 
-/* стабильный цвет аватара из строки */
 const AVATAR_COLORS = [
-    ["#3b82f6","#2563eb"],
-    ["#8b5cf6","#7c3aed"],
-    ["#ec4899","#db2777"],
-    ["#f59e0b","#d97706"],
-    ["#10b981","#059669"],
-    ["#06b6d4","#0891b2"],
-    ["#ef4444","#dc2626"],
-    ["#6366f1","#4f46e5"]
+    ["#3b82f6","#2563eb"],["#8b5cf6","#7c3aed"],
+    ["#ec4899","#db2777"],["#f59e0b","#d97706"],
+    ["#10b981","#059669"],["#06b6d4","#0891b2"],
+    ["#ef4444","#dc2626"],["#6366f1","#4f46e5"]
 ];
 function avatarStyle(name){
     let h = 0;
@@ -1567,26 +1823,23 @@ window.goHome = function(){
    THEME
 ========================================================= */
 function applyTheme(mode){
-    const root = document.documentElement;
     let effective = mode;
     if(mode === "auto"){
         effective = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     }
-    root.setAttribute("data-theme", effective);
+    document.documentElement.setAttribute("data-theme", effective);
     document.querySelectorAll(".theme-opt").forEach(el => {
         el.classList.toggle("active", el.dataset.themeOpt === mode);
     });
     const meta = document.querySelector('meta[name="theme-color"]');
     if(meta) meta.setAttribute("content", effective === "dark" ? "#0b1220" : "#2563eb");
 }
-
 window.setTheme = function(mode){
     localStorage.setItem(LS.theme, mode);
     applyTheme(mode);
     closeModal("themeModal");
     toast("Тема обновлена");
 };
-
 window.openThemeModal = function(){ openModal("themeModal"); };
 
 (function initTheme(){
@@ -1614,20 +1867,15 @@ updateOnline();
 ========================================================= */
 onAuthStateChanged(auth, async user => {
     if(!user){ location.href = "login.html"; return; }
-
     currentUser = user;
-
     try{
         await loadUserProfile();
-
         if(!currentProfile){
             alert("Профиль пользователя не найден.");
             location.href = "login.html";
             return;
         }
-
         currentRole = normalizeRole(currentProfile.role);
-
         $("roleBadge").textContent =
             currentRole === "admin"   ? "Администратор" :
             currentRole === "curator" ? "Куратор"       : "Студент";
@@ -1657,7 +1905,6 @@ onAuthStateChanged(auth, async user => {
 async function loadUserProfile(){
     const snapshot = await getDocs(collection(db,"users"));
     const allUsers = snapshot.docs.map(d => ({ id:d.id, ...d.data() }));
-
     currentProfile = allUsers.find(u => String(u.uid || "") === String(currentUser.uid));
     if(!currentProfile) currentProfile = allUsers.find(u => u.id === currentUser.uid);
     if(!currentProfile && currentUser.email){
@@ -1678,7 +1925,6 @@ async function loadData(){
             getDocs(collection(db,"students")),
             getDocs(collection(db,"groups"))
         ]);
-
         students = studentsSnap.docs.map(d => ({ id:d.id, ...d.data() }));
         groups   = groupsSnap.docs.map(d => ({ id:d.id, ...d.data() }));
 
@@ -1697,23 +1943,20 @@ async function loadData(){
             curatorGroupId = found.id;
             selectedGroupId = curatorGroupId;
         } else {
-            /* восстановление из LS для админа */
             const savedGroup = localStorage.getItem(LS.group) || "";
             if(savedGroup && groups.some(g => g.id === savedGroup)){
                 selectedGroupId = savedGroup;
             }
         }
 
-        /* восстановление поиска / фильтров / сортировки */
         const savedSearch = localStorage.getItem(LS.search) || "";
-        if(savedSearch){ $("studentSearch").value = savedSearch; }
+        if(savedSearch){ $("studentSearch").value = savedSearch; updateSearchClear(); }
 
         statusFilter = localStorage.getItem(LS.status) || "";
         sortMode = localStorage.getItem(LS.sort) || "name";
         $("sortSelect").value = sortMode;
 
         updateStatusChips();
-
         fillGroupSelects();
         renderAll();
     }
@@ -1724,6 +1967,7 @@ async function loadData(){
                 <div class="empty-icon">⚠️</div>
                 <strong>Не удалось загрузить данные</strong>
                 <span>${esc(error.message)}</span>
+                <button class="primary" onclick="location.reload()">Повторить</button>
             </div>`;
         toast("Ошибка загрузки данных","error");
     }
@@ -1738,7 +1982,6 @@ function allowedGroups(){
     if(isCurator()) return groups.filter(g => g.id === curatorGroupId);
     return [];
 }
-
 function canManageGroup(groupId){
     if(isAdmin()) return true;
     if(isCurator()) return String(groupId || "") === String(curatorGroupId);
@@ -1747,7 +1990,7 @@ function canManageGroup(groupId){
 
 
 /* =========================================================
-   GROUP SELECTS + PILLS
+   GROUP PILLS
 ========================================================= */
 function fillGroupSelects(){
     const allowed = allowedGroups();
@@ -1757,14 +2000,22 @@ function fillGroupSelects(){
     if(isAdmin()) items.push({ id:"", name:"Все студенты" });
     allowed.forEach(g => items.push({ id:g.id, name:g.name || "Без названия" }));
 
-    pills.innerHTML = items.map(it => `
-        <button
-            type="button"
-            class="pill ${String(it.id) === String(selectedGroupId) ? "active" : ""}"
-            onclick="selectGroup('${esc(it.id)}')"
-            ${isCurator() && it.id !== curatorGroupId ? "disabled" : ""}
-        >${esc(it.name)}</button>
-    `).join("");
+    /* считаем количество студентов в каждой группе */
+    pills.innerHTML = items.map(it => {
+        const count = it.id
+            ? students.filter(s => String(s.groupId || "") === String(it.id)).length
+            : students.length;
+        return `
+            <button
+                type="button"
+                class="pill ${String(it.id) === String(selectedGroupId) ? "active" : ""}"
+                onclick="selectGroup('${esc(it.id)}')"
+                ${isCurator() && it.id !== curatorGroupId ? "disabled" : ""}
+            >
+                ${esc(it.name)}
+                <span class="pill-count">${count}</span>
+            </button>`;
+    }).join("");
 
     const groupSelect = $("groupSelect");
     if(isAdmin()){
@@ -1799,20 +2050,40 @@ function fillGroupSelects(){
 ========================================================= */
 window.selectGroup = function(id){
     if(isCurator()) id = curatorGroupId;
-
     if(id && !canManageGroup(id)){
         toast("У вас нет доступа к этой группе","error");
         return;
     }
-
     selectedGroupId = id;
+    onlyFree = false;
     if(isAdmin()) localStorage.setItem(LS.group, id || "");
     clearSelection();
     fillGroupSelects();
     renderAll();
 };
 
+window.filterFree = function(){
+    if(!isAdmin()) return;
+    selectedGroupId = "";
+    onlyFree = !onlyFree;
+    fillGroupSelects();
+    renderAll();
+    toast(onlyFree ? "Показаны студенты без группы" : "Показаны все студенты", "info");
+};
+
+window.clearSearch = function(){
+    $("studentSearch").value = "";
+    localStorage.setItem(LS.search, "");
+    updateSearchClear();
+    renderStudents();
+};
+
+function updateSearchClear(){
+    $("searchClear").classList.toggle("show", !!$("studentSearch").value);
+}
+
 window.onSearchInput = function(){
+    updateSearchClear();
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(() => {
         localStorage.setItem(LS.search, $("studentSearch").value || "");
@@ -1846,9 +2117,16 @@ window.setSort = function(mode){
 function renderAll(){
     renderStats();
     renderGroupInfo();
+    renderStatusCounts();
     renderStudents();
     renderBulkBar();
+    updateMobileTabs();
     $("assignBtn").style.display = selectedGroupId ? "inline-flex" : "none";
+}
+
+function updateMobileTabs(){
+    const assignTab = $("tabAssign");
+    if(assignTab) assignTab.style.opacity = selectedGroupId ? "1" : ".5";
 }
 
 
@@ -1858,12 +2136,53 @@ function renderStats(){
         : students.filter(s => String(s.groupId || "") === String(curatorGroupId));
 
     $("totalCount").textContent = visible.length;
+
+    const groupName = groupById(selectedGroupId)?.name || "В группе";
+    $("statGroupLabel").textContent = groupName.length > 14
+        ? groupName.slice(0,12) + "…"
+        : groupName;
+
     $("groupCount").textContent = selectedGroupId
         ? visible.filter(s => String(s.groupId || "") === String(selectedGroupId)).length
         : visible.length;
+
     $("freeCount").textContent = isAdmin()
         ? students.filter(s => !s.groupId).length
         : 0;
+
+    /* активная карточка */
+    $("statAll").classList.toggle("active", !selectedGroupId && !onlyFree);
+    $("statFree").classList.toggle("active", onlyFree);
+    $("statGroup").classList.toggle("active", !!selectedGroupId);
+}
+
+
+function renderStatusCounts(){
+    const visible = isAdmin()
+        ? students
+        : students.filter(s => String(s.groupId || "") === String(curatorGroupId));
+
+    const scoped = selectedGroupId
+        ? visible.filter(s => String(s.groupId || "") === String(selectedGroupId))
+        : visible;
+
+    const counts = {
+        "": scoped.length,
+        "Учится": 0,
+        "Академический отпуск": 0,
+        "Отчислен": 0,
+        "Выпустился": 0
+    };
+    scoped.forEach(s => {
+        const st = s.status || "Учится";
+        if(counts[st] !== undefined) counts[st]++;
+    });
+
+    $("fcAll").textContent = counts[""];
+    $("fcStudy").textContent = counts["Учится"];
+    $("fcAcad").textContent = counts["Академический отпуск"];
+    $("fcDrop").textContent = counts["Отчислен"];
+    $("fcGrad").textContent = counts["Выпустился"];
 }
 
 
@@ -1878,6 +2197,10 @@ function renderGroupInfo(){
     const curator = users.find(u => u.id === group.curatorId);
     const star = students.find(s => s.id === group.starostaId) ||
                  users.find(u => u.id === group.starostaId);
+
+    /* прогресс: доля «Учится» от общего */
+    const active = members.filter(s => (s.status || "Учится") === "Учится").length;
+    const pct = members.length ? Math.round(active / members.length * 100) : 0;
 
     box.innerHTML = `
         <div class="group-info-top">
@@ -1902,10 +2225,16 @@ function renderGroupInfo(){
                 <strong>⭐ ${esc(star ? nameOf(star) : (group.starostaName || "Не назначен"))}</strong>
             </div>
             <div class="info-item">
-                <label>Состав</label>
-                <strong>👥 ${members.length} студентов</strong>
+                <label>Активных</label>
+                <strong>✅ ${active} из ${members.length}</strong>
             </div>
         </div>
+        ${members.length ? `
+            <div class="group-progress"><span style="width:${pct}%"></span></div>
+            <div class="group-progress-label">
+                <span>Активных: ${active}</span>
+                <span>${pct}%</span>
+            </div>` : ""}
     `;
 }
 
@@ -1921,6 +2250,10 @@ function getVisibleStudents(){
         ? allowed.filter(s => String(s.groupId || "") === String(selectedGroupId))
         : allowed;
 
+    if(onlyFree && isAdmin()){
+        array = students.filter(s => !s.groupId);
+    }
+
     if(statusFilter){
         array = array.filter(s => (s.status || "Учится") === statusFilter);
     }
@@ -1929,7 +2262,6 @@ function getVisibleStudents(){
         array = array.filter(s => nameOf(s).toLowerCase().includes(query));
     }
 
-    /* сортировка */
     const cmp = {
         "name":      (a,b) => nameOf(a).localeCompare(nameOf(b),"ru"),
         "name-desc": (a,b) => nameOf(b).localeCompare(nameOf(a),"ru"),
@@ -1939,18 +2271,22 @@ function getVisibleStudents(){
                               nameOf(a).localeCompare(nameOf(b),"ru")
     }[sortMode] || (() => 0);
 
-    array = [...array].sort(cmp);
-    return array;
+    return [...array].sort(cmp);
 }
 
 
 function renderStudents(){
     const array = getVisibleStudents();
     const group = groupById(selectedGroupId);
+    const query = $("studentSearch").value.trim();
 
-    $("listTitle").textContent = group ? (group.name || "Группа") : "Все студенты";
+    $("listTitle").textContent = onlyFree
+        ? "Студенты без группы"
+        : (group ? (group.name || "Группа") : "Все студенты");
+
     $("listCount").textContent =
-        `${array.length} ${plural(array.length,"студент","студента","студентов")}`;
+        `${array.length} ${plural(array.length,"студент","студента","студентов")}` +
+        (query ? ` · поиск: «${query}»` : "");
 
     const list = $("studentsList");
 
@@ -1958,46 +2294,42 @@ function renderStudents(){
         list.innerHTML = `
             <div class="empty">
                 <div class="empty-icon">👨‍🎓</div>
-                <strong>${selectedGroupId ? "В этой группе пока нет студентов" : "Студентов не найдено"}</strong>
-                <span>${selectedGroupId ? "Добавьте студента или зачислите существующего." : "Измените поиск или фильтр."}</span>
-                <button class="primary" onclick="openAddStudent()">
-                    <span>＋</span> Добавить студента
-                </button>
+                <strong>${onlyFree ? "Нет студентов без группы" : (selectedGroupId ? "В этой группе пока нет студентов" : "Студентов не найдено")}</strong>
+                <span>${query ? "Попробуйте изменить запрос." : (selectedGroupId ? "Добавьте студента или зачислите существующего." : "Измените фильтр.")}</span>
+                ${!onlyFree ? `<button class="primary" onclick="openAddStudent()"><span>＋</span> Добавить студента</button>` : ""}
             </div>`;
         return;
     }
 
-    /* если админ и группа не выбрана — группируем по группам */
-    if(isAdmin() && !selectedGroupId && sortMode === "group"){
+    if(isAdmin() && !selectedGroupId && !onlyFree && sortMode === "group"){
         const byGroup = new Map();
         array.forEach(s => {
             const key = s.groupId || "__none__";
             if(!byGroup.has(key)) byGroup.set(key, []);
             byGroup.get(key).push(s);
         });
-
         let html = "";
         byGroup.forEach((arr, key) => {
             const g = groupById(key);
             html += `<div class="section-head">${esc(g?.name || "Без группы")} <span class="count">${arr.length}</span></div>`;
-            html += arr.map(renderStudentRow).join("");
+            html += arr.map(s => renderStudentRow(s, query)).join("");
         });
         list.innerHTML = html;
         return;
     }
 
-    list.innerHTML = array.map(renderStudentRow).join("");
+    list.innerHTML = array.map(s => renderStudentRow(s, query)).join("");
 }
 
 
-function renderStudentRow(student){
+function renderStudentRow(student, query = ""){
     const g = groupById(student.groupId);
     const star = selectedGroupId && student.id === g?.starostaId;
     const checked = selectedIds.has(student.id);
     const sClass = statusClass(student.status || "Учится");
 
     return `
-        <div class="student ${checked ? "selected" : ""}">
+        <div class="student ${checked ? "selected" : ""}" data-id="${student.id}">
             <input
                 type="checkbox"
                 ${checked ? "checked" : ""}
@@ -2007,10 +2339,11 @@ function renderStudentRow(student){
 
             <div class="avatar" style="${avatarStyle(nameOf(student))}">
                 ${esc(initials(nameOf(student)))}
+                ${star ? `<span class="star-mark">★</span>` : ""}
             </div>
 
             <div class="student-main">
-                <div class="student-name">${esc(nameOf(student))}</div>
+                <div class="student-name">${highlight(nameOf(student), query)}</div>
                 <div class="student-sub">
                     <span>${esc(studentGroupName(student))}</span>
                     ${star ? `<span class="star">⭐ Староста</span>` : ""}
@@ -2019,6 +2352,10 @@ function renderStudentRow(student){
 
             <div class="student-right">
                 <span class="status-chip ${sClass}">${esc(student.status || "Учится")}</span>
+
+                ${selectedGroupId && !star ? `
+                    <button class="action-btn star-btn" onclick="setStarosta('${student.id}')" title="Назначить старостой">★</button>
+                ` : ""}
 
                 <button class="action-btn edit-btn" onclick="openEditStudent('${student.id}')" aria-label="Редактировать">✏️</button>
                 <button class="action-btn delete-btn" onclick="deleteStudent('${student.id}')" aria-label="Удалить">🗑️</button>
@@ -2030,6 +2367,39 @@ function renderStudentRow(student){
             </div>
         </div>`;
 }
+
+
+/* =========================================================
+   STAROSTA
+========================================================= */
+window.setStarosta = function(id){
+    const group = groupById(selectedGroupId);
+    if(!group) return;
+    if(!canManageGroup(group.id)){ toast("Нет доступа","error"); return; }
+
+    const student = students.find(s => s.id === id);
+    if(!student) return;
+
+    confirmAction({
+        title: "Назначить старостой",
+        text: `Назначить <strong>${esc(nameOf(student))}</strong> старостой группы <strong>${esc(group.name || "")}</strong>?`,
+        okText: "Назначить",
+        onOk: async () => {
+            try{
+                await updateDoc(doc(db,"groups",group.id), {
+                    starostaId: student.id,
+                    starostaName: nameOf(student),
+                    updatedAt: serverTimestamp()
+                });
+                group.starostaId = student.id;
+                group.starostaName = nameOf(student);
+                renderAll();
+                toast("Староста назначен");
+            }
+            catch(e){ toast("Ошибка: " + e.message,"error"); }
+        }
+    });
+};
 
 
 /* =========================================================
@@ -2055,51 +2425,104 @@ function renderBulkBar(){
     bar.classList.toggle("show", n > 0);
 }
 
-window.bulkAssign = function(){
+window.bulkAssignToGroup = function(){
     if(!selectedIds.size) return;
     if(isCurator()){
-        /* куратор может перевести только в свою группу — уже там */
-        toast("Выберите группу через фильтр (для админа)","error");
+        toast("Куратор может добавлять только в свою группу","error");
         return;
     }
-    toast("Выберите группу-назначения через фильтр и нажмите «Добавить в группу»","error");
+    const allowed = allowedGroups();
+    if(!allowed.length){ toast("Нет доступных групп","error"); return; }
+
+    $("pickGroupList").innerHTML = allowed.map(g => `
+        <button class="pick-item" onclick="pickGroupAndAssign('${esc(g.id)}')">
+            ${esc(g.name || "Без названия")}
+        </button>
+    `).join("");
+    openModal("pickGroupModal");
+};
+
+window.pickGroupAndAssign = async function(groupId){
+    closeModal("pickGroupModal");
+    if(!canManageGroup(groupId)){ toast("Нет доступа","error"); return; }
+    try{
+        await Promise.all([...selectedIds].map(id =>
+            updateDoc(doc(db,"students",id), { groupId, updatedAt: serverTimestamp() })
+        ));
+        students.forEach(s => { if(selectedIds.has(s.id)) s.groupId = groupId; });
+        const n = selectedIds.size;
+        clearSelection();
+        renderAll();
+        toast(`Переведено в группу: ${n}`);
+    }
+    catch(e){ toast("Ошибка: " + e.message,"error"); }
 };
 
 window.bulkRemove = function(){
     if(!selectedIds.size) return;
-    const arr = [...selectedIds];
+    if(!selectedGroupId){ toast("Выберите группу","error"); return; }
+    if(!canManageGroup(selectedGroupId)){ toast("Нет доступа","error"); return; }
+
+    const n = selectedIds.size;
     confirmAction({
         title: "Убрать из группы",
-        text: `Убрать <strong>${arr.length}</strong> ${plural(arr.length,"студента","студентов","студентов")} из текущей группы?`,
+        text: `Убрать <strong>${n}</strong> ${plural(n,"студента","студентов","студентов")} из группы <strong>${esc(groupById(selectedGroupId)?.name || "")}</strong>?`,
+        okText: "Убрать",
         onOk: async () => {
             try{
-                await Promise.all(arr.map(id =>
+                await Promise.all([...selectedIds].map(id =>
                     updateDoc(doc(db,"students",id), { groupId:null, updatedAt: serverTimestamp() })
                 ));
                 students.forEach(s => { if(selectedIds.has(s.id)) s.groupId = null; });
                 clearSelection();
                 renderAll();
-                toast("Убрано из группы: " + arr.length);
+                toast(`Убрано из группы: ${n}`);
             }
             catch(e){ toast("Ошибка: " + e.message,"error"); }
         }
     });
 };
 
+window.bulkSetStatus = function(){
+    if(!selectedIds.size) return;
+    const statuses = ["Учится","Академический отпуск","Отчислен","Выпустился"];
+    $("pickStatusList").innerHTML = statuses.map(st => `
+        <button class="pick-item" onclick="pickStatusAndSet('${esc(st)}')">
+            ${esc(st)}
+        </button>
+    `).join("");
+    openModal("pickStatusModal");
+};
+
+window.pickStatusAndSet = async function(status){
+    closeModal("pickStatusModal");
+    try{
+        await Promise.all([...selectedIds].map(id =>
+            updateDoc(doc(db,"students",id), { status, updatedAt: serverTimestamp() })
+        ));
+        students.forEach(s => { if(selectedIds.has(s.id)) s.status = status; });
+        const n = selectedIds.size;
+        clearSelection();
+        renderAll();
+        toast(`Статус обновлён у ${n}`);
+    }
+    catch(e){ toast("Ошибка: " + e.message,"error"); }
+};
+
 window.bulkDelete = function(){
     if(!selectedIds.size) return;
-    const arr = [...selectedIds];
+    const n = selectedIds.size;
     confirmAction({
         title: "Удалить студентов",
-        text: `Удалить <strong>${arr.length}</strong> ${plural(arr.length,"студента","студентов","студентов")}? Действие нельзя отменить.`,
+        text: `Удалить <strong>${n}</strong> ${plural(n,"студента","студентов","студентов")}? Действие нельзя отменить.`,
         okText: "Удалить",
         onOk: async () => {
             try{
-                await Promise.all(arr.map(id => deleteDoc(doc(db,"students",id))));
+                await Promise.all([...selectedIds].map(id => deleteDoc(doc(db,"students",id))));
                 students = students.filter(s => !selectedIds.has(s.id));
                 clearSelection();
                 renderAll();
-                toast("Удалено: " + arr.length);
+                toast(`Удалено: ${n}`);
             }
             catch(e){ toast("Ошибка: " + e.message,"error"); }
         }
@@ -2126,7 +2549,6 @@ window.openAddStudent = function(){
     openModal("addStudentModal");
     setTimeout(() => $("newStudentName").focus(), 100);
 };
-
 
 window.createStudent = async function(){
     const name = $("newStudentName").value.trim();
@@ -2156,7 +2578,6 @@ window.createStudent = async function(){
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
-
         students.push({
             id:ref.id, name, fullName:name,
             groupId: groupId || null,
@@ -2178,20 +2599,6 @@ window.createStudent = async function(){
     }
 };
 
-/* Enter в поле ФИО */
-document.addEventListener("keydown", e => {
-    if(e.key === "Enter"){
-        if($("addStudentModal").classList.contains("show")){
-            e.preventDefault();
-            createStudent();
-        }
-        if($("editStudentModal").classList.contains("show")){
-            e.preventDefault();
-            saveStudentEdit();
-        }
-    }
-});
-
 
 /* =========================================================
    EDIT STUDENT
@@ -2203,7 +2610,6 @@ window.openEditStudent = function(id){
         toast("У вас нет доступа к этому студенту","error");
         return;
     }
-
     $("editStudentId").value = student.id;
     $("editStudentName").value = nameOf(student);
     $("editStudentStatus").value = student.status || "Учится";
@@ -2218,21 +2624,17 @@ window.openEditStudent = function(id){
         groupSelect.disabled = false;
         groupSelect.value = student.groupId || "";
     }
-
     openModal("editStudentModal");
 };
-
 
 window.saveStudentEdit = async function(){
     const id = $("editStudentId").value;
     const student = students.find(s => s.id === id);
     if(!student) return;
-
     if(!canManageGroup(student.groupId)){
         toast("У вас нет доступа к этому студенту","error");
         return;
     }
-
     const name = $("editStudentName").value.trim();
     const status = $("editStudentStatus").value;
     let newGroupId = $("editStudentGroup").value;
@@ -2260,7 +2662,6 @@ window.saveStudentEdit = async function(){
             status,
             updatedAt: serverTimestamp()
         });
-
         const oldGroupId = student.groupId;
         student.name = name;
         student.fullName = name;
@@ -2304,7 +2705,6 @@ window.deleteStudent = function(id){
         toast("У вас нет доступа к этому студенту","error");
         return;
     }
-
     confirmAction({
         title: "Удалить студента",
         text: `Удалить <strong>${esc(nameOf(student))}</strong>?<br>Карточка будет удалена из списка.`,
@@ -2312,7 +2712,6 @@ window.deleteStudent = function(id){
         onOk: async () => {
             try{
                 await deleteDoc(doc(db,"students",id));
-
                 const group = groupById(student.groupId);
                 if(group && group.starostaId === id){
                     await updateDoc(doc(db,"groups",group.id), {
@@ -2322,7 +2721,6 @@ window.deleteStudent = function(id){
                     group.starostaId = null;
                     group.starostaName = null;
                 }
-
                 students = students.filter(s => s.id !== id);
                 selectedIds.delete(id);
                 renderAll();
@@ -2335,22 +2733,19 @@ window.deleteStudent = function(id){
 
 
 /* =========================================================
-   ASSIGN
+   ASSIGN (модалка выбора кандидатов в текущую группу)
 ========================================================= */
 window.openAssignModal = function(){
     if(!selectedGroupId){ toast("Сначала выберите группу","error"); return; }
     if(!canManageGroup(selectedGroupId)){ toast("У вас нет доступа к этой группе","error"); return; }
-
     selectedIds = new Set();
     $("candidateSearch").value = "";
     renderCandidates();
     openModal("assignModal");
 };
 
-
 window.renderCandidates = function(){
     if(!selectedGroupId) return;
-
     const query = $("candidateSearch").value.trim().toLowerCase();
 
     let candidates = students.filter(s =>
@@ -2359,7 +2754,6 @@ window.renderCandidates = function(){
     if(query){
         candidates = candidates.filter(s => nameOf(s).toLowerCase().includes(query));
     }
-
     const list = $("candidateList");
     $("candidateCount").textContent = `Найдено: ${candidates.length}`;
 
@@ -2367,7 +2761,6 @@ window.renderCandidates = function(){
         list.innerHTML = `<div class="empty">Нет студентов, подходящих под поиск.</div>`;
         return;
     }
-
     list.innerHTML = candidates.map(student => `
         <label class="candidate">
             <input
@@ -2384,25 +2777,19 @@ window.renderCandidates = function(){
     `).join("");
 };
 
-
 window.toggleCandidate = function(id,on){
-    if(on) selectedIds.add(id);
-    else selectedIds.delete(id);
+    if(on) selectedIds.add(id); else selectedIds.delete(id);
 };
-
-
 window.selectAllCandidates = function(){
     document.querySelectorAll("#candidateList input[type=checkbox]").forEach(cb => {
         cb.checked = true;
         selectedIds.add(cb.value);
     });
 };
-
 window.clearCandidates = function(){
     selectedIds.clear();
     document.querySelectorAll("#candidateList input[type=checkbox]").forEach(cb => cb.checked = false);
 };
-
 
 window.assignSelected = async function(){
     if(!selectedGroupId){ toast("Не выбрана группа","error"); return; }
@@ -2416,14 +2803,9 @@ window.assignSelected = async function(){
                 updatedAt: serverTimestamp()
             });
         }));
-
-        students.forEach(s => {
-            if(selectedIds.has(s.id)) s.groupId = selectedGroupId;
-        });
-
+        students.forEach(s => { if(selectedIds.has(s.id)) s.groupId = selectedGroupId; });
         const count = selectedIds.size;
         selectedIds = new Set();
-
         closeModal("assignModal");
         renderAll();
         renderBulkBar();
@@ -2437,7 +2819,7 @@ window.assignSelected = async function(){
 
 
 /* =========================================================
-   REMOVE FROM GROUP
+   REMOVE FROM GROUP (одиночный)
 ========================================================= */
 window.removeFromGroup = function(id){
     const student = students.find(s => s.id === id);
@@ -2446,18 +2828,14 @@ window.removeFromGroup = function(id){
         toast("У вас нет доступа к этому студенту","error");
         return;
     }
-
     confirmAction({
         title: "Убрать из группы",
         text: `Убрать <strong>${esc(nameOf(student))}</strong> из группы?`,
         okText: "Убрать",
         onOk: async () => {
             try{
-                await updateDoc(doc(db,"students",id), {
-                    groupId:null, updatedAt: serverTimestamp()
-                });
+                await updateDoc(doc(db,"students",id), { groupId:null, updatedAt: serverTimestamp() });
                 student.groupId = null;
-
                 const group = groupById(selectedGroupId);
                 if(group && group.starostaId === id){
                     await updateDoc(doc(db,"groups",group.id), {
@@ -2467,7 +2845,6 @@ window.removeFromGroup = function(id){
                     group.starostaId = null;
                     group.starostaName = null;
                 }
-
                 selectedIds.delete(id);
                 renderAll();
                 toast("Студент убран из группы");
@@ -2484,16 +2861,13 @@ window.removeFromGroup = function(id){
 window.exportCSV = function(){
     const arr = getVisibleStudents();
     if(!arr.length){ toast("Нет данных для экспорта","error"); return; }
-
     const rows = [
         ["ФИО","Группа","Статус"],
         ...arr.map(s => [nameOf(s), studentGroupName(s), s.status || "Учится"])
     ];
-
     const csv = rows.map(r =>
         r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(";")
     ).join("\r\n");
-
     const blob = new Blob(["\uFEFF" + csv], { type:"text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -2509,7 +2883,6 @@ window.exportCSV = function(){
    CONFIRM
 ========================================================= */
 let confirmCallback = null;
-
 window.confirmAction = function({ title, text, okText = "Подтвердить", onOk }){
     $("confirmTitle").textContent = title || "Подтверждение";
     $("confirmText").innerHTML = text || "";
@@ -2517,7 +2890,6 @@ window.confirmAction = function({ title, text, okText = "Подтвердить"
     confirmCallback = onOk;
     openModal("confirmModal");
 };
-
 $("confirmOkBtn").addEventListener("click", async () => {
     const cb = confirmCallback;
     confirmCallback = null;
@@ -2530,30 +2902,36 @@ $("confirmOkBtn").addEventListener("click", async () => {
    MODALS
 ========================================================= */
 function openModal(id){ $(id).classList.add("show"); }
-
 window.closeModal = function(id){ $(id).classList.remove("show"); };
-
 window.backdropClose = function(event,id){
     if(event.target.id === id) closeModal(id);
 };
 
 
 /* =========================================================
-   TOAST
+   TOAST (стек)
 ========================================================= */
 function toast(message, type="success"){
-    const el = $("toast");
+    const wrap = $("toastWrap");
+    const el = document.createElement("div");
+    el.className = "toast " + type;
     el.textContent = message;
-    el.className = "toast show " + type;
-    clearTimeout(window.__toast);
-    window.__toast = setTimeout(() => el.className = "toast", 3000);
+    wrap.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+    setTimeout(() => {
+        el.classList.remove("show");
+        setTimeout(() => el.remove(), 300);
+    }, 3000);
 }
 
 
 /* =========================================================
-   SCROLL TO TOP
+   SCROLL
 ========================================================= */
 window.scrollTop = () => window.scrollTo({ top:0, behavior:"smooth" });
+window.scrollToList = () => {
+    document.querySelector(".students-panel")?.scrollIntoView({ behavior:"smooth", block:"start" });
+};
 addEventListener("scroll", () => {
     $("toTop").classList.toggle("show", scrollY > 400);
 });
@@ -2574,14 +2952,40 @@ setInterval(clock, 1000);
 
 
 /* =========================================================
-   ESC
+   KEYBOARD
 ========================================================= */
 document.addEventListener("keydown", event => {
     if(event.key === "Escape"){
-        document.querySelectorAll(".modal.show")
-            .forEach(m => m.classList.remove("show"));
+        document.querySelectorAll(".modal.show").forEach(m => m.classList.remove("show"));
+    }
+    /* Ctrl+F / "/" — фокус на поиск */
+    if((event.ctrlKey && event.key === "f") ||
+       (event.key === "/" && !/input|textarea/i.test(document.activeElement.tagName))){
+        event.preventDefault();
+        $("studentSearch").focus();
+        $("studentSearch").select();
+    }
+    /* Enter в модалках */
+    if(event.key === "Enter"){
+        if($("addStudentModal").classList.contains("show")){
+            event.preventDefault(); createStudent();
+        }
+        if($("editStudentModal").classList.contains("show")){
+            event.preventDefault(); saveStudentEdit();
+        }
     }
 });
+
+
+/* =========================================================
+   PREVENT DOUBLE-TAP ZOOM
+========================================================= */
+let lastTouch = 0;
+document.addEventListener("touchend", e => {
+    const now = Date.now();
+    if(now - lastTouch <= 300){ e.preventDefault(); }
+    lastTouch = now;
+}, { passive:false });
 
 </script>
 

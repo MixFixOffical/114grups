@@ -737,9 +737,11 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
+<!-- Firebase SDK (compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- firebase-config.js должен САМ вызывать initializeApp() -->
 <script src="firebase-config.js"></script>
 
 <script>
@@ -747,7 +749,6 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
    CONST
 ========================================================= */
 const DAYS = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота","Воскресенье"];
-const DAYS_SHORT = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
 const MAX_STUDENTS = 3;
 
 const STATUS_MAP = {
@@ -771,8 +772,8 @@ let db = null;
 let auth = null;
 let currentUser = null;
 let currentProfile = null;
-let students = [];      // до 3
-let attendanceCache = {}; // studentId → { days: {...}, recordsByDate: {...} }
+let students = [];
+let attendanceCache = {};
 let groupSettingsCache = {};
 
 /* =========================================================
@@ -826,6 +827,16 @@ function todayStr(){
     return new Date().toLocaleDateString("ru-RU",{day:"2-digit",month:"long",year:"numeric"});
 }
 
+function plural(n, one, few, many){
+    const x = n % 100;
+    if (x >= 11 && x <= 19) return many;
+    switch(n % 10){
+        case 1: return one;
+        case 2: case 3: case 4: return few;
+        default: return many;
+    }
+}
+
 function toast(text, type = "success"){
     const wrap = $("toasts");
     const el = document.createElement("div");
@@ -875,7 +886,7 @@ document.addEventListener("click", e => {
 });
 
 /* =========================================================
-   NAVIGATION
+   NAV
 ========================================================= */
 function goMessages(){
     window.location.href = "usersms.html";
@@ -898,7 +909,7 @@ async function loadAll(isRefresh = false){
     try {
         if (!currentUser) return;
 
-        // 1. находим связи родителя
+        // 1) связи родителя
         const linksSnap = await db.collection("links")
             .where("parentId", "==", currentUser.uid)
             .get();
@@ -909,12 +920,14 @@ async function loadAll(isRefresh = false){
             .slice(0, MAX_STUDENTS);
 
         if (!studentIds.length){
+            students = [];
+            renderWelcome();
             renderEmptyState();
             $("loadingScreen").classList.add("hide");
             return;
         }
 
-        // 2. тянем студентов
+        // 2) студенты
         const studentDocs = await Promise.all(
             studentIds.map(id => db.collection("students").doc(id).get())
         );
@@ -922,7 +935,7 @@ async function loadAll(isRefresh = false){
             .filter(d => d.exists)
             .map(d => ({ id: d.id, ...d.data() }));
 
-        // 3. тянем настройки групп (расписание + дисциплины)
+        // 3) настройки групп (расписание / дисциплины)
         const groupIds = [...new Set(students.map(s => s.groupId).filter(Boolean))];
         await Promise.all(groupIds.map(async gid => {
             try {
@@ -931,7 +944,7 @@ async function loadAll(isRefresh = false){
             } catch { groupSettingsCache[gid] = null; }
         }));
 
-        // 4. тянем посещаемость по каждому студенту
+        // 4) посещаемость
         await Promise.all(students.map(s => loadStudentAttendance(s)));
 
         renderAll();
@@ -946,14 +959,12 @@ async function loadAll(isRefresh = false){
 }
 
 /* =========================================================
-   ATTENDANCE LOADER
-   Пробуем разные варианты структуры
+   ATTENDANCE LOADER (3 варианта структуры)
 ========================================================= */
 async function loadStudentAttendance(student){
     const cache = { days:{}, recordsByDate:{} };
 
     try {
-        // Вариант А: attendance/{studentId} — документ с полем records
         const docRef = db.collection("attendance").doc(student.id);
         const doc = await docRef.get();
         if (doc.exists){
@@ -966,7 +977,6 @@ async function loadStudentAttendance(student){
             }
         }
 
-        // Вариант Б: attendance/{studentId}/days/{date} — на каждый день
         if (!Object.keys(cache.recordsByDate).length){
             try {
                 const daysSnap = await db
@@ -980,7 +990,6 @@ async function loadStudentAttendance(student){
             } catch {}
         }
 
-        // Вариант В: attendance — плоская коллекция { studentId, date, ... }
         if (!Object.keys(cache.recordsByDate).length){
             try {
                 const flat = await db.collection("attendance")
@@ -1017,7 +1026,6 @@ function renderWelcome(){
     $("metaDate").textContent = todayStr();
     $("metaCount").textContent = students.length;
 
-    // считаем общий процент посещаемости
     let total = 0, present = 0;
     students.forEach(s => {
         const stats = computeStudentStats(s);
@@ -1030,16 +1038,6 @@ function renderWelcome(){
     $("sectionSub").textContent = students.length
         ? `Показаны данные по ${students.length} ${plural(students.length,"студенту","студентам","студентам")}`
         : "Загрузка данных…";
-}
-
-function plural(n, one, few, many){
-    const x = n % 100;
-    if (x >= 11 && x <= 19) return many;
-    switch(n % 10){
-        case 1: return one;
-        case 2: case 3: case 4: return few;
-        default: return many;
-    }
 }
 
 function renderEmptyState(){
@@ -1060,12 +1058,10 @@ function renderEmptyState(){
 
 function renderStudents(){
     const container = $("studentsContainer");
-
     if (!students.length){
         renderEmptyState();
         return;
     }
-
     container.innerHTML = students.map((s, i) => renderStudentCard(s, i)).join("");
 }
 
@@ -1077,9 +1073,7 @@ function renderStudentCard(student, index){
     const disciplines = getDisciplines(student);
     const records = attendanceCache[student.id]?.recordsByDate || {};
 
-    // Собираем матрицу: строки = дни недели, столбцы = номера пар
     const matrix = buildAttendanceMatrix(records, schedule);
-
     const attHtml = renderAttendanceTable(matrix, schedule, disciplines, stats);
 
     return `
@@ -1109,7 +1103,7 @@ function renderStudentCard(student, index){
 }
 
 /* =========================================================
-   COMPUTE STATS
+   STATS
 ========================================================= */
 function computeStudentStats(student){
     const records = attendanceCache[student.id]?.recordsByDate || {};
@@ -1133,7 +1127,7 @@ function computeStudentStats(student){
 }
 
 /* =========================================================
-   SCHEDULE / DISCIPLINES из groupSettings
+   SCHEDULE / DISCIPLINES
 ========================================================= */
 function getSchedule(student){
     const settings = groupSettingsCache[student.groupId];
@@ -1152,8 +1146,7 @@ function getDisciplines(student){
 }
 
 /* =========================================================
-   MATRIX: [день] → [номер пары] → { date, status }
-   Ищем последнюю запись по каждому дню недели за последние 3 недели
+   MATRIX
 ========================================================= */
 function buildAttendanceMatrix(recordsByDate, schedule){
     const matrix = {};
@@ -1161,15 +1154,17 @@ function buildAttendanceMatrix(recordsByDate, schedule){
 
     const dates = Object.keys(recordsByDate).sort().reverse();
 
-    // Для каждой даты определяем день недели и раскладываем
-    // Берём последнюю (свежую) запись для каждого дня недели
     for (const date of dates){
         const dow = getDayOfWeek(date);
         if (!dow) continue;
         const dayMarks = recordsByDate[date];
         if (!dayMarks || typeof dayMarks !== "object") continue;
 
-        const maxLesson = Math.max(schedule[dow] || 0, ...Object.keys(dayMarks).map(n => Number(n) || 0));
+        const maxLesson = Math.max(
+            schedule[dow] || 0,
+            ...Object.keys(dayMarks).map(n => Number(n) || 0),
+            0
+        );
         for (let i = 1; i <= maxLesson; i++){
             const v = dayMarks[i] ?? dayMarks[String(i)];
             if (v === undefined || v === null) continue;
@@ -1183,11 +1178,10 @@ function buildAttendanceMatrix(recordsByDate, schedule){
 }
 
 function getDayOfWeek(dateStr){
-    // Ожидаем YYYY-MM-DD или совместимый ISO
     const m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (!m) return null;
     const d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
-    const jsDay = d.getDay(); // 0=Вс, 1=Пн...
+    const jsDay = d.getDay();
     if (jsDay === 0) return "Воскресенье";
     return DAYS[jsDay - 1];
 }
@@ -1208,7 +1202,6 @@ function renderAttendanceTable(matrix, schedule, disciplines, stats){
     }
 
     const hasAnyMarks = Object.values(matrix).some(day => Object.keys(day).length > 0);
-
     if (!hasAnyMarks){
         return `
             <div class="att-empty">
@@ -1218,7 +1211,6 @@ function renderAttendanceTable(matrix, schedule, disciplines, stats){
             </div>`;
     }
 
-    // Заголовки: [День] [1] [2] ... [N]
     const maxLessons = Math.max(...activeDays.map(d => schedule[d]));
 
     let html = `
@@ -1274,7 +1266,6 @@ function renderAttendanceTable(matrix, schedule, disciplines, stats){
 }
 
 function getDisciplineForLesson(activeDays, disciplines, lessonNum){
-    // Берём первую попавшуюся дисциплину для этой пары (обычно одинаковая)
     for (const day of activeDays){
         const arr = disciplines[day];
         if (Array.isArray(arr) && arr[lessonNum - 1]){
@@ -1285,20 +1276,34 @@ function getDisciplineForLesson(activeDays, disciplines, lessonNum){
 }
 
 /* =========================================================
-   AUTH
+   FIREBASE INIT (ИСПРАВЛЕНО)
+   firebase-config.js УЖЕ вызывает initializeApp().
+   Здесь только получаем ссылки на сервисы.
 ========================================================= */
-firebase.initializeApp(window.firebaseConfig || {
-    // fallback — если firebase-config.js не подключён
-    apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
-    authDomain: "othets-1aa03.firebaseapp.com",
-    projectId: "othets-1aa03",
-    storageBucket: "othets-1aa03.firebasestorage.app",
-    messagingSenderId: "528392191591",
-    appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2"
-});
-db = firebase.firestore();
-auth = firebase.auth();
+(function initFirebase(){
+    if (!window.firebase){
+        console.error("Firebase SDK не загружен. Проверь подключение скриптов.");
+        return;
+    }
+    // Страховка: если firebase-config.js по какой-то причине
+    // не инициализировал приложение — инициализируем сами.
+    if (!firebase.apps.length){
+        firebase.initializeApp({
+            apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+            authDomain: "othets-1aa03.firebaseapp.com",
+            projectId: "othets-1aa03",
+            storageBucket: "othets-1aa03.firebasestorage.app",
+            messagingSenderId: "528392191591",
+            appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2"
+        });
+    }
+    db = firebase.firestore();
+    auth = firebase.auth();
+})();
 
+/* =========================================================
+   AUTH STATE
+========================================================= */
 firebase.auth().onAuthStateChanged(async user => {
     if (!user){
         window.location.href = "login.html";
@@ -1313,10 +1318,8 @@ firebase.auth().onAuthStateChanged(async user => {
 
         const role = String(currentProfile.role || "").toLowerCase();
         if (role !== "parent"){
-            // пускаем только родителей
             if (role === "admin"){ window.location.href = "adminhome.html"; return; }
             if (role === "curator"){ window.location.href = "home.html"; return; }
-            // неизвестная роль — на логин
             window.location.href = "login.html";
             return;
         }

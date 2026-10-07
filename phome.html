@@ -18,11 +18,13 @@
     --primary-2:#4f46e5;
     --primary-light:#eff6ff;
     --primary-line:#bfdbfe;
-    --green:#16a34a;   --green-light:#dcfce7;  --green-text:#15803d;
-    --red:#dc2626;     --red-light:#fef2f2;    --red-text:#991b1b;
-    --amber:#d97706;   --amber-light:#fef3c7;  --amber-text:#a16207;
-    --cyan:#0891b2;    --cyan-light:#cffafe;   --cyan-text:#0e7490;
-    --violet:#7c3aed;  --violet-light:#f5f3ff; --violet-text:#6d28d9;
+
+    --green:#16a34a;   --green-light:#dcfce7;  --green-text:#15803d;  --green-soft:#ecfdf5;
+    --red:#dc2626;     --red-light:#fef2f2;    --red-text:#991b1b;    --red-soft:#fef2f2;
+    --amber:#d97706;   --amber-light:#fef3c7;  --amber-text:#a16207;  --amber-soft:#fffbeb;
+    --cyan:#0891b2;    --cyan-light:#cffafe;   --cyan-text:#0e7490;   --cyan-soft:#ecfeff;
+    --violet:#7c3aed;  --violet-light:#f5f3ff; --violet-text:#6d28d9; --violet-soft:#faf5ff;
+
     --muted-2:#94a3b8;
     --text:#0f172a;
     --text-2:#334155;
@@ -32,9 +34,12 @@
     --bg:#f5f7fb;
     --card:#ffffff;
     --card-2:#f8fafc;
+    --card-3:#f1f5f9;
+
     --shadow-sm:0 1px 2px rgba(15,23,42,.05);
     --shadow:0 8px 24px rgba(15,23,42,.06);
     --shadow-lg:0 20px 50px rgba(15,23,42,.14);
+
     --radius:12px;
     --radius-lg:18px;
     --radius-xl:24px;
@@ -54,13 +59,14 @@ html[data-theme="dark"]{
     --bg:#0b1220;
     --card:#111827;
     --card-2:#0f172a;
+    --card-3:#1a2230;
     --primary-light:#1e3a8a33;
     --primary-line:#3b82f6;
-    --green-light:#14532d55;
-    --red-light:#7f1d1d55;
-    --amber-light:#78350f55;
-    --cyan-light:#164e6355;
-    --violet-light:#4c1d9555;
+    --green-light:#14532d55;  --green-soft:#052e1a55;
+    --red-light:#7f1d1d55;    --red-soft:#450a0a55;
+    --amber-light:#78350f55;  --amber-soft:#451a0355;
+    --cyan-light:#164e6355;   --cyan-soft:#08334455;
+    --violet-light:#4c1d9555; --violet-soft:#2e106555;
     --shadow-sm:0 1px 2px rgba(0,0,0,.4);
     --shadow:0 8px 24px rgba(0,0,0,.35);
     --shadow-lg:0 20px 50px rgba(0,0,0,.55);
@@ -94,6 +100,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
 @keyframes pop{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:none}}
 @keyframes shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
 @keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.9);opacity:.6}}
+@keyframes slideDown{from{opacity:0;max-height:0}to{opacity:1;max-height:500px}}
 
 /* =========================================================
    HEADER
@@ -193,7 +200,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
    WELCOME
 ========================================================= */
 .welcome{
-    padding:26px 28px;margin-bottom:22px;
+    padding:24px 26px;margin-bottom:20px;
     border-radius:var(--radius-xl);
     background:linear-gradient(135deg,#eff6ff 0%,#f5f3ff 100%);
     border:1px solid var(--primary-line);
@@ -216,20 +223,10 @@ html[data-theme="dark"] .welcome{
     pointer-events:none;
 }
 .welcome-content{position:relative;z-index:1}
-.welcome-eyebrow{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:5px 11px;border-radius:999px;
-    background:rgba(255,255,255,.75);
-    color:var(--primary);
-    font-size:11px;font-weight:800;
-    letter-spacing:.05em;text-transform:uppercase;
-    margin-bottom:10px;
-}
-html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
 .welcome-title{
-    font-size:clamp(22px,3.2vw,30px);
-    font-weight:800;letter-spacing:-.7px;
-    line-height:1.15;
+    font-size:clamp(20px,3vw,26px);
+    font-weight:800;letter-spacing:-.6px;
+    line-height:1.2;
     margin-bottom:6px;
 }
 .welcome-title .name{
@@ -239,50 +236,199 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
 }
 .welcome-sub{
     color:var(--text-2);
-    font-size:13.5px;line-height:1.55;
+    font-size:13px;line-height:1.55;
     max-width:680px;
 }
-.welcome-meta{
-    display:flex;flex-wrap:wrap;gap:8px;
-    margin-top:14px;
-}
-.meta-pill{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:6px 12px;border-radius:999px;
-    background:var(--card);
-    border:1px solid var(--line);
-    font-size:11.5px;font-weight:700;
-    color:var(--text-2);
-}
-.meta-pill b{color:var(--text);font-weight:800}
 
 /* =========================================================
-   SECTION HEAD
+   VIEW TABS (главная страница: Неделя / История)
 ========================================================= */
-.section-head{
-    display:flex;align-items:flex-end;justify-content:space-between;
-    gap:14px;margin-bottom:14px;flex-wrap:wrap;
+.view-tabs{
+    display:flex;gap:4px;padding:4px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    margin-bottom:16px;
+    box-shadow:var(--shadow-sm);
 }
-.section-title{
-    font-size:19px;font-weight:800;letter-spacing:-.3px;
-    display:flex;align-items:center;gap:9px;
+.view-tab{
+    flex:1;
+    display:inline-flex;align-items:center;justify-content:center;gap:7px;
+    padding:11px 14px;
+    border-radius:11px;
+    font-size:13px;font-weight:700;
+    color:var(--muted);
+    transition:.2s;
 }
-.section-title-icon{
-    width:34px;height:34px;border-radius:10px;
+.view-tab:hover{color:var(--text-2)}
+.view-tab.active{
+    background:linear-gradient(135deg,#2563eb,#4f46e5);
+    color:#fff;
+    box-shadow:0 6px 14px rgba(37,99,235,.28);
+}
+.view-tab svg{width:15px;height:15px;flex:none}
+
+/* =========================================================
+   PANEL
+========================================================= */
+.panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);
+    margin-bottom:16px;
+    overflow:hidden;
+    animation:rise .5s var(--ease) both;
+}
+.panel-head{
+    padding:14px 18px;
+    border-bottom:1px solid var(--line-2);
+    display:flex;align-items:center;justify-content:space-between;
+    gap:12px;flex-wrap:wrap;
+    background:var(--card-2);
+}
+.panel-title{
+    font-size:14px;font-weight:800;
+    display:flex;align-items:center;gap:8px;
+}
+.panel-title .icon{
+    width:28px;height:28px;border-radius:8px;
     display:grid;place-items:center;
     background:var(--primary-light);
     color:var(--primary);
-    font-size:16px;flex:none;
+    font-size:14px;flex:none;
 }
-.section-sub{
-    color:var(--muted);font-size:12.5px;margin-top:4px;margin-left:43px;
+.panel-actions{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+
+/* =========================================================
+   WEEK NAV
+========================================================= */
+.week-nav{
+    display:flex;align-items:center;gap:8px;
+    padding:14px 18px;
+    border-bottom:1px solid var(--line-2);
+    background:var(--card);
+    flex-wrap:wrap;
 }
+.week-nav-btn{
+    width:38px;height:38px;border-radius:11px;
+    border:1px solid var(--line);background:var(--card);
+    color:var(--text-2);display:grid;place-items:center;
+    transition:.2s;
+}
+.week-nav-btn:hover{border-color:var(--primary);color:var(--primary);transform:translateY(-1px)}
+.week-nav-btn svg{width:17px;height:17px}
+.week-nav-title{
+    flex:1;min-width:0;
+    text-align:center;
+    font-size:14px;font-weight:800;
+    color:var(--text);
+    display:flex;flex-direction:column;gap:2px;
+}
+.week-nav-title small{
+    font-size:11px;color:var(--muted);font-weight:600;
+}
+.week-today-btn{
+    padding:8px 12px;border-radius:10px;
+    background:var(--primary-light);color:var(--primary);
+    font-size:12px;font-weight:800;
+    display:inline-flex;align-items:center;gap:5px;
+    transition:.15s;
+}
+.week-today-btn:hover{background:var(--primary);color:#fff}
+.week-today-btn svg{width:13px;height:13px}
+
+/* =========================================================
+   STATS
+========================================================= */
+.stats-row{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:10px;
+    padding:14px 18px;
+    border-bottom:1px solid var(--line-2);
+    background:var(--card-2);
+}
+.stat-box{
+    padding:12px 14px;
+    border-radius:12px;
+    background:var(--card);
+    border:1px solid var(--line);
+    min-width:0;
+}
+.stat-box-label{
+    font-size:10.5px;font-weight:800;
+    text-transform:uppercase;letter-spacing:.05em;
+    color:var(--muted);
+    margin-bottom:5px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.stat-box-value{
+    font-size:20px;font-weight:800;
+    letter-spacing:-.5px;line-height:1;
+    font-variant-numeric:tabular-nums;
+}
+.stat-box-value.green{color:var(--green-text)}
+.stat-box-value.red{color:var(--red-text)}
+.stat-box-value.cyan{color:var(--cyan-text)}
+.stat-box-value.violet{color:var(--violet-text)}
+html[data-theme="dark"] .stat-box-value.green{color:var(--green)}
+html[data-theme="dark"] .stat-box-value.red{color:var(--red)}
+html[data-theme="dark"] .stat-box-value.cyan{color:var(--cyan)}
+html[data-theme="dark"] .stat-box-value.violet{color:var(--violet)}
+.stat-box-hint{
+    margin-top:4px;
+    font-size:10.5px;
+    color:var(--muted);
+    font-weight:600;
+}
+
+/* =========================================================
+   FILTERS
+========================================================= */
+.filters{
+    display:flex;gap:6px;
+    padding:12px 18px;
+    border-bottom:1px solid var(--line-2);
+    overflow-x:auto;
+    scrollbar-width:none;
+    background:var(--card);
+    -webkit-overflow-scrolling:touch;
+}
+.filters::-webkit-scrollbar{display:none}
+.filter-chip{
+    flex:none;
+    padding:7px 12px;
+    border-radius:999px;
+    border:1px solid var(--line);
+    background:var(--card);
+    color:var(--text-2);
+    font-size:12px;font-weight:700;
+    display:inline-flex;align-items:center;gap:6px;
+    transition:.15s;
+    white-space:nowrap;
+}
+.filter-chip:hover{border-color:var(--primary-line);background:var(--primary-light);color:var(--primary)}
+.filter-chip.active{
+    background:var(--primary);border-color:var(--primary);color:#fff;
+}
+.filter-chip .dot{
+    width:8px;height:8px;border-radius:50%;
+    display:inline-block;flex:none;
+}
+.filter-chip .dot.g{background:var(--green)}
+.filter-chip .dot.r{background:var(--red)}
+.filter-chip .dot.u{background:var(--cyan)}
+.filter-chip .dot.b{background:var(--violet)}
+
+/* =========================================================
+   STUDENTS
+========================================================= */
+.students{display:flex;flex-direction:column;gap:14px}
 
 /* =========================================================
    STUDENT CARD
 ========================================================= */
-.students{display:flex;flex-direction:column;gap:18px}
-
 .student-card{
     background:var(--card);
     border:1px solid var(--line);
@@ -290,177 +436,207 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
     box-shadow:var(--shadow-sm);
     overflow:hidden;
     animation:rise .5s var(--ease) both;
-    transition:.2s;
+    transition:box-shadow .2s;
 }
 .student-card:hover{box-shadow:var(--shadow)}
-.student-card:nth-child(1){animation-delay:.05s}
-.student-card:nth-child(2){animation-delay:.1s}
-.student-card:nth-child(3){animation-delay:.15s}
 
 .student-head{
     display:flex;align-items:center;gap:14px;
-    padding:18px 20px;
-    border-bottom:1px solid var(--line-2);
-    flex-wrap:wrap;
+    padding:16px 18px;
+    cursor:pointer;
+    transition:background .15s;
 }
+.student-head:hover{background:var(--card-2)}
+.student-card.expanded .student-head{border-bottom:1px solid var(--line-2)}
+.student-chevron{
+    width:20px;height:20px;color:var(--muted);
+    transition:transform .3s var(--ease);
+    flex:none;
+}
+.student-card.expanded .student-chevron{transform:rotate(180deg)}
+
 .student-avatar{
-    width:52px;height:52px;flex:none;
-    border-radius:15px;
+    width:48px;height:48px;flex:none;
+    border-radius:14px;
     display:grid;place-items:center;
-    color:#fff;font-weight:800;font-size:17px;
+    color:#fff;font-weight:800;font-size:16px;
     box-shadow:0 6px 14px rgba(15,23,42,.15);
 }
 .student-info{min-width:0;flex:1}
 .student-name{
-    font-size:17px;font-weight:800;
+    font-size:16px;font-weight:800;
     letter-spacing:-.3px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .student-meta{
-    font-size:12px;color:var(--muted);
-    margin-top:4px;
+    font-size:11.5px;color:var(--muted);
+    margin-top:3px;
     display:flex;align-items:center;gap:8px;flex-wrap:wrap;
 }
 .meta-badge{
     display:inline-flex;align-items:center;gap:4px;
-    padding:3px 9px;border-radius:999px;
+    padding:3px 8px;border-radius:999px;
     background:var(--primary-light);
     color:var(--primary);
-    font-size:11px;font-weight:700;
+    font-size:10.5px;font-weight:700;
 }
 
-.student-stats{
-    display:flex;gap:6px;flex-wrap:wrap;
+.student-rate{
+    display:flex;flex-direction:column;align-items:flex-end;
+    gap:2px;
+    flex:none;
 }
-.mini-stat{
-    display:inline-flex;align-items:center;gap:5px;
-    padding:5px 10px;border-radius:999px;
+.rate-value{
+    font-size:18px;font-weight:800;
+    line-height:1;
+    letter-spacing:-.5px;
+    font-variant-numeric:tabular-nums;
+}
+.rate-label{
+    font-size:10px;
+    font-weight:700;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.05em;
+}
+.rate-value.good{color:var(--green-text)}
+.rate-value.warn{color:var(--amber-text)}
+.rate-value.bad{color:var(--red-text)}
+html[data-theme="dark"] .rate-value.good{color:var(--green)}
+html[data-theme="dark"] .rate-value.warn{color:var(--amber)}
+html[data-theme="dark"] .rate-value.bad{color:var(--red)}
+
+/* =========================================================
+   ATTENDANCE LIST (новая структура)
+========================================================= */
+.att-body{
+    display:none;
+    padding:14px 18px 18px;
+    background:var(--card-2);
+}
+.student-card.expanded .att-body{display:block;animation:slideDown .3s var(--ease)}
+
+.att-section-title{
+    font-size:11.5px;font-weight:800;
+    text-transform:uppercase;letter-spacing:.06em;
+    color:var(--muted);
+    margin:14px 0 8px;
+    display:flex;align-items:center;gap:8px;
+}
+.att-section-title:first-child{margin-top:0}
+.att-section-title::after{
+    content:"";flex:1;height:1px;
+    background:var(--line);
+}
+
+/* Day group */
+.day-group{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:12px;
+    margin-bottom:8px;
+    overflow:hidden;
+}
+.day-group-head{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 14px;
+    background:var(--card);
+    border-bottom:1px solid var(--line-2);
+    font-size:12.5px;font-weight:800;
+}
+.day-group-date{
+    font-weight:800;color:var(--text);
+    font-variant-numeric:tabular-nums;
+}
+.day-group-dayname{
+    font-size:11px;font-weight:700;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+}
+.day-group-badge{
+    margin-left:auto;
+    padding:3px 8px;
+    border-radius:999px;
+    font-size:10.5px;font-weight:800;
+    background:var(--green-light);color:var(--green-text);
+    white-space:nowrap;
+}
+html[data-theme="dark"] .day-group-badge{background:var(--green-light);color:var(--green)}
+.day-group-badge.has-absences{
+    background:var(--red-light);color:var(--red-text);
+}
+html[data-theme="dark"] .day-group-badge.has-absences{background:var(--red-light);color:var(--red)}
+
+/* Lessons inside day */
+.lesson-row{
+    display:grid;
+    grid-template-columns:64px 1fr auto;
+    align-items:center;
+    gap:10px;
+    padding:9px 14px;
+    border-bottom:1px solid var(--line-2);
+    font-size:12.5px;
+    transition:background .15s;
+}
+.lesson-row:last-child{border-bottom:0}
+.lesson-row:hover{background:var(--card-2)}
+
+.lesson-num-badge{
+    display:inline-flex;
+    align-items:center;justify-content:center;
+    min-width:52px;height:26px;
+    padding:0 8px;
+    border-radius:8px;
+    background:var(--card-3);
+    color:var(--text-2);
     font-size:11px;font-weight:800;
     white-space:nowrap;
 }
-.mini-stat.good{background:var(--green-light);color:var(--green-text)}
-.mini-stat.warn{background:var(--amber-light);color:var(--amber-text)}
-.mini-stat.bad{background:var(--red-light);color:var(--red-text)}
-.mini-stat.info{background:var(--cyan-light);color:var(--cyan-text)}
+.lesson-subject{
+    font-size:12.5px;
+    color:var(--text);
+    min-width:0;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.lesson-subject.empty{color:var(--muted);font-style:italic}
 
-/* =========================================================
-   ATTENDANCE
-========================================================= */
-.att-wrap{
-    padding:16px 20px 20px;
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
-}
-.att-hint{
-    display:flex;align-items:center;gap:10px;
-    padding:10px 12px;margin-bottom:12px;
-    background:var(--card-2);
-    border-radius:10px;
-    font-size:11.5px;color:var(--text-2);
-    flex-wrap:wrap;
-}
-.att-legend{
-    display:flex;gap:10px;flex-wrap:wrap;
-    margin-left:auto;
-}
-.legend-item{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:11px}
-.legend-dot{
-    width:14px;height:14px;border-radius:5px;
-    display:grid;place-items:center;
-    font-size:9px;font-weight:800;color:#fff;
-}
-.legend-dot.g{background:var(--green)}
-.legend-dot.a{background:var(--amber)}
-.legend-dot.b{background:var(--cyan)}
-.legend-dot.u{background:var(--violet)}
-.legend-dot.r{background:var(--red)}
-
-.att-table{
-    width:100%;min-width:640px;
-    border-collapse:separate;border-spacing:0;
-    font-size:12px;
-}
-.att-table th,.att-table td{
-    padding:8px 6px;
-    text-align:center;
-    border-bottom:1px solid var(--line-2);
-}
-.att-table thead th{
-    background:var(--card-2);
-    font-weight:800;color:var(--text-2);
-    font-size:10.5px;
-    text-transform:uppercase;letter-spacing:.04em;
-}
-.att-table thead th:first-child{
-    text-align:left;padding-left:12px;
-    border-top-left-radius:9px;
-    width:130px;
-    position:sticky;left:0;z-index:2;
-    background:var(--card-2);
-}
-.att-table thead th:last-child{border-top-right-radius:9px}
-.att-table tbody td:first-child{
-    text-align:left;padding-left:12px;
-    font-weight:700;color:var(--text-2);
-    font-size:11.5px;
-    position:sticky;left:0;z-index:2;
-    background:var(--card);
-    border-right:1px solid var(--line-2);
+.mark-badge{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:5px 10px;
+    border-radius:9px;
+    font-size:11.5px;font-weight:800;
     white-space:nowrap;
 }
-.att-table tbody tr:hover td{background:var(--card-2)}
-.att-table tbody tr:hover td:first-child{background:var(--card-2)}
+.mark-badge.present{background:var(--green-light);color:var(--green-text)}
+.mark-badge.absent{background:var(--red-light);color:var(--red-text)}
+.mark-badge.uv{background:var(--cyan-light);color:var(--cyan-text)}
+.mark-badge.bolezn{background:var(--violet-light);color:var(--violet-text)}
+html[data-theme="dark"] .mark-badge.present{color:var(--green)}
+html[data-theme="dark"] .mark-badge.absent{color:var(--red)}
+html[data-theme="dark"] .mark-badge.uv{color:var(--cyan)}
+html[data-theme="dark"] .mark-badge.bolezn{color:var(--violet)}
 
-.lesson-num{
-    font-weight:800;color:var(--muted);
-    font-size:11px;
+.lesson-reason{
+    grid-column:2/-1;
+    font-size:11.5px;
+    color:var(--muted);
+    padding-top:4px;
+    font-style:italic;
+    line-height:1.4;
 }
-.lesson-name{
-    display:block;
-    font-size:10px;color:var(--muted);
-    margin-top:2px;
-    max-width:110px;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-    margin-left:auto;margin-right:auto;
-}
-.cell{
-    display:inline-grid;place-items:center;
-    width:28px;height:28px;
-    border-radius:9px;
-    font-size:12px;font-weight:800;
-    color:#fff;
-    transition:.15s;
-}
-.cell.g{background:var(--green)}
-.cell.a{background:var(--amber)}
-.cell.b{background:var(--cyan)}
-.cell.u{background:var(--violet)}
-.cell.r{background:var(--red)}
-.cell.empty{
-    background:transparent;
-    border:1px dashed var(--line);
-    color:var(--muted-2);
-}
-.student-card:hover .cell{transform:scale(1.06)}
 
+/* Empty */
 .att-empty{
-    padding:36px 20px;text-align:center;
+    padding:40px 20px;text-align:center;
     color:var(--muted);font-size:13px;
 }
-.att-empty-icon{font-size:36px;margin-bottom:10px;opacity:.5}
+.att-empty-icon{font-size:38px;margin-bottom:10px;opacity:.5}
 .att-empty-title{font-size:14px;font-weight:800;color:var(--text-2);margin-bottom:4px}
 
 /* =========================================================
-   LOADING / EMPTY
+   EMPTY STATE
 ========================================================= */
-.skeleton{
-    height:240px;border-radius:var(--radius-lg);
-    background:linear-gradient(90deg,var(--card-2) 25%,var(--line-2) 37%,var(--card-2) 63%);
-    background-size:400% 100%;
-    animation:shimmer 1.4s ease infinite;
-    margin-bottom:16px;
-}
-
 .empty-state{
     padding:60px 24px;text-align:center;
     background:var(--card);
@@ -478,63 +654,57 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
 .empty-state p{color:var(--muted);font-size:13px;line-height:1.55;max-width:440px;margin:0 auto}
 
 /* =========================================================
-   ACTIONS
+   HISTORY VIEW
 ========================================================= */
-.actions{
-    display:flex;gap:10px;flex-wrap:wrap;
-    margin-top:22px;
-    padding:16px;
-    background:var(--card);
+.history-controls{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:14px;
+}
+.history-controls .field{
+    display:flex;flex-direction:column;gap:5px;
+}
+.history-controls label{
+    font-size:11px;font-weight:800;
+    color:var(--muted);
+    text-transform:uppercase;letter-spacing:.05em;
+}
+.history-controls input,
+.history-controls select{
+    height:42px;padding:0 12px;
     border:1px solid var(--line);
-    border-radius:var(--radius-lg);
-    box-shadow:var(--shadow-sm);
-}
-.action-btn{
-    flex:1 1 200px;
-    display:inline-flex;align-items:center;justify-content:center;gap:8px;
-    padding:13px 18px;
-    border-radius:12px;
-    font-size:13.5px;font-weight:800;
-    transition:.2s;
-    white-space:nowrap;
-}
-.action-btn svg{width:17px;height:17px;flex:none}
-.action-btn.primary{
-    background:linear-gradient(135deg,#2563eb,#4f46e5);
-    color:#fff;
-    box-shadow:0 10px 22px rgba(37,99,235,.22);
-}
-.action-btn.primary:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(37,99,235,.28)}
-.action-btn.secondary{
+    border-radius:11px;
     background:var(--card);
+    color:var(--text);
+    font-size:13.5px;font-weight:600;
+    outline:none;
+    width:100%;
+    transition:.15s;
+    -webkit-appearance:none;
+}
+.history-controls input:focus,
+.history-controls select:focus{
+    border-color:var(--primary);
+    box-shadow:0 0 0 4px var(--primary-light);
+}
+.history-periods{
+    display:flex;gap:6px;flex-wrap:wrap;
+    margin-bottom:14px;
+}
+.history-period{
+    padding:8px 14px;
+    border-radius:999px;
     border:1px solid var(--line);
+    background:var(--card);
     color:var(--text-2);
+    font-size:12.5px;font-weight:700;
+    transition:.15s;
+    display:inline-flex;align-items:center;gap:6px;
 }
-.action-btn.secondary:hover{border-color:var(--primary-line);background:var(--primary-light);color:var(--primary)}
-.action-btn:active{transform:translateY(0) scale(.98)}
-
-/* =========================================================
-   LOADING SCREEN
-========================================================= */
-.loading-screen{
-    position:fixed;inset:0;z-index:5000;
-    background:var(--bg);
-    display:flex;align-items:center;justify-content:center;
-    transition:opacity .5s,visibility .5s;
-}
-.loading-screen.hide{opacity:0;visibility:hidden}
-.loading-box{text-align:center}
-.loading-logo{
-    width:60px;height:60px;margin:0 auto;
-    border-radius:18px;
-    background:linear-gradient(135deg,#2563eb,#60a5fa);
-    color:#fff;display:grid;place-items:center;
-    font-size:22px;font-weight:900;
-    box-shadow:0 15px 35px rgba(37,99,235,.25);
-    animation:pulse 2s ease-in-out infinite;
-}
-.loading-text{margin-top:14px;font-size:14px;font-weight:800}
-.loading-sub{margin-top:4px;font-size:12px;color:var(--muted)}
+.history-period:hover{border-color:var(--primary-line);background:var(--primary-light);color:var(--primary)}
+.history-period.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.history-period svg{width:13px;height:13px}
 
 /* =========================================================
    TOAST
@@ -564,11 +734,46 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
 .toast.info{background:#1e40af}
 
 /* =========================================================
+   LOADING SCREEN
+========================================================= */
+.loading-screen{
+    position:fixed;inset:0;z-index:5000;
+    background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    transition:opacity .5s,visibility .5s;
+}
+.loading-screen.hide{opacity:0;visibility:hidden}
+.loading-box{text-align:center}
+.loading-logo{
+    width:60px;height:60px;margin:0 auto;
+    border-radius:18px;
+    background:linear-gradient(135deg,#2563eb,#60a5fa);
+    color:#fff;display:grid;place-items:center;
+    font-size:22px;font-weight:900;
+    box-shadow:0 15px 35px rgba(37,99,235,.25);
+    animation:pulse 2s ease-in-out infinite;
+}
+.loading-text{margin-top:14px;font-size:14px;font-weight:800}
+.loading-sub{margin-top:4px;font-size:12px;color:var(--muted)}
+
+/* =========================================================
+   SKELETON
+========================================================= */
+.skeleton{
+    height:100px;border-radius:var(--radius-lg);
+    background:linear-gradient(90deg,var(--card-2) 25%,var(--line-2) 37%,var(--card-2) 63%);
+    background-size:400% 100%;
+    animation:shimmer 1.4s ease infinite;
+    margin-bottom:12px;
+}
+
+/* =========================================================
    RESPONSIVE
 ========================================================= */
 @media (max-width:900px){
     .user-name{display:none}
     .user-btn{padding:5px}
+    .stats-row{grid-template-columns:repeat(2,1fr)}
 }
 
 @media (max-width:640px){
@@ -582,32 +787,56 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
     .container{padding:16px 12px calc(80px + var(--safe-bottom))}
 
     .welcome{padding:18px;border-radius:18px}
-    .welcome-title{font-size:20px}
-    .welcome-sub{font-size:12.5px}
-    .welcome-meta{margin-top:12px;gap:6px}
-    .meta-pill{padding:5px 10px;font-size:11px}
+    .welcome-title{font-size:18px}
+    .welcome-sub{font-size:12px}
 
-    .section-title{font-size:16px}
-    .section-sub{margin-left:0;font-size:12px}
+    .view-tabs{padding:3px;border-radius:12px}
+    .view-tab{padding:10px 10px;font-size:12px;gap:5px}
+    .view-tab svg{width:14px;height:14px}
 
-    .student-head{padding:14px 16px;gap:12px}
-    .student-avatar{width:44px;height:44px;font-size:15px;border-radius:12px}
-    .student-name{font-size:15px}
+    .panel{border-radius:14px}
+    .panel-head{padding:12px 14px}
+    .panel-title{font-size:13px}
+
+    .week-nav{padding:10px 14px;gap:6px}
+    .week-nav-btn{width:36px;height:36px}
+    .week-nav-title{font-size:13px}
+    .week-nav-title small{font-size:10.5px}
+    .week-today-btn{padding:7px 10px;font-size:11px}
+
+    .stats-row{padding:10px 14px;gap:8px}
+    .stat-box{padding:10px 11px}
+    .stat-box-value{font-size:17px}
+    .stat-box-label{font-size:9.5px}
+    .stat-box-hint{font-size:9.5px}
+
+    .filters{padding:10px 14px}
+    .filter-chip{padding:6px 10px;font-size:11.5px}
+
+    .student-head{padding:13px 14px;gap:10px}
+    .student-avatar{width:42px;height:42px;font-size:14px;border-radius:12px}
+    .student-name{font-size:14.5px}
     .student-meta{font-size:11px}
-    .student-stats{display:none}
+    .student-rate{gap:1px}
+    .rate-value{font-size:16px}
+    .rate-label{font-size:9px}
 
-    .att-wrap{padding:12px 14px 16px}
-    .att-hint{flex-direction:column;align-items:flex-start;gap:8px;font-size:11px}
-    .att-legend{margin-left:0}
+    .att-body{padding:12px 14px 14px}
+    .day-group-head{padding:9px 12px;font-size:12px}
+    .lesson-row{grid-template-columns:56px 1fr auto;gap:8px;padding:8px 12px;font-size:12px}
+    .lesson-num-badge{min-width:46px;height:24px;font-size:10.5px;padding:0 6px}
+    .lesson-subject{font-size:12px}
+    .mark-badge{padding:4px 8px;font-size:11px}
 
-    .att-table{font-size:11.5px;min-width:560px}
-    .att-table th,.att-table td{padding:6px 4px}
-    .att-table thead th:first-child,
-    .att-table tbody td:first-child{width:100px;padding-left:10px;font-size:11px}
-    .cell{width:24px;height:24px;font-size:10px}
+    .history-controls{grid-template-columns:1fr}
+    .history-period{padding:7px 11px;font-size:11.5px}
+}
 
-    .actions{padding:12px;gap:8px}
-    .action-btn{padding:12px 14px;font-size:13px;flex:1 1 100%}
+@media (max-width:380px){
+    .stats-row{grid-template-columns:1fr 1fr;gap:6px}
+    .stat-box{padding:9px 10px}
+    .stat-box-value{font-size:15px}
+    .lesson-row{grid-template-columns:50px 1fr auto}
 }
 
 @media (prefers-reduced-motion:reduce){
@@ -680,68 +909,214 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
     <!-- WELCOME -->
     <section class="welcome">
         <div class="welcome-content">
-            <div class="welcome-eyebrow">
-                <span>👋</span> Добро пожаловать
-            </div>
             <h1 class="welcome-title">
                 Здравствуйте, <span class="name" id="welcomeName">родитель</span>!
             </h1>
-            <p class="welcome-sub">
-                Здесь вы можете следить за посещаемостью своих детей.
-                Данные обновляются автоматически при каждой загрузке страницы.
+            <p class="welcome-sub" id="welcomeSub">
+                На главной — посещаемость за текущую неделю. Чтобы посмотреть
+                историю за прошлые недели или месяцы, откройте «История».
             </p>
-            <div class="welcome-meta">
-                <span class="meta-pill">📅 Сегодня: <b id="metaDate">—</b></span>
-                <span class="meta-pill">👨‍🎓 Студентов: <b id="metaCount">0</b></span>
-                <span class="meta-pill">✅ Посещаемость: <b id="metaRate">—</b></span>
-            </div>
         </div>
     </section>
 
-    <!-- ATTENDANCE -->
-    <section>
-        <div class="section-head">
-            <div>
-                <div class="section-title">
-                    <span class="section-title-icon">📊</span>
-                    Посещаемость
-                </div>
-                <div class="section-sub" id="sectionSub">Загрузка данных…</div>
-            </div>
-        </div>
-
-        <div class="students" id="studentsContainer">
-            <div class="skeleton"></div>
-            <div class="skeleton"></div>
-        </div>
-    </section>
-
-    <!-- ACTIONS -->
-    <div class="actions">
-        <button class="action-btn primary" onclick="goMessages()">
+    <!-- VIEW TABS -->
+    <div class="view-tabs" role="tablist">
+        <button class="view-tab active" data-view="current" role="tab" aria-selected="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                <rect x="3" y="5" width="18" height="16" rx="3"/>
+                <path d="M8 3v4M16 3v4M3 10h18"/>
             </svg>
-            Сообщения
+            Текущая неделя
         </button>
-        <button class="action-btn secondary" onclick="refreshData()">
+        <button class="view-tab" data-view="history" role="tab" aria-selected="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 11a8.1 8.1 0 0 0-15.5-3M4 5v3h3"/>
-                <path d="M4 13a8.1 8.1 0 0 0 15.5 3M20 19v-3h-3"/>
+                <path d="M3 12a9 9 0 1 0 3-6.7"/>
+                <path d="M3 3v5h5"/>
+                <path d="M12 7v5l3 2"/>
             </svg>
-            Обновить
+            История
         </button>
     </div>
+
+    <!-- =====================================================
+         VIEW: CURRENT WEEK
+    ====================================================== -->
+    <section id="viewCurrent">
+
+        <div class="panel">
+            <!-- WEEK NAV -->
+            <div class="week-nav">
+                <button class="week-nav-btn" onclick="shiftWeek(-1)" aria-label="Предыдущая неделя">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m15 6-6 6 6 6"/>
+                    </svg>
+                </button>
+                <div class="week-nav-title">
+                    <span id="weekTitle">—</span>
+                    <small id="weekSubtitle">—</small>
+                </div>
+                <button class="week-nav-btn" onclick="shiftWeek(1)" aria-label="Следующая неделя">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m9 6 6 6-6 6"/>
+                    </svg>
+                </button>
+                <button class="week-today-btn" onclick="goToCurrentWeek()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="8"/>
+                        <path d="M12 7v5l3 2"/>
+                    </svg>
+                    Сегодня
+                </button>
+            </div>
+
+            <!-- STATS -->
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="stat-box-label">Посещаемость</div>
+                    <div class="stat-box-value" id="statRate">—</div>
+                    <div class="stat-box-hint" id="statRateHint">за неделю</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Всего пар</div>
+                    <div class="stat-box-value" id="statTotal">0</div>
+                    <div class="stat-box-hint">отмечено</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Пропуски</div>
+                    <div class="stat-box-value red" id="statAbsent">0</div>
+                    <div class="stat-box-hint">в том числе Н</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Уважительные</div>
+                    <div class="stat-box-value cyan" id="statExcused">0</div>
+                    <div class="stat-box-hint">Н/У и Н/Б</div>
+                </div>
+            </div>
+
+            <!-- FILTERS -->
+            <div class="filters" id="filtersCurrent">
+                <button class="filter-chip active" data-filter="all">Все отметки</button>
+                <button class="filter-chip" data-filter="absent">
+                    <span class="dot r"></span> Только пропуски
+                </button>
+                <button class="filter-chip" data-filter="uv">
+                    <span class="dot u"></span> Уважительные
+                </button>
+                <button class="filter-chip" data-filter="bolezn">
+                    <span class="dot b"></span> Болезнь
+                </button>
+            </div>
+        </div>
+
+        <div class="students" id="currentList">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+        </div>
+    </section>
+
+    <!-- =====================================================
+         VIEW: HISTORY
+    ====================================================== -->
+    <section id="viewHistory" style="display:none">
+
+        <div class="panel">
+            <div class="panel-head">
+                <div class="panel-title">
+                    <span class="icon">🔎</span>
+                    Период
+                </div>
+            </div>
+
+            <div style="padding:14px 18px">
+                <div class="history-periods" id="historyPeriods">
+                    <button class="history-period active" data-period="month">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="5" width="18" height="16" rx="3"/>
+                            <path d="M3 10h18"/>
+                        </svg>
+                        Текущий месяц
+                    </button>
+                    <button class="history-period" data-period="quarter">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="5" width="18" height="16" rx="3"/>
+                            <path d="M3 10h18"/>
+                            <path d="M3 15h18"/>
+                        </svg>
+                        3 месяца
+                    </button>
+                    <button class="history-period" data-period="semester1">1 семестр</button>
+                    <button class="history-period" data-period="semester2">2 семестр</button>
+                    <button class="history-period" data-period="custom">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 5v14M5 12h14"/>
+                        </svg>
+                        Свой период
+                    </button>
+                </div>
+
+                <div class="history-controls" id="historyCustom" style="display:none">
+                    <div class="field">
+                        <label for="historyFrom">С</label>
+                        <input type="date" id="historyFrom">
+                    </div>
+                    <div class="field">
+                        <label for="historyTo">По</label>
+                        <input type="date" id="historyTo">
+                    </div>
+                </div>
+            </div>
+
+            <!-- STATS for history -->
+            <div class="stats-row">
+                <div class="stat-box">
+                    <div class="stat-box-label">Посещаемость</div>
+                    <div class="stat-box-value" id="hStatRate">—</div>
+                    <div class="stat-box-hint">за период</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Всего пар</div>
+                    <div class="stat-box-value" id="hStatTotal">0</div>
+                    <div class="stat-box-hint">отмечено</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Пропуски</div>
+                    <div class="stat-box-value red" id="hStatAbsent">0</div>
+                    <div class="stat-box-hint">всего</div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-box-label">Уважительные</div>
+                    <div class="stat-box-value cyan" id="hStatExcused">0</div>
+                    <div class="stat-box-hint">Н/У и Н/Б</div>
+                </div>
+            </div>
+
+            <div class="filters" id="filtersHistory">
+                <button class="filter-chip active" data-filter="all">Все отметки</button>
+                <button class="filter-chip" data-filter="absent">
+                    <span class="dot r"></span> Только пропуски
+                </button>
+                <button class="filter-chip" data-filter="uv">
+                    <span class="dot u"></span> Уважительные
+                </button>
+                <button class="filter-chip" data-filter="bolezn">
+                    <span class="dot b"></span> Болезнь
+                </button>
+            </div>
+        </div>
+
+        <div class="students" id="historyList">
+            <div class="skeleton"></div>
+        </div>
+    </section>
 
 </main>
 
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
-<!-- Firebase SDK (compat) -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<!-- firebase-config.js должен САМ вызывать initializeApp() -->
 <script src="firebase-config.js"></script>
 
 <script>
@@ -752,19 +1127,6 @@ const DAYS = ["Понедельник","Вторник","Среда","Четве
 const MAX_STUDENTS = 3;
 const HOURS_PER_LESSON = 2;
 
-/* Статусы — под РЕАЛЬНУЮ структуру attendance */
-const STATUS_MAP = {
-    "present": { cls:"g", label:"Присутствовал" },
-    "absent":  { cls:"r", label:"Отсутствовал" }
-};
-
-/* Типы отсутствия */
-const ABSENT_TYPE_MAP = {
-    "uv":     { cls:"u", label:"Уважительная" },
-    "bolezn": { cls:"b", label:"Болезнь" },
-    "neuv":   { cls:"r", label:"Неуважительная" }
-};
-
 /* =========================================================
    STATE
 ========================================================= */
@@ -773,8 +1135,22 @@ let auth = null;
 let currentUser = null;
 let currentProfile = null;
 let students = [];
-let attendanceCache = {};   // studentId → { recordsByDate: { "YYYY-MM-DD": { "1": {status, absentType, reason} } } }
+
+/* attendanceCache[studentId] = {
+     recordsByDate: { "YYYY-MM-DD": { "1": {status, absentType, reason}, ... } }
+   } */
+let attendanceCache = {};
 let groupSettingsCache = {};
+
+/* Текущий просмотр */
+let weekStart = null;         // Date (понедельник)
+let expandedStudents = new Set();
+let currentFilter = "all";    // общий для обеих вкладок
+
+/* История */
+let historyPeriod = "month";
+let historyFrom = null;
+let historyTo = null;
 
 /* =========================================================
    HELPERS
@@ -812,17 +1188,6 @@ function getStudentName(s){
     return s?.fullName || s?.name || s?.fio || "Без имени";
 }
 
-function statusInfo(record){
-    if (!record) return null;
-    const status = String(record.status || "").toLowerCase();
-    if (status === "present") return STATUS_MAP.present;
-    if (status === "absent"){
-        const at = String(record.absentType || "").toLowerCase();
-        return ABSENT_TYPE_MAP[at] || STATUS_MAP.absent;
-    }
-    return null;
-}
-
 function todayStr(){
     return new Date().toLocaleDateString("ru-RU",{day:"2-digit",month:"long",year:"numeric"});
 }
@@ -848,6 +1213,90 @@ function toast(text, type = "success"){
         el.classList.remove("show");
         setTimeout(() => el.remove(), 300);
     }, 2600);
+}
+
+function formatDate(date){
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
+}
+
+function normalizeDate(value){
+    if (!value) return "";
+    if (typeof value === "object" && typeof value.toDate === "function"){
+        return formatDate(value.toDate());
+    }
+    if (value instanceof Date) return formatDate(value);
+    const s = String(value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+    return "";
+}
+
+function formatDateRu(s){
+    const n = normalizeDate(s);
+    if (!n) return "—";
+    const d = new Date(n + "T00:00:00");
+    return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function formatDateHuman(s){
+    const n = normalizeDate(s);
+    if (!n) return "—";
+    const d = new Date(n + "T00:00:00");
+    return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "long", year: "numeric" });
+}
+
+function getDayName(s){
+    const n = normalizeDate(s);
+    if (!n) return "";
+    const d = new Date(n + "T00:00:00");
+    const jsDay = d.getDay();
+    if (jsDay === 0) return "Воскресенье";
+    return DAYS[jsDay - 1];
+}
+
+function getMonday(date){
+    const r = new Date(date);
+    r.setHours(0,0,0,0);
+    let d = r.getDay();
+    if (d === 0) d = 7;
+    r.setDate(r.getDate() - d + 1);
+    return r;
+}
+
+function addDays(date, n){
+    const r = new Date(date);
+    r.setDate(r.getDate() + n);
+    return r;
+}
+
+/* =========================================================
+   STATUS PARSER
+========================================================= */
+function getMarkInfo(rec){
+    if (!rec) return null;
+    const status = String(rec.status || "").toLowerCase();
+    if (status === "present") return { cls:"present", label:"Присутствовал", icon:"✓" };
+    if (status === "absent"){
+        const at = String(rec.absentType || "").toLowerCase();
+        if (at === "uv") return { cls:"uv", label:"Уважительная", icon:"Н/У" };
+        if (at === "bolezn") return { cls:"bolezn", label:"Болезнь", icon:"Н/Б" };
+        return { cls:"absent", label:"Отсутствовал", icon:"Н" };
+    }
+    return null;
+}
+
+function isAbsent(rec){
+    return rec && String(rec.status || "").toLowerCase() === "absent";
+}
+
+function isExcused(rec){
+    if (!isAbsent(rec)) return false;
+    const at = String(rec.absentType || "").toLowerCase();
+    return at === "uv" || at === "bolezn";
 }
 
 /* =========================================================
@@ -897,19 +1346,14 @@ function logout(){
         window.location.href = "login.html";
     });
 }
-function refreshData(){
-    loadAll(true);
-    toast("Обновляем данные…", "info");
-}
 
 /* =========================================================
    LOAD DATA
 ========================================================= */
-async function loadAll(isRefresh = false){
+async function loadAll(){
     try {
         if (!currentUser) return;
 
-        // 1) связи родителя
         const linksSnap = await db.collection("links")
             .where("parentId", "==", currentUser.uid)
             .get();
@@ -922,12 +1366,11 @@ async function loadAll(isRefresh = false){
         if (!studentIds.length){
             students = [];
             renderWelcome();
-            renderEmptyState();
+            renderEmptyAll();
             $("loadingScreen").classList.add("hide");
             return;
         }
 
-        // 2) студенты
         const studentDocs = await Promise.all(
             studentIds.map(id => db.collection("students").doc(id).get())
         );
@@ -935,7 +1378,7 @@ async function loadAll(isRefresh = false){
             .filter(d => d.exists)
             .map(d => ({ id: d.id, ...d.data() }));
 
-        // 3) настройки групп
+        // Настройки групп (расписание + дисциплины)
         const groupIds = [...new Set(students.map(s => s.groupId).filter(Boolean))];
         await Promise.all(groupIds.map(async gid => {
             try {
@@ -944,58 +1387,35 @@ async function loadAll(isRefresh = false){
             } catch { groupSettingsCache[gid] = null; }
         }));
 
-        // 4) посещаемость — под РЕАЛЬНУЮ структуру
+        // Посещаемость — под реальную структуру
         await Promise.all(students.map(s => loadStudentAttendance(s)));
 
         renderAll();
-
-        if (isRefresh) toast("Данные обновлены", "success");
+        $("loadingScreen").classList.add("hide");
     } catch (e){
         console.error(e);
         toast("Ошибка загрузки: " + (e.message || e), "error");
-    } finally {
         $("loadingScreen").classList.add("hide");
     }
 }
 
 /* =========================================================
    ATTENDANCE LOADER
-   ────────────────────────────────────────────────────────
-   РЕАЛЬНАЯ структура:
-     attendance/{YYYY-MM-DD}
-       ├─ date: "YYYY-MM-DD"
-       ├─ groupId: "..."
-       ├─ students: {
-       │     "STUDENT_ID": {
-       │        studentId, studentName,
-       │        lessons: {
-       │           "1": { status: "present"/"absent", absentType, reason },
-       │           "2": { ... }
-       │        }
-       │     }
-       │   }
-   ────────────────────────────────────────────────────────
+   attendance/{YYYY-MM-DD}.students[studentId].lessons
 ========================================================= */
 async function loadStudentAttendance(student){
     const cache = { recordsByDate: {} };
 
     try {
         const sid = String(student.id);
-
-        // Один запрос — все документы attendance, где есть наш студент.
-        // Firestore не умеет искать по вложенным ключам, поэтому грузим всё.
-        // Если записей станет много — можно ограничить по датам semester1/semester2.
         const snap = await db.collection("attendance").get();
 
         snap.forEach(attDoc => {
             const data = attDoc.data() || {};
             const docId = attDoc.id;
-
-            // Дата: сначала поле date, потом id документа
             const date = normalizeDate(data.date) || normalizeDate(docId);
             if (!date) return;
 
-            // Структура students: { studentId: { lessons: {...} } }
             const studentsMap = data.students;
             if (!studentsMap || typeof studentsMap !== "object") return;
 
@@ -1005,7 +1425,6 @@ async function loadStudentAttendance(student){
             const lessons = rec.lessons;
             if (!lessons || typeof lessons !== "object") return;
 
-            // Копируем только валидные отметки
             const dayRecord = {};
             Object.entries(lessons).forEach(([lessonNum, ld]) => {
                 if (!ld) return;
@@ -1032,162 +1451,416 @@ async function loadStudentAttendance(student){
     attendanceCache[student.id] = cache;
 }
 
-function normalizeDate(value){
-    if (!value) return "";
-    if (typeof value === "object" && typeof value.toDate === "function"){
-        return formatDate(value.toDate());
-    }
-    if (value instanceof Date) return formatDate(value);
-    const s = String(value).trim();
-    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-    const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
-    if (m) return `${m[3]}-${m[2]}-${m[1]}`;
-    return "";
-}
-
-function formatDate(date){
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-}
-
 /* =========================================================
-   RENDER
+   RENDER: WELCOME + EMPTY
 ========================================================= */
-function renderAll(){
-    renderWelcome();
-    renderStudents();
-}
-
 function renderWelcome(){
     const name = (currentProfile?.name || currentProfile?.fullName || "").trim();
     const firstName = name.split(/\s+/)[0] || "родитель";
     $("welcomeName").textContent = firstName;
     $("userName").textContent = name || "Родитель";
     $("userAvatar").textContent = getInitials(name || "?");
-    $("metaDate").textContent = todayStr();
-    $("metaCount").textContent = students.length;
-
-    let total = 0, present = 0;
-    students.forEach(s => {
-        const stats = computeStudentStats(s);
-        total += stats.total;
-        present += stats.present;
-    });
-    const rate = total ? Math.round(present / total * 100) : 0;
-    $("metaRate").textContent = total ? rate + "%" : "—";
-
-    $("sectionSub").textContent = students.length
-        ? `Показаны данные по ${students.length} ${plural(students.length,"студенту","студентам","студентам")}`
-        : "Загрузка данных…";
 }
 
-function renderEmptyState(){
-    const container = $("studentsContainer");
-    container.innerHTML = `
+function renderEmptyAll(){
+    const emptyHtml = `
         <div class="empty-state">
             <div class="empty-state-icon">🔗</div>
             <h3>Пока нет привязанных студентов</h3>
-            <p>
-                Обратитесь к администратору, чтобы он привязал вашего ребёнка
-                к вашему аккаунту. После этого здесь появится посещаемость.
-            </p>
+            <p>Обратитесь к администратору, чтобы он привязал вашего ребёнка
+               к вашему аккаунту. После этого здесь появится посещаемость.</p>
         </div>`;
-    $("metaCount").textContent = "0";
-    $("metaRate").textContent = "—";
-    $("sectionSub").textContent = "Студенты не найдены";
+    $("currentList").innerHTML = emptyHtml;
+    $("historyList").innerHTML = emptyHtml;
 }
 
-function renderStudents(){
-    const container = $("studentsContainer");
+/* =========================================================
+   RENDER: ALL
+========================================================= */
+function renderAll(){
+    renderWelcome();
+    updateWeekTitle();
+    renderCurrentWeek();
+    updateHistoryCustomInputs();
+    renderHistory();
+}
+
+/* =========================================================
+   CURRENT WEEK: week navigation
+========================================================= */
+function updateWeekTitle(){
+    const end = addDays(weekStart, 5); // суббота
+    const today = new Date();
+
+    const isCurrent = formatDate(weekStart) === formatDate(getMonday(today));
+
+    $("weekTitle").textContent =
+        `${formatDateRu(formatDate(weekStart))} — ${formatDateRu(formatDate(end))}`;
+    $("weekSubtitle").textContent = isCurrent
+        ? "Текущая неделя"
+        : "Прошлая неделя";
+}
+
+function shiftWeek(delta){
+    weekStart = addDays(weekStart, delta * 7);
+    updateWeekTitle();
+    renderCurrentWeek();
+}
+
+function goToCurrentWeek(){
+    weekStart = getMonday(new Date());
+    updateWeekTitle();
+    renderCurrentWeek();
+}
+
+/* =========================================================
+   RENDER: CURRENT WEEK
+========================================================= */
+function renderCurrentWeek(){
+    const container = $("currentList");
     if (!students.length){
-        renderEmptyState();
+        renderEmptyAll();
         return;
     }
-    container.innerHTML = students.map((s, i) => renderStudentCard(s, i)).join("");
+
+    // даты недели
+    const weekDates = [];
+    for (let i = 0; i < 6; i++){
+        weekDates.push(formatDate(addDays(weekStart, i)));
+    }
+
+    // общая статистика
+    let totalMarks = 0, totalPresent = 0, totalAbsent = 0, totalExcused = 0;
+
+    const cards = students.map(student => {
+        const stats = statsForStudentInDates(student, weekDates);
+        totalMarks += stats.total;
+        totalPresent += stats.present;
+        totalAbsent += stats.absent;
+        totalExcused += stats.excused;
+        return renderStudentCard(student, weekDates, "current");
+    });
+
+    container.innerHTML = cards.join("");
+
+    // статистика недели
+    const rate = totalMarks ? Math.round(totalPresent / totalMarks * 100) : 0;
+    $("statRate").textContent = totalMarks ? rate + "%" : "—";
+    $("statTotal").textContent = totalMarks;
+    $("statAbsent").textContent = totalAbsent;
+    $("statExcused").textContent = totalExcused;
 }
 
-function renderStudentCard(student, index){
+/* =========================================================
+   RENDER: HISTORY
+========================================================= */
+function getHistoryRange(){
+    const today = new Date();
+    const y = today.getFullYear();
+    const m = today.getMonth();
+
+    if (historyPeriod === "month"){
+        const from = new Date(y, m, 1);
+        const to = new Date(y, m + 1, 0);
+        return [formatDate(from), formatDate(to)];
+    }
+    if (historyPeriod === "quarter"){
+        const from = new Date(y, m - 2, 1);
+        const to = new Date(y, m + 1, 0);
+        return [formatDate(from), formatDate(to)];
+    }
+    if (historyPeriod === "semester1"){
+        // Простая эвристика: сентябрь–декабрь текущего учебного года
+        const from = new Date(y, 8, 1);   // сентябрь
+        const to = new Date(y, 11, 31);   // декабрь
+        return [formatDate(from), formatDate(to)];
+    }
+    if (historyPeriod === "semester2"){
+        // Февраль–июнь
+        const from = new Date(y, 1, 1);
+        const to = new Date(y, 5, 30);
+        return [formatDate(from), formatDate(to)];
+    }
+    // custom
+    return [historyFrom, historyTo];
+}
+
+function renderHistory(){
+    const container = $("historyList");
+    if (!students.length){
+        renderEmptyAll();
+        return;
+    }
+
+    const [from, to] = getHistoryRange();
+    if (!from || !to){
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <h3>Выберите период</h3>
+                <p>Укажите даты «С» и «По», чтобы посмотреть историю.</p>
+            </div>`;
+        resetHistoryStats();
+        return;
+    }
+
+    const allDates = datesBetween(from, to);
+    if (!allDates.length){
+        container.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-state-icon">📅</div>
+                <h3>Неверный период</h3>
+                <p>Дата начала больше даты окончания.</p>
+            </div>`;
+        resetHistoryStats();
+        return;
+    }
+
+    let totalMarks = 0, totalPresent = 0, totalAbsent = 0, totalExcused = 0;
+
+    const cards = students.map(student => {
+        const stats = statsForStudentInDates(student, allDates);
+        totalMarks += stats.total;
+        totalPresent += stats.present;
+        totalAbsent += stats.absent;
+        totalExcused += stats.excused;
+        return renderStudentCard(student, allDates, "history");
+    });
+
+    container.innerHTML = cards.join("");
+
+    const rate = totalMarks ? Math.round(totalPresent / totalMarks * 100) : 0;
+    $("hStatRate").textContent = totalMarks ? rate + "%" : "—";
+    $("hStatTotal").textContent = totalMarks;
+    $("hStatAbsent").textContent = totalAbsent;
+    $("hStatExcused").textContent = totalExcused;
+}
+
+function resetHistoryStats(){
+    $("hStatRate").textContent = "—";
+    $("hStatTotal").textContent = "0";
+    $("hStatAbsent").textContent = "0";
+    $("hStatExcused").textContent = "0";
+}
+
+/* =========================================================
+   UTILS: dates between
+========================================================= */
+function datesBetween(fromStr, toStr){
+    const from = normalizeDate(fromStr);
+    const to = normalizeDate(toStr);
+    if (!from || !to) return [];
+    const f = new Date(from + "T00:00:00");
+    const t = new Date(to + "T00:00:00");
+    if (f > t) return [];
+
+    const result = [];
+    const cur = new Date(f);
+    while (cur <= t){
+        result.push(formatDate(cur));
+        cur.setDate(cur.getDate() + 1);
+    }
+    return result;
+}
+
+/* =========================================================
+   STATS: студент на указанных датах
+========================================================= */
+function statsForStudentInDates(student, dates){
+    const records = attendanceCache[student.id]?.recordsByDate || {};
+    let total = 0, present = 0, absent = 0, excused = 0, neuv = 0;
+
+    dates.forEach(d => {
+        const dayRec = records[d];
+        if (!dayRec) return;
+        Object.values(dayRec).forEach(rec => {
+            if (!rec) return;
+            total++;
+            if (rec.status === "present") present++;
+            else if (rec.status === "absent"){
+                absent++;
+                if (isExcused(rec)) excused++;
+                else neuv++;
+            }
+        });
+    });
+
+    return { total, present, absent, excused, neuv };
+}
+
+/* =========================================================
+   RENDER: STUDENT CARD
+   – шапка кликабельна, разворачивается список отметок
+========================================================= */
+function renderStudentCard(student, dates, viewType){
     const name = getStudentName(student);
     const group = student.group || student.groupName || student.groupId || "—";
-    const stats = computeStudentStats(student);
-    const schedule = getSchedule(student);
-    const disciplines = getDisciplines(student);
-    const records = attendanceCache[student.id]?.recordsByDate || {};
+    const stats = statsForStudentInDates(student, dates);
+    const rate = stats.total ? Math.round(stats.present / stats.total * 100) : 0;
+    const rateCls = rate >= 85 ? "good" : rate >= 60 ? "warn" : "bad";
 
-    const matrix = buildAttendanceMatrix(records, schedule);
-    const attHtml = renderAttendanceTable(matrix, schedule, disciplines, stats);
+    const isExpanded = expandedStudents.has(student.id);
+
+    const attBody = isExpanded
+        ? renderAttendanceList(student, dates, viewType)
+        : "";
 
     return `
-        <div class="student-card">
-            <div class="student-head">
+        <div class="student-card ${isExpanded ? "expanded" : ""}" data-student-card="${esc(student.id)}">
+            <div class="student-head" data-toggle-student="${esc(student.id)}">
                 <div class="student-avatar" style="${avatarGradient(name)}">
                     ${esc(getInitials(name))}
                 </div>
                 <div class="student-info">
                     <div class="student-name">${esc(name)}</div>
                     <div class="student-meta">
-                        ${group && group !== "—" ? `<span class="meta-badge">📚 Группа ${esc(group)}</span>` : ""}
-                        <span>Отмечено пар: <b>${stats.total}</b></span>
+                        ${group && group !== "—" ? `<span class="meta-badge">📚 ${esc(group)}</span>` : ""}
+                        <span>${stats.total} ${plural(stats.total,"пара","пары","пар")} отмечено</span>
+                        ${stats.absent ? `<span style="color:var(--red-text);font-weight:700">${stats.absent} пропуск${stats.absent === 1 ? "" : stats.absent < 5 ? "а" : "ов"}</span>` : ""}
                     </div>
                 </div>
-                <div class="student-stats">
-                    <span class="mini-stat good">✅ ${stats.present}</span>
-                    ${stats.uv ? `<span class="mini-stat info">🤒/У ${stats.uv}</span>` : ""}
-                    ${stats.bolezn ? `<span class="mini-stat info">🤒 ${stats.bolezn}</span>` : ""}
-                    ${stats.neuv ? `<span class="mini-stat bad">❌ ${stats.neuv}</span>` : ""}
+                <div class="student-rate">
+                    <div class="rate-value ${stats.total ? rateCls : ""}">
+                        ${stats.total ? rate + "%" : "—"}
+                    </div>
+                    <div class="rate-label">посещ.</div>
                 </div>
+                <svg class="student-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m6 9 6 6 6-6"/>
+                </svg>
             </div>
-            <div class="att-wrap">
-                ${attHtml}
-            </div>
+            ${isExpanded ? `<div class="att-body">${attBody}</div>` : ""}
         </div>`;
 }
 
 /* =========================================================
-   STATS
+   RENDER: ATTENDANCE LIST (по дням)
+   Фильтр по currentFilter:
+     all | absent | uv | bolezn
 ========================================================= */
-function computeStudentStats(student){
+function renderAttendanceList(student, dates, viewType){
     const records = attendanceCache[student.id]?.recordsByDate || {};
-    let total = 0, present = 0, uv = 0, bolezn = 0, neuv = 0, absent = 0;
+    const disciplines = getDisciplines(student);
 
-    Object.values(records).forEach(dayObj => {
-        if (!dayObj || typeof dayObj !== "object") return;
-        Object.values(dayObj).forEach(rec => {
-            const info = statusInfo(rec);
-            if (!info) return;
-            total++;
-            if (info.cls === "g") present++;
-            else if (info.cls === "u") uv++;
-            else if (info.cls === "b") bolezn++;
-            else if (info.cls === "r") { neuv++; absent++; }
-        });
+    // Группируем даты по дням с отметками
+    const daysWithMarks = [];
+
+    dates.forEach(date => {
+        const dayRec = records[date];
+        if (!dayRec) return;
+
+        const lessons = Object.entries(dayRec)
+            .map(([num, rec]) => ({ num: String(num), rec }))
+            .sort((a, b) => Number(a.num) - Number(b.num));
+
+        // фильтр
+        let filteredLessons = lessons;
+        if (currentFilter === "absent"){
+            filteredLessons = lessons.filter(l => isAbsent(l.rec));
+        } else if (currentFilter === "uv"){
+            filteredLessons = lessons.filter(l => {
+                return isAbsent(l.rec) && String(l.rec.absentType || "").toLowerCase() === "uv";
+            });
+        } else if (currentFilter === "bolezn"){
+            filteredLessons = lessons.filter(l => {
+                return isAbsent(l.rec) && String(l.rec.absentType || "").toLowerCase() === "bolezn";
+            });
+        }
+
+        if (filteredLessons.length){
+            daysWithMarks.push({ date, lessons: filteredLessons });
+        }
     });
 
-    return { total, present, uv, bolezn, neuv, absent };
+    if (!daysWithMarks.length){
+        const emptyMsg = currentFilter === "all"
+            ? "Отметок за этот период нет"
+            : currentFilter === "absent"
+                ? "Пропусков за этот период нет"
+                : currentFilter === "uv"
+                    ? "Уважительных пропусков нет"
+                    : "Пропусков по болезни нет";
+        return `
+            <div class="att-empty">
+                <div class="att-empty-icon">📭</div>
+                <div class="att-empty-title">${emptyMsg}</div>
+            </div>`;
+    }
+
+    // Сортируем даты: свежие сверху
+    daysWithMarks.sort((a, b) => b.date.localeCompare(a.date));
+
+    return daysWithMarks.map(({ date, lessons }) => {
+        const absences = lessons.filter(l => isAbsent(l.rec)).length;
+        const badgeCls = absences > 0 ? "has-absences" : "";
+        const badgeText = absences > 0
+            ? `${absences} пропуск${absences === 1 ? "" : absences < 5 ? "а" : "ов"}`
+            : `${lessons.length} ✓`;
+
+        const dayName = getDayName(date);
+        const dayIdx = DAYS.indexOf(dayName);
+        const lessonsCount = dayIdx >= 0 ? getScheduleForDay(student, dayName) : 0;
+
+        // Формируем строки: для каждой пары либо отметка, либо заглушка
+        const rows = [];
+        const lessonsMap = new Map();
+        lessons.forEach(l => lessonsMap.set(l.num, l.rec));
+
+        const maxLesson = Math.max(lessonsCount || 0, ...lessons.map(l => Number(l.num)), 0);
+        for (let i = 1; i <= maxLesson; i++){
+            const rec = lessonsMap.get(String(i));
+            if (!rec){
+                // если фильтр не all, пустые не показываем
+                if (currentFilter !== "all") continue;
+                continue; // пропускаем "пустые" отметки, показываем только с отметкой
+            }
+            rows.push({ lesson: i, rec });
+        }
+
+        return `
+            <div class="day-group">
+                <div class="day-group-head">
+                    <span class="day-group-date">${esc(formatDateRu(date))}</span>
+                    <span class="day-group-dayname">${esc(dayName)}</span>
+                    <span class="day-group-badge ${badgeCls}">${esc(badgeText)}</span>
+                </div>
+                ${rows.map(({ lesson, rec }) => {
+                    const info = getMarkInfo(rec);
+                    if (!info) return "";
+                    const subject = getDisciplineForLesson(student, dayName, lesson);
+                    const reason = (rec.reason || "").trim();
+                    const hasReason = reason && isAbsent(rec);
+
+                    return `
+                        <div class="lesson-row">
+                            <span class="lesson-num-badge">${lesson} пара</span>
+                            <span class="lesson-subject ${subject ? "" : "empty"}">
+                                ${subject ? esc(subject) : "—"}
+                            </span>
+                            <span class="mark-badge ${info.cls}">
+                                ${esc(info.icon)}
+                            </span>
+                            ${hasReason ? `<div class="lesson-reason">💬 ${esc(reason)}</div>` : ""}
+                        </div>`;
+                }).join("")}
+            </div>`;
+    }).join("");
 }
 
 /* =========================================================
    SCHEDULE / DISCIPLINES
 ========================================================= */
-function getSchedule(student){
+function getScheduleForDay(student, dayName){
     const settings = groupSettingsCache[student.groupId];
     const schedule = settings?.schedule || {};
-    const result = {};
-    DAYS.forEach(d => {
-        const v = schedule[d];
-        let n = 0;
-        if (Array.isArray(v)) n = v.length;
-        else if (v && typeof v === "object"){
-            if (Array.isArray(v.lessons)) n = v.lessons.length;
-            else if (v.count !== undefined) n = Number(v.count) || 0;
-        } else {
-            n = Number(v) || 0;
-        }
-        result[d] = Math.max(0, Math.min(7, n));
-    });
-    return result;
+    const v = schedule[dayName];
+    if (v === undefined || v === null) return 0;
+    if (Array.isArray(v)) return v.length;
+    if (typeof v === "object"){
+        if (Array.isArray(v.lessons)) return v.lessons.length;
+        if (v.count !== undefined) return Number(v.count) || 0;
+    }
+    return Number(v) || 0;
 }
 
 function getDisciplines(student){
@@ -1195,170 +1868,131 @@ function getDisciplines(student){
     return settings?.disciplines || {};
 }
 
-/* =========================================================
-   MATRIX
-   День недели → номер пары → { date, status, absentType, reason }
-   Берём последнюю дату для каждого дня недели.
-========================================================= */
-function buildAttendanceMatrix(recordsByDate, schedule){
-    const matrix = {};
-    DAYS.forEach(d => { matrix[d] = {}; });
-
-    const dates = Object.keys(recordsByDate).sort().reverse();
-
-    for (const date of dates){
-        const dow = getDayOfWeek(date);
-        if (!dow) continue;
-        const dayMarks = recordsByDate[date];
-        if (!dayMarks || typeof dayMarks !== "object") continue;
-
-        Object.entries(dayMarks).forEach(([lessonNum, rec]) => {
-            const n = Number(lessonNum);
-            if (!n) return;
-            if (matrix[dow][n] === undefined){
-                matrix[dow][n] = {
-                    date,
-                    status: rec.status,
-                    absentType: rec.absentType,
-                    reason: rec.reason
-                };
-            }
-        });
-    }
-
-    return matrix;
-}
-
-function getDayOfWeek(dateStr){
-    const m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
-    if (!m) return null;
-    const d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
-    const jsDay = d.getDay();
-    if (jsDay === 0) return "Воскресенье";
-    return DAYS[jsDay - 1];
-}
-
-/* =========================================================
-   RENDER TABLE
-========================================================= */
-function renderAttendanceTable(matrix, schedule, disciplines, stats){
-    const activeDays = DAYS.filter(d => schedule[d] > 0);
-
-    if (!activeDays.length){
-        return `
-            <div class="att-empty">
-                <div class="att-empty-icon">🗓️</div>
-                <div class="att-empty-title">Расписание не настроено</div>
-                <div>Обратитесь к куратору или администратору.</div>
-            </div>`;
-    }
-
-    const hasAnyMarks = Object.values(matrix).some(day => Object.keys(day).length > 0);
-    if (!hasAnyMarks){
-        return `
-            <div class="att-empty">
-                <div class="att-empty-icon">📭</div>
-                <div class="att-empty-title">Посещаемость пока не отмечена</div>
-                <div>Данные появятся после того, как куратор начнёт отмечать пары.</div>
-            </div>`;
-    }
-
-    const maxLessons = Math.max(...activeDays.map(d => schedule[d]), 0);
-
-    let html = `
-        <div class="att-hint">
-            <span>📅 Последние отметки по дням недели</span>
-            <div class="att-legend">
-                <span class="legend-item"><span class="legend-dot g">✓</span> присут.</span>
-                <span class="legend-item"><span class="legend-dot u">Н/У</span> уваж.</span>
-                <span class="legend-item"><span class="legend-dot b">Н/Б</span> болезнь</span>
-                <span class="legend-item"><span class="legend-dot r">Н</span> пропуск</span>
-            </div>
-        </div>
-        <table class="att-table">
-            <thead>
-                <tr>
-                    <th>День недели</th>`;
-
-    for (let i = 1; i <= maxLessons; i++){
-        const sampleDiscipline = getDisciplineForLesson(activeDays, disciplines, i);
-        html += `<th>
-            <span class="lesson-num">${i} пара</span>
-            ${sampleDiscipline ? `<span class="lesson-name">${esc(sampleDiscipline)}</span>` : ""}
-        </th>`;
-    }
-
-    html += `</tr></thead><tbody>`;
-
-    activeDays.forEach(day => {
-        const dayScheduleCount = schedule[day];
-        html += `<tr><td>${esc(day)}</td>`;
-        for (let i = 1; i <= maxLessons; i++){
-            if (i > dayScheduleCount){
-                html += `<td><span class="cell empty">·</span></td>`;
-                continue;
-            }
-            const cell = matrix[day]?.[i];
-            if (!cell || !cell.status){
-                html += `<td><span class="cell empty">—</span></td>`;
-                continue;
-            }
-            const info = statusInfo(cell);
-            const mark = getMarkLabel(cell);
-            const tooltip = getTooltip(cell);
-            html += `<td title="${esc(tooltip)}">
-                <span class="cell ${info.cls}">${esc(mark)}</span>
-            </td>`;
-        }
-        html += `</tr>`;
-    });
-
-    html += `</tbody></table>`;
-    return html;
-}
-
-function getMarkLabel(cell){
-    if (cell.status === "present") return "✓";
-    if (cell.status === "absent"){
-        const at = String(cell.absentType || "").toLowerCase();
-        if (at === "uv") return "Н/У";
-        if (at === "bolezn") return "Н/Б";
-        return "Н";
-    }
-    return "—";
-}
-
-function getTooltip(cell){
-    const date = formatDateRu(cell.date);
-    const info = statusInfo(cell);
-    let text = `${info.label} · ${date}`;
-    if (cell.reason) text += ` · ${cell.reason}`;
-    return text;
-}
-
-function formatDateRu(s){
-    const n = normalizeDate(s);
-    if (!n) return "—";
-    const d = new Date(n + "T00:00:00");
-    return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
-}
-
-function getDisciplineForLesson(activeDays, disciplines, lessonNum){
-    for (const day of activeDays){
-        const arr = disciplines[day];
-        if (Array.isArray(arr) && arr[lessonNum - 1]){
-            return arr[lessonNum - 1];
-        }
+function getDisciplineForLesson(student, dayName, lessonNum){
+    const disciplines = getDisciplines(student);
+    const arr = disciplines[dayName];
+    if (Array.isArray(arr) && arr[lessonNum - 1]){
+        return String(arr[lessonNum - 1]);
     }
     return "";
 }
+
+/* =========================================================
+   EVENT: toggle student
+========================================================= */
+document.addEventListener("click", e => {
+    const toggle = e.target.closest("[data-toggle-student]");
+    if (!toggle) return;
+    const id = toggle.dataset.toggleStudent;
+    if (!id) return;
+
+    if (expandedStudents.has(id)) expandedStudents.delete(id);
+    else expandedStudents.add(id);
+
+    // Перерисовываем обе вкладки (state общий)
+    renderCurrentWeek();
+    renderHistory();
+});
+
+/* =========================================================
+   VIEW TABS
+========================================================= */
+document.querySelectorAll(".view-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const view = btn.dataset.view;
+        document.querySelectorAll(".view-tab").forEach(b => {
+            b.classList.toggle("active", b === btn);
+            b.setAttribute("aria-selected", String(b === btn));
+        });
+        $("viewCurrent").style.display = view === "current" ? "block" : "none";
+        $("viewHistory").style.display = view === "history" ? "block" : "none";
+        if (view === "history") renderHistory();
+        else renderCurrentWeek();
+    });
+});
+
+/* =========================================================
+   FILTERS
+========================================================= */
+function bindFilterChips(container, onChange){
+    container.querySelectorAll(".filter-chip").forEach(chip => {
+        chip.addEventListener("click", () => {
+            container.querySelectorAll(".filter-chip").forEach(c => c.classList.remove("active"));
+            chip.classList.add("active");
+            onChange(chip.dataset.filter);
+        });
+    });
+}
+
+// Обе панели синхронизируем
+const filtersCurrentEl = $("filtersCurrent");
+const filtersHistoryEl = $("filtersHistory");
+
+function syncFilters(filter, sourceEl){
+    currentFilter = filter;
+    // сбрасываем обе панели
+    [filtersCurrentEl, filtersHistoryEl].forEach(el => {
+        el.querySelectorAll(".filter-chip").forEach(c => {
+            c.classList.toggle("active", c.dataset.filter === filter);
+        });
+    });
+    renderCurrentWeek();
+    renderHistory();
+}
+
+bindFilterChips(filtersCurrentEl, f => syncFilters(f, filtersCurrentEl));
+bindFilterChips(filtersHistoryEl, f => syncFilters(f, filtersHistoryEl));
+
+/* =========================================================
+   HISTORY PERIOD
+========================================================= */
+document.querySelectorAll(".history-period").forEach(btn => {
+    btn.addEventListener("click", () => {
+        document.querySelectorAll(".history-period").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        historyPeriod = btn.dataset.period;
+
+        if (historyPeriod === "custom"){
+            $("historyCustom").style.display = "grid";
+            // если пустые — ставим текущий месяц
+            if (!$("historyFrom").value) $("historyFrom").value = formatDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+            if (!$("historyTo").value) $("historyTo").value = formatDate(new Date());
+            historyFrom = $("historyFrom").value;
+            historyTo = $("historyTo").value;
+        } else {
+            $("historyCustom").style.display = "none";
+        }
+        renderHistory();
+    });
+});
+
+function updateHistoryCustomInputs(){
+    if (!$("historyFrom").value){
+        const d = new Date();
+        $("historyFrom").value = formatDate(new Date(d.getFullYear(), d.getMonth(), 1));
+    }
+    if (!$("historyTo").value){
+        $("historyTo").value = formatDate(new Date());
+    }
+    historyFrom = $("historyFrom").value;
+    historyTo = $("historyTo").value;
+}
+
+$("historyFrom").addEventListener("change", () => {
+    historyFrom = $("historyFrom").value;
+    renderHistory();
+});
+$("historyTo").addEventListener("change", () => {
+    historyTo = $("historyTo").value;
+    renderHistory();
+});
 
 /* =========================================================
    FIREBASE INIT
 ========================================================= */
 (function initFirebase(){
     if (!window.firebase){
-        console.error("Firebase SDK не загружен. Проверь подключение скриптов.");
+        console.error("Firebase SDK не загружен.");
         return;
     }
     if (!firebase.apps.length){
@@ -1398,6 +2032,8 @@ firebase.auth().onAuthStateChanged(async user => {
             return;
         }
 
+        weekStart = getMonday(new Date());
+
         const name = currentProfile.name || currentProfile.fullName || user.email || "Родитель";
         $("userName").textContent = name;
         $("userAvatar").textContent = getInitials(name);
@@ -1417,7 +2053,8 @@ window.toggleTheme = toggleTheme;
 window.toggleUserMenu = toggleUserMenu;
 window.goMessages = goMessages;
 window.logout = logout;
-window.refreshData = refreshData;
+window.shiftWeek = shiftWeek;
+window.goToCurrentWeek = goToCurrentWeek;
 </script>
 
 </body>

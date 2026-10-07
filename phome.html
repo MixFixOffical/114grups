@@ -341,6 +341,7 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
 .mini-stat.good{background:var(--green-light);color:var(--green-text)}
 .mini-stat.warn{background:var(--amber-light);color:var(--amber-text)}
 .mini-stat.bad{background:var(--red-light);color:var(--red-text)}
+.mini-stat.info{background:var(--cyan-light);color:var(--cyan-text)}
 
 /* =========================================================
    ATTENDANCE
@@ -373,7 +374,6 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
 .legend-dot.b{background:var(--cyan)}
 .legend-dot.u{background:var(--violet)}
 .legend-dot.r{background:var(--red)}
-.legend-dot.n{background:var(--muted-2)}
 
 .att-table{
     width:100%;min-width:640px;
@@ -750,19 +750,19 @@ html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
 ========================================================= */
 const DAYS = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота","Воскресенье"];
 const MAX_STUDENTS = 3;
+const HOURS_PER_LESSON = 2;
 
+/* Статусы — под РЕАЛЬНУЮ структуру attendance */
 const STATUS_MAP = {
-    "н":  { cls:"g", label:"Присутствовал" },
-    "нб": { cls:"g", label:"Присутствовал" },
-    "+":  { cls:"a", label:"Опоздал" },
-    "оп": { cls:"a", label:"Опоздал" },
-    "б":  { cls:"b", label:"Болел" },
-    "болезнь": { cls:"b", label:"Болел" },
-    "у":  { cls:"u", label:"Уважительная" },
-    "ув": { cls:"u", label:"Уважительная" },
-    "п":  { cls:"r", label:"Пропустил" },
-    "нп": { cls:"r", label:"Пропустил" },
-    "пр": { cls:"r", label:"Пропустил" }
+    "present": { cls:"g", label:"Присутствовал" },
+    "absent":  { cls:"r", label:"Отсутствовал" }
+};
+
+/* Типы отсутствия */
+const ABSENT_TYPE_MAP = {
+    "uv":     { cls:"u", label:"Уважительная" },
+    "bolezn": { cls:"b", label:"Болезнь" },
+    "neuv":   { cls:"r", label:"Неуважительная" }
 };
 
 /* =========================================================
@@ -773,7 +773,7 @@ let auth = null;
 let currentUser = null;
 let currentProfile = null;
 let students = [];
-let attendanceCache = {};
+let attendanceCache = {};   // studentId → { recordsByDate: { "YYYY-MM-DD": { "1": {status, absentType, reason} } } }
 let groupSettingsCache = {};
 
 /* =========================================================
@@ -812,15 +812,15 @@ function getStudentName(s){
     return s?.fullName || s?.name || s?.fio || "Без имени";
 }
 
-function normalizeStatus(v){
-    if (v === null || v === undefined) return "";
-    return String(v).trim().toLowerCase();
-}
-
-function statusInfo(v){
-    const key = normalizeStatus(v);
-    if (!key) return null;
-    return STATUS_MAP[key] || { cls:"g", label: v };
+function statusInfo(record){
+    if (!record) return null;
+    const status = String(record.status || "").toLowerCase();
+    if (status === "present") return STATUS_MAP.present;
+    if (status === "absent"){
+        const at = String(record.absentType || "").toLowerCase();
+        return ABSENT_TYPE_MAP[at] || STATUS_MAP.absent;
+    }
+    return null;
 }
 
 function todayStr(){
@@ -935,7 +935,7 @@ async function loadAll(isRefresh = false){
             .filter(d => d.exists)
             .map(d => ({ id: d.id, ...d.data() }));
 
-        // 3) настройки групп (расписание / дисциплины)
+        // 3) настройки групп
         const groupIds = [...new Set(students.map(s => s.groupId).filter(Boolean))];
         await Promise.all(groupIds.map(async gid => {
             try {
@@ -944,7 +944,7 @@ async function loadAll(isRefresh = false){
             } catch { groupSettingsCache[gid] = null; }
         }));
 
-        // 4) посещаемость
+        // 4) посещаемость — под РЕАЛЬНУЮ структуру
         await Promise.all(students.map(s => loadStudentAttendance(s)));
 
         renderAll();
@@ -959,54 +959,97 @@ async function loadAll(isRefresh = false){
 }
 
 /* =========================================================
-   ATTENDANCE LOADER (3 варианта структуры)
+   ATTENDANCE LOADER
+   ────────────────────────────────────────────────────────
+   РЕАЛЬНАЯ структура:
+     attendance/{YYYY-MM-DD}
+       ├─ date: "YYYY-MM-DD"
+       ├─ groupId: "..."
+       ├─ students: {
+       │     "STUDENT_ID": {
+       │        studentId, studentName,
+       │        lessons: {
+       │           "1": { status: "present"/"absent", absentType, reason },
+       │           "2": { ... }
+       │        }
+       │     }
+       │   }
+   ────────────────────────────────────────────────────────
 ========================================================= */
 async function loadStudentAttendance(student){
-    const cache = { days:{}, recordsByDate:{} };
+    const cache = { recordsByDate: {} };
 
     try {
-        const docRef = db.collection("attendance").doc(student.id);
-        const doc = await docRef.get();
-        if (doc.exists){
-            const data = doc.data() || {};
-            if (data.records && typeof data.records === "object"){
-                cache.recordsByDate = data.records;
-            }
-            if (data.days && typeof data.days === "object"){
-                cache.days = data.days;
-            }
-        }
+        const sid = String(student.id);
 
-        if (!Object.keys(cache.recordsByDate).length){
-            try {
-                const daysSnap = await db
-                    .collection("attendance")
-                    .doc(student.id)
-                    .collection("days")
-                    .get();
-                daysSnap.forEach(d => {
-                    cache.recordsByDate[d.id] = d.data();
-                });
-            } catch {}
-        }
+        // Один запрос — все документы attendance, где есть наш студент.
+        // Firestore не умеет искать по вложенным ключам, поэтому грузим всё.
+        // Если записей станет много — можно ограничить по датам semester1/semester2.
+        const snap = await db.collection("attendance").get();
 
-        if (!Object.keys(cache.recordsByDate).length){
-            try {
-                const flat = await db.collection("attendance")
-                    .where("studentId", "==", student.id)
-                    .get();
-                flat.forEach(d => {
-                    const data = d.data() || {};
-                    const date = data.date || d.id;
-                    if (date) cache.recordsByDate[date] = data.marks || data.records || data;
-                });
-            } catch {}
-        }
+        snap.forEach(attDoc => {
+            const data = attDoc.data() || {};
+            const docId = attDoc.id;
+
+            // Дата: сначала поле date, потом id документа
+            const date = normalizeDate(data.date) || normalizeDate(docId);
+            if (!date) return;
+
+            // Структура students: { studentId: { lessons: {...} } }
+            const studentsMap = data.students;
+            if (!studentsMap || typeof studentsMap !== "object") return;
+
+            const rec = studentsMap[sid];
+            if (!rec || typeof rec !== "object") return;
+
+            const lessons = rec.lessons;
+            if (!lessons || typeof lessons !== "object") return;
+
+            // Копируем только валидные отметки
+            const dayRecord = {};
+            Object.entries(lessons).forEach(([lessonNum, ld]) => {
+                if (!ld) return;
+                const status = String(ld.status || "").toLowerCase();
+                if (!status) return;
+
+                dayRecord[String(lessonNum)] = {
+                    status,
+                    absentType: String(ld.absentType || "").toLowerCase(),
+                    reason: String(ld.reason || ""),
+                    date,
+                    lesson: String(lessonNum)
+                };
+            });
+
+            if (Object.keys(dayRecord).length){
+                cache.recordsByDate[date] = dayRecord;
+            }
+        });
     } catch (e){
         console.warn("attendance load error for", student.id, e);
     }
 
     attendanceCache[student.id] = cache;
+}
+
+function normalizeDate(value){
+    if (!value) return "";
+    if (typeof value === "object" && typeof value.toDate === "function"){
+        return formatDate(value.toDate());
+    }
+    if (value instanceof Date) return formatDate(value);
+    const s = String(value).trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    const m = s.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
+    if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+    return "";
+}
+
+function formatDate(date){
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
 }
 
 /* =========================================================
@@ -1086,14 +1129,14 @@ function renderStudentCard(student, index){
                     <div class="student-name">${esc(name)}</div>
                     <div class="student-meta">
                         ${group && group !== "—" ? `<span class="meta-badge">📚 Группа ${esc(group)}</span>` : ""}
-                        <span>Всего пар: <b>${stats.total}</b></span>
+                        <span>Отмечено пар: <b>${stats.total}</b></span>
                     </div>
                 </div>
                 <div class="student-stats">
                     <span class="mini-stat good">✅ ${stats.present}</span>
-                    ${stats.late ? `<span class="mini-stat warn">⏰ ${stats.late}</span>` : ""}
-                    ${stats.sick ? `<span class="mini-stat" style="background:var(--cyan-light);color:var(--cyan-text)">🤒 ${stats.sick}</span>` : ""}
-                    ${stats.absent ? `<span class="mini-stat bad">❌ ${stats.absent}</span>` : ""}
+                    ${stats.uv ? `<span class="mini-stat info">🤒/У ${stats.uv}</span>` : ""}
+                    ${stats.bolezn ? `<span class="mini-stat info">🤒 ${stats.bolezn}</span>` : ""}
+                    ${stats.neuv ? `<span class="mini-stat bad">❌ ${stats.neuv}</span>` : ""}
                 </div>
             </div>
             <div class="att-wrap">
@@ -1107,23 +1150,22 @@ function renderStudentCard(student, index){
 ========================================================= */
 function computeStudentStats(student){
     const records = attendanceCache[student.id]?.recordsByDate || {};
-    let total = 0, present = 0, late = 0, sick = 0, excused = 0, absent = 0;
+    let total = 0, present = 0, uv = 0, bolezn = 0, neuv = 0, absent = 0;
 
     Object.values(records).forEach(dayObj => {
         if (!dayObj || typeof dayObj !== "object") return;
-        Object.values(dayObj).forEach(v => {
-            const info = statusInfo(v);
+        Object.values(dayObj).forEach(rec => {
+            const info = statusInfo(rec);
             if (!info) return;
             total++;
             if (info.cls === "g") present++;
-            else if (info.cls === "a") late++;
-            else if (info.cls === "b") sick++;
-            else if (info.cls === "u") excused++;
-            else if (info.cls === "r") absent++;
+            else if (info.cls === "u") uv++;
+            else if (info.cls === "b") bolezn++;
+            else if (info.cls === "r") { neuv++; absent++; }
         });
     });
 
-    return { total, present, late, sick, excused, absent };
+    return { total, present, uv, bolezn, neuv, absent };
 }
 
 /* =========================================================
@@ -1134,7 +1176,15 @@ function getSchedule(student){
     const schedule = settings?.schedule || {};
     const result = {};
     DAYS.forEach(d => {
-        const n = Number(schedule[d] || 0);
+        const v = schedule[d];
+        let n = 0;
+        if (Array.isArray(v)) n = v.length;
+        else if (v && typeof v === "object"){
+            if (Array.isArray(v.lessons)) n = v.lessons.length;
+            else if (v.count !== undefined) n = Number(v.count) || 0;
+        } else {
+            n = Number(v) || 0;
+        }
         result[d] = Math.max(0, Math.min(7, n));
     });
     return result;
@@ -1147,6 +1197,8 @@ function getDisciplines(student){
 
 /* =========================================================
    MATRIX
+   День недели → номер пары → { date, status, absentType, reason }
+   Берём последнюю дату для каждого дня недели.
 ========================================================= */
 function buildAttendanceMatrix(recordsByDate, schedule){
     const matrix = {};
@@ -1160,18 +1212,18 @@ function buildAttendanceMatrix(recordsByDate, schedule){
         const dayMarks = recordsByDate[date];
         if (!dayMarks || typeof dayMarks !== "object") continue;
 
-        const maxLesson = Math.max(
-            schedule[dow] || 0,
-            ...Object.keys(dayMarks).map(n => Number(n) || 0),
-            0
-        );
-        for (let i = 1; i <= maxLesson; i++){
-            const v = dayMarks[i] ?? dayMarks[String(i)];
-            if (v === undefined || v === null) continue;
-            if (matrix[dow][i] === undefined){
-                matrix[dow][i] = { date, status: v };
+        Object.entries(dayMarks).forEach(([lessonNum, rec]) => {
+            const n = Number(lessonNum);
+            if (!n) return;
+            if (matrix[dow][n] === undefined){
+                matrix[dow][n] = {
+                    date,
+                    status: rec.status,
+                    absentType: rec.absentType,
+                    reason: rec.reason
+                };
             }
-        }
+        });
     }
 
     return matrix;
@@ -1211,17 +1263,16 @@ function renderAttendanceTable(matrix, schedule, disciplines, stats){
             </div>`;
     }
 
-    const maxLessons = Math.max(...activeDays.map(d => schedule[d]));
+    const maxLessons = Math.max(...activeDays.map(d => schedule[d]), 0);
 
     let html = `
         <div class="att-hint">
             <span>📅 Последние отметки по дням недели</span>
             <div class="att-legend">
-                <span class="legend-item"><span class="legend-dot g">н</span> присут.</span>
-                <span class="legend-item"><span class="legend-dot a">+</span> опоздал</span>
-                <span class="legend-item"><span class="legend-dot b">б</span> болел</span>
-                <span class="legend-item"><span class="legend-dot u">у</span> уваж.</span>
-                <span class="legend-item"><span class="legend-dot r">п</span> пропуск</span>
+                <span class="legend-item"><span class="legend-dot g">✓</span> присут.</span>
+                <span class="legend-item"><span class="legend-dot u">Н/У</span> уваж.</span>
+                <span class="legend-item"><span class="legend-dot b">Н/Б</span> болезнь</span>
+                <span class="legend-item"><span class="legend-dot r">Н</span> пропуск</span>
             </div>
         </div>
         <table class="att-table">
@@ -1252,9 +1303,10 @@ function renderAttendanceTable(matrix, schedule, disciplines, stats){
                 html += `<td><span class="cell empty">—</span></td>`;
                 continue;
             }
-            const info = statusInfo(cell.status);
-            const mark = (cell.status + "").trim().slice(0, 2) || "?";
-            html += `<td title="${esc(info.label)} · ${esc(cell.date)}">
+            const info = statusInfo(cell);
+            const mark = getMarkLabel(cell);
+            const tooltip = getTooltip(cell);
+            html += `<td title="${esc(tooltip)}">
                 <span class="cell ${info.cls}">${esc(mark)}</span>
             </td>`;
         }
@@ -1263,6 +1315,32 @@ function renderAttendanceTable(matrix, schedule, disciplines, stats){
 
     html += `</tbody></table>`;
     return html;
+}
+
+function getMarkLabel(cell){
+    if (cell.status === "present") return "✓";
+    if (cell.status === "absent"){
+        const at = String(cell.absentType || "").toLowerCase();
+        if (at === "uv") return "Н/У";
+        if (at === "bolezn") return "Н/Б";
+        return "Н";
+    }
+    return "—";
+}
+
+function getTooltip(cell){
+    const date = formatDateRu(cell.date);
+    const info = statusInfo(cell);
+    let text = `${info.label} · ${date}`;
+    if (cell.reason) text += ` · ${cell.reason}`;
+    return text;
+}
+
+function formatDateRu(s){
+    const n = normalizeDate(s);
+    if (!n) return "—";
+    const d = new Date(n + "T00:00:00");
+    return d.toLocaleDateString("ru-RU", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
 function getDisciplineForLesson(activeDays, disciplines, lessonNum){
@@ -1276,17 +1354,13 @@ function getDisciplineForLesson(activeDays, disciplines, lessonNum){
 }
 
 /* =========================================================
-   FIREBASE INIT (ИСПРАВЛЕНО)
-   firebase-config.js УЖЕ вызывает initializeApp().
-   Здесь только получаем ссылки на сервисы.
+   FIREBASE INIT
 ========================================================= */
 (function initFirebase(){
     if (!window.firebase){
         console.error("Firebase SDK не загружен. Проверь подключение скриптов.");
         return;
     }
-    // Страховка: если firebase-config.js по какой-то причине
-    // не инициализировал приложение — инициализируем сами.
     if (!firebase.apps.length){
         firebase.initializeApp({
             apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",

@@ -1,1 +1,1347 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb">
+<meta name="description" content="Посещаемость студентов — родительский доступ">
+<title>Мои студенты — KURATOR</title>
 
+<style>
+/* =========================================================
+   BASE
+========================================================= */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+    --primary:#2563eb;
+    --primary-2:#4f46e5;
+    --primary-light:#eff6ff;
+    --primary-line:#bfdbfe;
+    --green:#16a34a;   --green-light:#dcfce7;  --green-text:#15803d;
+    --red:#dc2626;     --red-light:#fef2f2;    --red-text:#991b1b;
+    --amber:#d97706;   --amber-light:#fef3c7;  --amber-text:#a16207;
+    --cyan:#0891b2;    --cyan-light:#cffafe;   --cyan-text:#0e7490;
+    --violet:#7c3aed;  --violet-light:#f5f3ff; --violet-text:#6d28d9;
+    --muted-2:#94a3b8;
+    --text:#0f172a;
+    --text-2:#334155;
+    --muted:#64748b;
+    --line:#e5e7eb;
+    --line-2:#eef2f7;
+    --bg:#f5f7fb;
+    --card:#ffffff;
+    --card-2:#f8fafc;
+    --shadow-sm:0 1px 2px rgba(15,23,42,.05);
+    --shadow:0 8px 24px rgba(15,23,42,.06);
+    --shadow-lg:0 20px 50px rgba(15,23,42,.14);
+    --radius:12px;
+    --radius-lg:18px;
+    --radius-xl:24px;
+    --header-h:64px;
+    --safe-top:env(safe-area-inset-top,0px);
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+    --ease:cubic-bezier(.22,1,.36,1);
+}
+
+html[data-theme="dark"]{
+    --text:#e5e9f0;
+    --text-2:#cbd5e1;
+    --muted:#94a3b8;
+    --muted-2:#64748b;
+    --line:#1f2937;
+    --line-2:#1a2230;
+    --bg:#0b1220;
+    --card:#111827;
+    --card-2:#0f172a;
+    --primary-light:#1e3a8a33;
+    --primary-line:#3b82f6;
+    --green-light:#14532d55;
+    --red-light:#7f1d1d55;
+    --amber-light:#78350f55;
+    --cyan-light:#164e6355;
+    --violet-light:#4c1d9555;
+    --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+    --shadow:0 8px 24px rgba(0,0,0,.35);
+    --shadow-lg:0 20px 50px rgba(0,0,0,.55);
+}
+
+html,body{min-height:100%;width:100%}
+body{
+    font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:var(--text);
+    background:
+        radial-gradient(circle at 8% 0%,rgba(37,99,235,.07),transparent 42%),
+        radial-gradient(circle at 96% 12%,rgba(124,58,237,.05),transparent 40%),
+        linear-gradient(160deg,var(--bg) 0%,var(--bg) 100%);
+    background-attachment:fixed;
+    overflow-x:hidden;
+    transition:background .25s,color .25s;
+    -webkit-font-smoothing:antialiased;
+    -webkit-tap-highlight-color:transparent;
+}
+
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+button:disabled{opacity:.55;cursor:not-allowed}
+:focus-visible{outline:2px solid var(--primary);outline-offset:3px;border-radius:8px}
+
+/* =========================================================
+   ANIMATIONS
+========================================================= */
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes pop{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:none}}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.9);opacity:.6}}
+
+/* =========================================================
+   HEADER
+========================================================= */
+.header{
+    height:var(--header-h);
+    background:color-mix(in srgb, var(--card) 88%, transparent);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    border-bottom:1px solid var(--line);
+    position:sticky;top:0;z-index:50;
+    padding-top:var(--safe-top);
+}
+.header-inner{
+    max-width:1200px;height:100%;
+    margin:0 auto;padding:0 20px;
+    display:flex;align-items:center;gap:12px;
+}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;border-radius:10px;padding:4px;margin:-4px}
+.brand-logo{
+    width:40px;height:40px;flex:none;border-radius:12px;
+    background:linear-gradient(135deg,#2563eb,#60a5fa);
+    color:#fff;display:grid;place-items:center;
+    font-weight:800;font-size:16px;
+    box-shadow:0 6px 14px rgba(37,99,235,.28);
+}
+.brand-text{min-width:0}
+.brand-title{font-size:15px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand-sub{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.header-right{display:flex;align-items:center;gap:8px;margin-left:auto;flex:none}
+
+.role-badge{
+    padding:7px 11px;border-radius:11px;
+    background:var(--violet-light);
+    color:var(--violet);
+    font-size:11px;font-weight:800;
+    white-space:nowrap;
+    display:inline-flex;align-items:center;gap:5px;
+}
+
+.icon-btn{
+    width:38px;height:38px;border-radius:10px;
+    border:1px solid var(--line);background:var(--card);
+    color:var(--text-2);display:grid;place-items:center;
+    transition:.15s;font-size:16px;
+}
+.icon-btn:hover{border-color:var(--primary-line);background:var(--primary-light);color:var(--primary)}
+.icon-btn:active{transform:scale(.95)}
+
+.user-menu{position:relative}
+.user-btn{
+    display:flex;align-items:center;gap:8px;
+    padding:5px 9px 5px 5px;border:1px solid var(--line);
+    border-radius:12px;background:var(--card);
+    font-size:12px;font-weight:700;
+    transition:.2s;max-width:180px;
+}
+.user-btn:hover{box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.user-avatar{
+    width:28px;height:28px;flex:none;border-radius:9px;
+    display:grid;place-items:center;
+    background:var(--primary-light);color:var(--primary);
+    font-size:11px;font-weight:800;
+}
+.user-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-chevron{width:14px;color:var(--muted);transition:.25s;flex:none}
+.user-menu.open .user-chevron{transform:rotate(180deg)}
+.user-dropdown{
+    display:none;position:absolute;right:0;top:calc(100% + 8px);
+    width:210px;padding:6px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    box-shadow:var(--shadow-lg);
+    animation:pop .2s var(--ease);z-index:100;
+}
+.user-menu.open .user-dropdown{display:block}
+.user-dropdown button{
+    width:100%;text-align:left;padding:10px 11px;
+    border-radius:9px;font-size:12px;font-weight:700;
+    color:var(--text-2);
+    display:flex;align-items:center;gap:9px;
+}
+.user-dropdown button:hover{background:var(--card-2);color:var(--primary)}
+.user-dropdown button svg{width:15px;height:15px;flex:none}
+
+/* =========================================================
+   CONTAINER
+========================================================= */
+.container{
+    max-width:1200px;margin:0 auto;
+    padding:22px 20px calc(90px + var(--safe-bottom));
+}
+
+/* =========================================================
+   WELCOME
+========================================================= */
+.welcome{
+    padding:26px 28px;margin-bottom:22px;
+    border-radius:var(--radius-xl);
+    background:linear-gradient(135deg,#eff6ff 0%,#f5f3ff 100%);
+    border:1px solid var(--primary-line);
+    position:relative;overflow:hidden;
+    animation:rise .5s var(--ease) both;
+}
+html[data-theme="dark"] .welcome{
+    background:linear-gradient(135deg,#1e3a8a33 0%,#4c1d9533 100%);
+}
+.welcome::before{
+    content:"";position:absolute;right:-40px;top:-40px;
+    width:220px;height:220px;border-radius:50%;
+    background:radial-gradient(circle,rgba(37,99,235,.18),transparent 70%);
+    pointer-events:none;
+}
+.welcome::after{
+    content:"";position:absolute;left:-30px;bottom:-50px;
+    width:180px;height:180px;border-radius:50%;
+    background:radial-gradient(circle,rgba(124,58,237,.16),transparent 70%);
+    pointer-events:none;
+}
+.welcome-content{position:relative;z-index:1}
+.welcome-eyebrow{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:5px 11px;border-radius:999px;
+    background:rgba(255,255,255,.75);
+    color:var(--primary);
+    font-size:11px;font-weight:800;
+    letter-spacing:.05em;text-transform:uppercase;
+    margin-bottom:10px;
+}
+html[data-theme="dark"] .welcome-eyebrow{background:rgba(15,23,42,.5)}
+.welcome-title{
+    font-size:clamp(22px,3.2vw,30px);
+    font-weight:800;letter-spacing:-.7px;
+    line-height:1.15;
+    margin-bottom:6px;
+}
+.welcome-title .name{
+    background:linear-gradient(135deg,#2563eb,#7c3aed);
+    -webkit-background-clip:text;background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+.welcome-sub{
+    color:var(--text-2);
+    font-size:13.5px;line-height:1.55;
+    max-width:680px;
+}
+.welcome-meta{
+    display:flex;flex-wrap:wrap;gap:8px;
+    margin-top:14px;
+}
+.meta-pill{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:6px 12px;border-radius:999px;
+    background:var(--card);
+    border:1px solid var(--line);
+    font-size:11.5px;font-weight:700;
+    color:var(--text-2);
+}
+.meta-pill b{color:var(--text);font-weight:800}
+
+/* =========================================================
+   SECTION HEAD
+========================================================= */
+.section-head{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    gap:14px;margin-bottom:14px;flex-wrap:wrap;
+}
+.section-title{
+    font-size:19px;font-weight:800;letter-spacing:-.3px;
+    display:flex;align-items:center;gap:9px;
+}
+.section-title-icon{
+    width:34px;height:34px;border-radius:10px;
+    display:grid;place-items:center;
+    background:var(--primary-light);
+    color:var(--primary);
+    font-size:16px;flex:none;
+}
+.section-sub{
+    color:var(--muted);font-size:12.5px;margin-top:4px;margin-left:43px;
+}
+
+/* =========================================================
+   STUDENT CARD
+========================================================= */
+.students{display:flex;flex-direction:column;gap:18px}
+
+.student-card{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);
+    overflow:hidden;
+    animation:rise .5s var(--ease) both;
+    transition:.2s;
+}
+.student-card:hover{box-shadow:var(--shadow)}
+.student-card:nth-child(1){animation-delay:.05s}
+.student-card:nth-child(2){animation-delay:.1s}
+.student-card:nth-child(3){animation-delay:.15s}
+
+.student-head{
+    display:flex;align-items:center;gap:14px;
+    padding:18px 20px;
+    border-bottom:1px solid var(--line-2);
+    flex-wrap:wrap;
+}
+.student-avatar{
+    width:52px;height:52px;flex:none;
+    border-radius:15px;
+    display:grid;place-items:center;
+    color:#fff;font-weight:800;font-size:17px;
+    box-shadow:0 6px 14px rgba(15,23,42,.15);
+}
+.student-info{min-width:0;flex:1}
+.student-name{
+    font-size:17px;font-weight:800;
+    letter-spacing:-.3px;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.student-meta{
+    font-size:12px;color:var(--muted);
+    margin-top:4px;
+    display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.meta-badge{
+    display:inline-flex;align-items:center;gap:4px;
+    padding:3px 9px;border-radius:999px;
+    background:var(--primary-light);
+    color:var(--primary);
+    font-size:11px;font-weight:700;
+}
+
+.student-stats{
+    display:flex;gap:6px;flex-wrap:wrap;
+}
+.mini-stat{
+    display:inline-flex;align-items:center;gap:5px;
+    padding:5px 10px;border-radius:999px;
+    font-size:11px;font-weight:800;
+    white-space:nowrap;
+}
+.mini-stat.good{background:var(--green-light);color:var(--green-text)}
+.mini-stat.warn{background:var(--amber-light);color:var(--amber-text)}
+.mini-stat.bad{background:var(--red-light);color:var(--red-text)}
+
+/* =========================================================
+   ATTENDANCE
+========================================================= */
+.att-wrap{
+    padding:16px 20px 20px;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+}
+.att-hint{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;margin-bottom:12px;
+    background:var(--card-2);
+    border-radius:10px;
+    font-size:11.5px;color:var(--text-2);
+    flex-wrap:wrap;
+}
+.att-legend{
+    display:flex;gap:10px;flex-wrap:wrap;
+    margin-left:auto;
+}
+.legend-item{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:11px}
+.legend-dot{
+    width:14px;height:14px;border-radius:5px;
+    display:grid;place-items:center;
+    font-size:9px;font-weight:800;color:#fff;
+}
+.legend-dot.g{background:var(--green)}
+.legend-dot.a{background:var(--amber)}
+.legend-dot.b{background:var(--cyan)}
+.legend-dot.u{background:var(--violet)}
+.legend-dot.r{background:var(--red)}
+.legend-dot.n{background:var(--muted-2)}
+
+.att-table{
+    width:100%;min-width:640px;
+    border-collapse:separate;border-spacing:0;
+    font-size:12px;
+}
+.att-table th,.att-table td{
+    padding:8px 6px;
+    text-align:center;
+    border-bottom:1px solid var(--line-2);
+}
+.att-table thead th{
+    background:var(--card-2);
+    font-weight:800;color:var(--text-2);
+    font-size:10.5px;
+    text-transform:uppercase;letter-spacing:.04em;
+}
+.att-table thead th:first-child{
+    text-align:left;padding-left:12px;
+    border-top-left-radius:9px;
+    width:130px;
+    position:sticky;left:0;z-index:2;
+    background:var(--card-2);
+}
+.att-table thead th:last-child{border-top-right-radius:9px}
+.att-table tbody td:first-child{
+    text-align:left;padding-left:12px;
+    font-weight:700;color:var(--text-2);
+    font-size:11.5px;
+    position:sticky;left:0;z-index:2;
+    background:var(--card);
+    border-right:1px solid var(--line-2);
+    white-space:nowrap;
+}
+.att-table tbody tr:hover td{background:var(--card-2)}
+.att-table tbody tr:hover td:first-child{background:var(--card-2)}
+
+.lesson-num{
+    font-weight:800;color:var(--muted);
+    font-size:11px;
+}
+.lesson-name{
+    display:block;
+    font-size:10px;color:var(--muted);
+    margin-top:2px;
+    max-width:110px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    margin-left:auto;margin-right:auto;
+}
+.cell{
+    display:inline-grid;place-items:center;
+    width:28px;height:28px;
+    border-radius:9px;
+    font-size:12px;font-weight:800;
+    color:#fff;
+    transition:.15s;
+}
+.cell.g{background:var(--green)}
+.cell.a{background:var(--amber)}
+.cell.b{background:var(--cyan)}
+.cell.u{background:var(--violet)}
+.cell.r{background:var(--red)}
+.cell.empty{
+    background:transparent;
+    border:1px dashed var(--line);
+    color:var(--muted-2);
+}
+.student-card:hover .cell{transform:scale(1.06)}
+
+.att-empty{
+    padding:36px 20px;text-align:center;
+    color:var(--muted);font-size:13px;
+}
+.att-empty-icon{font-size:36px;margin-bottom:10px;opacity:.5}
+.att-empty-title{font-size:14px;font-weight:800;color:var(--text-2);margin-bottom:4px}
+
+/* =========================================================
+   LOADING / EMPTY
+========================================================= */
+.skeleton{
+    height:240px;border-radius:var(--radius-lg);
+    background:linear-gradient(90deg,var(--card-2) 25%,var(--line-2) 37%,var(--card-2) 63%);
+    background-size:400% 100%;
+    animation:shimmer 1.4s ease infinite;
+    margin-bottom:16px;
+}
+
+.empty-state{
+    padding:60px 24px;text-align:center;
+    background:var(--card);
+    border:1px dashed var(--line);
+    border-radius:var(--radius-lg);
+    animation:rise .4s var(--ease);
+}
+.empty-state-icon{
+    width:64px;height:64px;border-radius:20px;
+    margin:0 auto 14px;display:grid;place-items:center;
+    background:var(--primary-light);color:var(--primary);
+    font-size:28px;
+}
+.empty-state h3{font-size:16px;font-weight:800;margin-bottom:6px}
+.empty-state p{color:var(--muted);font-size:13px;line-height:1.55;max-width:440px;margin:0 auto}
+
+/* =========================================================
+   ACTIONS
+========================================================= */
+.actions{
+    display:flex;gap:10px;flex-wrap:wrap;
+    margin-top:22px;
+    padding:16px;
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-sm);
+}
+.action-btn{
+    flex:1 1 200px;
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    padding:13px 18px;
+    border-radius:12px;
+    font-size:13.5px;font-weight:800;
+    transition:.2s;
+    white-space:nowrap;
+}
+.action-btn svg{width:17px;height:17px;flex:none}
+.action-btn.primary{
+    background:linear-gradient(135deg,#2563eb,#4f46e5);
+    color:#fff;
+    box-shadow:0 10px 22px rgba(37,99,235,.22);
+}
+.action-btn.primary:hover{transform:translateY(-1px);box-shadow:0 14px 28px rgba(37,99,235,.28)}
+.action-btn.secondary{
+    background:var(--card);
+    border:1px solid var(--line);
+    color:var(--text-2);
+}
+.action-btn.secondary:hover{border-color:var(--primary-line);background:var(--primary-light);color:var(--primary)}
+.action-btn:active{transform:translateY(0) scale(.98)}
+
+/* =========================================================
+   LOADING SCREEN
+========================================================= */
+.loading-screen{
+    position:fixed;inset:0;z-index:5000;
+    background:var(--bg);
+    display:flex;align-items:center;justify-content:center;
+    transition:opacity .5s,visibility .5s;
+}
+.loading-screen.hide{opacity:0;visibility:hidden}
+.loading-box{text-align:center}
+.loading-logo{
+    width:60px;height:60px;margin:0 auto;
+    border-radius:18px;
+    background:linear-gradient(135deg,#2563eb,#60a5fa);
+    color:#fff;display:grid;place-items:center;
+    font-size:22px;font-weight:900;
+    box-shadow:0 15px 35px rgba(37,99,235,.25);
+    animation:pulse 2s ease-in-out infinite;
+}
+.loading-text{margin-top:14px;font-size:14px;font-weight:800}
+.loading-sub{margin-top:4px;font-size:12px;color:var(--muted)}
+
+/* =========================================================
+   TOAST
+========================================================= */
+.toasts{
+    position:fixed;
+    left:50%;bottom:calc(20px + var(--safe-bottom));
+    transform:translateX(-50%);
+    z-index:2000;
+    display:flex;flex-direction:column;gap:8px;
+    pointer-events:none;
+    width:min(420px,calc(100vw - 32px));
+}
+.toast{
+    padding:12px 16px;border-radius:12px;
+    background:#0f172a;color:#fff;
+    box-shadow:var(--shadow-lg);
+    font-size:13px;font-weight:600;
+    text-align:center;
+    opacity:0;transform:translateY(20px);
+    transition:.25s;
+    pointer-events:auto;
+}
+.toast.show{opacity:1;transform:none}
+.toast.success{background:#166534}
+.toast.error{background:#991b1b}
+.toast.info{background:#1e40af}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width:900px){
+    .user-name{display:none}
+    .user-btn{padding:5px}
+}
+
+@media (max-width:640px){
+    :root{--header-h:56px}
+    .header-inner{padding:0 12px;gap:8px}
+    .brand-logo{width:36px;height:36px;font-size:15px;border-radius:11px}
+    .brand-title{font-size:14px}
+    .brand-sub{display:none}
+    .role-badge{display:none}
+
+    .container{padding:16px 12px calc(80px + var(--safe-bottom))}
+
+    .welcome{padding:18px;border-radius:18px}
+    .welcome-title{font-size:20px}
+    .welcome-sub{font-size:12.5px}
+    .welcome-meta{margin-top:12px;gap:6px}
+    .meta-pill{padding:5px 10px;font-size:11px}
+
+    .section-title{font-size:16px}
+    .section-sub{margin-left:0;font-size:12px}
+
+    .student-head{padding:14px 16px;gap:12px}
+    .student-avatar{width:44px;height:44px;font-size:15px;border-radius:12px}
+    .student-name{font-size:15px}
+    .student-meta{font-size:11px}
+    .student-stats{display:none}
+
+    .att-wrap{padding:12px 14px 16px}
+    .att-hint{flex-direction:column;align-items:flex-start;gap:8px;font-size:11px}
+    .att-legend{margin-left:0}
+
+    .att-table{font-size:11.5px;min-width:560px}
+    .att-table th,.att-table td{padding:6px 4px}
+    .att-table thead th:first-child,
+    .att-table tbody td:first-child{width:100px;padding-left:10px;font-size:11px}
+    .cell{width:24px;height:24px;font-size:10px}
+
+    .actions{padding:12px;gap:8px}
+    .action-btn{padding:12px 14px;font-size:13px;flex:1 1 100%}
+}
+
+@media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+        animation-duration:.001ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:.001ms !important;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOADING -->
+<div class="loading-screen" id="loadingScreen">
+    <div class="loading-box">
+        <div class="loading-logo">K</div>
+        <div class="loading-text">Загрузка…</div>
+        <div class="loading-sub">Проверяем доступ и данные</div>
+    </div>
+</div>
+
+<!-- HEADER -->
+<header class="header">
+    <div class="header-inner">
+        <div class="brand">
+            <div class="brand-logo">K</div>
+            <div class="brand-text">
+                <div class="brand-title">KURATOR</div>
+                <div class="brand-sub">Родительский доступ</div>
+            </div>
+        </div>
+
+        <div class="header-right">
+            <span class="role-badge">👨‍👩‍👧 Родитель</span>
+            <button class="icon-btn" id="themeBtn" onclick="toggleTheme()" title="Тема" aria-label="Тема">🌓</button>
+
+            <div class="user-menu" id="userMenu">
+                <button class="user-btn" onclick="toggleUserMenu()">
+                    <span class="user-avatar" id="userAvatar">?</span>
+                    <span class="user-name" id="userName">Загрузка…</span>
+                    <svg class="user-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                        <path d="m6 9 6 6 6-6"/>
+                    </svg>
+                </button>
+                <div class="user-dropdown">
+                    <button onclick="goMessages()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        Сообщения
+                    </button>
+                    <button onclick="logout()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                            <path d="m16 17 5-5-5-5M21 12H9"/>
+                        </svg>
+                        Выйти
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- MAIN -->
+<main class="container">
+
+    <!-- WELCOME -->
+    <section class="welcome">
+        <div class="welcome-content">
+            <div class="welcome-eyebrow">
+                <span>👋</span> Добро пожаловать
+            </div>
+            <h1 class="welcome-title">
+                Здравствуйте, <span class="name" id="welcomeName">родитель</span>!
+            </h1>
+            <p class="welcome-sub">
+                Здесь вы можете следить за посещаемостью своих детей.
+                Данные обновляются автоматически при каждой загрузке страницы.
+            </p>
+            <div class="welcome-meta">
+                <span class="meta-pill">📅 Сегодня: <b id="metaDate">—</b></span>
+                <span class="meta-pill">👨‍🎓 Студентов: <b id="metaCount">0</b></span>
+                <span class="meta-pill">✅ Посещаемость: <b id="metaRate">—</b></span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ATTENDANCE -->
+    <section>
+        <div class="section-head">
+            <div>
+                <div class="section-title">
+                    <span class="section-title-icon">📊</span>
+                    Посещаемость
+                </div>
+                <div class="section-sub" id="sectionSub">Загрузка данных…</div>
+            </div>
+        </div>
+
+        <div class="students" id="studentsContainer">
+            <div class="skeleton"></div>
+            <div class="skeleton"></div>
+        </div>
+    </section>
+
+    <!-- ACTIONS -->
+    <div class="actions">
+        <button class="action-btn primary" onclick="goMessages()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            Сообщения
+        </button>
+        <button class="action-btn secondary" onclick="refreshData()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 11a8.1 8.1 0 0 0-15.5-3M4 5v3h3"/>
+                <path d="M4 13a8.1 8.1 0 0 0 15.5 3M20 19v-3h-3"/>
+            </svg>
+            Обновить
+        </button>
+    </div>
+
+</main>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+/* =========================================================
+   CONST
+========================================================= */
+const DAYS = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота","Воскресенье"];
+const DAYS_SHORT = ["Пн","Вт","Ср","Чт","Пт","Сб","Вс"];
+const MAX_STUDENTS = 3;
+
+const STATUS_MAP = {
+    "н":  { cls:"g", label:"Присутствовал" },
+    "нб": { cls:"g", label:"Присутствовал" },
+    "+":  { cls:"a", label:"Опоздал" },
+    "оп": { cls:"a", label:"Опоздал" },
+    "б":  { cls:"b", label:"Болел" },
+    "болезнь": { cls:"b", label:"Болел" },
+    "у":  { cls:"u", label:"Уважительная" },
+    "ув": { cls:"u", label:"Уважительная" },
+    "п":  { cls:"r", label:"Пропустил" },
+    "нп": { cls:"r", label:"Пропустил" },
+    "пр": { cls:"r", label:"Пропустил" }
+};
+
+/* =========================================================
+   STATE
+========================================================= */
+let db = null;
+let auth = null;
+let currentUser = null;
+let currentProfile = null;
+let students = [];      // до 3
+let attendanceCache = {}; // studentId → { days: {...}, recordsByDate: {...} }
+let groupSettingsCache = {};
+
+/* =========================================================
+   HELPERS
+========================================================= */
+const $ = id => document.getElementById(id);
+
+function esc(v){
+    return String(v ?? "").replace(/[&<>"']/g, c => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
+}
+
+function getInitials(fio){
+    const p = String(fio || "").trim().split(/\s+/).filter(Boolean);
+    if (p.length >= 2) return (p[0][0] + p[1][0]).toUpperCase();
+    if (p.length === 1) return p[0][0].toUpperCase();
+    return "?";
+}
+
+function avatarGradient(name){
+    const palette = [
+        ["#3b82f6","#2563eb"],["#8b5cf6","#7c3aed"],
+        ["#ec4899","#db2777"],["#f59e0b","#d97706"],
+        ["#10b981","#059669"],["#06b6d4","#0891b2"],
+        ["#ef4444","#dc2626"],["#6366f1","#4f46e5"]
+    ];
+    let h = 0;
+    const s = String(name || "?");
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+    const [a,b] = palette[h % palette.length];
+    return `background:linear-gradient(135deg,${a},${b})`;
+}
+
+function getStudentName(s){
+    return s?.fullName || s?.name || s?.fio || "Без имени";
+}
+
+function normalizeStatus(v){
+    if (v === null || v === undefined) return "";
+    return String(v).trim().toLowerCase();
+}
+
+function statusInfo(v){
+    const key = normalizeStatus(v);
+    if (!key) return null;
+    return STATUS_MAP[key] || { cls:"g", label: v };
+}
+
+function todayStr(){
+    return new Date().toLocaleDateString("ru-RU",{day:"2-digit",month:"long",year:"numeric"});
+}
+
+function toast(text, type = "success"){
+    const wrap = $("toasts");
+    const el = document.createElement("div");
+    el.className = "toast " + type;
+    el.textContent = text;
+    wrap.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+    setTimeout(() => {
+        el.classList.remove("show");
+        setTimeout(() => el.remove(), 300);
+    }, 2600);
+}
+
+/* =========================================================
+   THEME
+========================================================= */
+function applyTheme(mode){
+    let effective = mode;
+    if (mode === "auto"){
+        effective = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.setAttribute("data-theme", effective);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute("content", effective === "dark" ? "#0b1220" : "#2563eb");
+}
+function toggleTheme(){
+    const cur = localStorage.getItem("ph.theme") || "auto";
+    const next = cur === "dark" ? "light" : cur === "light" ? "auto" : "dark";
+    localStorage.setItem("ph.theme", next);
+    applyTheme(next);
+    toast(next === "light" ? "Светлая тема" : next === "dark" ? "Тёмная тема" : "Авто", "info");
+}
+(function initTheme(){
+    const saved = localStorage.getItem("ph.theme") || "auto";
+    applyTheme(saved);
+})();
+
+/* =========================================================
+   USER MENU
+========================================================= */
+function toggleUserMenu(){
+    $("userMenu").classList.toggle("open");
+}
+document.addEventListener("click", e => {
+    const m = $("userMenu");
+    if (m && !m.contains(e.target)) m.classList.remove("open");
+});
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+function goMessages(){
+    window.location.href = "usersms.html";
+}
+function logout(){
+    if (!confirm("Выйти из аккаунта?")) return;
+    firebase.auth().signOut().then(() => {
+        window.location.href = "login.html";
+    });
+}
+function refreshData(){
+    loadAll(true);
+    toast("Обновляем данные…", "info");
+}
+
+/* =========================================================
+   LOAD DATA
+========================================================= */
+async function loadAll(isRefresh = false){
+    try {
+        if (!currentUser) return;
+
+        // 1. находим связи родителя
+        const linksSnap = await db.collection("links")
+            .where("parentId", "==", currentUser.uid)
+            .get();
+
+        const studentIds = linksSnap.docs
+            .map(d => d.data().studentId)
+            .filter(Boolean)
+            .slice(0, MAX_STUDENTS);
+
+        if (!studentIds.length){
+            renderEmptyState();
+            $("loadingScreen").classList.add("hide");
+            return;
+        }
+
+        // 2. тянем студентов
+        const studentDocs = await Promise.all(
+            studentIds.map(id => db.collection("students").doc(id).get())
+        );
+        students = studentDocs
+            .filter(d => d.exists)
+            .map(d => ({ id: d.id, ...d.data() }));
+
+        // 3. тянем настройки групп (расписание + дисциплины)
+        const groupIds = [...new Set(students.map(s => s.groupId).filter(Boolean))];
+        await Promise.all(groupIds.map(async gid => {
+            try {
+                const g = await db.collection("groupSettings").doc(gid).get();
+                groupSettingsCache[gid] = g.exists ? g.data() : null;
+            } catch { groupSettingsCache[gid] = null; }
+        }));
+
+        // 4. тянем посещаемость по каждому студенту
+        await Promise.all(students.map(s => loadStudentAttendance(s)));
+
+        renderAll();
+
+        if (isRefresh) toast("Данные обновлены", "success");
+    } catch (e){
+        console.error(e);
+        toast("Ошибка загрузки: " + (e.message || e), "error");
+    } finally {
+        $("loadingScreen").classList.add("hide");
+    }
+}
+
+/* =========================================================
+   ATTENDANCE LOADER
+   Пробуем разные варианты структуры
+========================================================= */
+async function loadStudentAttendance(student){
+    const cache = { days:{}, recordsByDate:{} };
+
+    try {
+        // Вариант А: attendance/{studentId} — документ с полем records
+        const docRef = db.collection("attendance").doc(student.id);
+        const doc = await docRef.get();
+        if (doc.exists){
+            const data = doc.data() || {};
+            if (data.records && typeof data.records === "object"){
+                cache.recordsByDate = data.records;
+            }
+            if (data.days && typeof data.days === "object"){
+                cache.days = data.days;
+            }
+        }
+
+        // Вариант Б: attendance/{studentId}/days/{date} — на каждый день
+        if (!Object.keys(cache.recordsByDate).length){
+            try {
+                const daysSnap = await db
+                    .collection("attendance")
+                    .doc(student.id)
+                    .collection("days")
+                    .get();
+                daysSnap.forEach(d => {
+                    cache.recordsByDate[d.id] = d.data();
+                });
+            } catch {}
+        }
+
+        // Вариант В: attendance — плоская коллекция { studentId, date, ... }
+        if (!Object.keys(cache.recordsByDate).length){
+            try {
+                const flat = await db.collection("attendance")
+                    .where("studentId", "==", student.id)
+                    .get();
+                flat.forEach(d => {
+                    const data = d.data() || {};
+                    const date = data.date || d.id;
+                    if (date) cache.recordsByDate[date] = data.marks || data.records || data;
+                });
+            } catch {}
+        }
+    } catch (e){
+        console.warn("attendance load error for", student.id, e);
+    }
+
+    attendanceCache[student.id] = cache;
+}
+
+/* =========================================================
+   RENDER
+========================================================= */
+function renderAll(){
+    renderWelcome();
+    renderStudents();
+}
+
+function renderWelcome(){
+    const name = (currentProfile?.name || currentProfile?.fullName || "").trim();
+    const firstName = name.split(/\s+/)[0] || "родитель";
+    $("welcomeName").textContent = firstName;
+    $("userName").textContent = name || "Родитель";
+    $("userAvatar").textContent = getInitials(name || "?");
+    $("metaDate").textContent = todayStr();
+    $("metaCount").textContent = students.length;
+
+    // считаем общий процент посещаемости
+    let total = 0, present = 0;
+    students.forEach(s => {
+        const stats = computeStudentStats(s);
+        total += stats.total;
+        present += stats.present;
+    });
+    const rate = total ? Math.round(present / total * 100) : 0;
+    $("metaRate").textContent = total ? rate + "%" : "—";
+
+    $("sectionSub").textContent = students.length
+        ? `Показаны данные по ${students.length} ${plural(students.length,"студенту","студентам","студентам")}`
+        : "Загрузка данных…";
+}
+
+function plural(n, one, few, many){
+    const x = n % 100;
+    if (x >= 11 && x <= 19) return many;
+    switch(n % 10){
+        case 1: return one;
+        case 2: case 3: case 4: return few;
+        default: return many;
+    }
+}
+
+function renderEmptyState(){
+    const container = $("studentsContainer");
+    container.innerHTML = `
+        <div class="empty-state">
+            <div class="empty-state-icon">🔗</div>
+            <h3>Пока нет привязанных студентов</h3>
+            <p>
+                Обратитесь к администратору, чтобы он привязал вашего ребёнка
+                к вашему аккаунту. После этого здесь появится посещаемость.
+            </p>
+        </div>`;
+    $("metaCount").textContent = "0";
+    $("metaRate").textContent = "—";
+    $("sectionSub").textContent = "Студенты не найдены";
+}
+
+function renderStudents(){
+    const container = $("studentsContainer");
+
+    if (!students.length){
+        renderEmptyState();
+        return;
+    }
+
+    container.innerHTML = students.map((s, i) => renderStudentCard(s, i)).join("");
+}
+
+function renderStudentCard(student, index){
+    const name = getStudentName(student);
+    const group = student.group || student.groupName || student.groupId || "—";
+    const stats = computeStudentStats(student);
+    const schedule = getSchedule(student);
+    const disciplines = getDisciplines(student);
+    const records = attendanceCache[student.id]?.recordsByDate || {};
+
+    // Собираем матрицу: строки = дни недели, столбцы = номера пар
+    const matrix = buildAttendanceMatrix(records, schedule);
+
+    const attHtml = renderAttendanceTable(matrix, schedule, disciplines, stats);
+
+    return `
+        <div class="student-card">
+            <div class="student-head">
+                <div class="student-avatar" style="${avatarGradient(name)}">
+                    ${esc(getInitials(name))}
+                </div>
+                <div class="student-info">
+                    <div class="student-name">${esc(name)}</div>
+                    <div class="student-meta">
+                        ${group && group !== "—" ? `<span class="meta-badge">📚 Группа ${esc(group)}</span>` : ""}
+                        <span>Всего пар: <b>${stats.total}</b></span>
+                    </div>
+                </div>
+                <div class="student-stats">
+                    <span class="mini-stat good">✅ ${stats.present}</span>
+                    ${stats.late ? `<span class="mini-stat warn">⏰ ${stats.late}</span>` : ""}
+                    ${stats.sick ? `<span class="mini-stat" style="background:var(--cyan-light);color:var(--cyan-text)">🤒 ${stats.sick}</span>` : ""}
+                    ${stats.absent ? `<span class="mini-stat bad">❌ ${stats.absent}</span>` : ""}
+                </div>
+            </div>
+            <div class="att-wrap">
+                ${attHtml}
+            </div>
+        </div>`;
+}
+
+/* =========================================================
+   COMPUTE STATS
+========================================================= */
+function computeStudentStats(student){
+    const records = attendanceCache[student.id]?.recordsByDate || {};
+    let total = 0, present = 0, late = 0, sick = 0, excused = 0, absent = 0;
+
+    Object.values(records).forEach(dayObj => {
+        if (!dayObj || typeof dayObj !== "object") return;
+        Object.values(dayObj).forEach(v => {
+            const info = statusInfo(v);
+            if (!info) return;
+            total++;
+            if (info.cls === "g") present++;
+            else if (info.cls === "a") late++;
+            else if (info.cls === "b") sick++;
+            else if (info.cls === "u") excused++;
+            else if (info.cls === "r") absent++;
+        });
+    });
+
+    return { total, present, late, sick, excused, absent };
+}
+
+/* =========================================================
+   SCHEDULE / DISCIPLINES из groupSettings
+========================================================= */
+function getSchedule(student){
+    const settings = groupSettingsCache[student.groupId];
+    const schedule = settings?.schedule || {};
+    const result = {};
+    DAYS.forEach(d => {
+        const n = Number(schedule[d] || 0);
+        result[d] = Math.max(0, Math.min(7, n));
+    });
+    return result;
+}
+
+function getDisciplines(student){
+    const settings = groupSettingsCache[student.groupId];
+    return settings?.disciplines || {};
+}
+
+/* =========================================================
+   MATRIX: [день] → [номер пары] → { date, status }
+   Ищем последнюю запись по каждому дню недели за последние 3 недели
+========================================================= */
+function buildAttendanceMatrix(recordsByDate, schedule){
+    const matrix = {};
+    DAYS.forEach(d => { matrix[d] = {}; });
+
+    const dates = Object.keys(recordsByDate).sort().reverse();
+
+    // Для каждой даты определяем день недели и раскладываем
+    // Берём последнюю (свежую) запись для каждого дня недели
+    for (const date of dates){
+        const dow = getDayOfWeek(date);
+        if (!dow) continue;
+        const dayMarks = recordsByDate[date];
+        if (!dayMarks || typeof dayMarks !== "object") continue;
+
+        const maxLesson = Math.max(schedule[dow] || 0, ...Object.keys(dayMarks).map(n => Number(n) || 0));
+        for (let i = 1; i <= maxLesson; i++){
+            const v = dayMarks[i] ?? dayMarks[String(i)];
+            if (v === undefined || v === null) continue;
+            if (matrix[dow][i] === undefined){
+                matrix[dow][i] = { date, status: v };
+            }
+        }
+    }
+
+    return matrix;
+}
+
+function getDayOfWeek(dateStr){
+    // Ожидаем YYYY-MM-DD или совместимый ISO
+    const m = String(dateStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (!m) return null;
+    const d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));
+    const jsDay = d.getDay(); // 0=Вс, 1=Пн...
+    if (jsDay === 0) return "Воскресенье";
+    return DAYS[jsDay - 1];
+}
+
+/* =========================================================
+   RENDER TABLE
+========================================================= */
+function renderAttendanceTable(matrix, schedule, disciplines, stats){
+    const activeDays = DAYS.filter(d => schedule[d] > 0);
+
+    if (!activeDays.length){
+        return `
+            <div class="att-empty">
+                <div class="att-empty-icon">🗓️</div>
+                <div class="att-empty-title">Расписание не настроено</div>
+                <div>Обратитесь к куратору или администратору.</div>
+            </div>`;
+    }
+
+    const hasAnyMarks = Object.values(matrix).some(day => Object.keys(day).length > 0);
+
+    if (!hasAnyMarks){
+        return `
+            <div class="att-empty">
+                <div class="att-empty-icon">📭</div>
+                <div class="att-empty-title">Посещаемость пока не отмечена</div>
+                <div>Данные появятся после того, как куратор начнёт отмечать пары.</div>
+            </div>`;
+    }
+
+    // Заголовки: [День] [1] [2] ... [N]
+    const maxLessons = Math.max(...activeDays.map(d => schedule[d]));
+
+    let html = `
+        <div class="att-hint">
+            <span>📅 Последние отметки по дням недели</span>
+            <div class="att-legend">
+                <span class="legend-item"><span class="legend-dot g">н</span> присут.</span>
+                <span class="legend-item"><span class="legend-dot a">+</span> опоздал</span>
+                <span class="legend-item"><span class="legend-dot b">б</span> болел</span>
+                <span class="legend-item"><span class="legend-dot u">у</span> уваж.</span>
+                <span class="legend-item"><span class="legend-dot r">п</span> пропуск</span>
+            </div>
+        </div>
+        <table class="att-table">
+            <thead>
+                <tr>
+                    <th>День недели</th>`;
+
+    for (let i = 1; i <= maxLessons; i++){
+        const sampleDiscipline = getDisciplineForLesson(activeDays, disciplines, i);
+        html += `<th>
+            <span class="lesson-num">${i} пара</span>
+            ${sampleDiscipline ? `<span class="lesson-name">${esc(sampleDiscipline)}</span>` : ""}
+        </th>`;
+    }
+
+    html += `</tr></thead><tbody>`;
+
+    activeDays.forEach(day => {
+        const dayScheduleCount = schedule[day];
+        html += `<tr><td>${esc(day)}</td>`;
+        for (let i = 1; i <= maxLessons; i++){
+            if (i > dayScheduleCount){
+                html += `<td><span class="cell empty">·</span></td>`;
+                continue;
+            }
+            const cell = matrix[day]?.[i];
+            if (!cell || !cell.status){
+                html += `<td><span class="cell empty">—</span></td>`;
+                continue;
+            }
+            const info = statusInfo(cell.status);
+            const mark = (cell.status + "").trim().slice(0, 2) || "?";
+            html += `<td title="${esc(info.label)} · ${esc(cell.date)}">
+                <span class="cell ${info.cls}">${esc(mark)}</span>
+            </td>`;
+        }
+        html += `</tr>`;
+    });
+
+    html += `</tbody></table>`;
+    return html;
+}
+
+function getDisciplineForLesson(activeDays, disciplines, lessonNum){
+    // Берём первую попавшуюся дисциплину для этой пары (обычно одинаковая)
+    for (const day of activeDays){
+        const arr = disciplines[day];
+        if (Array.isArray(arr) && arr[lessonNum - 1]){
+            return arr[lessonNum - 1];
+        }
+    }
+    return "";
+}
+
+/* =========================================================
+   AUTH
+========================================================= */
+firebase.initializeApp(window.firebaseConfig || {
+    // fallback — если firebase-config.js не подключён
+    apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+    authDomain: "othets-1aa03.firebaseapp.com",
+    projectId: "othets-1aa03",
+    storageBucket: "othets-1aa03.firebasestorage.app",
+    messagingSenderId: "528392191591",
+    appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2"
+});
+db = firebase.firestore();
+auth = firebase.auth();
+
+firebase.auth().onAuthStateChanged(async user => {
+    if (!user){
+        window.location.href = "login.html";
+        return;
+    }
+
+    currentUser = user;
+
+    try {
+        const snap = await db.collection("users").doc(user.uid).get();
+        currentProfile = snap.exists ? snap.data() : {};
+
+        const role = String(currentProfile.role || "").toLowerCase();
+        if (role !== "parent"){
+            // пускаем только родителей
+            if (role === "admin"){ window.location.href = "adminhome.html"; return; }
+            if (role === "curator"){ window.location.href = "home.html"; return; }
+            // неизвестная роль — на логин
+            window.location.href = "login.html";
+            return;
+        }
+
+        const name = currentProfile.name || currentProfile.fullName || user.email || "Родитель";
+        $("userName").textContent = name;
+        $("userAvatar").textContent = getInitials(name);
+
+        await loadAll();
+    } catch (e){
+        console.error(e);
+        toast("Ошибка загрузки профиля", "error");
+        $("loadingScreen").classList.add("hide");
+    }
+});
+
+/* =========================================================
+   EXPORT
+========================================================= */
+window.toggleTheme = toggleTheme;
+window.toggleUserMenu = toggleUserMenu;
+window.goMessages = goMessages;
+window.logout = logout;
+window.refreshData = refreshData;
+</script>
+
+</body>
+</html>

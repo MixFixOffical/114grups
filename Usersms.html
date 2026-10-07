@@ -372,6 +372,16 @@ body.dark .status-card{background:rgba(16,185,129,.1);color:#4ade80;border-color
 .messages-empty h3{margin:0 0 6px;color:var(--text-secondary);font-size:15px;font-weight:700}
 .messages-empty p{margin:0;font-size:12.5px}
 
+/* Skeleton */
+.skeleton-bubble{
+    height:36px;border-radius:14px;
+    background:linear-gradient(90deg,var(--bg-panel-2) 25%,var(--border) 50%,var(--bg-panel-2) 75%);
+    background-size:200% 100%;
+    animation:skeleton 1.4s infinite;
+    max-width:60%;
+}
+@keyframes skeleton{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
 .day-sep{align-self:center;margin:14px 0 10px;padding:4px 12px;border-radius:999px;background:rgba(0,0,0,.08);color:#fff;font-size:11px;font-weight:700;letter-spacing:.3px;backdrop-filter:blur(8px)}
 body:not(.dark) .day-sep{background:rgba(15,23,42,.35)}
 
@@ -595,6 +605,34 @@ body.dark .msg-popup button.danger:hover{background:rgba(229,57,53,.15)}
 .user-opt-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .user-opt-role{font-size:11px;color:var(--text-light);margin-top:1px}
 .user-opt-empty{padding:36px;text-align:center;color:var(--text-light);font-size:12.5px}
+
+/* Confirm modal */
+.confirm-modal{
+    position:fixed;inset:0;z-index:600;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(30,27,75,.5);
+    backdrop-filter:blur(14px);
+    opacity:0;visibility:hidden;
+    transition:.3s;
+    padding:16px;
+}
+.confirm-modal.open{opacity:1;visibility:visible}
+.confirm-box{
+    width:380px;max-width:100%;
+    background:var(--bg-panel);border:1px solid var(--border);
+    border-radius:20px;padding:22px;
+    box-shadow:var(--shadow-xl);
+    transform:translateY(20px) scale(.96);
+    transition:.35s var(--ease-spring);
+}
+.confirm-modal.open .confirm-box{transform:translateY(0) scale(1)}
+.confirm-box h3{font-size:16px;font-weight:800;color:var(--text);margin-bottom:8px}
+.confirm-box p{font-size:13px;color:var(--text-secondary);line-height:1.5;margin-bottom:18px}
+.confirm-actions{display:flex;gap:10px;justify-content:flex-end}
+.confirm-btn{padding:9px 18px;border-radius:11px;border:1px solid var(--border);background:var(--bg-panel);color:var(--text);font:600 13px inherit;cursor:pointer;transition:.2s}
+.confirm-btn:hover{background:var(--bg-panel-2)}
+.confirm-btn.danger{background:var(--danger);border-color:var(--danger);color:#fff}
+.confirm-btn.danger:hover{background:#c62828;border-color:#c62828}
 
 /* toast */
 .toast{
@@ -990,15 +1028,33 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
     </div>
 </div>
 
+<!-- Confirm modal -->
+<div class="confirm-modal" id="confirmModal">
+    <div class="confirm-box">
+        <h3 id="confirmTitle">Подтверждение</h3>
+        <p id="confirmText">Вы уверены?</p>
+        <div class="confirm-actions">
+            <button class="confirm-btn" id="confirmCancel">Отмена</button>
+            <button class="confirm-btn danger" id="confirmOk">Удалить</button>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 /* =========================================================
-   INIT
+   CONFIG
 ========================================================= */
-const db = firebase.firestore();
-const auth = firebase.auth();
-const FieldValue = firebase.firestore.FieldValue;
+const CONFIG = {
+    MAX_LEN: 2000,
+    WARN_LEN: 1800,
+    TYPING_TIMEOUT: 2000,
+    SCROLL_THRESHOLD: 120,
+    MARK_READ_LIMIT: 500,
+    CHAT_RERENDER_DEBOUNCE: 150,
+    LONG_PRESS_MS: 500
+};
 
 const ROLE_LABELS = { admin:"Администратор", curator:"Куратор", student:"Студент", parent:"Родитель" };
 const ROLE_ICONS  = { admin:"👑", curator:"🧑‍🏫", student:"🎓", parent:"👨‍👩‍👧" };
@@ -1007,6 +1063,13 @@ const EMOJIS = ["😀","😁","😂","🤣","😊","😍","😘","😎","🤔","
                 "👍","👎","👏","🙏","🤝","💪","✌️","👌","🤞","👋","🙌","☝️","👇","👆","🫡","🤙",
                 "❤️","🧡","💛","💚","💙","💜","🖤","🤍","💔","💕","💖","💯","🔥","⭐","✨","🎉",
                 "✅","❌","⚠️","❗","❓","💡","📌","📎","📝","📅","⏰","🔔","🎯","🏆","🎓","📚"];
+
+/* =========================================================
+   INIT
+========================================================= */
+const db = firebase.firestore();
+const auth = firebase.auth();
+const FieldValue = firebase.firestore.FieldValue;
 
 let me = null;
 let meData = null;
@@ -1022,9 +1085,13 @@ let searchChatsQuery = "";
 let usersListenerStarted = false;
 let chatsListenerStarted = false;
 let msgPopupEl = null;
-let typingTimeout = null;
-let isTyping = false;
+let chatsRenderTimer = null;
+let typingState = { chatId: null, active: false, timeout: null };
+let confirmResolve = null;
 
+/* =========================================================
+   HELPERS
+========================================================= */
 function esc(s){
     return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
@@ -1078,7 +1145,27 @@ function formatDayLabel(ts){
 function getUser(uid){
     return allUsers.find(u => u.uid === uid) || { uid, name:"Пользователь", role:"student" };
 }
+function getMyName(){
+    return (meData && (meData.name || meData.fullName || meData.fio)) || "Вы";
+}
+function avatarHtml(user, size = "msg"){
+    const cls = `role-${user.role || "student"}`;
+    if(size === "chat")  return `<div class="chat-avatar ${cls}">${esc(initials(user.name))}<span class="online-dot"></span></div>`;
+    if(size === "head")  return `<div class="chat-head-avatar ${cls}">${esc(initials(user.name))}</div>`;
+    return `<div class="msg-avatar ${cls}">${esc(initials(user.name))}</div>`;
+}
+function linkify(text){
+    return text.replace(/(https?:\/\/[^\s<]+)/g, (url) => {
+        try {
+            new URL(url);
+            return `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`;
+        } catch { return url; }
+    });
+}
 
+/* =========================================================
+   TOAST
+========================================================= */
 let toastTimer;
 function showToast(text, type = ""){
     const el = document.getElementById("toast");
@@ -1090,6 +1177,37 @@ function showToast(text, type = ""){
     toastTimer = setTimeout(() => el.classList.remove("show"), 3000);
 }
 
+/* =========================================================
+   CONFIRM MODAL
+========================================================= */
+function showConfirm(title, text, okLabel = "Удалить"){
+    return new Promise((resolve) => {
+        const modal = document.getElementById("confirmModal");
+        document.getElementById("confirmTitle").textContent = title;
+        document.getElementById("confirmText").textContent = text;
+        document.getElementById("confirmOk").textContent = okLabel;
+        modal.classList.add("open");
+        confirmResolve = resolve;
+    });
+}
+document.getElementById("confirmCancel").addEventListener("click", () => {
+    document.getElementById("confirmModal").classList.remove("open");
+    if(confirmResolve){ confirmResolve(false); confirmResolve = null; }
+});
+document.getElementById("confirmOk").addEventListener("click", () => {
+    document.getElementById("confirmModal").classList.remove("open");
+    if(confirmResolve){ confirmResolve(true); confirmResolve = null; }
+});
+document.getElementById("confirmModal").addEventListener("click", e => {
+    if(e.target.id === "confirmModal"){
+        document.getElementById("confirmModal").classList.remove("open");
+        if(confirmResolve){ confirmResolve(false); confirmResolve = null; }
+    }
+});
+
+/* =========================================================
+   THEME
+========================================================= */
 function initTheme(){
     const saved = localStorage.getItem("kurator-theme") || "light";
     if(saved === "dark") document.body.classList.add("dark");
@@ -1109,12 +1227,21 @@ function updateThemeLabel(){
         : '<path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/>';
 }
 
-/* Mobile sidebar */
+/* =========================================================
+   MOBILE SIDEBAR
+========================================================= */
 function initMobileSidebar(){
     const burger = document.getElementById("burger");
     const sidebar = document.getElementById("sidebar");
     const backdrop = document.getElementById("sidebarBackdrop");
     if(!burger || !sidebar) return;
+
+    const close = () => {
+        sidebar.classList.remove("open");
+        burger.classList.remove("open");
+        backdrop.classList.remove("show");
+        document.body.style.overflow = "";
+    };
 
     burger.addEventListener("click", () => {
         const open = sidebar.classList.toggle("open");
@@ -1122,22 +1249,8 @@ function initMobileSidebar(){
         backdrop.classList.toggle("show", open);
         document.body.style.overflow = open ? "hidden" : "";
     });
-
-    backdrop.addEventListener("click", () => {
-        sidebar.classList.remove("open");
-        burger.classList.remove("open");
-        backdrop.classList.remove("show");
-        document.body.style.overflow = "";
-    });
-
-    document.querySelectorAll(".sidebar-link").forEach(link => {
-        link.addEventListener("click", () => {
-            sidebar.classList.remove("open");
-            burger.classList.remove("open");
-            backdrop.classList.remove("show");
-            document.body.style.overflow = "";
-        });
-    });
+    backdrop.addEventListener("click", close);
+    document.querySelectorAll(".sidebar-link").forEach(link => link.addEventListener("click", close));
 }
 
 /* =========================================================
@@ -1233,6 +1346,9 @@ function renderSidebarByRole(role){
     `;
 }
 
+/* =========================================================
+   USERS LISTENER
+========================================================= */
 function startUsersListener(){
     if(usersListenerStarted) return;
     usersListenerStarted = true;
@@ -1250,14 +1366,17 @@ function startUsersListener(){
         });
         allUsers.sort((a,b) => a.name.localeCompare(b.name, "ru"));
         renderNewChatUsers();
-        renderChats();
-        if(currentChatId) {
+        scheduleRenderChats();
+        if(currentChatId){
             const c = chats.find(x => x.id === currentChatId);
             if(c) renderChatHead(c);
         }
     }, err => console.error("users:", err));
 }
 
+/* =========================================================
+   CHATS LISTENER
+========================================================= */
 function startChatsListener(){
     if(chatsListenerStarted) return;
     chatsListenerStarted = true;
@@ -1291,7 +1410,7 @@ function startChatsListener(){
               });
           });
           chats.sort((a,b) => toMillis(b.updatedAt) - toMillis(a.updatedAt));
-          renderChats();
+          scheduleRenderChats();
           updateSidebarBadge();
       }, err => {
           console.error("chats:", err);
@@ -1302,6 +1421,11 @@ function startChatsListener(){
                   <p>${esc(err.message)}</p>
               </div>`;
       });
+}
+
+function scheduleRenderChats(){
+    clearTimeout(chatsRenderTimer);
+    chatsRenderTimer = setTimeout(renderChats, CONFIG.CHAT_RERENDER_DEBOUNCE);
 }
 
 function updateSidebarBadge(){
@@ -1339,15 +1463,11 @@ function renderChats(){
         if(lm.deleted) preview = "Сообщение удалено";
         else if(lm.text) preview = lm.text;
 
-        const roleCls = `role-${c.otherData.role}`;
         const hasUnread = c.unread > 0;
 
         return `
             <div class="chat-item ${c.id === currentChatId ? "active" : ""}" data-id="${esc(c.id)}">
-                <div class="chat-avatar ${roleCls}">
-                    ${esc(initials(c.otherData.name))}
-                    <span class="online-dot"></span>
-                </div>
+                ${avatarHtml(c.otherData, "chat")}
                 <div class="chat-info">
                     <div class="chat-name-row">
                         <div class="chat-name">${esc(c.otherData.name)}</div>
@@ -1369,13 +1489,11 @@ function renderChats(){
     });
 }
 
-document.getElementById("searchChats").addEventListener("input", e => {
-    searchChatsQuery = e.target.value;
-    renderChats();
-});
-
+/* =========================================================
+   OPEN CHAT
+========================================================= */
 async function openChat(chatId){
-    if(currentChatId === chatId) {
+    if(currentChatId === chatId){
         document.body.classList.add("chat-open");
         return;
     }
@@ -1402,19 +1520,24 @@ async function openChat(chatId){
         } catch(e){ console.error("reset unread:", e); }
     }
 
+    // mark incoming as read (with limit)
     db.collection("chats").doc(chatId).collection("messages")
       .where("from", "==", currentOtherUid)
       .where("read", "==", false)
+      .limit(CONFIG.MARK_READ_LIMIT)
       .get()
       .then(snap => {
           if(snap.empty) return;
           const batch = db.batch();
           snap.forEach(doc => batch.update(doc.ref, { read: true }));
-          batch.commit().catch(e => console.error("mark read:", e));
+          return batch.commit();
       })
-      .catch(e => console.warn("mark read query failed:", e.message));
+      .catch(e => console.warn("mark read:", e.message));
 
     if(messagesUnsub){ messagesUnsub(); messagesUnsub = null; }
+
+    // skeleton
+    showMessagesSkeleton();
 
     messagesUnsub = db.collection("chats").doc(chatId).collection("messages")
       .orderBy("createdAt", "asc")
@@ -1436,6 +1559,15 @@ async function openChat(chatId){
     }
 }
 
+function showMessagesSkeleton(){
+    const c = document.getElementById("messagesContainer");
+    c.innerHTML = `
+        <div class="msg-row in"><div style="width:30px;flex-shrink:0"></div><div class="skeleton-bubble" style="width:180px"></div></div>
+        <div class="msg-row out"><div class="skeleton-bubble" style="width:120px"></div></div>
+        <div class="msg-row in"><div style="width:30px;flex-shrink:0"></div><div class="skeleton-bubble" style="width:220px"></div></div>
+    `;
+}
+
 function renderChatHead(c){
     const el = document.getElementById("chatHeadAvatar");
     el.textContent = initials(c.otherData.name);
@@ -1446,15 +1578,19 @@ function renderChatHead(c){
     document.getElementById("topbarSub").textContent = c.otherData.name;
 }
 
+/* =========================================================
+   TYPING
+========================================================= */
 function updateTypingIndicator(show){
     const container = document.getElementById("messagesContainer");
     if(!container) return;
     const existing = container.querySelector(".typing-indicator-row");
     if(show && !existing){
+        const user = getUser(currentOtherUid);
         const row = document.createElement("div");
         row.className = "msg-row in typing-indicator-row";
         row.innerHTML = `
-            <div class="msg-avatar role-${getUser(currentOtherUid).role}">${esc(initials(getUser(currentOtherUid).name))}</div>
+            ${avatarHtml(user)}
             <div class="typing-indicator">
                 <span class="dot"></span><span class="dot"></span><span class="dot"></span>
             </div>`;
@@ -1467,21 +1603,40 @@ function updateTypingIndicator(show){
 
 function setMyTyping(){
     if(!currentChatId || !currentOtherUid) return;
-    if(!isTyping){
-        isTyping = true;
-        db.collection("chats").doc(currentChatId).set({
-            typing: { [myUid]: true }
-        }, { merge: true }).catch(()=>{});
+
+    if(typingState.chatId !== currentChatId){
+        if(typingState.chatId){
+            db.collection("chats").doc(typingState.chatId)
+              .set({ typing: { [myUid]: false } }, { merge: true }).catch(()=>{});
+        }
+        typingState = { chatId: currentChatId, active: false, timeout: null };
     }
-    clearTimeout(typingTimeout);
-    typingTimeout = setTimeout(() => {
-        isTyping = false;
-        db.collection("chats").doc(currentChatId).set({
-            typing: { [myUid]: false }
-        }, { merge: true }).catch(()=>{});
-    }, 2000);
+
+    if(!typingState.active){
+        typingState.active = true;
+        db.collection("chats").doc(currentChatId)
+          .set({ typing: { [myUid]: true } }, { merge: true }).catch(()=>{});
+    }
+
+    clearTimeout(typingState.timeout);
+    typingState.timeout = setTimeout(() => {
+        typingState.active = false;
+        db.collection("chats").doc(currentChatId)
+          .set({ typing: { [myUid]: false } }, { merge: true }).catch(()=>{});
+    }, CONFIG.TYPING_TIMEOUT);
 }
 
+function clearMyTyping(){
+    if(!typingState.chatId) return;
+    db.collection("chats").doc(typingState.chatId)
+      .set({ typing: { [myUid]: false } }, { merge: true }).catch(()=>{});
+    clearTimeout(typingState.timeout);
+    typingState = { chatId: null, active: false, timeout: null };
+}
+
+/* =========================================================
+   RENDER MESSAGES
+========================================================= */
 function renderMessages(messages){
     const container = document.getElementById("messagesContainer");
     if(!messages.length){
@@ -1494,13 +1649,15 @@ function renderMessages(messages){
         return;
     }
 
-    const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 120;
+    const prevTop = container.scrollTop;
+    const prevHeight = container.scrollHeight;
+    const wasAtBottom = prevHeight - prevTop - container.clientHeight < CONFIG.SCROLL_THRESHOLD;
 
     let html = "";
     let lastDay = "";
     let lastFrom = null;
 
-    messages.forEach(m => {
+    for(const m of messages){
         const dayLabel = formatDayLabel(m.createdAt);
         if(dayLabel && dayLabel !== lastDay){
             html += `<div class="day-sep">${esc(dayLabel)}</div>`;
@@ -1509,19 +1666,20 @@ function renderMessages(messages){
         }
 
         const out = m.from === myUid;
-        const sender = out ? { name: (meData && (meData.name || meData.fullName)) || "Вы", role: myRole }
-                           : getUser(m.from);
-        const avatarCls = `role-${sender.role}`;
+        const sender = out
+            ? { name: getMyName(), role: myRole }
+            : {
+                name: m.fromName || getUser(m.from).name,
+                role: normalizeRole(m.fromRole || getUser(m.from).role)
+            };
+
         const deleted = !!m.deleted;
         const showAvatar = !out && lastFrom !== m.from;
         lastFrom = m.from;
 
         html += `
             <div class="msg-row ${out ? "out" : "in"}" data-id="${esc(m.id)}">
-                ${!out ? (showAvatar
-                    ? `<div class="msg-avatar ${avatarCls}">${esc(initials(sender.name))}</div>`
-                    : `<div style="width:30px;flex-shrink:0"></div>`
-                ) : ""}
+                ${!out ? (showAvatar ? avatarHtml(sender) : `<div style="width:30px;flex-shrink:0"></div>`) : ""}
                 <div class="msg-bubble ${out ? "out" : "in"} ${deleted ? "deleted" : ""}">
                     ${deleted
                         ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m5 5 14 14"/></svg> Сообщение удалено`
@@ -1530,41 +1688,64 @@ function renderMessages(messages){
                     <div class="msg-meta">
                         ${m.edited && !deleted ? `<span class="edited">изм.</span>` : ""}
                         <span>${esc(formatTimeFull(m.createdAt))}</span>
-                        ${out && !deleted
-                            ? `<svg class="check ${m.read ? "read" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        ${out && !deleted ? `
+                            <svg class="check ${m.read ? "read" : ""}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="m1 13 4 4L15 7"/><path d="m9 13 4 4L23 7"/>
-                               </svg>`
-                            : ""}
+                            </svg>` : ""}
                     </div>
                 </div>
-                ${out && !deleted ? `<button class="msg-menu-btn" data-menu="${esc(m.id)}" title="Действия">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
-                    </svg>
-                </button>` : ""}
-            </div>
-        `;
-    });
+                ${out && !deleted ? `
+                    <button class="msg-menu-btn" data-menu="${esc(m.id)}" title="Действия">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/>
+                        </svg>
+                    </button>` : ""}
+            </div>`;
+    }
 
     container.innerHTML = html;
 
     container.querySelectorAll("[data-menu]").forEach(btn => {
         btn.addEventListener("click", e => {
             e.stopPropagation();
-            const rect = btn.getBoundingClientRect();
-            openMsgPopup(btn.dataset.menu, rect);
+            openMsgPopup(btn.dataset.menu, btn.getBoundingClientRect());
         });
+        // Long press for mobile
+        attachLongPress(btn, (rect) => openMsgPopup(btn.dataset.menu, rect));
     });
 
+    // Restore scroll
     if(wasAtBottom){
         container.scrollTop = container.scrollHeight;
+    } else {
+        const delta = container.scrollHeight - prevHeight;
+        container.scrollTop = prevTop + delta;
     }
+
+    // typing indicator поверх
+    const c = chats.find(x => x.id === currentChatId);
+    if(c && c.typing) updateTypingIndicator(true);
 }
 
-function linkify(text){
-    return text.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+function attachLongPress(el, cb){
+    let timer = null;
+    const start = (e) => {
+        const rect = el.getBoundingClientRect();
+        timer = setTimeout(() => {
+            if(navigator.vibrate) navigator.vibrate(15);
+            cb(rect);
+        }, CONFIG.LONG_PRESS_MS);
+    };
+    const cancel = () => { clearTimeout(timer); timer = null; };
+    el.addEventListener("touchstart", start, {passive:true});
+    el.addEventListener("touchend", cancel);
+    el.addEventListener("touchmove", cancel);
+    el.addEventListener("touchcancel", cancel);
 }
 
+/* =========================================================
+   POPUP
+========================================================= */
 function closeMsgPopup(){
     if(msgPopupEl){ msgPopupEl.remove(); msgPopupEl = null; }
 }
@@ -1625,7 +1806,8 @@ function openMsgPopup(msgId, rect){
 
 async function deleteMessage(msgId){
     if(!currentChatId) return;
-    if(!confirm("Удалить сообщение?")) return;
+    const ok = await showConfirm("Удалить сообщение?", "Это действие нельзя отменить.", "Удалить");
+    if(!ok) return;
     try {
         await db.collection("chats").doc(currentChatId).collection("messages").doc(msgId).update({
             deleted: true,
@@ -1646,6 +1828,9 @@ async function deleteMessage(msgId){
     }
 }
 
+/* =========================================================
+   COMPOSER
+========================================================= */
 const messageInput = document.getElementById("messageInput");
 const sendBtn = document.getElementById("sendBtn");
 const composerWrap = document.getElementById("composerWrap");
@@ -1664,10 +1849,10 @@ messageInput.addEventListener("keydown", e => {
 function updateComposer(){
     const len = messageInput.value.trim().length;
     sendBtn.disabled = len === 0;
-    composerCount.textContent = `${messageInput.value.length}/2000`;
+    composerCount.textContent = `${messageInput.value.length}/${CONFIG.MAX_LEN}`;
     composerCount.className = "composer-count";
-    if(messageInput.value.length > 1800) composerCount.classList.add("warn");
-    if(messageInput.value.length >= 2000) composerCount.classList.add("max");
+    if(messageInput.value.length > CONFIG.WARN_LEN) composerCount.classList.add("warn");
+    if(messageInput.value.length >= CONFIG.MAX_LEN) composerCount.classList.add("max");
 }
 function autoGrow(){
     messageInput.style.height = "auto";
@@ -1683,24 +1868,18 @@ async function sendMessage(){
     updateComposer();
     autoGrow();
 
-    isTyping = false;
-    clearTimeout(typingTimeout);
-    db.collection("chats").doc(currentChatId).set({
-        typing: { [myUid]: false }
-    }, { merge: true }).catch(()=>{});
+    clearMyTyping();
 
     try {
         const chatRef = db.collection("chats").doc(currentChatId);
         const msgRef = chatRef.collection("messages").doc();
         const chatSnap = await chatRef.get();
 
-        const myName = (meData && (meData.name || meData.fullName)) || "Пользователь";
-
         const batch = db.batch();
 
         batch.set(msgRef, {
             from: myUid,
-            fromName: myName,
+            fromName: getMyName(),
             fromRole: myRole || "student",
             to: currentOtherUid,
             text,
@@ -1738,7 +1917,7 @@ async function sendMessage(){
                 lastMessage,
                 unread: { [myUid]: 0, [currentOtherUid]: 1 },
                 typing: { [myUid]: false, [currentOtherUid]: false }
-            });
+            }, { merge: true });
         }
 
         await batch.commit();
@@ -1754,6 +1933,9 @@ async function sendMessage(){
 }
 sendBtn.addEventListener("click", sendMessage);
 
+/* =========================================================
+   EMOJI
+========================================================= */
 const emojiPicker = document.getElementById("emojiPicker");
 const emojiGrid = document.getElementById("emojiGrid");
 emojiGrid.innerHTML = EMOJIS.map(e => `<button type="button">${e}</button>`).join("");
@@ -1775,6 +1957,9 @@ document.addEventListener("click", e => {
     }
 });
 
+/* =========================================================
+   NEW CHAT MODAL
+========================================================= */
 function openNewChat(){
     document.getElementById("newChatBackdrop").classList.add("open");
     document.getElementById("newChatSearch").value = "";
@@ -1844,7 +2029,11 @@ document.getElementById("newChatBackdrop").addEventListener("click", e => {
     if(e.target.id === "newChatBackdrop") closeNewChat();
 });
 
+/* =========================================================
+   CHAT BACK / SCROLL
+========================================================= */
 document.getElementById("chatBackBtn").addEventListener("click", () => {
+    clearMyTyping();
     document.body.classList.remove("chat-open");
     currentChatId = null;
     currentOtherUid = null;
@@ -1864,10 +2053,32 @@ document.getElementById("scrollBottomBtn").addEventListener("click", () => {
 });
 
 document.addEventListener("keydown", e => {
-    if(e.key === "Escape"){ closeNewChat(); closeMsgPopup(); emojiPicker.classList.remove("open"); }
+    if(e.key === "Escape"){
+        closeNewChat();
+        closeMsgPopup();
+        emojiPicker.classList.remove("open");
+        if(document.getElementById("confirmModal").classList.contains("open")){
+            document.getElementById("confirmModal").classList.remove("open");
+            if(confirmResolve){ confirmResolve(false); confirmResolve = null; }
+        }
+    }
 });
 
-/* INIT */
+/* =========================================================
+   BEFORE UNLOAD — clear typing
+========================================================= */
+window.addEventListener("beforeunload", () => {
+    if(typingState.chatId && myUid){
+        try {
+            db.collection("chats").doc(typingState.chatId)
+              .set({ typing: { [myUid]: false } }, { merge: true });
+        } catch(e){}
+    }
+});
+
+/* =========================================================
+   AUTH
+========================================================= */
 initTheme();
 initMobileSidebar();
 

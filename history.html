@@ -13,8 +13,7 @@
 
 <style>
 /* =========================================================
-   АДАПТИВНЫЙ ЗУМ — на маленьких мониторах 70%
-   Порядок ВАЖЕН: сначала общий, потом @media переопределяют
+   АДАПТИВНЫЙ ЗУМ
 ========================================================= */
 html { zoom: 1; }
 
@@ -829,9 +828,7 @@ tr.total-row td.student-cell { color: var(--primary-dark); }
         margin: 10mm 10mm 5mm 10mm;
     }
 
-    html {
-        zoom: 100% !important;
-    }
+    html { zoom: 100% !important; }
 
     html, body {
         min-width: 0 !important;
@@ -934,7 +931,7 @@ tr.total-row td.student-cell { color: var(--primary-dark); }
 }
 
 /* =========================================================
-   КОМПАКТНЫЙ РЕЖИМ ДЛЯ СРЕДНИХ ЭКРАНОВ (769px–1439px)
+   КОМПАКТНЫЙ РЕЖИМ ДЛЯ СРЕДНИХ ЭКРАНОВ
 ========================================================= */
 @media (min-width: 769px) and (max-width: 1439px) {
     .panel { padding: 16px 18px; }
@@ -961,7 +958,6 @@ tr.total-row td.student-cell { color: var(--primary-dark); }
     .curator-name-input { width: 200px; }
 }
 
-/* Очень маленькие десктопы (769px–1279px) */
 @media (min-width: 769px) and (max-width: 1279px) {
     .controls button {
         padding: 8px 12px;
@@ -1328,6 +1324,10 @@ function normalizeDate(value) {
     return "";
 }
 
+function isCleanDateId(id) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(String(id || ""));
+}
+
 function formatDateRu(s) {
     const n = normalizeDate(s);
     if (!n) return "—";
@@ -1555,6 +1555,15 @@ function normalizeStatus(status) {
     return "";
 }
 
+/* =========================================================
+   LOAD ATTENDANCE — ИСПРАВЛЕНО
+   ────────────────────────────────────────────────────────
+   Ключевые исправления:
+     1. Дата берётся из ID, если в data.date пусто.
+     2. Документы с суффиксом (2026-09-22_xxx) отсеиваются.
+     3. Если в документе есть groupId — грузим только
+        документы текущей группы (или без groupId).
+========================================================= */
 async function loadAttendance() {
     attendance = {};
     if (!currentGroupId || students.length === 0) return;
@@ -1595,14 +1604,29 @@ async function loadAttendance() {
 
         snap.forEach(attDoc => {
             const data = attDoc.data();
+            const docId = attDoc.id;
 
+            // 1. Отсеиваем мусорные документы с суффиксом
+            //    (2026-09-22_abc123 — не должно быть, но защищаемся)
+            //    Оставляем либо чистые id, либо документы с явным date.
+            const dateFromId = isCleanDateId(docId) ? docId : "";
+            const dateFromField = normalizeDate(data.date);
+            const date = dateFromField || dateFromId;
+
+            // 2. Фильтр по группе: если в документе есть groupId
+            //    и он не совпадает с текущей — пропускаем.
+            if (data.groupId && String(data.groupId) !== String(currentGroupId)) {
+                return;
+            }
+
+            if (!date) return;
+
+            // ─── структура { students: { sid: {lessons} } } ───
             if (data.students && typeof data.students === "object") {
-                const date = normalizeDate(data.date);
-                if (!date) return;
                 Object.values(data.students).forEach(rec => {
                     if (!rec || !rec.studentId) return;
                     pushStudentDay(date, rec.studentId, rec.studentName, rec.lessons, {
-                        docId: attDoc.id,
+                        docId,
                         semester: data.semester,
                         attestation: data.attestation,
                         updatedAt: rec.updatedAt || data.updatedAt
@@ -1611,16 +1635,18 @@ async function loadAttendance() {
                 return;
             }
 
-            if (data.date && data.studentId) {
-                const date = normalizeDate(data.date);
+            // ─── плоская структура { studentId, date, lessons } ───
+            if (data.studentId && data.lessons) {
                 pushStudentDay(date, data.studentId, data.studentName, data.lessons, {
-                    docId: attDoc.id,
+                    docId,
                     semester: data.semester,
                     attestation: data.attestation,
                     updatedAt: data.updatedAt
                 });
             }
         });
+
+        console.log(`[attendance] загружено отметок: ${Object.keys(attendance).length}`);
     } catch (e) {
         console.error("Ошибка загрузки посещаемости:", e);
         showStatus("Ошибка загрузки посещаемости", "error");
@@ -1796,7 +1822,6 @@ function renderTable() {
 
     const weekDates = getWeekDates();
 
-    // Явные ширины колонок — фикс наезда
     let colgroup = '<colgroup>';
     colgroup += '<col style="width:200px">';
 

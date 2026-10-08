@@ -1561,8 +1561,8 @@ function normalizeStatus(status) {
    Ключевые исправления:
      1. Дата берётся из ID, если в data.date пусто.
      2. Документы с суффиксом (2026-09-22_xxx) отсеиваются.
-     3. Если в документе есть groupId — грузим только
-        документы текущей группы (или без groupId).
+     3. Фильтр по группе — по списку студентов, а не по
+        groupId документа (он общий на дату и перезаписывается).
 ========================================================= */
 async function loadAttendance() {
     attendance = {};
@@ -1613,11 +1613,11 @@ async function loadAttendance() {
             const dateFromField = normalizeDate(data.date);
             const date = dateFromField || dateFromId;
 
-            // 2. Фильтр по группе: если в документе есть groupId
-            //    и он не совпадает с текущей — пропускаем.
-            if (data.groupId && String(data.groupId) !== String(currentGroupId)) {
-                return;
-            }
+            // 2. Фильтр по группе НЕ по groupId документа: документ
+            //    посещаемости один на дату и общий для всех групп,
+            //    а groupId в нём перезаписывается последней сохранившей
+            //    группой. Нужные студенты отбираются в pushStudentDay
+            //    по studentIdsSet (студенты текущей группы).
 
             if (!date) return;
 

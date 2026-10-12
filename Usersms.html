@@ -1073,41 +1073,44 @@ const auth = firebase.auth();
 const FieldValue = firebase.firestore.FieldValue;
 
 /* =========================================================
-   EMAILJS INIT — уведомления для администратора
+   EMAILJS — универсальная отправка получателю
 ========================================================= */
 const EMAILJS_SERVICE_ID  = "service_50x4f98";
 const EMAILJS_TEMPLATE_ID = "template_spjjzec";
 const EMAILJS_PUBLIC_KEY  = "5IMT9M0W-oaN4tnz8";
-
-/* Куда приходят уведомления о новых сообщениях */
-const ADMIN_EMAIL = "vasylkivmaksim@gmail.com";
 
 if (typeof emailjs !== "undefined") {
     emailjs.init(EMAILJS_PUBLIC_KEY);
 }
 
 /**
- * Отправляет email-уведомление администратору о новом сообщении.
- * @param {string} senderEmail - email отправителя (для Reply-To)
- * @param {string} senderName  - имя отправителя
- * @param {string} subject     - тема письма
- * @param {string} message     - текст письма
+ * Отправляет email-уведомление получателю о новом сообщении.
+ * @param {string} toEmail   - email получателя
+ * @param {string} toName    - имя получателя
+ * @param {string} fromEmail - email отправителя (Reply-To)
+ * @param {string} fromName  - имя отправителя
+ * @param {string} subject   - тема письма
+ * @param {string} message   - текст сообщения
  */
-async function sendEmailNotification(senderEmail, senderName, subject, message) {
+async function sendEmailNotification(toEmail, toName, fromEmail, fromName, subject, message) {
+    if (!toEmail) {
+        console.warn("У получателя нет email — уведомление не отправлено");
+        return;
+    }
     if (typeof emailjs === "undefined") {
         console.warn("EmailJS не загружен");
         return;
     }
     try {
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
-            to_email: ADMIN_EMAIL,
-            to_name: "Администратор",
-            name: senderName || "Пользователь",
-            email: senderEmail || ADMIN_EMAIL,
+            to_email: toEmail,
+            to_name: toName || "Пользователь",
+            name: fromName || "Пользователь",
+            email: fromEmail || toEmail,
             subject: subject || "Новое сообщение",
             message: message || "Вам пришло новое сообщение."
         });
-        console.log("✅ Уведомление админу отправлено");
+        console.log("✅ Email отправлен:", toEmail);
     } catch (e) {
         console.error("❌ Email error:", e);
     }
@@ -1185,10 +1188,13 @@ function formatDayLabel(ts){
     return d.toLocaleDateString("ru-RU", {day:"2-digit", month:"long"});
 }
 function getUser(uid){
-    return allUsers.find(u => u.uid === uid) || { uid, name:"Пользователь", role:"student" };
+    return allUsers.find(u => u.uid === uid) || { uid, name:"Пользователь", role:"student", email:"" };
 }
 function getMyName(){
     return (meData && (meData.name || meData.fullName || meData.fio)) || "Вы";
+}
+function getMyEmail(){
+    return (meData && (meData.email || meData.mail)) || "";
 }
 function avatarHtml(user, size = "msg"){
     const cls = `role-${user.role || "student"}`;
@@ -1960,21 +1966,21 @@ async function sendMessage(){
 
         await batch.commit();
 
-        /* === EMAIL УВЕДОМЛЕНИЕ АДМИНУ ===
-           Отправляем только если пишут НЕ админу (то есть админа уведомляем о сообщениях от других) */
+        /* === EMAIL УВЕДОМЛЕНИЕ ПОЛУЧАТЕЛЮ ===
+           Отправляется ВСЕГДА, независимо от ролей:
+           студент→студент, куратор→куратор, кто угодно→админ и т.д. */
         const recipient = allUsers.find(u => u.uid === currentOtherUid);
-        if(recipient && recipient.role === "admin"){
-            // никто не пишет админу — но проверим ещё раз: если получатель — админ, уведомляем его
-        }
-        // Всегда уведомляем админа о новом сообщении от пользователя (если сам админ не пишет)
-        if(myRole !== "admin"){
-            const myEmail = (meData && (meData.email || meData.mail)) || "";
+        if (recipient && recipient.email) {
             sendEmailNotification(
-                myEmail,
+                recipient.email,
+                recipient.name,
+                getMyEmail(),
                 getMyName(),
                 "Новое сообщение от " + getMyName(),
                 text
             );
+        } else {
+            console.warn("У получателя нет email — уведомление не отправлено");
         }
     } catch(e){
         console.error(e);

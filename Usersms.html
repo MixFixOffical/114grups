@@ -13,6 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script src="firebase-config.js"></script>
 
 <style>
@@ -1071,6 +1072,47 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const FieldValue = firebase.firestore.FieldValue;
 
+/* =========================================================
+   EMAILJS INIT — уведомления для администратора
+========================================================= */
+const EMAILJS_SERVICE_ID  = "service_50x4f98";
+const EMAILJS_TEMPLATE_ID = "template_spjjzec";
+const EMAILJS_PUBLIC_KEY  = "5IMT9M0W-oaN4tnz8";
+
+/* Куда приходят уведомления о новых сообщениях */
+const ADMIN_EMAIL = "vasylkivmaksim@gmail.com";
+
+if (typeof emailjs !== "undefined") {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+}
+
+/**
+ * Отправляет email-уведомление администратору о новом сообщении.
+ * @param {string} senderEmail - email отправителя (для Reply-To)
+ * @param {string} senderName  - имя отправителя
+ * @param {string} subject     - тема письма
+ * @param {string} message     - текст письма
+ */
+async function sendEmailNotification(senderEmail, senderName, subject, message) {
+    if (typeof emailjs === "undefined") {
+        console.warn("EmailJS не загружен");
+        return;
+    }
+    try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+            to_email: ADMIN_EMAIL,
+            to_name: "Администратор",
+            name: senderName || "Пользователь",
+            email: senderEmail || ADMIN_EMAIL,
+            subject: subject || "Новое сообщение",
+            message: message || "Вам пришло новое сообщение."
+        });
+        console.log("✅ Уведомление админу отправлено");
+    } catch (e) {
+        console.error("❌ Email error:", e);
+    }
+}
+
 let me = null;
 let meData = null;
 let myUid = null;
@@ -1361,7 +1403,8 @@ function startUsersListener(){
             allUsers.push({
                 uid: doc.id,
                 name: d.name || d.fullName || d.fio || "Пользователь",
-                role: normalizeRole(d.role)
+                role: normalizeRole(d.role),
+                email: d.email || d.mail || ""
             });
         });
         allUsers.sort((a,b) => a.name.localeCompare(b.name, "ru"));
@@ -1520,7 +1563,6 @@ async function openChat(chatId){
         } catch(e){ console.error("reset unread:", e); }
     }
 
-    // mark incoming as read (with limit)
     db.collection("chats").doc(chatId).collection("messages")
       .where("from", "==", currentOtherUid)
       .where("read", "==", false)
@@ -1536,7 +1578,6 @@ async function openChat(chatId){
 
     if(messagesUnsub){ messagesUnsub(); messagesUnsub = null; }
 
-    // skeleton
     showMessagesSkeleton();
 
     messagesUnsub = db.collection("chats").doc(chatId).collection("messages")
@@ -1710,11 +1751,9 @@ function renderMessages(messages){
             e.stopPropagation();
             openMsgPopup(btn.dataset.menu, btn.getBoundingClientRect());
         });
-        // Long press for mobile
         attachLongPress(btn, (rect) => openMsgPopup(btn.dataset.menu, rect));
     });
 
-    // Restore scroll
     if(wasAtBottom){
         container.scrollTop = container.scrollHeight;
     } else {
@@ -1722,7 +1761,6 @@ function renderMessages(messages){
         container.scrollTop = prevTop + delta;
     }
 
-    // typing indicator поверх
     const c = chats.find(x => x.id === currentChatId);
     if(c && c.typing) updateTypingIndicator(true);
 }
@@ -1921,6 +1959,23 @@ async function sendMessage(){
         }
 
         await batch.commit();
+
+        /* === EMAIL УВЕДОМЛЕНИЕ АДМИНУ ===
+           Отправляем только если пишут НЕ админу (то есть админа уведомляем о сообщениях от других) */
+        const recipient = allUsers.find(u => u.uid === currentOtherUid);
+        if(recipient && recipient.role === "admin"){
+            // никто не пишет админу — но проверим ещё раз: если получатель — админ, уведомляем его
+        }
+        // Всегда уведомляем админа о новом сообщении от пользователя (если сам админ не пишет)
+        if(myRole !== "admin"){
+            const myEmail = (meData && (meData.email || meData.mail)) || "";
+            sendEmailNotification(
+                myEmail,
+                getMyName(),
+                "Новое сообщение от " + getMyName(),
+                text
+            );
+        }
     } catch(e){
         console.error(e);
         showToast("Ошибка отправки: " + e.message, "error");

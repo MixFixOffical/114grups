@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2563eb" id="themeColorMeta">
+<title>Сократ сервис — мониторинг задач учебной части · ТТИиП</title>
+<meta name="description" content="Сократ сервис — сервис мониторинга выполнения задач учебной части ГОУ СПО «ТТИиП».">
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+<style>
+/* ========== TOKENS ========== */
+:root{
+  --blue:#2563eb;--blue-dark:#1d4ed8;--blue-light:#60a5fa;
+  --cyan:#06b6d4;--violet:#7c3aed;--pink:#ec4899;--emerald:#10b981;--amber:#f59e0b;--red:#ef4444;
+  --bg:#f5f8ff;--bg-elev:#ffffff;--bg-soft:#eef2ff;
+  --text:#0f172a;--text-soft:#334155;--muted:#64748b;
+  --border:rgba(37,99,235,.10);--border-strong:rgba(37,99,235,.28);
+  --surface:rgba(255,255,255,.78);
+  --shadow-sm:0 4px 14px rgba(15,23,42,.05);
+  --shadow:0 20px 60px rgba(30,64,175,.10);
+  --shadow-lg:0 30px 90px rgba(30,64,175,.18);
+  --radius:16px;--radius-lg:22px;
+  --ease-spring:cubic-bezier(.34,1.56,.64,1);--ease-out:cubic-bezier(.22,1,.36,1);
+  --gradient-brand:linear-gradient(135deg,var(--blue),var(--violet));
+  --gradient-rainbow:linear-gradient(100deg,var(--blue),var(--violet),var(--cyan),var(--pink),var(--blue));
+  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);--safe-right:env(safe-area-inset-right,0px);
+}
+[data-theme="dark"]{
+  --bg:#070b16;--bg-elev:#0d1424;--bg-soft:#131c30;--text:#f1f5f9;--text-soft:#cbd5e1;--muted:#94a3b8;
+  --border:rgba(148,163,184,.13);--border-strong:rgba(96,165,250,.38);
+  --surface:rgba(15,23,42,.72);
+  --shadow-sm:0 4px 14px rgba(0,0,0,.35);--shadow:0 20px 60px rgba(0,0,0,.45);--shadow-lg:0 30px 90px rgba(0,0,0,.55);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:"Inter",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;
+  -webkit-font-smoothing:antialiased;transition:background .4s,color .4s}
+a{color:inherit;text-decoration:none}
+button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
+ul{list-style:none}
+img,svg{max-width:100%}
+::selection{background:rgba(37,99,235,.25)}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(100,116,139,.35);border-radius:10px;border:2px solid var(--bg)}
+::-webkit-scrollbar-thumb:hover{background:rgba(100,116,139,.55)}
+
+/* ========== LAYOUT: SIDEBAR + MAIN ========== */
+.app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
+
+/* ---------- SIDEBAR ---------- */
+.sidebar{
+  background:var(--bg-elev);border-right:1px solid var(--border);
+  padding:calc(18px + var(--safe-top)) 14px 18px;display:flex;flex-direction:column;gap:6px;
+  position:sticky;top:0;height:100vh;overflow-y:auto;transition:background .4s
+}
+.side-brand{display:flex;align-items:center;gap:12px;padding:6px 8px 18px;border-bottom:1px solid var(--border);margin-bottom:8px}
+.side-brand-logo{width:42px;height:42px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:#fff;font:800 13px "Manrope",sans-serif;background:var(--gradient-brand);box-shadow:0 8px 20px rgba(37,99,235,.25);flex-shrink:0}
+.side-brand-txt strong{display:block;font:800 14px/1.1 "Manrope",sans-serif}
+.side-brand-txt span{color:var(--muted);font-size:11px;margin-top:2px;display:block}
+
+.nav-group{margin-top:10px}
+.nav-group-title{font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);padding:8px 12px 6px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;font-size:13.5px;font-weight:600;color:var(--text-soft);transition:.2s;cursor:pointer;position:relative}
+.nav-item svg{width:18px;height:18px;flex-shrink:0;stroke-width:2}
+.nav-item:hover{background:rgba(37,99,235,.07);color:var(--blue)}
+.nav-item.active{background:var(--gradient-brand);color:#fff;box-shadow:0 6px 16px rgba(37,99,235,.28)}
+.nav-item .nav-badge{margin-left:auto;font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:8px;background:rgba(239,68,68,.15);color:var(--red)}
+.nav-item.active .nav-badge{background:rgba(255,255,255,.25);color:#fff}
+.nav-item .nav-badge.soft{background:rgba(37,99,235,.1);color:var(--blue)}
+
+.side-footer{margin-top:auto;padding-top:14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.side-user-avatar{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--violet),var(--pink));color:#fff;display:flex;align-items:center;justify-content:center;font:800 13px "Manrope",sans-serif;flex-shrink:0}
+.side-user-txt{min-width:0}
+.side-user-txt strong{display:block;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-user-txt span{display:block;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.side-logout{margin-left:auto;width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:.2s}
+.side-logout:hover{background:rgba(239,68,68,.1);color:var(--red)}
+
+/* ---------- MAIN ---------- */
+.main{min-width:0;display:flex;flex-direction:column}
+
+/* ---------- TOPBAR ---------- */
+.topbar{
+  position:sticky;top:0;z-index:50;background:var(--surface);backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);
+  padding:calc(12px + var(--safe-top)) 28px 12px;
+  display:flex;align-items:center;gap:14px;flex-wrap:wrap
+}
+.burger{display:none;width:38px;height:38px;border-radius:11px;background:rgba(37,99,235,.07);align-items:center;justify-content:center}
+.burger span{display:block;width:18px;height:2px;background:var(--blue);border-radius:2px;position:relative}
+.burger span::before,.burger span::after{content:"";position:absolute;left:0;width:18px;height:2px;background:var(--blue);border-radius:2px}
+.burger span::before{top:-6px}.burger span::after{top:6px}
+
+.topbar-title{font:800 18px/1.2 "Manrope",sans-serif;letter-spacing:-.4px}
+.topbar-title small{display:block;color:var(--muted);font-weight:600;font-size:12px;letter-spacing:0;margin-top:2px}
+.topbar-search{flex:1;min-width:220px;max-width:440px;display:flex;align-items:center;gap:10px;padding:0 14px;border-radius:12px;background:var(--bg-elev);border:1px solid var(--border);transition:.2s}
+.topbar-search:focus-within{border-color:var(--blue);box-shadow:0 0 0 4px rgba(37,99,235,.12)}
+.topbar-search svg{width:16px;height:16px;color:var(--muted);flex-shrink:0}
+.topbar-search input{flex:1;border:none;background:transparent;color:var(--text);font:500 13.5px "Inter",sans-serif;padding:11px 0;outline:none}
+.topbar-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.icon-btn{width:38px;height:38px;border-radius:11px;border:1px solid var(--border);background:var(--bg-elev);color:var(--text-soft);display:flex;align-items:center;justify-content:center;transition:.25s var(--ease-spring);position:relative}
+.icon-btn:hover{color:var(--blue);border-color:var(--border-strong);transform:translateY(-1px)}
+.icon-btn svg{width:18px;height:18px}
+.icon-btn .dot{position:absolute;top:8px;right:8px;width:7px;height:7px;border-radius:50%;background:var(--red);border:2px solid var(--bg-elev)}
+.theme-toggle .moon{display:none}
+[data-theme="dark"] .theme-toggle .sun{display:none}
+[data-theme="dark"] .theme-toggle .moon{display:block}
+.btn-primary{
+  display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:11px;color:#fff;font-weight:700;font-size:13.5px;
+  background:var(--gradient-brand);background-size:200% 200%;box-shadow:0 8px 20px rgba(37,99,235,.25);transition:.25s var(--ease-spring)
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(37,99,235,.4);background-position:100% 0}
+.btn-primary svg{width:16px;height:16px}
+.btn-ghost{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:11px;background:var(--bg-elev);border:1px solid var(--border);color:var(--text-soft);font-weight:600;font-size:13px;transition:.2s}
+.btn-ghost:hover{border-color:var(--border-strong);color:var(--blue)}
+.btn-ghost svg{width:15px;height:15px}
+
+/* ---------- CONTENT ---------- */
+.content{padding:24px 28px 60px;max-width:1500px;width:100%;margin:0 auto}
+
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.page-title{font:800 clamp(22px,3vw,30px)/1.15 "Manrope",sans-serif;letter-spacing:-.8px}
+.page-sub{color:var(--muted);font-size:13.5px;margin-top:6px}
+.page-head-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ---------- FILTER BAR ---------- */
+.filterbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 14px;background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);margin-bottom:20px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:10px;font-size:12.5px;font-weight:600;color:var(--text-soft);background:var(--bg-soft);border:1px solid transparent;transition:.2s;cursor:pointer}
+.chip:hover{border-color:var(--border-strong);color:var(--blue)}
+.chip.active{background:var(--gradient-brand);color:#fff;box-shadow:0 6px 14px rgba(37,99,235,.25)}
+.chip .num{font-weight:800;opacity:.75;font-size:11px}
+.filterbar .divider{width:1px;height:22px;background:var(--border);margin:0 4px}
+.filterbar .spacer{flex:1}
+
+/* ---------- KPI GRID ---------- */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi{
+  position:relative;overflow:hidden;background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);
+  padding:18px 18px 16px;box-shadow:var(--shadow-sm);transition:.35s var(--ease-spring);cursor:pointer
+}
+.kpi:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--border-strong)}
+.kpi::after{content:"";position:absolute;right:-40px;top:-40px;width:120px;height:120px;border-radius:50%;background:rgba(37,99,235,.05);pointer-events:none}
+.kpi-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.kpi-label{color:var(--muted);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px}
+.kpi-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:17px;background:rgba(37,99,235,.09);color:var(--blue);flex-shrink:0}
+.kpi.blue .kpi-icon{background:rgba(37,99,235,.11);color:var(--blue)}
+.kpi.green .kpi-icon{background:rgba(16,185,129,.13);color:var(--emerald)}
+.kpi.red .kpi-icon{background:rgba(239,68,68,.13);color:var(--red)}
+.kpi.amber .kpi-icon{background:rgba(245,158,11,.15);color:var(--amber)}
+.kpi-value{font:800 clamp(26px,3.2vw,36px)/1 "Manrope",sans-serif;letter-spacing:-1px}
+.kpi-value small{font-size:15px;color:var(--muted);font-weight:700;letter-spacing:0;margin-left:4px}
+.kpi-meta{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:12px;color:var(--muted)}
+.trend{display:inline-flex;align-items:center;gap:3px;font-weight:800;padding:3px 7px;border-radius:8px;font-size:11px}
+.trend.up{background:rgba(16,185,129,.13);color:#059669}
+.trend.down{background:rgba(239,68,68,.13);color:#dc2626}
+.trend.flat{background:rgba(100,116,139,.13);color:var(--muted)}
+.kpi.blue .kpi-value{background:linear-gradient(135deg,var(--blue),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi.green .kpi-value{background:linear-gradient(135deg,var(--emerald),var(--cyan));-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi.red .kpi-value{background:linear-gradient(135deg,var(--red),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+.kpi.amber .kpi-value{background:linear-gradient(135deg,var(--amber),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+
+/* ---------- GRID 2 COL ---------- */
+.grid-2{display:grid;grid-template-columns:1.5fr 1fr;gap:16px;margin-bottom:22px}
+.grid-2.equal{grid-template-columns:1fr 1fr}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:22px}
+
+.panel{background:var(--bg-elev);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px 12px;flex-wrap:wrap}
+.panel-title{font:800 15.5px/1.2 "Manrope",sans-serif;letter-spacing:-.2px;display:flex;align-items:center;gap:10px}
+.panel-title .tag-count{font-size:11px;font-weight:800;padding:3px 8px;border-radius:8px;background:rgba(37,99,235,.1);color:var(--blue);letter-spacing:0}
+.panel-title .tag-count.red{background:rgba(239,68,68,.13);color:var(--red)}
+.panel-sub{color:var(--muted);font-size:12px;margin-top:3px;display:block;font-weight:500}
+.panel-actions{display:flex;gap:6px;align-items:center}
+.panel-actions a,.panel-actions button{font-size:12.5px;font-weight:700;color:var(--blue);padding:6px 10px;border-radius:9px;transition:.2s}
+.panel-actions a:hover,.panel-actions button:hover{background:rgba(37,99,235,.08)}
+.panel-body{padding:0 18px 18px;flex:1}
+
+/* ---------- STATUS BREAKDOWN ---------- */
+.status-bars{display:flex;flex-direction:column;gap:12px}
+.status-row{display:grid;grid-template-columns:140px 1fr 54px;align-items:center;gap:12px}
+.status-row .name{font-size:13px;font-weight:600;color:var(--text-soft);display:flex;align-items:center;gap:8px}
+.status-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.status-track{height:10px;border-radius:6px;background:var(--bg-soft);overflow:hidden;position:relative}
+.status-fill{height:100%;border-radius:6px;transition:width 1s var(--ease-out)}
+.status-row .val{text-align:right;font:800 13.5px "Manrope",sans-serif;color:var(--text)}
+.s-новая{background:linear-gradient(90deg,#60a5fa,#2563eb)}
+.s-в-работе{background:linear-gradient(90deg,#a78bfa,#7c3aed)}
+.s-на-приёмке{background:linear-gradient(90deg,#fbbf24,#f59e0b)}
+.s-на-доработке{background:linear-gradient(90deg,#fb923c,#ea580c)}
+.s-выполнена{background:linear-gradient(90deg,#34d399,#10b981)}
+.s-отменена{background:linear-gradient(90deg,#94a3b8,#64748b)}
+
+/* ---------- OVERDUE LIST ---------- */
+.list{display:flex;flex-direction:column}
+.list-item{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:12px 0;border-bottom:1px dashed var(--border);cursor:pointer;transition:.2s}
+.list-item:last-child{border-bottom:none}
+.list-item:hover{padding-left:6px}
+.prio{width:6px;align-self:stretch;border-radius:4px;background:var(--muted);flex-shrink:0}
+.prio.low{background:#94a3b8}.prio.normal{background:#60a5fa}.prio.high{background:#f59e0b}.prio.crit{background:#ef4444}
+.li-main{min-width:0}
+.li-title{font-size:13.5px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical}
+.li-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:5px;font-size:11.5px;color:var(--muted)}
+.li-meta .tag{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:7px;background:var(--bg-soft);font-weight:600;font-size:11px}
+.tag.overdue{background:rgba(239,68,68,.13);color:#dc2626}
+.tag.today{background:rgba(245,158,11,.15);color:#b45309}
+.tag.soon{background:rgba(37,99,235,.1);color:var(--blue)}
+.li-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.li-avatar{width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,var(--violet),var(--pink));color:#fff;display:flex;align-items:center;justify-content:center;font:800 11.5px "Manrope",sans-serif}
+.li-deadline{font:800 12px "JetBrains Mono",monospace;color:var(--muted);white-space:nowrap}
+.li-deadline.overdue{color:var(--red)}
+
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:40px 20px;color:var(--muted);text-align:center}
+.empty-state .emoji{font-size:32px;opacity:.6}
+.empty-state p{font-size:13px}
+
+/* ---------- DEPARTMENT RATING ---------- */
+.rating{display:flex;flex-direction:column;gap:14px}
+.rating-row{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center}
+.rating-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.rating-name{font-size:13px;font-weight:600;color:var(--text-soft)}
+.rating-pct{font:800 14px "Manrope",sans-serif;color:var(--text)}
+.rating-track{height:8px;border-radius:6px;background:var(--bg-soft);overflow:hidden}
+.rating-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--emerald),var(--cyan));transition:width 1s var(--ease-out)}
+.rating-fill.warn{background:linear-gradient(90deg,var(--amber),#f97316)}
+.rating-fill.bad{background:linear-gradient(90deg,var(--red),var(--pink))}
+.rating-meta{font-size:11.5px;color:var(--muted);margin-top:5px}
+
+/* ---------- WEEK CALENDAR ---------- */
+.week{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.week-day{background:var(--bg-soft);border-radius:12px;padding:10px 8px;text-align:center;min-height:90px;display:flex;flex-direction:column;gap:5px}
+.week-day .dname{font-size:10.5px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.week-day .dnum{font:800 16px "Manrope",sans-serif;color:var(--text)}
+.week-day.today{background:var(--gradient-brand);color:#fff}
+.week-day.today .dname,.week-day.today .dnum{color:#fff}
+.week-day .dcount{margin-top:auto;font-size:11px;font-weight:700;padding:3px 6px;border-radius:8px;background:rgba(37,99,235,.1);color:var(--blue)}
+.week-day.today .dcount{background:rgba(255,255,255,.25);color:#fff}
+.week-day .dcount.zero{background:transparent;color:var(--muted)}
+
+/* ---------- LOAD BARS (employees) ---------- */
+.load-list{display:flex;flex-direction:column;gap:11px}
+.load-row{display:grid;grid-template-columns:36px 1fr auto;gap:10px;align-items:center}
+.load-avatar{width:36px;height:36px;border-radius:11px;background:linear-gradient(135deg,var(--blue),var(--violet));color:#fff;display:flex;align-items:center;justify-content:center;font:800 12px "Manrope",sans-serif;flex-shrink:0}
+.load-info{min-width:0}
+.load-name{font-size:12.5px;font-weight:700;display:flex;justify-content:space-between;gap:8px}
+.load-name span:last-child{color:var(--muted);font-weight:600;font-size:11.5px}
+.load-track{height:6px;border-radius:6px;background:var(--bg-soft);overflow:hidden;margin-top:5px}
+.load-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,var(--blue),var(--cyan));transition:width 1s var(--ease-out)}
+.load-fill.high{background:linear-gradient(90deg,var(--amber),var(--red))}
+.load-count{font:800 13px "Manrope",sans-serif;color:var(--text-soft)}
+
+/* ---------- TREND CHART (SVG fake) ---------- */
+.chart-wrap{position:relative;padding:8px 0}
+.chart-wrap svg{width:100%;height:auto;display:block}
+.chart-legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;font-size:12px;color:var(--muted)}
+.chart-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:middle}
+
+/* ---------- NOTIFICATION CARD ---------- */
+.notice{display:flex;gap:12px;padding:12px;border-radius:12px;background:var(--bg-soft);border:1px solid var(--border);margin-bottom:10px;cursor:pointer;transition:.2s}
+.notice:hover{border-color:var(--border-strong);background:rgba(37,99,235,.05)}
+.notice-icon{width:34px;height:34px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:16px;background:rgba(37,99,235,.1);color:var(--blue)}
+.notice-icon.red{background:rgba(239,68,68,.13);color:var(--red)}
+.notice-icon.amber{background:rgba(245,158,11,.15);color:var(--amber)}
+.notice-icon.green{background:rgba(16,185,129,.13);color:var(--emerald)}
+.notice-body{min-width:0}
+.notice-body strong{display:block;font-size:13px;font-weight:700}
+.notice-body p{font-size:12px;color:var(--muted);margin-top:3px;line-height:1.5}
+.notice-time{font-size:11px;color:var(--muted);margin-top:5px;display:block}
+
+/* ---------- FOOTER ---------- */
+.foot{padding:22px 28px calc(22px + var(--safe-bottom));border-top:1px solid var(--border);color:var(--muted);font-size:12px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+.foot a{color:var(--blue);font-weight:600}
+
+/* ---------- MOBILE ---------- */
+.overlay{display:none;position:fixed;inset:0;background:rgba(15,23,42,.5);z-index:80;backdrop-filter:blur(2px)}
+.overlay.show{display:block}
+
+@media(max-width:1180px){
+  .kpi-grid{grid-template-columns:repeat(2,1fr)}
+  .grid-2{grid-template-columns:1fr}
+  .grid-3{grid-template-columns:1fr 1fr}
+}
+@media(max-width:900px){
+  .app{grid-template-columns:1fr}
+  .sidebar{position:fixed;left:0;top:0;bottom:0;width:270px;z-index:90;transform:translateX(-100%);transition:transform .3s var(--ease-out);height:100vh}
+  .sidebar.open{transform:translateX(0);box-shadow:0 0 60px rgba(0,0,0,.4)}
+  .burger{display:flex}
+  .content{padding:18px 16px 50px}
+  .topbar{padding:calc(10px + var(--safe-top)) 16px 10px}
+  .grid-3{grid-template-columns:1fr}
+  .week{grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:560px){
+  .kpi-grid{grid-template-columns:1fr 1fr;gap:10px}
+  .kpi{padding:14px}
+  .kpi-value{font-size:24px}
+  .kpi-label{font-size:10.5px}
+  .topbar-search{display:none}
+  .topbar-title small{display:none}
+  .page-head-actions{width:100%}
+  .page-head-actions button{flex:1;justify-content:center}
+  .status-row{grid-template-columns:110px 1fr 44px;gap:8px}
+  .week{grid-template-columns:repeat(3,1fr)}
+  .li-right .li-deadline{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="side-brand">
+      <div class="side-brand-logo">С</div>
+      <div class="side-brand-txt">
+        <strong>Сократ сервис</strong>
+        <span>ГОУ СПО «ТТИиП»</span>
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title">Работа</div>
+      <div class="nav-item active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+        Дашборд
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Мои задачи
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+        Список задач
+        <span class="nav-badge">148</span>
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="18"/><rect x="10" y="3" width="6" height="12"/><rect x="17" y="3" width="4" height="9"/></svg>
+        Kanban
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Календарь
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+        Гант
+      </div>
+    </div>
+
+    <div class="nav-group">
+      <div class="nav-group-title">Управление</div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+        Шаблоны и повторы
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="M9 15h6"/><path d="M9 11h6"/></svg>
+        Отчёты и экспорт
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        Сотрудники и оргструктура
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Справочники и настройки
+      </div>
+      <div class="nav-item">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Журнал действий
+      </div>
+    </div>
+
+    <div class="side-footer">
+      <div class="side-user-avatar">ГЛ</div>
+      <div class="side-user-txt">
+        <strong>Гончарук Л. И.</strong>
+        <span>Зам. по УР</span>
+      </div>
+      <a href="../index.html" class="side-logout" title="Выйти на сайт техникума" aria-label="Выйти на сайт техникума">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </a>
+    </div>
+  </aside>
+  <div class="overlay" id="overlay"></div>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+
+    <!-- TOPBAR -->
+    <div class="topbar">
+      <button class="burger" id="burger" aria-label="Меню"><span></span></button>
+      <div class="topbar-title">
+        Дашборд руководителя
+        <small>Семестр II · 2025–2026 учебный год</small>
+      </div>
+
+      <label class="topbar-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="search" id="globalSearch" placeholder="Поиск по задачам, сотрудникам, комментариям…" aria-label="Поиск">
+      </label>
+
+      <div class="topbar-actions">
+        <button class="icon-btn theme-toggle" id="themeToggle" type="button" aria-label="Переключить тему">
+          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+          <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </button>
+        <button class="icon-btn" id="notifBtn" type="button" aria-label="Уведомления">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="dot"></span>
+        </button>
+        <button class="btn-primary" id="newTaskBtn" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Новая задача
+        </button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content">
+
+      <!-- HEAD -->
+      <div class="page-head">
+        <div>
+          <h1 class="page-title">Сводка исполнения задач</h1>
+          <p class="page-sub">
+            Данные на <strong id="todayDate">—</strong> · исполнителей: <strong>64</strong> · подразделений: <strong>9</strong>
+            · K-01: <strong id="kpiK01Inline">—</strong> закрыто в срок
+          </p>
+        </div>
+        <div class="page-head-actions">
+          <button class="btn-ghost" id="exportXlsx" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            XLSX
+          </button>
+          <button class="btn-ghost" id="exportPdf" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            PDF
+          </button>
+          <button class="btn-ghost" id="exportDocx" type="button">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="13" y2="17"/></svg>
+            Справка педсовета
+          </button>
+        </div>
+      </div>
+
+      <!-- FILTERS -->
+      <div class="filterbar" role="tablist" aria-label="Фильтры">
+        <button class="chip active" data-filter="all">Все <span class="num" id="chipAll">0</span></button>
+        <button class="chip" data-filter="overdue">🔴 Просрочено <span class="num" id="chipOverdue">0</span></button>
+        <button class="chip" data-filter="today">Сегодня <span class="num" id="chipToday">0</span></button>
+        <button class="chip" data-filter="week">На этой неделе <span class="num" id="chipWeek">0</span></button>
+        <div class="divider"></div>
+        <select class="chip" id="deptFilter" aria-label="Подразделение">
+          <option value="">Все отделения</option>
+          <option>ИТ-отделение</option>
+          <option>Юридическое отделение</option>
+          <option>Экономическое отделение</option>
+          <option>Общеобразовательные дисциплины</option>
+          <option>Учебная часть</option>
+        </select>
+        <div class="spacer"></div>
+        <button class="chip" id="savedFilters">🔖 Мои фильтры</button>
+      </div>
+
+      <!-- KPI GRID -->
+      <div class="kpi-grid" id="kpiGrid">
+        <div class="kpi blue" data-kpi="total" tabindex="0">
+          <div class="kpi-head">
+            <span class="kpi-label">Всего задач</span>
+            <span class="kpi-icon">📋</span>
+          </div>
+          <div class="kpi-value" id="kpiTotal">0</div>
+          <div class="kpi-meta">
+            <span class="trend flat" id="kpiTotalTrend">—</span>
+            <span>за текущий семестр</span>
+          </div>
+        </div>
+
+        <div class="kpi green" data-kpi="ontime" tabindex="0">
+          <div class="kpi-head">
+            <span class="kpi-label">Закрыто в срок</span>
+            <span class="kpi-icon">✅</span>
+          </div>
+          <div class="kpi-value" id="kpiOntime">0<small>%</small></div>
+          <div class="kpi-meta">
+            <span class="trend up" id="kpiOntimeTrend">▲ 3 п.п.</span>
+            <span>K-01: цель ≥ 90%</span>
+          </div>
+        </div>
+
+        <div class="kpi red" data-kpi="overdue" tabindex="0">
+          <div class="kpi-head">
+            <span class="kpi-label">Просрочено</span>
+            <span class="kpi-icon">⏰</span>
+          </div>
+          <div class="kpi-value" id="kpiOverdue">0</div>
+          <div class="kpi-meta">
+            <span class="trend down" id="kpiOverdueTrend">▲ 4</span>
+            <span>к прошлой неделе</span>
+          </div>
+        </div>
+
+        <div class="kpi amber" data-kpi="week" tabindex="0">
+          <div class="kpi-head">
+            <span class="kpi-label">Срок на этой неделе</span>
+            <span class="kpi-icon">📅</span>
+          </div>
+          <div class="kpi-value" id="kpiWeek">0</div>
+          <div class="kpi-meta">
+            <span>из них критичных: <strong id="kpiWeekCrit">0</strong></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW: OVERDUE + STATUS BREAKDOWN -->
+      <div class="grid-2">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">
+                🔴 Просроченные задачи
+                <span class="tag-count red" id="overdueCount">0</span>
+              </div>
+              <span class="panel-sub">Требуют вмешательства заместителя директора по УР</span>
+            </div>
+            <div class="panel-actions">
+              <button type="button" id="overdueExpand">Развернуть</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="list" id="overdueList"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">
+                📊 Задачи по статусам
+                <span class="tag-count" id="statusCount">0</span>
+              </div>
+              <span class="panel-sub">Жизненный цикл FR-020 · 6 статусов</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="status-bars" id="statusBars"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ROW: RATING + WEEK CALENDAR -->
+      <div class="grid-2 equal">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">🏆 Исполнение в срок по подразделениям</div>
+              <span class="panel-sub">FR-041 · цель K-01 ≥ 90%</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="rating" id="deptRating"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">📅 Задачи на текущей неделе</div>
+              <span class="panel-sub">Сроки по дням · клик по дню — фильтр</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="week" id="weekGrid"></div>
+          </div>
+        </section>
+      </div>
+
+      <!-- ROW: EMPLOYEES LOAD + TREND + NOTICES -->
+      <div class="grid-3">
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">👥 Загрузка сотрудников</div>
+              <span class="panel-sub">Открытых задач на исполнителя</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="load-list" id="loadList"></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">📈 Динамика закрытия задач</div>
+              <span class="panel-sub">За семестр · понедельно</span>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div class="chart-wrap" id="trendChart"></div>
+            <div class="chart-legend">
+              <span><i style="background:linear-gradient(135deg,#2563eb,#7c3aed)"></i>Закрыто</span>
+              <span><i style="background:linear-gradient(135deg,#f59e0b,#ef4444)"></i>Просрочено</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">🔔 Уведомления</div>
+              <span class="panel-sub">FR-050…FR-053</span>
+            </div>
+          </div>
+          <div class="panel-body" id="notifList"></div>
+        </section>
+      </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="foot">
+      <div>© <span id="year"></span> Сократ сервис · ГОУ СПО «ТТИиП» · версия 1.0 (MVP)</div>
+      <div>
+        <a href="../index.html">← На главную сайта</a> ·
+        <a href="#" onclick="return false;">Инструкция пользователя</a> ·
+        <a href="mailto:info@ttiip.ru">Поддержка</a>
+      </div>
+    </footer>
+  </div>
+</div>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ================== MOCK DATA ================== */
+  // Просроченные задачи
+  var OVERDUE = [
+    { id:1, title:'Сдать КТП по дисциплине «Информатика» на II семестр', dept:'ИТ-отделение', assignee:'Балашова Ю. В.', deadline:'2026-10-08', priority:'high',   class:'Планирующая документация', daysOverdue:4 },
+    { id:2, title:'Отчёт о методической работе ЦМК за сентябрь',       dept:'Общеобразовательные дисциплины', assignee:'Шеханин Е. А.', deadline:'2026-10-09', priority:'critical',class:'Методическая работа',          daysOverdue:3 },
+    { id:3, title:'Список студентов на ликвидацию задолженностей',     dept:'Учебная часть',     assignee:'Гончарук Л. И.', deadline:'2026-10-06', priority:'high',   class:'Учебная документация',        daysOverdue:6 },
+    { id:4, title:'Заполнить ведомости промежуточной аттестации',      dept:'Юридическое отделение', assignee:'Немченко Т. И.', deadline:'2026-10-10', priority:'normal', class:'Аттестация',                  daysOverdue:2 },
+    { id:5, title:'Согласовать график открытых уроков',                dept:'ИТ-отделение',      assignee:'Белоус Е. Г.',   deadline:'2026-10-05', priority:'high',   class:'Методическая работа',          daysOverdue:7 },
+    { id:6, title:'Обновить рабочие программы по 3 дисциплинам',       dept:'Экономическое отделение', assignee:'Романенко Н. Б.', deadline:'2026-10-11', priority:'normal', class:'Планирующая документация', daysOverdue:1 }
+  ];
+
+  // Статусы
+  var STATUS = [
+    { key:'Новая',        val:14, cls:'s-новая' },
+    { key:'В работе',     val:63, cls:'s-в-работе' },
+    { key:'На приёмке',   val:12, cls:'s-на-приёмке' },
+    { key:'На доработке', val:8,  cls:'s-на-доработке' },
+    { key:'Выполнена',    val:47, cls:'s-выполнена' },
+    { key:'Отменена',     val:4,  cls:'s-отменена' }
+  ];
+
+  // Рейтинг отделений
+  var DEPTS = [
+    { name:'ИТ-отделение',                  total:62, ontime:58, pct:94 },
+    { name:'Юридическое отделение',         total:41, ontime:37, pct:90 },
+    { name:'Экономическое отделение',       total:22, ontime:19, pct:86 },
+    { name:'Общеобразовательные дисциплины',total:38, ontime:31, pct:82 },
+    { name:'Учебная часть',                 total:17, ontime:12, pct:71 }
+  ];
+
+  // Загрузка сотрудников
+  var LOAD = [
+    { name:'Гончарук Л. И.', role:'Зам. по УР',        open:12, max:15 },
+    { name:'Белоус Е. Г.',   role:'Зав. ИТ-отделением', open:9,  max:12 },
+    { name:'Немченко Т. И.', role:'Преподаватель',     open:7,  max:10 },
+    { name:'Шеханин Е. А.',  role:'Преподаватель',     open:6,  max:10 },
+    { name:'Патеров С. Г.',  role:'Преподаватель',     open:5,  max:10 },
+    { name:'Романенко Н. Б.',role:'Преподаватель',     open:3,  max:10 }
+  ];
+
+  // Неделя
+  var WEEK = [
+    { d:'Пн', n:13, count:5, iso:'2026-10-12' },
+    { d:'Вт', n:14, count:3, iso:'2026-10-13' },
+    { d:'Ср', n:15, count:7, iso:'2026-10-14' },
+    { d:'Чт', n:16, count:2, iso:'2026-10-15' },
+    { d:'Пт', n:17, count:6, iso:'2026-10-16' },
+    { d:'Сб', n:18, count:1, iso:'2026-10-17' },
+    { d:'Вс', n:19, count:0, iso:'2026-10-18' }
+  ];
+
+  // Динамика (закрыто/просрочено по неделям семестра)
+  var TREND = {
+    labels:['1','2','3','4','5','6','7','8'],
+    closed:[12,18,22,27,31,38,44,49],
+    overdue:[5,4,6,3,4,2,3,1]
+  };
+
+  // Уведомления
+  var NOTIF = [
+    { type:'red',   icon:'⏰', title:'Задача просрочена', body:'«Сдать КТП по информатике» — исполнитель Балашова Ю. В., срок 08.10, просрочка 4 дня.', time:'5 минут назад' },
+    { type:'amber', icon:'🔔', title:'Напоминание: срок через 3 дня', body:'«Отчёт о методической работе ЦМК» — срок 15.10. Уведомление отправлено по email.', time:'1 час назад' },
+    { type:'green', icon:'✅', title:'Задача принята', body:'Зам. по УР приняла «График открытых уроков» от Белоус Е. Г.', time:'3 часа назад' },
+    { type:'blue',  icon:'➕', title:'Новая задача', body:'Вам назначена задача «Проверить журналы групп 1 курса» — срок 20.10.', time:'вчера' },
+    { type:'red',   icon:'⚠️', title:'Эскалация', body:'Просрочка по «Список на ликвидацию задолженностей» превысила 2 рабочих дня — уведомлён руководитель.', time:'вчера' }
+  ];
+
+  /* ================== UTILS ================== */
+  var $ = function(s,r){ return (r||document).querySelector(s); };
+  var $$ = function(s,r){ return Array.prototype.slice.call((r||document).querySelectorAll(s)); };
+  var esc = function(s){ return String(s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); };
+  var storage = {
+    get:function(k){ try{return localStorage.getItem(k);}catch(e){return null;} },
+    set:function(k,v){ try{localStorage.setItem(k,v);}catch(e){} }
+  };
+
+  /* ================== THEME ================== */
+  (function(){
+    var saved = storage.get('sokrat-theme');
+    var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.documentElement.setAttribute('data-theme', saved || (dark ? 'dark' : 'light'));
+  })();
+  $('#themeToggle').addEventListener('click', function(){
+    var next = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    storage.set('sokrat-theme', next);
+  });
+
+  /* ================== DATE ================== */
+  var now = new Date();
+  var fmt = function(d){ return d.toLocaleDateString('ru-RU',{day:'2-digit',month:'long',year:'numeric'}); };
+  $('#todayDate').textContent = fmt(now);
+  $('#year').textContent = now.getFullYear();
+
+  /* ================== KPI ================== */
+  var totalTasks = STATUS.reduce(function(s,x){return s+x.val;},0);
+  var closed = STATUS.find(function(s){return s.key==='Выполнена';}).val;
+  var ontime = 47; // из 52 закрытых
+  var ontimePct = Math.round(ontime / closed * 100);
+  var overdueCount = OVERDUE.length + 6; // чуть больше на дашборде
+  var weekCount = WEEK.reduce(function(s,d){return s+d.count;},0);
+
+  var setNum = function(el,val,sufix){
+    var start = performance.now(), dur = 900;
+    function step(t){
+      var p = Math.min((t-start)/dur,1);
+      var v = Math.round(val * (1-Math.pow(1-p,3)));
+      el.textContent = v + (sufix||'');
+      if(p<1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  };
+  setNum($('#kpiTotal'), totalTasks);
+  setNum($('#kpiOntime'), ontimePct, '%');
+  setNum($('#kpiOverdue'), overdueCount);
+  setNum($('#kpiWeek'), weekCount);
+  $('#kpiWeekCrit').textContent = 2;
+  $('#kpiK01Inline').textContent = ontimePct + '%';
+  $('#kpiOntimeTrend').textContent = '▲ 3 п.п.';
+  $('#kpiTotalTrend').textContent = '+18';
+  $('#kpiOverdueTrend').textContent = '▲ 4';
+
+  /* ================== CHIPS / FILTERS ================== */
+  var chipAll = $('#chipAll'), chipOverdue = $('#chipOverdue'), chipToday = $('#chipToday'), chipWeek = $('#chipWeek');
+  chipAll.textContent = totalTasks;
+  chipOverdue.textContent = overdueCount;
+  chipToday.textContent = 4;
+  chipWeek.textContent = weekCount;
+
+  var activeFilter = 'all';
+  $$('.filterbar .chip[data-filter]').forEach(function(b){
+    b.addEventListener('click', function(){
+      $$('.filterbar .chip[data-filter]').forEach(function(x){x.classList.remove('active');});
+      b.classList.add('active');
+      activeFilter = b.getAttribute('data-filter');
+      renderOverdue();
+    });
+  });
+  $('#deptFilter').addEventListener('change', renderOverdue);
+  $('#savedFilters').addEventListener('click', function(){
+    alert('Наборы фильтров пользователя (FR-035) — раздел в разработке.');
+  });
+
+  /* ================== OVERDUE LIST ================== */
+  function renderOverdue(){
+    var box = $('#overdueList');
+    var dept = $('#deptFilter').value;
+    var list = OVERDUE.slice();
+    if(dept) list = list.filter(function(t){return t.dept===dept;});
+    if(activeFilter==='today')  list = [];
+    if(activeFilter==='week')   list = list.slice(0,4);
+    if(activeFilter==='all')    list = list.slice(0,6);
+
+    if(!list.length){
+      box.innerHTML = '<div class="empty-state"><div class="emoji">🎉</div><p>Просроченных задач нет — отличная работа!</p></div>';
+      return;
+    }
+    box.innerHTML = list.map(function(t){
+      var ini = t.assignee.split(' ').map(function(w){return w[0];}).slice(0,2).join('');
+      return '<div class="list-item" data-id="'+t.id+'">'+
+        '<span class="prio '+t.priority+'"></span>'+
+        '<div class="li-main">'+
+          '<div class="li-title">'+esc(t.title)+'</div>'+
+          '<div class="li-meta">'+
+            '<span class="tag overdue">⏰ просрочено '+t.daysOverdue+' дн.</span>'+
+            '<span>'+esc(t.dept)+'</span>'+
+            '<span>· '+esc(t.class)+'</span>'+
+          '</div>'+
+        '</div>'+
+        '<div class="li-right">'+
+          '<span class="li-avatar" title="'+esc(t.assignee)+'">'+ini+'</span>'+
+          '<span class="li-deadline overdue">'+new Date(t.deadline).toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})+'</span>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    $$('.list-item', box).forEach(function(el){
+      el.addEventListener('click', function(){
+        alert('Открытие карточки задачи #' + el.getAttribute('data-id') + ' (FR-030).');
+      });
+    });
+  }
+  renderOverdue();
+  $('#overdueCount').textContent = overdueCount;
+  $('#overdueExpand').addEventListener('click', function(){
+    activeFilter = 'all';
+    $('#deptFilter').value = '';
+    renderOverdue();
+  });
+
+  /* ================== STATUS BARS ================== */
+  (function(){
+    var box = $('#statusBars');
+    var max = Math.max.apply(null, STATUS.map(function(s){return s.val;}));
+    box.innerHTML = STATUS.map(function(s){
+      var pct = Math.round(s.val/max*100);
+      return '<div class="status-row">'+
+        '<span class="name"><i class="status-dot '+s.cls+'" style="background:'+getComputedStyleColor(s.cls)+'"></i>'+s.key+'</span>'+
+        '<span class="status-track"><span class="status-fill '+s.cls+'" style="width:'+pct+'%"></span></span>'+
+        '<span class="val">'+s.val+'</span>'+
+      '</div>';
+    }).join('');
+    $('#statusCount').textContent = totalTasks;
+  })();
+  function getComputedStyleColor(cls){
+    var map = {
+      's-новая':'#2563eb','s-в-работе':'#7c3aed','s-на-приёмке':'#f59e0b',
+      's-на-доработке':'#ea580c','s-выполнена':'#10b981','s-отменена':'#64748b'
+    };
+    return map[cls]||'#64748b';
+  }
+
+  /* ================== DEPT RATING ================== */
+  (function(){
+    var box = $('#deptRating');
+    box.innerHTML = DEPTS.map(function(d){
+      var cls = d.pct >= 90 ? '' : (d.pct >= 80 ? 'warn' : 'bad');
+      return '<div class="rating-row">'+
+        '<div>'+
+          '<div class="rating-head">'+
+            '<span class="rating-name">'+esc(d.name)+'</span>'+
+            '<span class="rating-pct">'+d.pct+'%</span>'+
+          '</div>'+
+          '<div class="rating-track"><div class="rating-fill '+cls+'" style="width:'+d.pct+'%"></div></div>'+
+          '<div class="rating-meta">'+d.ontime+' из '+d.total+' закрыто в срок</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  })();
+
+  /* ================== WEEK ================== */
+  (function(){
+    var box = $('#weekGrid');
+    var today = new Date(); var todayIso = today.toISOString().slice(0,10);
+    box.innerHTML = WEEK.map(function(d){
+      var isToday = d.iso === todayIso;
+      return '<div class="week-day'+(isToday?' today':'')+'" data-iso="'+d.iso+'">'+
+        '<div class="dname">'+d.d+'</div>'+
+        '<div class="dnum">'+d.n+'</div>'+
+        '<div class="dcount'+(d.count?'':' zero')+'">'+(d.count?d.count+' задач':'—')+'</div>'+
+      '</div>';
+    }).join('');
+    $$('.week-day', box).forEach(function(el){
+      el.addEventListener('click', function(){
+        alert('Задачи на ' + el.getAttribute('data-iso') + ' (FR-032).');
+      });
+    });
+  })();
+
+  /* ================== LOAD ================== */
+  (function(){
+    var box = $('#loadList');
+    box.innerHTML = LOAD.map(function(p){
+      var ini = p.name.split(' ').map(function(w){return w[0];}).slice(0,2).join('');
+      var pct = Math.round(p.open / p.max * 100);
+      var cls = pct >= 80 ? 'high' : '';
+      return '<div class="load-row">'+
+        '<span class="load-avatar">'+ini+'</span>'+
+        '<div class="load-info">'+
+          '<div class="load-name"><span>'+esc(p.name)+'</span><span>'+esc(p.role)+'</span></div>'+
+          '<div class="load-track"><div class="load-fill '+cls+'" style="width:'+pct+'%"></div></div>'+
+        '</div>'+
+        '<span class="load-count">'+p.open+'</span>'+
+      '</div>';
+    }).join('');
+  })();
+
+  /* ================== TREND CHART (SVG) ================== */
+  (function(){
+    var box = $('#trendChart');
+    var w = 320, h = 130, pad = 22;
+    var maxClosed = Math.max.apply(null, TREND.closed);
+    var n = TREND.labels.length;
+    var stepX = (w - pad*2) / (n - 1);
+
+    var ptsClosed = TREND.closed.map(function(v,i){
+      var x = pad + stepX*i;
+      var y = h - pad - (v/maxClosed)*(h - pad*2);
+      return [x,y];
+    });
+    var ptsOverdue = TREND.overdue.map(function(v,i){
+      var x = pad + stepX*i;
+      var y = h - pad - (v/maxClosed)*(h - pad*2);
+      return [x,y];
+    });
+
+    var pathClosed = ptsClosed.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+    var pathOverdue = ptsOverdue.map(function(p,i){return (i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1);}).join(' ');
+
+    var area = pathClosed + ' L ' + ptsClosed[n-1][0].toFixed(1) + ' ' + (h-pad) + ' L ' + ptsClosed[0][0].toFixed(1) + ' ' + (h-pad) + ' Z';
+
+    var grid = '';
+    for(var i=0;i<=4;i++){
+      var y = pad + (h-pad*2)*i/4;
+      grid += '<line x1="'+pad+'" y1="'+y+'" x2="'+(w-pad)+'" y2="'+y+'" stroke="currentColor" stroke-opacity=".08" stroke-width="1"/>';
+    }
+    var xlabels = TREND.labels.map(function(l,i){
+      var x = pad + stepX*i;
+      return '<text x="'+x+'" y="'+(h-6)+'" font-size="9" fill="currentColor" fill-opacity=".5" text-anchor="middle">'+l+'</text>';
+    }).join('');
+
+    var dotsC = ptsClosed.map(function(p){return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2.4" fill="#2563eb"/>';}).join('');
+    var dotsO = ptsOverdue.map(function(p){return '<circle cx="'+p[0].toFixed(1)+'" cy="'+p[1].toFixed(1)+'" r="2" fill="#ef4444"/>';}).join('');
+
+    box.innerHTML =
+      '<svg viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="xMidYMid meet">'+
+        '<defs>'+
+          '<linearGradient id="gClosed" x1="0" x2="0" y1="0" y2="1">'+
+            '<stop offset="0%" stop-color="#2563eb" stop-opacity=".35"/>'+
+            '<stop offset="100%" stop-color="#2563eb" stop-opacity="0"/>'+
+          '</linearGradient>'+
+        '</defs>'+
+        grid +
+        '<path d="'+area+'" fill="url(#gClosed)"/>'+
+        '<path d="'+pathClosed+'" fill="none" stroke="#2563eb" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+        '<path d="'+pathOverdue+'" fill="none" stroke="#ef4444" stroke-width="1.6" stroke-dasharray="3 3" stroke-linejoin="round" stroke-linecap="round"/>'+
+        dotsC + dotsO + xlabels +
+      '</svg>';
+  })();
+
+  /* ================== NOTIFICATIONS ================== */
+  (function(){
+    var box = $('#notifList');
+    box.innerHTML = NOTIF.map(function(n){
+      return '<div class="notice">'+
+        '<div class="notice-icon '+n.type+'">'+n.icon+'</div>'+
+        '<div class="notice-body">'+
+          '<strong>'+esc(n.title)+'</strong>'+
+          '<p>'+esc(n.body)+'</p>'+
+          '<span class="notice-time">'+esc(n.time)+'</span>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+    $$('.notice', box).forEach(function(el){
+      el.addEventListener('click', function(){ alert('Открытие уведомления (FR-050…FR-053).'); });
+    });
+  })();
+
+  /* ================== ACTIONS ================== */
+  $('#newTaskBtn').addEventListener('click', function(){ alert('Форма создания задачи (FR-010). Открывается модальное окно.'); });
+  $('#notifBtn').addEventListener('click', function(){ alert('Центр уведомлений (FR-050…FR-053).'); });
+  $('#exportXlsx').addEventListener('click', function(){ alert('Экспорт отчёта в XLSX с учётом фильтров (FR-060, FR-062).'); });
+  $('#exportPdf').addEventListener('click', function(){ alert('Экспорт отчёта в PDF (FR-060).'); });
+  $('#exportDocx').addEventListener('click', function(){ alert('Справка для педсовета в DOCX по шаблону Заказчика (FR-063).'); });
+
+  // KPI-клик открывает список задач
+  $$('.kpi').forEach(function(k){
+    k.addEventListener('click', function(){
+      alert('Открытие списка задач по показателю «' + k.querySelector('.kpi-label').textContent + '» (FR-042).');
+    });
+  });
+
+  // Global search
+  $('#globalSearch').addEventListener('input', function(e){
+    // здесь был бы поиск, пока заглушка
+  });
+
+  /* ================== MOBILE SIDEBAR ================== */
+  var sidebar = $('#sidebar'), overlay = $('#overlay'), burger = $('#burger');
+  function closeSide(){ sidebar.classList.remove('open'); overlay.classList.remove('show'); }
+  burger.addEventListener('click', function(){
+    sidebar.classList.toggle('open');
+    overlay.classList.toggle('show');
+  });
+  overlay.addEventListener('click', closeSide);
+  document.addEventListener('keydown', function(e){ if(e.key==='Escape') closeSide(); });
+
+  /* ================== NAV ITEMS ================== */
+  $$('.nav-item').forEach(function(item){
+    item.addEventListener('click', function(){
+      if(item.classList.contains('active')) return;
+      $$('.nav-item').forEach(function(x){x.classList.remove('active');});
+      item.classList.add('active');
+      // Скрываем всё, кроме дашборда
+      if(!/Дашборд/.test(item.textContent)){
+        alert('Раздел «' + item.textContent.trim() + '» — в разработке (MVP: только дашборд).');
+      }
+      closeSide();
+    });
+  });
+
+})();
+</script>
+</body>
+</html>

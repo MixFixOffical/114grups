@@ -13,6 +13,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 <script src="firebase-config.js"></script>
 
 <style>
@@ -1521,6 +1522,50 @@ const db = firebase.firestore();
 const auth = firebase.auth();
 const FieldValue = firebase.firestore.FieldValue;
 
+/* =========================================================
+   EMAILJS — уведомление получателю
+========================================================= */
+const EMAILJS_SERVICE_ID  = "service_50x4f98";
+const EMAILJS_TEMPLATE_ID = "template_spjjzec";
+const EMAILJS_PUBLIC_KEY  = "5IMT9M0W-oaN4tnz8";
+
+if (typeof emailjs !== "undefined") {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+}
+
+/**
+ * Отправляет email-уведомление получателю о новом сообщении.
+ * @param {string} toEmail   - email получателя
+ * @param {string} toName    - имя получателя
+ * @param {string} fromEmail - email отправителя (Reply-To)
+ * @param {string} fromName  - имя отправителя
+ * @param {string} subject   - тема письма
+ * @param {string} message   - текст сообщения
+ */
+async function sendEmailNotification(toEmail, toName, fromEmail, fromName, subject, message) {
+    if (!toEmail) {
+        console.warn("У получателя нет email — уведомление не отправлено");
+        return;
+    }
+    if (typeof emailjs === "undefined") {
+        console.warn("EmailJS не загружен");
+        return;
+    }
+    try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+            to_email: toEmail,
+            to_name: toName || "Пользователь",
+            name: fromName || "Администратор",
+            email: fromEmail || toEmail,
+            subject: subject || "Новое сообщение",
+            message: message || "Вам пришло новое сообщение."
+        });
+        console.log("✅ Email отправлен:", toEmail);
+    } catch (e) {
+        console.error("❌ Email error:", e);
+    }
+}
+
 const ROLE_LABELS = { admin:"Администратор", curator:"Куратор", student:"Студент", parent:"Родитель" };
 const CATEGORY_ICONS = { info:"📘", important:"⚠️", system:"🛑", promo:"🎁" };
 const CATEGORY_LABELS = { info:"Информационное", important:"Важное", system:"Системное", promo:"Акция" };
@@ -1593,6 +1638,12 @@ function toMillis(ts){
     if(ts.toMillis) return ts.toMillis();
     if(ts.seconds) return ts.seconds * 1000;
     return new Date(ts).getTime() || 0;
+}
+function getMyName(){
+    return (meData && (meData.name || meData.fullName)) || "Администратор";
+}
+function getMyEmail(){
+    return (meData && (meData.email || meData.mail)) || "";
 }
 
 /* Toast */
@@ -1673,7 +1724,8 @@ function startUsersListener(){
             allUsers.push({
                 uid: doc.id,
                 name: d.name || d.fullName || d.fio || "Пользователь",
-                role: normalizeRole(d.role)
+                role: normalizeRole(d.role),
+                email: d.email || d.mail || ""
             });
         });
         allUsers.sort((a,b) => a.name.localeCompare(b.name, "ru"));
@@ -2206,7 +2258,7 @@ async function sendMessage(){
         const chatRef = db.collection("chats").doc(currentChatId);
         const msgRef = chatRef.collection("messages").doc();
 
-        const myName = (meData && (meData.name || meData.fullName)) || "Администратор";
+        const myName = getMyName();
 
         const batch = db.batch();
         batch.set(msgRef, {
@@ -2241,6 +2293,19 @@ async function sendMessage(){
         }, { merge: true });
 
         await batch.commit();
+
+        /* === EMAIL УВЕДОМЛЕНИЕ ПОЛУЧАТЕЛЮ === */
+        const recipient = allUsers.find(u => u.uid === currentOtherUid);
+        if (recipient && recipient.email) {
+            sendEmailNotification(
+                recipient.email,
+                recipient.name,
+                getMyEmail(),
+                myName,
+                "Новое сообщение от администратора",
+                text
+            );
+        }
 
         tempRow.classList.add("just-sent");
 
@@ -2420,7 +2485,7 @@ document.getElementById("createChatBtn").addEventListener("click", async () => {
             unread[otherUid] = (unread[otherUid] || 0) + 1;
             unread[myUid] = 0;
 
-            const myName = (meData && (meData.name || meData.fullName)) || "Администратор";
+            const myName = getMyName();
 
             const batch = db.batch();
             batch.set(msgRef, {
@@ -2457,6 +2522,19 @@ document.getElementById("createChatBtn").addEventListener("click", async () => {
             batch.set(chatRef, patch, { merge: true });
 
             await batch.commit();
+
+            /* === EMAIL УВЕДОМЛЕНИЕ ПОЛУЧАТЕЛЮ === */
+            if (other.email) {
+                sendEmailNotification(
+                    other.email,
+                    other.name,
+                    getMyEmail(),
+                    myName,
+                    "Новое сообщение от администратора",
+                    body
+                );
+            }
+
             closePicker();
             showToast("Сообщение отправлено", "success");
             setTimeout(() => openChat(chatId), 300);
@@ -2473,7 +2551,7 @@ document.getElementById("createChatBtn").addEventListener("click", async () => {
             const chatRef = db.collection("chats").doc(chatId);
             const msgRef = chatRef.collection("messages").doc();
 
-            const myName = (meData && (meData.name || meData.fullName)) || "Администратор";
+            const myName = getMyName();
 
             const participants = [myUid, ...recipients];
             const participantsInfo = {};
@@ -2520,6 +2598,21 @@ document.getElementById("createChatBtn").addEventListener("click", async () => {
             });
 
             await batch.commit();
+
+            /* === EMAIL РАССЫЛКА ВСЕМ ПОЛУЧАТЕЛЯМ === */
+            recipients.forEach(uid => {
+                const u = allUsers.find(x => x.uid === uid);
+                if (u && u.email) {
+                    sendEmailNotification(
+                        u.email,
+                        u.name,
+                        getMyEmail(),
+                        myName,
+                        title,
+                        body
+                    );
+                }
+            });
 
             closePicker();
             showToast(`Отправлено ${recipients.length} пользователям`, "success");

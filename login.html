@@ -8,6 +8,8 @@
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <title>KURATOR — Вход</title>
 
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
 <style>
 /* =========================================================
    TOKENS
@@ -938,7 +940,6 @@ input[type="password"]{letter-spacing:.5px}
     background:linear-gradient(90deg,transparent,#fff,transparent);
 }
 
-/* ===== ПЕЧАТЬ СВЕРХУ (ваша картинка, PNG с прозрачным фоном) ===== */
 .agree-seal-top{
     width:130px;
     height:130px;
@@ -968,7 +969,6 @@ input[type="password"]{letter-spacing:.5px}
 }
 .agree-lead b{color:var(--ink-700)}
 
-/* СКРОЛЛ */
 .agree-scroll{
     flex:1 1 auto;min-height:120px;
     overflow-y:auto;overscroll-behavior:contain;
@@ -1009,7 +1009,6 @@ input[type="password"]{letter-spacing:.5px}
     margin-top:8px;
 }
 
-/* КНОПКА */
 .agree-btn{
     position:relative;flex:none;
     display:flex;align-items:center;justify-content:center;gap:8px;
@@ -1082,7 +1081,6 @@ input[type="password"]{letter-spacing:.5px}
 <div class="agree-overlay" id="agreeOverlay" aria-hidden="true">
     <div class="agree-card" role="dialog" aria-modal="true" aria-labelledby="agreeTitle">
 
-        <!-- ЗАМЕНИТЕ ИМЯ ФАЙЛА, ЕСЛИ НУЖНО -->
         <img class="agree-seal-top"
              src="seal.png"
              alt="Печать KURATOR"
@@ -1481,6 +1479,38 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+
+/* =========================================
+   EMAILJS — уведомление админу
+========================================= */
+const EMAILJS_SERVICE_ID  = "service_50x4f98";
+const EMAILJS_TEMPLATE_ID = "template_spjjzec";
+const EMAILJS_PUBLIC_KEY  = "5IMT9M0W-oaN4tnz8";
+const ADMIN_EMAIL         = "vasylkivmaksim@gmail.com";
+
+if (typeof emailjs !== "undefined") {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+}
+
+async function sendAdminEmail(senderEmail, senderName, subject, message) {
+    if (typeof emailjs === "undefined") {
+        console.warn("EmailJS не загружен");
+        return;
+    }
+    try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+            to_email: ADMIN_EMAIL,
+            to_name: "Администратор",
+            name: senderName || "Новый пользователь",
+            email: senderEmail || ADMIN_EMAIL,
+            subject: subject || "Новая заявка на регистрацию",
+            message: message || ""
+        });
+        console.log("✅ Письмо админу отправлено");
+    } catch (e) {
+        console.error("❌ Email error:", e);
+    }
+}
 
 /* =========================================
    CONSTS
@@ -2085,6 +2115,19 @@ $("regForm").addEventListener("submit", async e => {
             createdAt: serverTimestamp()
         });
 
+        /* === EMAIL АДМИНУ: новая заявка на регистрацию === */
+        sendAdminEmail(
+            email,
+            sanitize(name),
+            "Новая заявка на регистрацию — " + (ROLE_LABELS[role] || role),
+            `Новый пользователь ожидает подтверждения:\n\n` +
+            `ФИО: ${sanitize(name)}\n` +
+            `Email: ${sanitize(email)}\n` +
+            `Группа: ${sanitize(group)}\n` +
+            `Роль: ${ROLE_LABELS[role] || role}\n` +
+            `UID: ${user.uid}`
+        );
+
         $("regForm").reset();
         $("strengthBar").style.width = "0%";
         $("strengthText").textContent = "Введите пароль";
@@ -2175,6 +2218,18 @@ onAuthStateChanged(auth, async user => {
 
         if (reg === 0){
             currentUserId = user.uid;
+
+            /* === EMAIL АДМИНУ: пользователь всё ещё ждёт === */
+            sendAdminEmail(
+                data.email || "",
+                data.name || "",
+                "Пользователь всё ещё ждёт подтверждения",
+                `Пользователь ${data.name || ""} (${data.email || ""}) повторно вошёл в систему, но его заявка всё ещё не одобрена.\n\n` +
+                `Роль: ${ROLE_LABELS[data.role] || data.role}\n` +
+                `Группа: ${data.group || "—"}\n` +
+                `UID: ${user.uid}`
+            );
+
             await signOut(auth);
             showWaiting(
                 "Ожидает подтверждения",

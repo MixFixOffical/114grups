@@ -1198,9 +1198,46 @@ document.addEventListener("click", e => {
    NAV
 ========================================================= */
 function goMessages(){ window.location.href = "usersms.html"; }
+
+/* =========================================================
+   ВЫХОД — с подтверждением и очисткой PIN
+========================================================= */
+let logoutInProgress = false;
+
 function logout(){
-    if (!confirm("Выйти из аккаунта?")) return;
-    firebase.auth().signOut().then(() => { window.location.href = "login.html"; });
+    if (logoutInProgress) return;
+
+    const forget = window.confirm(
+        "Выйти из аккаунта?\n\n" +
+        "OK — забыть PIN и логин на этом устройстве\n" +
+        "Отмена — сохранить PIN для быстрого входа"
+    );
+
+    logoutInProgress = true;
+
+    firebase.auth().signOut()
+        .then(function(){
+            if (forget){
+                try {
+                    localStorage.removeItem("kurator_pin_hash_v1");
+                    localStorage.removeItem("kurator_pin_salt_v1");
+                    localStorage.removeItem("kurator_pin_name_v1");
+                    localStorage.removeItem("kurator_pin_attempts_v1");
+                    localStorage.removeItem("kurator_last_login_id");
+                    localStorage.setItem("kurator_remember_flag", "0");
+                } catch (e) { /* ignore */ }
+            }
+
+            toast(forget ? "Вы вышли. PIN удалён" : "Вы вышли из системы", "info");
+
+            setTimeout(function(){
+                window.location.replace("login.html");
+            }, 500);
+        })
+        .catch(function(){
+            toast("Не удалось выйти. Попробуйте снова.", "error");
+            logoutInProgress = false;
+        });
 }
 
 /* =========================================================
@@ -1767,7 +1804,7 @@ document.addEventListener("keydown", e => {
 ========================================================= */
 firebase.auth().onAuthStateChanged(async user => {
     if (!user){
-        window.location.href = "login.html";
+        window.location.replace("login.html");
         return;
     }
 
@@ -1779,9 +1816,9 @@ firebase.auth().onAuthStateChanged(async user => {
 
         const role = String(currentProfile.role || "").toLowerCase();
         if (role !== "parent"){
-            if (role === "admin"){ window.location.href = "adminhome.html"; return; }
-            if (role === "curator"){ window.location.href = "home.html"; return; }
-            window.location.href = "login.html";
+            if (role === "admin"){ window.location.replace("adminhome.html"); return; }
+            if (role === "curator"){ window.location.replace("home.html"); return; }
+            window.location.replace("login.html");
             return;
         }
 

@@ -2047,6 +2047,8 @@ document.querySelectorAll(".role").forEach(el => {
 ========================================= */
 let loginFlow = false;      // идёт процесс входа/восстановления
 let pinMode = false;        // пользователь на PIN-панели — блокируем редиректы
+let pinSetupOpen = false;   // открыта модалка установки PIN — блокируем редирект
+let pendingRedirect = null; // отложенный редирект после PIN-setup
 let setupUser = null;
 let setupPwd = "";
 
@@ -2101,11 +2103,19 @@ async function routeByStatus(user, data){
         "home"
     );
 
-    setTimeout(() => {
-        // Двойная защита: если за это время включился PIN-режим — не редиректим
-        if (pinMode) return;
+    // Функция редиректа (с двойной защитой)
+    const doRedirect = () => {
+        if (pinMode || pinSetupOpen) return;
         window.location.href = page;
-    }, REDIRECT_DELAY);
+    };
+
+    // Если открыта модалка PIN — откладываем редирект до её закрытия
+    if (pinSetupOpen){
+        pendingRedirect = doRedirect;
+        return;
+    }
+
+    setTimeout(doRedirect, REDIRECT_DELAY);
 }
 
 /* =========================================
@@ -2428,23 +2438,27 @@ let pinSetupBuffer = "";
 let pinSetupBusy = false;
 
 function openPinSetup(){
+    pinSetupOpen = true;   // ← блокируем редирект, пока открыта модалка
     pinSetupBuffer = "";
     updatePinSetupDots();
     $("pinSetupErr").classList.remove("on");
     $("pinSetupOverlay").classList.add("on");
     $("pinSetupOverlay").setAttribute("aria-hidden", "false");
 }
+
 function closePinSetup(){
     pinSetupBuffer = "";
     $("pinSetupOverlay").classList.remove("on");
     $("pinSetupOverlay").setAttribute("aria-hidden", "true");
 }
+
 function updatePinSetupDots(){
     const dots = $("pinSetupDots").children;
     for (let i = 0; i < dots.length; i++){
         dots[i].classList.toggle("on", i < pinSetupBuffer.length);
     }
 }
+
 function flashPinSetupError(text){
     const err = $("pinSetupErr");
     err.textContent = text;
@@ -2453,6 +2467,16 @@ function flashPinSetupError(text){
     dots.classList.add("err");
     setTimeout(() => dots.classList.remove("err"), 500);
     setTimeout(() => err.classList.remove("on"), 2500);
+}
+
+/* Разрешить отложенный редирект после закрытия модалки */
+function resumeRedirectIfPending(){
+    pinSetupOpen = false;
+    if (typeof pendingRedirect === "function"){
+        const fn = pendingRedirect;
+        pendingRedirect = null;
+        setTimeout(fn, 400);   // даём пользователю увидеть тост
+    }
 }
 
 $("pinSetupKeypad").addEventListener("click", e => {
@@ -2509,6 +2533,9 @@ async function savePinFromSetup(){
     closePinSetup();
     toast("PIN установлен ✓");
     pinSetupBusy = false;
+
+    // Разрешаем отложенный редирект (если он был)
+    resumeRedirectIfPending();
 }
 
 document.addEventListener("keydown", e => {
@@ -2526,6 +2553,7 @@ document.addEventListener("keydown", e => {
         updatePinSetupDots();
     } else if (e.key === "Escape"){
         closePinSetup();
+        resumeRedirectIfPending();
     }
 });
 
@@ -2536,6 +2564,7 @@ $("pinSetupSkip").addEventListener("click", () => {
         localStorage.setItem(REMEMBER_FLAG_KEY, "0");
         $("rememberMe").checked = false;
     } catch {}
+    resumeRedirectIfPending();   // ← продолжаем редирект
 });
 
 /* =========================================
@@ -2577,6 +2606,9 @@ $("loginForm").addEventListener("submit", async e => {
 
     loginFlow = true;
     pinMode = false;
+    pinSetupOpen = false;
+    pendingRedirect = null;
+
     try {
         await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
 
@@ -2619,12 +2651,16 @@ $("loginForm").addEventListener("submit", async e => {
             return;
         }
 
-        const needPinSetup = remember && !hasPin();
+        const needPinSetup = remember && !hasPin() && data.reg === 1;
 
-        await routeByStatus(user, data);
-
-        if (needPinSetup && data.reg === 1){
-            setTimeout(() => openPinSetup(), 400);
+        if (needPinSetup){
+            // Сначала открываем модалку PIN — это выставит pinSetupOpen = true
+            openPinSetup();
+            // Затем вызываем routeByStatus — увидит pinSetupOpen и ОТЛОЖИТ редирект
+            await routeByStatus(user, data);
+        } else {
+            // Обычный редирект через REDIRECT_DELAY
+            await routeByStatus(user, data);
         }
     } catch (err){
         logErr(err);
@@ -2804,7 +2840,6 @@ let authCheckInProgress = false;
 let authResolved = false;
 let forceShowTimer = null;
 
-/* Единая точка входа после разрешения auth */
 async function handleAuthenticatedUser(user){
     if (authCheckInProgress) return;
     authCheckInProgress = true;
@@ -2831,9 +2866,9 @@ async function handleAuthenticatedUser(user){
         // === Сценарий 1: «Запомнить» + PIN → показываем PIN-панель ===
         if (wasRemember && hasPinSaved && data.reg === 1){
             pinMode = true;
-            loginFlow = true;      // блокируем другие обработчики
+            loginFlow = true;
             openPinPanel(user, data);
-            return;                // ← НЕ вызываем routeByStatus
+            return;
         }
 
         // === Сценарий 2: обычный автовход ===
@@ -2856,7 +2891,6 @@ async function handleAuthenticatedUser(user){
 onAuthStateChanged(auth, async user => {
     if (regInProgress) return;
 
-    // Нет пользователя — сессии нет
     if (!user){
         loginFlow = false;
         pinMode = false;
@@ -2864,13 +2898,11 @@ onAuthStateChanged(auth, async user => {
         return;
     }
 
-    // Обработка уже идёт — не дублируем
     if (authCheckInProgress){
         authResolved = true;
         return;
     }
 
-    // Уже обработали (например, только что вошли через форму)
     if (loginFlow && !pinMode){
         authResolved = true;
         return;
@@ -2993,7 +3025,6 @@ function waitForAuthReady(){
 function onAuthResolved(){
     hideLoaderWhenIdle();
 
-    // Если сессии нет и мы не на PIN-панели — показываем форму
     if (!auth.currentUser && !pinMode){
         restoreLastLogin();
         setTimeout(focusFirstField, 150);

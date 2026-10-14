@@ -1112,37 +1112,37 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
         </div>
 
         <div class="controls">
-            <button class="btn-secondary" onclick="previousWeek()">
+            <button class="btn-secondary" onclick="previousWeek()" title="Предыдущая неделя">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m15 6-6 6 6 6"/>
                 </svg>
-                Предыдущая
+                Предыдущая неделя
             </button>
-            <button class="btn-primary" onclick="currentWeek()">
+            <button class="btn-primary" onclick="currentWeek()" title="Текущая неделя">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="8.5"/>
                     <path d="M12 7.5V12l3 2"/>
                 </svg>
-                Текущая
+                Текущая неделя
             </button>
-            <button class="btn-secondary" onclick="nextWeek()">
-                Следующая
+            <button class="btn-secondary" onclick="nextWeek()" title="Следующая неделя">
+                Следующая неделя
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m9 6 6 6-6 6"/>
                 </svg>
             </button>
-            <button class="btn-violet" onclick="toggleWeekList()">
+            <button class="btn-violet" onclick="toggleWeekList()" title="Выбор недели из списка">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M8 6h13M8 12h13M8 18h13"/>
                     <path d="M3 6h.01M3 12h.01M3 18h.01"/>
                 </svg>
-                Список
+                Выбор недели
             </button>
-            <button class="btn-teal" onclick="openReportMenu()" aria-haspopup="dialog">
+            <button class="btn-teal" onclick="openReportMenu()" aria-haspopup="dialog" title="Создать отчёт">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
-                Отчёт
+                Отчёты
             </button>
-            <button class="btn-back" onclick="goBack()">
+            <button class="btn-back" onclick="goBack()" title="Вернуться в главное меню">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 12H5M11 6l-6 6 6 6"/>
                 </svg>
@@ -1175,8 +1175,20 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
             <button class="report-close" type="button" onclick="closeReportMenu()" aria-label="Закрыть">×</button>
             <h2 id="reportMenuTitle">Генерация отчёта</h2>
             <p class="report-description">Выберите период, за который нужно сформировать отчёт.</p>
-            <button class="report-option" type="button" onclick="printReport()"><span><b>Печать меню</b><small>Подробная посещаемость за выбранную неделю</small></span><span>›</span></button>
-            <button class="report-option" type="button" onclick="printSemesterReport()"><span><b>За семестр</b><small>Сводная таблица пропусков по месяцам</small></span><span>›</span></button>
+            <button class="report-option" type="button" onclick="printReport()">
+                <span>
+                    <b>Отчёт за неделю</b>
+                    <small>Подробная посещаемость за выбранную неделю</small>
+                </span>
+                <span>›</span>
+            </button>
+            <button class="report-option" type="button" onclick="printSemesterReport()">
+                <span>
+                    <b>Отчёт за семестр</b>
+                    <small>Сводная таблица пропусков по месяцам</small>
+                </span>
+                <span>›</span>
+            </button>
             <div class="semester-picker" id="semesterPicker">
                 <label for="reportSemester">Семестр</label>
                 <select id="reportSemester" onchange="updateSemesterLabel()">
@@ -1187,7 +1199,6 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
                 </select>
                 <span id="currentSemesterLabel">Текущий семестр: —</span>
             </div>
-            <button class="report-cancel" type="button" onclick="closeReportMenu()">Отмена</button>
         </div>
     </div>
 
@@ -2310,8 +2321,6 @@ function selectWeek(date) {
     renderWeekList();
 }
 
-
-
 /* =========================================================
    PRINT
 ========================================================= */
@@ -2488,7 +2497,6 @@ function printReport() {
 window.printReport = printReport;
 
 function getSemesterMonths(semester) {
-    // Семестры 1,3,5,7 — осенний период; 2,4,6,8 — весенний.
     return Number(semester) % 2 === 1
         ? [{n:8,t:"Сентябрь"},{n:9,t:"Октябрь"},{n:10,t:"Ноябрь"},{n:11,t:"Декабрь"},{n:0,t:"Январь"}]
         : [{n:1,t:"Февраль"},{n:2,t:"Март"},{n:3,t:"Апрель"},{n:4,t:"Май"},{n:5,t:"Июнь"}];
@@ -2500,42 +2508,60 @@ function printSemesterReport() {
     const months = getSemesterMonths(semester);
     const monthCounts = new Map();
     const totals = new Map();
-    students.forEach(st => { monthCounts.set(String(st.id), months.map(() => ({all:0,n:0,u:0,b:0}))); totals.set(String(st.id),{all:0,n:0,u:0,b:0}); });
-    const startYear = new Date().getFullYear() - (new Date().getMonth() < 7 ? 1 : 0);
+    students.forEach(st => {
+        monthCounts.set(String(st.id), months.map(() => ({all:0,n:0,u:0,b:0})));
+        totals.set(String(st.id),{all:0,n:0,u:0,b:0});
+    });
+
+    const now = new Date();
+    const isAutumn = Number(semester) % 2 === 1;
+    const startYear = isAutumn
+        ? (now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1)
+        : (now.getMonth() >= 1 ? now.getFullYear() : now.getFullYear() - 1);
+
     for (const rec of Object.values(attendance)) {
         if (!rec.date || rec.status !== "absent") continue;
         const d = new Date(rec.date + "T00:00:00");
         const m = d.getMonth();
         const mi = months.findIndex(x => x.n === m);
         if (mi < 0) continue;
-        // Keep only the relevant school-year half; selected semester represents one of 8 course semesters.
+
         const expectedYear = (m === 0 ? startYear + 1 : startYear);
         if (d.getFullYear() !== expectedYear) continue;
+
         const sid = String(rec.studentId);
         if (!monthCounts.has(sid)) continue;
+
         const cell = monthCounts.get(sid)[mi], total = totals.get(sid);
         cell.all++; total.all++;
         const type = String(rec.absentType || "").toLowerCase();
-        if (type === "uv" || type === "u" || type.includes("уваж")) { cell.u++; total.u++; }
-        else if (type === "bolezn" || type === "b" || type.includes("бол") || type.includes("болез")) { cell.b++; total.b++; }
+        if (type === "uv" || type === "u") { cell.u++; total.u++; }
+        else if (type === "bolezn" || type === "b") { cell.b++; total.b++; }
         else { cell.n++; total.n++; }
     }
+
     const monthHeads = months.map(m => `<th colspan="4">${m.t}</th>`).join("");
     const subHeads = months.map(() => "<th>Вс</th><th>Н</th><th>У</th><th>Б</th>").join("");
+
     let rows = "";
     students.forEach((st, i) => {
         const cells = monthCounts.get(String(st.id)).map(c => `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`).join("");
         const t = totals.get(String(st.id));
         rows += `<tr><td>${i+1}</td><td class="semester-name">${escapeHtml(st.name || "Без имени")}</td>${cells}<td>${t.n}</td><td>${t.u}</td><td>${t.b}</td><td><b>${t.all}</b></td></tr>`;
     });
+
     const grand = {n:0,u:0,b:0,all:0};
     totals.forEach(t => { grand.n+=t.n; grand.u+=t.u; grand.b+=t.b; grand.all+=t.all; });
+
     rows += `<tr class="semester-total"><td colspan="2">ИТОГО</td>${months.map((_,i)=>{const c=students.reduce((a,st)=>{const x=monthCounts.get(String(st.id))[i];a.all+=x.all;a.n+=x.n;a.u+=x.u;a.b+=x.b;return a;},{all:0,n:0,u:0,b:0});return `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`;}).join("")}<td>${grand.n}</td><td>${grand.u}</td><td>${grand.b}</td><td>${grand.all}</td></tr>`;
+
     document.getElementById("printGroupName").textContent = group ? (group.name || group.id) : "—";
     document.getElementById("printHeaderRange").textContent = `${semester} семестр`;
     document.getElementById("printHeader").querySelector(".ph-main").textContent = `Сводный отчёт посещаемости — ${group ? (group.name || group.id) : "группа"} — ${semester} семестр`;
+
     const sheet = document.getElementById("printSheet");
     sheet.innerHTML = `<div class="semester-print-title">Группа: ${escapeHtml(group ? (group.name || group.id) : "—")} &nbsp;&nbsp; Семестр: ${semester}</div><table class="pt semester-table"><colgroup><col style="width:8mm"><col style="width:36mm">${months.map(()=>'<col span="4">').join("")}<col span="4"></colgroup><thead><tr><th rowspan="2">№</th><th rowspan="2">ФИО</th>${monthHeads}<th colspan="4">Всего за семестр</th></tr><tr>${subHeads}<th>Н</th><th>У</th><th>Б</th><th>Вс</th></tr></thead><tbody>${rows}</tbody></table>`;
+
     const style = document.getElementById("ptDynamicStyle"); if (style) style.remove();
     const dynamic = document.createElement("style"); dynamic.id = "ptDynamicStyle";
     dynamic.textContent = `#printSheet .semester-print-title{font-weight:bold;text-align:left;margin:0 0 3mm;font-size:10pt}#printSheet table.semester-table{font-size:8pt;width:100%;table-layout:fixed;border-collapse:collapse}#printSheet table.semester-table th,#printSheet table.semester-table td{border:0;box-shadow:inset 0 0 0 .25pt #000;padding:1mm .4mm;text-align:center;vertical-align:middle;overflow-wrap:anywhere}#printSheet table.semester-table td.semester-name{text-align:left;padding-left:1.5mm}#printSheet table.semester-table .semester-total{font-weight:bold}#printSheet table.semester-table thead{display:table-header-group}`;

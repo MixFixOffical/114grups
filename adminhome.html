@@ -868,6 +868,77 @@ footer{
     background:var(--border);
 }
 
+
+/* ============ МОДАЛЬНОЕ ОКНО ВЫХОДА ============ */
+.logout-overlay{
+    position:fixed;inset:0;z-index:1250;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px 14px calc(20px + env(safe-area-inset-bottom,0px));
+    background:rgba(15,23,42,.55);
+    opacity:0;visibility:hidden;
+    transition:opacity .2s ease,visibility .2s ease;
+}
+.logout-overlay.on{opacity:1;visibility:visible}
+.logout-card{
+    width:100%;max-width:420px;
+    padding:26px 24px 20px;
+    border-radius:var(--radius-lg);
+    background:var(--surface);
+    border:1px solid var(--border);
+    box-shadow:var(--shadow-md);
+    transform:translateY(12px);
+    transition:transform .25s var(--ease);
+}
+.logout-overlay.on .logout-card{transform:none}
+.logout-icon{
+    width:56px;height:56px;margin:0 auto 14px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:var(--radius-md);
+    background:var(--red-soft);color:var(--red);
+    border:1px solid rgba(185,28,28,.22);
+}
+.logout-icon svg{width:26px;height:26px}
+.logout-title{
+    font-size:18px;font-weight:700;letter-spacing:-.2px;
+    text-align:center;color:var(--text);margin-bottom:6px;
+}
+.logout-sub{
+    font-size:13px;line-height:1.55;text-align:center;
+    color:var(--text-secondary);margin-bottom:18px;
+}
+.logout-option{
+    display:flex;align-items:flex-start;gap:12px;
+    padding:12px 14px;margin-bottom:8px;
+    border-radius:var(--radius-sm);border:1px solid var(--border);
+    background:var(--surface-2);cursor:pointer;
+    transition:border-color .15s ease,background .15s ease;
+}
+.logout-option:hover{border-color:var(--text-light);background:var(--surface)}
+.logout-option.picked{border-color:var(--accent);background:var(--accent-soft)}
+.logout-option input[type="radio"]{
+    margin-top:2px;accent-color:var(--accent);cursor:pointer;
+    width:16px;height:16px;flex-shrink:0;
+}
+.logout-option-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.logout-option-title{font-size:13.5px;font-weight:600;color:var(--text)}
+.logout-option-desc{font-size:11.5px;color:var(--text-secondary);line-height:1.45}
+.logout-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.logout-btn{
+    height:46px;display:flex;align-items:center;justify-content:center;
+    border-radius:var(--radius-sm);font-family:inherit;font-size:13.5px;
+    font-weight:600;cursor:pointer;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+.logout-btn.cancel{border:1px solid var(--border);background:var(--surface);color:var(--text-secondary)}
+.logout-btn.cancel:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
+.logout-btn.confirm{border:1px solid var(--red);background:var(--red);color:#fff}
+.logout-btn.confirm:hover{background:#991b1b;border-color:#991b1b}
+.logout-btn:disabled{opacity:.6;cursor:wait}
+@media(max-width:640px){
+    .logout-card{padding:22px 18px 16px}
+    .logout-actions{grid-template-columns:1fr}
+}
+
 /* ============ LOADER ============ */
 .page-loader{
     position:fixed;inset:0;z-index:999;
@@ -2181,6 +2252,43 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
 <!-- КОНТЕЙНЕР УВЕДОМЛЕНИЙ -->
 <div class="notif-container" id="notifContainer" aria-live="polite"></div>
 
+
+<!-- МОДАЛЬНОЕ ОКНО ВЫХОДА -->
+<div class="logout-overlay" id="logoutOverlay" aria-hidden="true">
+    <div class="logout-card" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
+        <div class="logout-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/>
+                <path d="m11 8-4 4 4 4"/>
+                <path d="M7 12h10"/>
+            </svg>
+        </div>
+        <div class="logout-title" id="logoutTitle">Выйти из аккаунта?</div>
+        <div class="logout-sub">Выберите, что сделать с сохранённым PIN-кодом на этом устройстве.</div>
+
+        <label class="logout-option picked" data-option="keep">
+            <input type="radio" name="logout-option" value="keep" checked>
+            <span class="logout-option-text">
+                <span class="logout-option-title">Сохранить PIN</span>
+                <span class="logout-option-desc">При следующем входе сможете ввести PIN вместо пароля.</span>
+            </span>
+        </label>
+
+        <label class="logout-option" data-option="forget">
+            <input type="radio" name="logout-option" value="forget">
+            <span class="logout-option-text">
+                <span class="logout-option-title">Забыть PIN и логин</span>
+                <span class="logout-option-desc">Понадобится ввести пароль и (по желанию) установить новый PIN.</span>
+            </span>
+        </label>
+
+        <div class="logout-actions">
+            <button type="button" class="logout-btn cancel" id="logoutCancel">Отмена</button>
+            <button type="button" class="logout-btn confirm" id="logoutConfirm">Выйти</button>
+        </div>
+    </div>
+</div>
+
 <!-- МОДАЛКА ТАЙМАУТА -->
 <div class="idle-modal-overlay" id="idleModal" role="dialog" aria-modal="true">
     <div class="idle-modal">
@@ -2469,13 +2577,135 @@ document.addEventListener("click", function(event) {
 
 
 /* =========================================================
+   МОДАЛЬНОЕ ОКНО ВЫХОДА
+========================================================= */
+const LogoutModal = (() => {
+    let resolver = null;
+    let currentChoice = "keep";
+
+    function open() {
+        const overlay = document.getElementById("logoutOverlay");
+        if (!overlay) return Promise.resolve("keep");
+
+        currentChoice = "keep";
+        overlay.querySelectorAll(".logout-option").forEach((option) => {
+            const input = option.querySelector('input[type="radio"]');
+            const selected = option.dataset.option === "keep";
+            option.classList.toggle("picked", selected);
+            if (input) input.checked = selected;
+        });
+
+        overlay.classList.add("on");
+        overlay.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+
+        return new Promise((resolve) => { resolver = resolve; });
+    }
+
+    function close(choice) {
+        const overlay = document.getElementById("logoutOverlay");
+        if (overlay) {
+            overlay.classList.remove("on");
+            overlay.setAttribute("aria-hidden", "true");
+        }
+        document.body.style.overflow = "";
+
+        const resolve = resolver;
+        resolver = null;
+        if (resolve) resolve(choice ?? null);
+    }
+
+    function init() {
+        const overlay = document.getElementById("logoutOverlay");
+        if (!overlay) return;
+
+        overlay.querySelectorAll(".logout-option").forEach((option) => {
+            option.addEventListener("click", () => {
+                currentChoice = option.dataset.option || "keep";
+                overlay.querySelectorAll(".logout-option").forEach((item) => {
+                    const input = item.querySelector('input[type="radio"]');
+                    const selected = item.dataset.option === currentChoice;
+                    item.classList.toggle("picked", selected);
+                    if (input) input.checked = selected;
+                });
+            });
+        });
+
+        const cancel = document.getElementById("logoutCancel");
+        const confirm = document.getElementById("logoutConfirm");
+        if (cancel) cancel.addEventListener("click", () => close(null));
+        if (confirm) confirm.addEventListener("click", () => close(currentChoice));
+
+        overlay.addEventListener("click", (event) => {
+            if (event.target === overlay) close(null);
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && overlay.classList.contains("on")) close(null);
+        });
+    }
+
+    return { init, open };
+})();
+
+LogoutModal.init();
+
+function clearSavedPinAndLogin() {
+    // Совместимо со страницей входа: очищаются только данные для быстрого входа.
+    ["kurator_pin_hash_v1", "kurator_pin_salt_v1", "kurator_pin_name_v1",
+     "kurator_pin_attempts_v1", "kurator_last_login_id"].forEach((key) => {
+        try { localStorage.removeItem(key); } catch (error) { /* хранилище недоступно */ }
+    });
+    try { localStorage.setItem("kurator_remember_flag", "0"); } catch (error) { /* ignore */ }
+}
+
+/* =========================================================
    ВЫХОД
 ========================================================= */
+let logoutInProgress = false;
 
-function logout() {
-    auth.signOut()
-        .then(function() { window.location.href = "index.html"; })
-        .catch(function() { showToast("Не удалось выйти. Попробуйте снова."); });
+async function logout() {
+    if (logoutInProgress) return;
+
+    const choice = await LogoutModal.open(); // "keep" | "forget" | null
+    if (choice === null) {
+        showToast("Выход отменён");
+        return;
+    }
+
+    logoutInProgress = true;
+    const confirmButton = document.getElementById("logoutConfirm");
+    if (confirmButton) {
+        confirmButton.disabled = true;
+        confirmButton.textContent = "Выходим…";
+    }
+
+    try {
+        await auth.signOut();
+
+        if (choice === "forget") {
+            clearSavedPinAndLogin();
+        }
+
+        showToast(choice === "forget" ? "Вы вышли. PIN удалён" : "Вы вышли из системы");
+        setTimeout(function() {
+            window.location.replace("index.html");
+        }, 500);
+    } catch (error) {
+        console.warn("Ошибка выхода:", error);
+        showToast("Не удалось выйти. Попробуйте снова.");
+        logoutInProgress = false;
+    } finally {
+        if (confirmButton) {
+            confirmButton.disabled = false;
+            confirmButton.textContent = "Выйти";
+        }
+        const overlay = document.getElementById("logoutOverlay");
+        if (overlay) {
+            overlay.classList.remove("on");
+            overlay.setAttribute("aria-hidden", "true");
+        }
+        document.body.style.overflow = "";
+    }
 }
 
 

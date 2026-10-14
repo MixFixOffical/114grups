@@ -2322,17 +2322,30 @@ function selectWeek(date) {
 }
 
 /* =========================================================
-   PRINT
+   PRINT HEADER — единая точка восстановления
+   [ИСПРАВЛЕНО] пересобирает #printHeader целиком, чтобы избежать
+   Cannot set properties of null после повторной генерации отчёта
+========================================================= */
+function setPrintHeader(mainText, rangeText){
+    const header = document.getElementById("printHeader");
+    if(!header) return;
+
+    const group = getCurrentGroup();
+    const groupName = group ? (group.name || group.id) : "—";
+
+    header.innerHTML =
+        `<span class="ph-main">${escapeHtml(mainText)} <span id="printGroupName">${escapeHtml(groupName)}</span>    группы</span>` +
+        `<span class="ph-gap">       </span>` +
+        `<span class="ph-range" id="printHeaderRange">${escapeHtml(rangeText)}</span>`;
+}
+
+/* =========================================================
+   PRINT: недельный отчёт
 ========================================================= */
 function buildPrintSheet(scaleFactor) {
     const sheet = document.getElementById("printSheet");
     if (!sheet) return;
 
-    const group = getCurrentGroup();
-    const printGroupNameEl = document.getElementById("printGroupName");
-    if (printGroupNameEl) printGroupNameEl.textContent = group ? (group.name || group.id) : "—";
-
-    const curatorInputEl = document.getElementById("curatorPrintName");
     const table = document.querySelector("#tableWrapper table.journal");
 
     if (!table || students.length === 0) { sheet.innerHTML = ""; return; }
@@ -2423,6 +2436,7 @@ function buildPrintSheet(scaleFactor) {
             `</tr>`;
     });
 
+    const curatorInputEl = document.getElementById("curatorPrintName");
     const curatorName = (curatorInputEl && curatorInputEl.value.trim())
         ? curatorInputEl.value.trim()
         : "________________";
@@ -2483,10 +2497,12 @@ window.updateSemesterLabel = updateSemesterLabel;
 
 function printReport() {
     closeReportMenu();
+
+    // [ИСПРАВЛЕНО] сначала пересобираем шапку целиком
     const dates = getWeekDates();
     const rangeText = `с ${formatShortDate(dates[0], true)} — ${formatShortDate(dates[5], true)} гг.`;
-    document.getElementById("printHeaderRange").textContent = rangeText;
-    document.getElementById("printHeader").querySelector(".ph-main").textContent = "Информация о ежедневной посещаемости занятий";
+    setPrintHeader("Информация о ежедневной посещаемости занятий", rangeText);
+
     const AVAILABLE_MM = 170, HEAD_MM = 14, SIGN_MM = 14, ROW_MM = 7.0;
     const needed = HEAD_MM + SIGN_MM + students.length * ROW_MM;
     let scale = needed > AVAILABLE_MM ? AVAILABLE_MM / needed : 1;
@@ -2501,6 +2517,7 @@ function getSemesterMonths(semester) {
         ? [{n:8,t:"Сентябрь"},{n:9,t:"Октябрь"},{n:10,t:"Ноябрь"},{n:11,t:"Декабрь"},{n:0,t:"Январь"}]
         : [{n:1,t:"Февраль"},{n:2,t:"Март"},{n:3,t:"Апрель"},{n:4,t:"Май"},{n:5,t:"Июнь"}];
 }
+
 function printSemesterReport() {
     const semester = Number(document.getElementById("reportSemester").value);
     closeReportMenu();
@@ -2508,6 +2525,7 @@ function printSemesterReport() {
     const months = getSemesterMonths(semester);
     const monthCounts = new Map();
     const totals = new Map();
+
     students.forEach(st => {
         monthCounts.set(String(st.id), months.map(() => ({all:0,n:0,u:0,b:0})));
         totals.set(String(st.id),{all:0,n:0,u:0,b:0});
@@ -2545,7 +2563,9 @@ function printSemesterReport() {
 
     let rows = "";
     students.forEach((st, i) => {
-        const cells = monthCounts.get(String(st.id)).map(c => `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`).join("");
+        const cells = monthCounts.get(String(st.id))
+            .map(c => `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`)
+            .join("");
         const t = totals.get(String(st.id));
         rows += `<tr><td>${i+1}</td><td class="semester-name">${escapeHtml(st.name || "Без имени")}</td>${cells}<td>${t.n}</td><td>${t.u}</td><td>${t.b}</td><td><b>${t.all}</b></td></tr>`;
     });
@@ -2553,18 +2573,69 @@ function printSemesterReport() {
     const grand = {n:0,u:0,b:0,all:0};
     totals.forEach(t => { grand.n+=t.n; grand.u+=t.u; grand.b+=t.b; grand.all+=t.all; });
 
-    rows += `<tr class="semester-total"><td colspan="2">ИТОГО</td>${months.map((_,i)=>{const c=students.reduce((a,st)=>{const x=monthCounts.get(String(st.id))[i];a.all+=x.all;a.n+=x.n;a.u+=x.u;a.b+=x.b;return a;},{all:0,n:0,u:0,b:0});return `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`;}).join("")}<td>${grand.n}</td><td>${grand.u}</td><td>${grand.b}</td><td>${grand.all}</td></tr>`;
+    rows += `<tr class="semester-total"><td colspan="2">ИТОГО</td>${
+        months.map((_,i)=>{
+            const c = students.reduce((a,st)=>{
+                const x = monthCounts.get(String(st.id))[i];
+                a.all+=x.all; a.n+=x.n; a.u+=x.u; a.b+=x.b;
+                return a;
+            },{all:0,n:0,u:0,b:0});
+            return `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`;
+        }).join("")
+    }<td>${grand.n}</td><td>${grand.u}</td><td>${grand.b}</td><td>${grand.all}</td></tr>`;
 
-    document.getElementById("printGroupName").textContent = group ? (group.name || group.id) : "—";
-    document.getElementById("printHeaderRange").textContent = `${semester} семестр`;
-    document.getElementById("printHeader").querySelector(".ph-main").textContent = `Сводный отчёт посещаемости — ${group ? (group.name || group.id) : "группа"} — ${semester} семестр`;
+    // [ИСПРАВЛЕНО] пересобираем шапку целиком через setPrintHeader
+    const groupName = group ? (group.name || group.id) : "—";
+    setPrintHeader(
+        `Сводный отчёт посещаемости — ${groupName} — ${semester} семестр`,
+        `${semester} семестр`
+    );
 
     const sheet = document.getElementById("printSheet");
-    sheet.innerHTML = `<div class="semester-print-title">Группа: ${escapeHtml(group ? (group.name || group.id) : "—")} &nbsp;&nbsp; Семестр: ${semester}</div><table class="pt semester-table"><colgroup><col style="width:8mm"><col style="width:36mm">${months.map(()=>'<col span="4">').join("")}<col span="4"></colgroup><thead><tr><th rowspan="2">№</th><th rowspan="2">ФИО</th>${monthHeads}<th colspan="4">Всего за семестр</th></tr><tr>${subHeads}<th>Н</th><th>У</th><th>Б</th><th>Вс</th></tr></thead><tbody>${rows}</tbody></table>`;
+    if (!sheet) return;
 
-    const style = document.getElementById("ptDynamicStyle"); if (style) style.remove();
-    const dynamic = document.createElement("style"); dynamic.id = "ptDynamicStyle";
-    dynamic.textContent = `#printSheet .semester-print-title{font-weight:bold;text-align:left;margin:0 0 3mm;font-size:10pt}#printSheet table.semester-table{font-size:8pt;width:100%;table-layout:fixed;border-collapse:collapse}#printSheet table.semester-table th,#printSheet table.semester-table td{border:0;box-shadow:inset 0 0 0 .25pt #000;padding:1mm .4mm;text-align:center;vertical-align:middle;overflow-wrap:anywhere}#printSheet table.semester-table td.semester-name{text-align:left;padding-left:1.5mm}#printSheet table.semester-table .semester-total{font-weight:bold}#printSheet table.semester-table thead{display:table-header-group}`;
+    // [ИСПРАВЛЕНО] корректный colgroup + во вторую строку шапки добавлены пустые th для № и ФИО
+    const colsHtml =
+        '<col style="width:8mm">' +
+        '<col style="width:36mm">' +
+        months.map(() => '<col span="4">').join("") +
+        '<col span="4">';
+
+    const theadHtml =
+        '<tr>' +
+            '<th rowspan="2">№</th>' +
+            '<th rowspan="2">ФИО</th>' +
+            monthHeads +
+            '<th colspan="4">Всего за семестр</th>' +
+        '</tr>' +
+        '<tr>' +
+            '<th></th><th></th>' +   // [ИСПРАВЛЕНО] пустые th для № и ФИО во второй строке
+            subHeads +
+            '<th>Н</th><th>У</th><th>Б</th><th>Вс</th>' +
+        '</tr>';
+
+    sheet.innerHTML =
+        `<div class="semester-print-title">Группа: ${escapeHtml(groupName)} &nbsp;&nbsp; Семестр: ${semester}</div>` +
+        `<table class="pt semester-table">` +
+            `<colgroup>${colsHtml}</colgroup>` +
+            `<thead>${theadHtml}</thead>` +
+            `<tbody>${rows}</tbody>` +
+        `</table>`;
+
+    const style = document.getElementById("ptDynamicStyle");
+    if (style) style.remove();
+
+    const dynamic = document.createElement("style");
+    dynamic.id = "ptDynamicStyle";
+    dynamic.textContent = `
+        #printSheet .semester-print-title{font-weight:bold;text-align:left;margin:0 0 3mm;font-size:10pt}
+        #printSheet table.semester-table{font-size:8pt;width:100%;table-layout:fixed;border-collapse:collapse}
+        #printSheet table.semester-table th,
+        #printSheet table.semester-table td{border:0;box-shadow:inset 0 0 0 .25pt #000;padding:1mm .4mm;text-align:center;vertical-align:middle;overflow-wrap:anywhere}
+        #printSheet table.semester-table td.semester-name{text-align:left;padding-left:1.5mm}
+        #printSheet table.semester-table .semester-total{font-weight:bold}
+        #printSheet table.semester-table thead{display:table-header-group}
+    `;
     document.head.appendChild(dynamic);
     setTimeout(() => window.print(), 150);
 }

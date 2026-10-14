@@ -1424,6 +1424,19 @@ function getCurrentGroup() {
     return userGroups.find(g => g.id === currentGroupId) || null;
 }
 
+/* =========================================================
+   [ИСПРАВЛЕНО] Определение семестров по номеру группы
+   111 → 1,2  214 → 3,4  311 → 5,6  411 → 7,8
+========================================================= */
+function getSemestersForGroup(groupName) {
+    const m = String(groupName || "").trim().match(/^(\d)/);
+    if (!m) return { first: 1, second: 2 };
+    const course = parseInt(m[1], 10);
+    if (course < 1 || course > 4) return { first: 1, second: 2 };
+    const first = (course - 1) * 2 + 1;
+    return { first, second: first + 1 };
+}
+
 function groupsFromSnapshot(s) {
     return s.docs.map(d => ({ id: d.id, ...d.data() }));
 }
@@ -1521,6 +1534,7 @@ window.switchGroup = async (groupId) => {
         renderMobile();
         renderWeekList();
         updateCuratorNameField();
+        updateSemesterInfo();
     } catch (e) {
         console.error(e);
         showStatus("Не удалось загрузить группу", "error");
@@ -1772,13 +1786,20 @@ function updateWeekRange() {
     document.getElementById("weekRange").textContent = `Период: ${first} — ${last}`;
 }
 
+/* =========================================================
+   [ИСПРАВЛЕНО] Аттестация определяется с учётом семестров группы
+   Для 214 → semester1 = 3 семестр, semester2 = 4 семестр
+========================================================= */
 function getAttestationInfo(dateString) {
     const date = new Date(dateString + "T00:00:00");
+    const group = getCurrentGroup();
+    const sems = getSemestersForGroup(group?.name);
+
     const periods = [
-        { semester: 1, attestation: 1, period: settings.semester1?.attestation1 },
-        { semester: 1, attestation: 2, period: settings.semester1?.attestation2 },
-        { semester: 2, attestation: 1, period: settings.semester2?.attestation1 },
-        { semester: 2, attestation: 2, period: settings.semester2?.attestation2 }
+        { semester: sems.first,  attestation: 1, period: settings.semester1?.attestation1 },
+        { semester: sems.first,  attestation: 2, period: settings.semester1?.attestation2 },
+        { semester: sems.second, attestation: 1, period: settings.semester2?.attestation1 },
+        { semester: sems.second, attestation: 2, period: settings.semester2?.attestation2 }
     ];
     for (const item of periods) {
         if (!item.period?.start || !item.period?.end) continue;
@@ -1787,6 +1808,24 @@ function getAttestationInfo(dateString) {
         if (date >= start && date <= end) return item;
     }
     return null;
+}
+
+/* =========================================================
+   [ИСПРАВЛЕНО] Обновление плашки с семестром в шапке
+========================================================= */
+function updateSemesterInfo() {
+    const today = formatDate(new Date());
+    const group = getCurrentGroup();
+    const sems = getSemestersForGroup(group?.name);
+    const info = getAttestationInfo(today);
+    const el = document.getElementById("semesterInfo");
+    if (!el) return;
+
+    if (info) {
+        el.textContent = `${info.semester} семестр • Аттестация №${info.attestation}`;
+    } else {
+        el.textContent = `Семестры группы: ${sems.first} и ${sems.second}`;
+    }
 }
 
 /* =========================================================
@@ -2322,9 +2361,7 @@ function selectWeek(date) {
 }
 
 /* =========================================================
-   PRINT HEADER — единая точка восстановления
-   Пересобирает #printHeader целиком, чтобы избежать
-   Cannot set properties of null после повторной генерации отчёта
+   PRINT HEADER
 ========================================================= */
 function setPrintHeader(mainText, rangeText){
     const header = document.getElementById("printHeader");
@@ -2483,13 +2520,21 @@ function openReportMenu() {
     updateSemesterLabel();
     const info = getAttestationInfo(formatDate(new Date()));
     if (info && info.semester) document.getElementById("reportSemester").value = String(info.semester);
+    else {
+        const group = getCurrentGroup();
+        const sems = getSemestersForGroup(group?.name);
+        document.getElementById("reportSemester").value = String(sems.first);
+    }
 }
 function closeReportMenu() { document.getElementById("reportOverlay").classList.remove("show"); }
 function updateSemesterLabel() {
     const selected = Number(document.getElementById("reportSemester").value);
     const info = getAttestationInfo(formatDate(new Date()));
-    const current = info && info.semester ? Number(info.semester) : null;
-    document.getElementById("currentSemesterLabel").textContent = `Текущий семестр: ${current || "не определён"}${current === selected ? " (выбран)" : ""}`;
+    const group = getCurrentGroup();
+    const sems = getSemestersForGroup(group?.name);
+    const current = info && info.semester ? Number(info.semester) : sems.first;
+    document.getElementById("currentSemesterLabel").textContent =
+        `Текущий семестр группы: ${sems.first}–${sems.second}. Выбран: ${selected}${current === selected ? " (активный)" : ""}`;
 }
 window.openReportMenu = openReportMenu;
 window.closeReportMenu = closeReportMenu;
@@ -2518,8 +2563,9 @@ function getSemesterMonths(semester) {
 }
 
 /* =========================================================
-   PRINT: семестровый отчёт
-   Исправлено: явный colgroup без <col span>, поэтому таблица не съезжает
+   [ИСПРАВЛЕНО] PRINT: семестровый отчёт
+   - Явные проценты вместо calc для colgroup (чтобы не «съезжало»)
+   - Правильное число колонок = 2 + 4*месяцев + 4
 ========================================================= */
 function printSemesterReport() {
     const semester = Number(document.getElementById("reportSemester").value);
@@ -2564,6 +2610,7 @@ function printSemesterReport() {
     const monthHeads = months.map(m =>
         `<th colspan="4" class="sem-month-head">${m.t}</th>`
     ).join("");
+
     const subHeads = months.map(() =>
         `<th class="sem-sub">Всего</th><th class="sem-sub">Н</th><th class="sem-sub">У</th><th class="sem-sub">Б</th>`
     ).join("");
@@ -2609,17 +2656,16 @@ function printSemesterReport() {
     const sheet = document.getElementById("printSheet");
     if (!sheet) return;
 
-    // Явный colgroup: по одной <col> на каждую колонку (без <col span>),
-    // чтобы браузер не «съезжал» при fixed layout.
-    const monthColWidth = `calc((100% - 44mm) / ${months.length * 4 + 4})`;
+    // Итоговое число колонок: № + ФИО + месяцы*4 + итоги*4
+    // Проценты: № = 3%, ФИО = 13%, остальные делим поровну
+    const totalDataCols = months.length * 4 + 4;
+    const dataWidth = (84 / totalDataCols).toFixed(4);
+
     let colgroup = '<colgroup>';
-    colgroup += '<col style="width:8mm">';
-    colgroup += '<col style="width:36mm">';
-    for (let i = 0; i < months.length * 4; i++) {
-        colgroup += `<col style="width:${monthColWidth}">`;
-    }
-    for (let i = 0; i < 4; i++) {
-        colgroup += `<col style="width:${monthColWidth}">`;
+    colgroup += '<col style="width:3%">';
+    colgroup += '<col style="width:13%">';
+    for (let i = 0; i < totalDataCols; i++) {
+        colgroup += `<col style="width:${dataWidth}%">`;
     }
     colgroup += '</colgroup>';
 
@@ -2654,34 +2700,35 @@ function printSemesterReport() {
             font-weight:bold;text-align:left;margin:0 0 3mm;font-size:10pt;
         }
         #printSheet table.semester-table{
-            font-size:7.5pt;
+            font-size:6.5pt;
             width:100%;
             table-layout:fixed;
             border-collapse:separate;
             border-spacing:0;
+            page-break-inside:auto;
         }
         #printSheet table.semester-table th,
         #printSheet table.semester-table td{
             border:0;
             box-shadow:inset 0 0 0 .25pt #000;
-            padding:.8mm .2mm;
+            padding:.5mm .1mm;
             text-align:center;
             vertical-align:middle;
             overflow:hidden;
             word-wrap:break-word;
             overflow-wrap:anywhere;
-            line-height:1.1;
+            line-height:1.05;
         }
         #printSheet table.semester-table thead th{ font-weight:bold; }
         #printSheet table.semester-table .sem-num,
         #printSheet table.semester-table .sem-num-head{ text-align:center; }
         #printSheet table.semester-table .sem-name-head,
         #printSheet table.semester-table td.semester-name{
-            text-align:left;padding-left:1.2mm;padding-right:1.2mm;
+            text-align:left;padding-left:1mm;padding-right:1mm;
         }
         #printSheet table.semester-table .sem-month-head{ white-space:nowrap; }
         #printSheet table.semester-table .sem-sub{
-            white-space:nowrap;font-size:6.5pt;
+            white-space:nowrap;font-size:5.8pt;
         }
         #printSheet table.semester-table .sem-total-head{ white-space:nowrap; }
         #printSheet table.semester-table .semester-total{ font-weight:bold; }
@@ -2746,12 +2793,7 @@ async function start() {
         renderTable();
         renderMobile();
         renderWeekList();
-
-        const today = formatDate(new Date());
-        const info = getAttestationInfo(today);
-        document.getElementById("semesterInfo").textContent = info
-            ? `${info.semester} семестр • Аттестация №${info.attestation}`
-            : "Семестр / аттестация не определены";
+        updateSemesterInfo();
 
     } catch (e) {
         console.error("Ошибка запуска:", e);

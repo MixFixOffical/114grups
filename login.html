@@ -157,6 +157,16 @@ body{
     opacity:1;pointer-events:auto;
 }
 
+/* SETUP STEP (логин после первого входа по почте) */
+.setup-panel{display:none}
+.card[data-step="setup"] .tabs{display:none}
+.card[data-step="setup"] .login-panel,
+.card[data-step="setup"] .register-panel{display:none}
+.card[data-step="setup"] .setup-panel{
+    display:block;position:relative;
+    opacity:1;pointer-events:auto;
+}
+
 /* =========================================================
    FIELDS
 ========================================================= */
@@ -169,7 +179,9 @@ body{
 .card[data-mode="login"] .login-panel .submit,
 .card[data-mode="register"] .field,
 .card[data-mode="register"] .opts,
-.card[data-mode="register"] .submit{opacity:1}
+.card[data-mode="register"] .submit,
+.card[data-step="setup"] .setup-panel .field,
+.card[data-step="setup"] .setup-panel .submit{opacity:1}
 
 .input-wrap{position:relative}
 input{
@@ -191,6 +203,7 @@ input:focus{
     box-shadow:0 0 0 3px rgba(29,78,216,.12);
 }
 input[type="password"]{letter-spacing:.3px}
+input[data-numeric]{letter-spacing:2px}
 
 .field.err input{
     border-color:var(--red-600);
@@ -341,6 +354,11 @@ input[type="password"]{letter-spacing:.3px}
 .back-btn:hover{color:var(--blue-600);background:var(--ink-100)}
 .back-btn svg{width:13px;height:13px}
 
+.setup-cancel{
+    display:flex;margin:10px auto 0;
+    opacity:1;
+}
+
 .role-badge{
     display:flex;align-items:center;gap:7px;
     margin-bottom:12px;padding:7px 11px;
@@ -367,6 +385,14 @@ input[type="password"]{letter-spacing:.3px}
     transition:width .3s var(--ease), background .2s var(--ease);
 }
 .strength-text{margin-top:5px;font-size:11px;font-weight:500;color:var(--ink-500)}
+
+/* =========================================================
+   LOGIN HINT
+========================================================= */
+.setup-hint{
+    font-size:12px;color:var(--ink-500);line-height:1.5;
+    text-align:center;margin:0 4px 14px;
+}
 
 /* =========================================================
    MESSAGE
@@ -892,7 +918,7 @@ input[type="password"]{letter-spacing:.3px}
 <div class="toasts" id="toasts"></div>
 
 <main class="page">
-    <section class="card" id="card" data-mode="login" data-state="">
+    <section class="card" id="card" data-mode="login" data-step="" data-state="">
 
         <!-- LOGO -->
         <div class="logo-wrap">
@@ -902,7 +928,7 @@ input[type="password"]{letter-spacing:.3px}
         <!-- HEAD -->
         <div class="head">
             <h1 class="title" id="title">Вход в систему</h1>
-            <p class="subtitle" id="subtitle">Введите данные учётной записи KURATOR</p>
+            <p class="subtitle" id="subtitle">Введите логин или почту и пароль</p>
         </div>
 
         <!-- TABS -->
@@ -920,12 +946,12 @@ input[type="password"]{letter-spacing:.3px}
                 <form id="loginForm" novalidate>
                     <div class="field">
                         <div class="input-wrap">
-                            <input type="email" id="loginEmail" placeholder="Электронная почта"
-                                   autocomplete="email" inputmode="email" required maxlength="254">
+                            <input type="text" id="loginId" placeholder="Логин или электронная почта"
+                                   autocomplete="username" inputmode="text" required maxlength="254">
                             <div class="input-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                    <rect x="3" y="5" width="18" height="14" rx="3"/>
-                                    <path d="m4 7 8 6 8-6"/>
+                                    <circle cx="12" cy="8" r="3.2"/>
+                                    <path d="M5 20c.8-3.4 3.2-5 7-5s6.2 1.6 7 5"/>
                                 </svg>
                             </div>
                         </div>
@@ -961,6 +987,39 @@ input[type="password"]{letter-spacing:.3px}
                     </div>
 
                     <button type="submit" class="submit" id="loginBtn">Войти в систему</button>
+                </form>
+            </div>
+
+            <!-- SETUP LOGIN (после первого входа без логина) -->
+            <div class="panel setup-panel" id="setupPanel">
+                <form id="setupForm" novalidate>
+                    <p class="setup-hint">
+                        Придумайте логин из 6–8 цифр и повторите пароль.
+                        Логин понадобится для следующих входов.
+                    </p>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="text" id="setupLogin" placeholder="Логин (6–8 цифр)"
+                                   inputmode="numeric" autocomplete="off" required maxlength="8" data-numeric>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="password" id="setupPwdRepeat" placeholder="Повторите пароль"
+                                   autocomplete="current-password" required maxlength="128">
+                            <button type="button" class="pwd-toggle" data-target="setupPwdRepeat" aria-label="Показать пароль">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <g class="eye-on"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></g>
+                                    <g class="eye-off"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/><path d="M6.7 6.7C3.6 8.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.4-1.1"/></g>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit" id="setupBtn">Сохранить логин</button>
+                    <button type="button" class="back-btn setup-cancel" id="setupCancel">Отмена</button>
                 </form>
             </div>
 
@@ -1051,6 +1110,18 @@ input[type="password"]{letter-spacing:.3px}
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                     <rect x="3" y="5" width="18" height="14" rx="3"/>
                                     <path d="m4 7 8 6 8-6"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="text" id="regLogin" placeholder="Логин (6–8 цифр)"
+                                   inputmode="numeric" autocomplete="off" required maxlength="8" data-numeric>
+                            <div class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/>
                                 </svg>
                             </div>
                         </div>
@@ -1168,7 +1239,8 @@ import {
     browserLocalPersistence, browserSessionPersistence, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {
-    getFirestore, doc, getDoc, setDoc, deleteDoc, serverTimestamp
+    getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp,
+    collection, query, where
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 /* =========================================
@@ -1259,6 +1331,10 @@ const sanitize = s => typeof s === "string"
 const isValidEmail = e => typeof e === "string" && e.length <= 254
     && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
 
+/* Логин — ровно 6–8 цифр */
+const LOGIN_RE = /^\d{6,8}$/;
+const isValidLogin = l => typeof l === "string" && LOGIN_RE.test(l);
+
 function validatePassword(pwd){
     if (typeof pwd !== "string") return { ok:false, reason:"Некорректный пароль." };
     if (pwd.length < 8) return { ok:false, reason:"Пароль — минимум 8 символов." };
@@ -1272,6 +1348,15 @@ function safeRedirect(page){
     const clean = String(page || "").replace(/[^a-z0-9]/gi,"").toLowerCase();
     if (!ALLOWED_PAGES.has(clean)) return "home";
     return clean;
+}
+
+/* =========================================
+   ПОИСК ПО ЛОГИНУ
+   (поле login хранится в users/{uid}, структура не меняется)
+========================================= */
+async function findUserByLogin(login){
+    const snap = await getDocs(query(collection(db, "users"), where("login", "==", login)));
+    return snap.empty ? null : snap.docs[0];
 }
 
 /* =========================================
@@ -1315,7 +1400,7 @@ function fbError(err){
         case "auth/user-not-found":
         case "auth/wrong-password":
         case "auth/invalid-credential":
-        case "auth/invalid-login-credentials": return "Неверная почта или пароль.";
+        case "auth/invalid-login-credentials": return "Неверный логин/почта или пароль.";
         case "auth/email-already-in-use":    return "Не удалось создать аккаунт с указанными данными.";
         case "auth/weak-password":           return "Пароль слишком простой.";
         case "auth/network-request-failed":  return "Ошибка сети. Проверьте подключение.";
@@ -1355,6 +1440,13 @@ function bindCaps(inputId, warnId){
 }
 bindCaps("loginPassword","loginCaps");
 bindCaps("regPassword","regCaps");
+
+/* =========================================
+   NUMERIC FIELDS (логин — только цифры)
+========================================= */
+document.querySelectorAll("input[data-numeric]").forEach(i => {
+    i.addEventListener("input", () => { i.value = i.value.replace(/\D/g, "").slice(0, 8); });
+});
 
 /* =========================================
    PASSWORD TOGGLE
@@ -1498,9 +1590,13 @@ function resetStatus(){
 }
 $("retryBtn").addEventListener("click", () => {
     resetStatus();
+    if (card.dataset.step === "setup"){
+        $("setupLogin").focus();
+        return;
+    }
     if (mode === "login"){
         $("loginPassword").value = "";
-        $("loginEmail").focus();
+        $("loginId").focus();
     } else {
         showRoles();
     }
@@ -1512,7 +1608,10 @@ $("retryBtn").addEventListener("click", () => {
 let mode = "login";
 let switching = false;
 
-function getActivePanel(){ return mode === "login" ? $("loginPanel") : $("registerPanel"); }
+function getActivePanel(){
+    if (card.dataset.step === "setup") return $("setupPanel");
+    return mode === "login" ? $("loginPanel") : $("registerPanel");
+}
 function setViewportHeight(h){ viewport.style.height = h + "px"; }
 function refreshHeight(){ setViewportHeight(getActivePanel().scrollHeight); }
 
@@ -1520,7 +1619,7 @@ function refreshHeight(){ setViewportHeight(getActivePanel().scrollHeight); }
    MODE SWITCH
 ========================================= */
 const TITLES = {
-    login: { t:"Вход в систему", s:"Введите данные учётной записи KURATOR" },
+    login: { t:"Вход в систему", s:"Введите логин или почту и пароль" },
     register: { t:"Регистрация", s:"Создайте учётную запись в системе KURATOR" }
 };
 
@@ -1608,7 +1707,148 @@ document.querySelectorAll(".role").forEach(el => {
 });
 
 /* =========================================
-   LOGIN
+   ОБЩАЯ МАРШРУТИЗАЦИЯ ПО СТАТУСУ
+   (используется и при входе, и при восстановлении сессии)
+========================================= */
+let loginFlow = false;      // пока true — onAuthStateChanged не вмешивается
+let setupUser = null;
+let setupPwd = "";
+
+async function routeByStatus(user, data){
+    const reg = data.reg;
+
+    if (reg === 0){
+        currentUserId = user.uid;
+
+        sendAdminEmail(
+            data.email || "",
+            data.name || "",
+            "Пользователь всё ещё ждёт подтверждения",
+            `Пользователь ${data.name || ""} (${data.email || ""}) повторно вошёл в систему, но его заявка всё ещё не одобрена.\n\n` +
+            `Роль: ${ROLE_LABELS[data.role] || data.role}\n` +
+            `Группа: ${data.group || "—"}\n` +
+            `UID: ${user.uid}`
+        );
+
+        await signOut(auth);
+        loginFlow = false;
+        showWaiting(
+            "Ожидает подтверждения",
+            "Ваш запрос отправлен. Дождитесь одобрения администратора."
+        );
+        return;
+    }
+
+    if (reg === 2){
+        showError("В регистрации отказано", "Данные аккаунта будут удалены.");
+        try {
+            await deleteDoc(doc(db, "users", user.uid));
+            await user.delete();
+        } catch (e){ logErr(e); }
+        loginFlow = false;
+        return;
+    }
+
+    const name = sanitize(String(data.name || "").split(" ")[0]) || "пользователь";
+    showSuccess(`Здравствуйте, ${name}`, "Открываем систему…");
+
+    const page = safeRedirect(
+        data.role === "admin" ? "adminhome" :
+        data.role === "parent" ? "phome" :
+        "home"
+    );
+    setTimeout(() => { window.location.href = page; }, REDIRECT_DELAY);
+}
+
+/* =========================================
+   SETUP STEP — придумать логин и повторить пароль
+========================================= */
+function showSetup(user, pwd){
+    setupUser = user;
+    setupPwd = pwd;
+    card.dataset.state = "";
+    card.dataset.step = "setup";
+    $("title").textContent = "Придумайте логин";
+    $("subtitle").textContent = "Логин из 6–8 цифр — для следующих входов";
+    $("setupLogin").value = "";
+    $("setupPwdRepeat").value = "";
+    clearMsg();
+    setTimeout(() => {
+        refreshHeight();
+        $("setupLogin").focus({ preventScroll:true });
+    }, 60);
+}
+
+function leaveSetup(){
+    setupUser = null;
+    setupPwd = "";
+    card.dataset.step = "";
+    $("title").textContent = TITLES[mode].t;
+    $("subtitle").textContent = TITLES[mode].s;
+    $("loginPassword").value = "";
+    $("setupPwdRepeat").value = "";
+    refreshHeight();
+}
+
+$("setupCancel").addEventListener("click", async () => {
+    clearMsg();
+    try { await signOut(auth); } catch (e){ logErr(e); }
+    leaveSetup();
+    loginFlow = false;
+});
+
+$("setupForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearMsg();
+
+    if (!setupUser) return;
+
+    const login = $("setupLogin").value.trim();
+    const rep = $("setupPwdRepeat").value;
+
+    if (!isValidLogin(login)){
+        showMsg("Логин — ровно 6–8 цифр.");
+        shakeField($("setupLogin"));
+        return;
+    }
+    if (rep !== setupPwd){
+        showMsg("Пароль не совпадает с тем, что вы ввели при входе.");
+        shakeField($("setupPwdRepeat"));
+        return;
+    }
+
+    try {
+        const taken = await findUserByLogin(login);
+        if (taken && taken.id !== setupUser.uid){
+            showMsg("Этот логин уже занят. Придумайте другой.");
+            shakeField($("setupLogin"));
+            return;
+        }
+    } catch (err){
+        logErr(err);
+        showMsg("Не удалось проверить логин. Попробуйте позже.");
+        return;
+    }
+
+    showLoading("Сохраняем логин…", "Это займёт пару секунд");
+    await sleep(400);
+
+    try {
+        const user = setupUser;
+        await setDoc(doc(db, "users", user.uid), { login }, { merge:true });
+        const snap = await getDoc(doc(db, "users", user.uid));
+        setupUser = null;
+        setupPwd = "";
+        card.dataset.step = "";
+        await routeByStatus(user, snap.data());
+    } catch (err){
+        logErr(err);
+        showError("Не удалось сохранить логин", "Попробуйте ещё раз.");
+    }
+});
+
+/* =========================================
+   LOGIN — логин (6–8 цифр) или почта
 ========================================= */
 $("loginForm").addEventListener("submit", async e => {
     e.preventDefault();
@@ -1619,13 +1859,20 @@ $("loginForm").addEventListener("submit", async e => {
         return;
     }
 
-    const email = $("loginEmail").value.trim();
+    const idRaw = $("loginId").value.trim();
     const pwd = $("loginPassword").value;
     const remember = $("rememberMe").checked;
+    const isEmail = idRaw.includes("@");
 
-    if (!email || !isValidEmail(email)){
-        showMsg("Введите корректную почту.");
-        shakeField($("loginEmail"));
+    if (isEmail){
+        if (!isValidEmail(idRaw)){
+            showMsg("Введите корректную почту.");
+            shakeField($("loginId"));
+            return;
+        }
+    } else if (!isValidLogin(idRaw)){
+        showMsg("Введите логин (6–8 цифр) или почту.");
+        shakeField($("loginId"));
         return;
     }
     if (!pwd || pwd.length > 128){
@@ -1637,12 +1884,44 @@ $("loginForm").addEventListener("submit", async e => {
     showLoading("Проверяем данные…", "Подождите пару секунд");
     await sleep(600);
 
+    loginFlow = true;
     try {
         await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
-        await signInWithEmailAndPassword(auth, email, pwd);
+
+        let email = idRaw;
+        if (!isEmail){
+            const found = await findUserByLogin(idRaw);
+            if (!found || !found.data().email){
+                throw { code:"auth/invalid-login-credentials" };
+            }
+            email = found.data().email;
+        }
+
+        const cred = await signInWithEmailAndPassword(auth, email, pwd);
         resetAttempts();
+
+        const user = cred.user;
+        const snap = await getDoc(doc(db, "users", user.uid));
+
+        if (!snap.exists()){
+            loginFlow = false;
+            await signOut(auth);
+            showError("Профиль не найден", "Обратитесь к администратору.");
+            return;
+        }
+
+        const data = snap.data();
+
+        /* Одобрен, но логина ещё нет → сначала придумать логин */
+        if (data.reg === 1 && !data.login){
+            showSetup(user, pwd);
+            return;
+        }
+
+        await routeByStatus(user, data);
     } catch (err){
         logErr(err);
+        loginFlow = false;
         failAttempt();
         await sleep(500);
         showError("Не удалось войти", fbError(err));
@@ -1661,6 +1940,7 @@ $("regForm").addEventListener("submit", async e => {
     const role = $("regRole").value;
     const name = $("regName").value.trim();
     const email = $("regEmail").value.trim();
+    const login = $("regLogin").value.trim();
     const pwd = $("regPassword").value;
     const confirm = $("regConfirm").value;
     const group = $("regGroup").value.trim();
@@ -1680,6 +1960,11 @@ $("regForm").addEventListener("submit", async e => {
         shakeField($("regEmail"));
         return;
     }
+    if (!isValidLogin(login)){
+        showMsg("Логин — ровно 6–8 цифр.");
+        shakeField($("regLogin"));
+        return;
+    }
     const pCheck = validatePassword(pwd);
     if (!pCheck.ok){
         showMsg(pCheck.reason);
@@ -1697,6 +1982,19 @@ $("regForm").addEventListener("submit", async e => {
         return;
     }
 
+    try {
+        const taken = await findUserByLogin(login);
+        if (taken){
+            showMsg("Этот логин уже занят. Придумайте другой.");
+            shakeField($("regLogin"));
+            return;
+        }
+    } catch (err){
+        logErr(err);
+        showMsg("Не удалось проверить логин. Попробуйте позже.");
+        return;
+    }
+
     showLoading("Создаём аккаунт…", "Это займёт пару секунд");
     await sleep(600);
 
@@ -1710,6 +2008,7 @@ $("regForm").addEventListener("submit", async e => {
             name: sanitize(name),
             email: sanitize(email),
             group: sanitize(group),
+            login,
             role,
             reg: 0,
             createdAt: serverTimestamp()
@@ -1751,14 +2050,14 @@ $("regForm").addEventListener("submit", async e => {
 });
 
 /* =========================================
-   FORGOT PASSWORD
+   FORGOT PASSWORD — только по почте
 ========================================= */
 $("forgotBtn").addEventListener("click", async () => {
-    const email = $("loginEmail").value.trim();
-    if (!email || !isValidEmail(email)){
-        showMsg("Сначала введите корректную почту.");
-        shakeField($("loginEmail"));
-        $("loginEmail").focus();
+    const email = $("loginId").value.trim();
+    if (!email.includes("@") || !isValidEmail(email)){
+        showMsg("Для восстановления пароля введите почту.");
+        shakeField($("loginId"));
+        $("loginId").focus();
         return;
     }
     try {
@@ -1793,12 +2092,12 @@ $("regPassword").addEventListener("input", e => {
 });
 
 /* =========================================
-   AUTH STATE
+   AUTH STATE (восстановление сессии)
 ========================================= */
 let authCheckInProgress = false;
 
 onAuthStateChanged(auth, async user => {
-    if (regInProgress) return;
+    if (regInProgress || loginFlow) return;
     if (!user){
         return;
     }
@@ -1813,48 +2112,7 @@ onAuthStateChanged(auth, async user => {
             return;
         }
 
-        const data = snap.data();
-        const reg = data.reg;
-
-        if (reg === 0){
-            currentUserId = user.uid;
-
-            /* === EMAIL АДМИНУ: пользователь всё ещё ждёт === */
-            sendAdminEmail(
-                data.email || "",
-                data.name || "",
-                "Пользователь всё ещё ждёт подтверждения",
-                `Пользователь ${data.name || ""} (${data.email || ""}) повторно вошёл в систему, но его заявка всё ещё не одобрена.\n\n` +
-                `Роль: ${ROLE_LABELS[data.role] || data.role}\n` +
-                `Группа: ${data.group || "—"}\n` +
-                `UID: ${user.uid}`
-            );
-
-            await signOut(auth);
-            showWaiting(
-                "Ожидает подтверждения",
-                "Ваш запрос отправлен. Дождитесь одобрения администратора."
-            );
-            return;
-        }
-        if (reg === 2){
-            showError("В регистрации отказано", "Данные аккаунта будут удалены.");
-            try {
-                await deleteDoc(doc(db, "users", user.uid));
-                await user.delete();
-            } catch (e){ logErr(e); }
-            return;
-        }
-
-        const name = sanitize(String(data.name || "").split(" ")[0]) || "пользователь";
-        showSuccess(`Здравствуйте, ${name}`, "Открываем систему…");
-
-        const page = safeRedirect(
-            data.role === "admin" ? "adminhome" :
-            data.role === "parent" ? "phome" :
-            "home"
-        );
-        setTimeout(() => { window.location.href = page; }, REDIRECT_DELAY);
+        await routeByStatus(user, snap.data());
     } catch (err){
         logErr(err);
         showError("Ошибка проверки", "Попробуйте снова.");
@@ -1914,8 +2172,8 @@ const AGREEMENT_KEY = "kurator_agreement_accepted_v1";
         document.removeEventListener("touchmove", preventBgScroll);
         setTimeout(() => overlay.remove(), 400);
 
-        const email = document.getElementById("loginEmail");
-        if (email) setTimeout(() => email.focus(), 300);
+        const id = document.getElementById("loginId");
+        if (id) setTimeout(() => id.focus(), 300);
     }
     btn.addEventListener("click", accept);
 
@@ -1938,7 +2196,7 @@ window.addEventListener("resize", () => {
     refreshHeight();
 });
 
-setTimeout(() => { if (mode === "login") $("loginEmail").focus(); }, 1000);
+setTimeout(() => { if (mode === "login" && !card.dataset.step) $("loginId").focus(); }, 1000);
 
 </script>
 

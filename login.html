@@ -157,12 +157,23 @@ body{
     opacity:1;pointer-events:auto;
 }
 
-/* SETUP STEP (логин после первого входа по почте) */
+/* SETUP STEP */
 .setup-panel{display:none}
 .card[data-step="setup"] .tabs{display:none}
 .card[data-step="setup"] .login-panel,
 .card[data-step="setup"] .register-panel{display:none}
 .card[data-step="setup"] .setup-panel{
+    display:block;position:relative;
+    opacity:1;pointer-events:auto;
+}
+
+/* PIN STEP */
+.pin-panel{display:none}
+.card[data-step="pin"] .tabs{display:none}
+.card[data-step="pin"] .login-panel,
+.card[data-step="pin"] .register-panel,
+.card[data-step="pin"] .setup-panel{display:none}
+.card[data-step="pin"] .pin-panel{
     display:block;position:relative;
     opacity:1;pointer-events:auto;
 }
@@ -181,7 +192,9 @@ body{
 .card[data-mode="register"] .opts,
 .card[data-mode="register"] .submit,
 .card[data-step="setup"] .setup-panel .field,
-.card[data-step="setup"] .setup-panel .submit{opacity:1}
+.card[data-step="setup"] .setup-panel .submit,
+.card[data-step="pin"] .pin-panel .field,
+.card[data-step="pin"] .pin-panel .submit{opacity:1}
 
 .input-wrap{position:relative}
 input{
@@ -289,6 +302,100 @@ input[data-numeric]{letter-spacing:2px}
     animation:spin .8s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* =========================================================
+   PIN PANEL
+========================================================= */
+.pin-panel .pin-head{
+    text-align:center;margin-bottom:18px;
+}
+.pin-panel .pin-avatar{
+    width:56px;height:56px;margin:0 auto 12px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--blue-700);color:#fff;
+    font-size:20px;font-weight:700;
+    letter-spacing:-.5px;
+}
+.pin-panel .pin-greet{
+    font-size:15px;font-weight:700;color:var(--ink-900);
+    margin-bottom:4px;
+}
+.pin-panel .pin-hint{
+    font-size:12.5px;color:var(--ink-500);line-height:1.5;
+}
+
+.pin-dots{
+    display:flex;justify-content:center;gap:12px;
+    margin:20px 0 16px;
+}
+.pin-dot{
+    width:14px;height:14px;border-radius:50%;
+    border:2px solid var(--ink-300);
+    background:transparent;
+    transition:background .15s var(--ease), border-color .15s var(--ease), transform .15s var(--ease);
+}
+.pin-dot.on{
+    background:var(--blue-700);
+    border-color:var(--blue-700);
+    transform:scale(1.05);
+}
+.pin-dots.err .pin-dot{
+    border-color:var(--red-600);
+    background:transparent;
+    animation:pinShake .4s var(--ease);
+}
+@keyframes pinShake{
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-6px)}
+    75%{transform:translateX(6px)}
+}
+
+.pin-keypad{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-bottom:8px;
+}
+.pin-key{
+    height:56px;
+    border:1px solid var(--ink-200);
+    border-radius:var(--radius-md);
+    background:#fff;
+    color:var(--ink-900);
+    font-family:inherit;font-size:22px;font-weight:600;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .12s var(--ease), border-color .12s var(--ease), transform .12s var(--ease);
+    user-select:none;
+    -webkit-user-select:none;
+}
+.pin-key:hover{background:var(--ink-50);border-color:var(--ink-300)}
+.pin-key:active{background:var(--ink-100);transform:scale(.96)}
+.pin-key[data-action="del"]{color:var(--red-600)}
+.pin-key[data-action="clear"]{font-size:14px;color:var(--ink-500);font-weight:600}
+.pin-key svg{width:22px;height:22px}
+
+.pin-actions{
+    display:flex;flex-direction:column;gap:8px;
+    margin-top:10px;
+}
+.pin-link{
+    border:0;background:transparent;
+    color:var(--blue-600);font-family:inherit;
+    font-size:12.5px;font-weight:600;
+    cursor:pointer;padding:8px;border-radius:6px;
+    transition:background .2s var(--ease);
+}
+.pin-link:hover{background:var(--ink-100)}
+.pin-link.danger{color:var(--red-600)}
+.pin-link.danger:hover{background:var(--red-50)}
+
+/* Установка PIN */
+.pin-setup-hint{
+    text-align:center;font-size:12.5px;color:var(--ink-500);
+    line-height:1.5;margin-bottom:16px;
+}
 
 /* =========================================================
    ROLE SELECT
@@ -707,13 +814,10 @@ input[data-numeric]{letter-spacing:2px}
 .agree-overlay.on .agree-card{transform:none}
 
 .agree-seal-top{
-    width:110px;
-    height:110px;
-    margin:0 auto 12px;
-    flex:none;
+    width:110px;height:110px;
+    margin:0 auto 12px;flex:none;
     object-fit:contain;
-    pointer-events:none;
-    user-select:none;
+    pointer-events:none;user-select:none;
     -webkit-user-drag:none;
 }
 
@@ -785,6 +889,106 @@ input[data-numeric]{letter-spacing:2px}
 }
 
 /* =========================================================
+   PIN SETUP MODAL
+========================================================= */
+.pin-setup-overlay{
+    position:fixed;inset:0;z-index:10000;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px 14px calc(20px + env(safe-area-inset-bottom,0px));
+    background:rgba(15,23,42,.5);
+    opacity:0;visibility:hidden;
+    transition:opacity .25s var(--ease), visibility .25s var(--ease);
+}
+.pin-setup-overlay.on{opacity:1;visibility:visible}
+
+.pin-setup-card{
+    width:100%;max-width:400px;
+    padding:26px 22px 20px;
+    border-radius:var(--radius-lg);
+    background:#fff;
+    border:1px solid var(--ink-200);
+    box-shadow:0 20px 50px -12px rgba(15,23,42,.35);
+    transform:translateY(12px);
+    transition:transform .3s var(--ease);
+}
+.pin-setup-overlay.on .pin-setup-card{transform:none}
+
+.pin-setup-title{
+    font-size:17px;font-weight:700;color:var(--ink-900);
+    text-align:center;margin-bottom:6px;
+}
+.pin-setup-sub{
+    font-size:12.5px;color:var(--ink-500);
+    text-align:center;line-height:1.5;margin-bottom:18px;
+}
+
+.pin-setup-dots{
+    display:flex;justify-content:center;gap:14px;
+    margin:8px 0 18px;
+}
+.pin-setup-dots .pin-dot{
+    width:16px;height:16px;
+}
+.pin-setup-dots.err .pin-dot{
+    border-color:var(--red-600);
+    animation:pinShake .4s var(--ease);
+}
+
+.pin-setup-keypad{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-bottom:8px;
+}
+.pin-setup-key{
+    height:54px;
+    border:1px solid var(--ink-200);
+    border-radius:var(--radius-md);
+    background:#fff;
+    color:var(--ink-900);
+    font-family:inherit;font-size:22px;font-weight:600;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .12s var(--ease), border-color .12s var(--ease), transform .12s var(--ease);
+}
+.pin-setup-key:hover{background:var(--ink-50);border-color:var(--ink-300)}
+.pin-setup-key:active{background:var(--ink-100);transform:scale(.96)}
+.pin-setup-key[data-action="del"]{color:var(--red-600)}
+.pin-setup-key[data-action="clear"]{font-size:14px;color:var(--ink-500);font-weight:600}
+.pin-setup-key svg{width:22px;height:22px}
+
+.pin-setup-actions{
+    display:flex;flex-direction:column;gap:6px;
+    margin-top:10px;
+}
+.pin-setup-skip{
+    padding:11px;
+    border:0;background:transparent;
+    color:var(--ink-500);font-family:inherit;
+    font-size:12.5px;font-weight:600;
+    cursor:pointer;border-radius:6px;
+    transition:background .2s var(--ease), color .2s var(--ease);
+}
+.pin-setup-skip:hover{background:var(--ink-100);color:var(--ink-700)}
+
+.pin-setup-err{
+    margin-top:10px;
+    padding:9px 12px;
+    border-radius:var(--radius-sm);
+    background:var(--red-50);
+    border:1px solid var(--red-200);
+    color:var(--red-600);
+    font-size:12px;font-weight:500;
+    text-align:center;
+    opacity:0;max-height:0;
+    overflow:hidden;
+    transition:opacity .2s var(--ease), max-height .2s var(--ease), padding .2s var(--ease);
+}
+.pin-setup-err.on{
+    opacity:1;max-height:80px;padding:9px 12px;
+}
+
+/* =========================================================
    RESPONSIVE
 ========================================================= */
 @media (max-width:480px){
@@ -805,11 +1009,15 @@ input[data-numeric]{letter-spacing:2px}
     .agree-scroll{font-size:12px;padding:12px}
     .agree-btn{height:50px;font-size:14.5px}
     .agree-seal-top{width:92px;height:92px}
+
+    .pin-key,.pin-setup-key{height:52px;font-size:20px}
 }
 @media (max-width:360px){
     .card{padding:22px 16px 18px}
     .title{font-size:18px}
     .agree-seal-top{width:80px;height:80px}
+    .pin-dot{width:12px;height:12px}
+    .pin-key,.pin-setup-key{height:48px;font-size:18px}
 }
 @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{
@@ -907,6 +1115,54 @@ input[data-numeric]{letter-spacing:2px}
     </div>
 </div>
 
+<!-- =========================================================
+     PIN SETUP MODAL (появляется после входа с «Запомнить»)
+========================================================= -->
+<div class="pin-setup-overlay" id="pinSetupOverlay" aria-hidden="true">
+    <div class="pin-setup-card" role="dialog" aria-modal="true" aria-labelledby="pinSetupTitle">
+        <h2 class="pin-setup-title" id="pinSetupTitle">Установите PIN-код</h2>
+        <p class="pin-setup-sub">
+            PIN нужен только для быстрого входа.<br>
+            Он запросит 4 цифры при следующем открытии сайта.
+        </p>
+
+        <div class="pin-setup-dots" id="pinSetupDots">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+
+        <div class="pin-setup-keypad" id="pinSetupKeypad">
+            <button type="button" class="pin-setup-key" data-digit="1">1</button>
+            <button type="button" class="pin-setup-key" data-digit="2">2</button>
+            <button type="button" class="pin-setup-key" data-digit="3">3</button>
+            <button type="button" class="pin-setup-key" data-digit="4">4</button>
+            <button type="button" class="pin-setup-key" data-digit="5">5</button>
+            <button type="button" class="pin-setup-key" data-digit="6">6</button>
+            <button type="button" class="pin-setup-key" data-digit="7">7</button>
+            <button type="button" class="pin-setup-key" data-digit="8">8</button>
+            <button type="button" class="pin-setup-key" data-digit="9">9</button>
+            <button type="button" class="pin-setup-key" data-action="clear">C</button>
+            <button type="button" class="pin-setup-key" data-digit="0">0</button>
+            <button type="button" class="pin-setup-key" data-action="del">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 5H8L3 12l5 7h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/>
+                    <path d="m17 9-6 6M11 9l6 6"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="pin-setup-err" id="pinSetupErr"></div>
+
+        <div class="pin-setup-actions">
+            <button type="button" class="pin-setup-skip" id="pinSetupSkip">
+                Пропустить — входить по паролю
+            </button>
+        </div>
+    </div>
+</div>
+
 <!-- PAGE LOADER -->
 <div class="page-loader" id="pageLoader">
     <div class="loader-content">
@@ -990,7 +1246,7 @@ input[data-numeric]{letter-spacing:2px}
                 </form>
             </div>
 
-            <!-- SETUP LOGIN (после первого входа без логина) -->
+            <!-- SETUP LOGIN -->
             <div class="panel setup-panel" id="setupPanel">
                 <form id="setupForm" novalidate>
                     <p class="setup-hint">
@@ -1021,6 +1277,51 @@ input[data-numeric]{letter-spacing:2px}
                     <button type="submit" class="submit" id="setupBtn">Сохранить логин</button>
                     <button type="button" class="back-btn setup-cancel" id="setupCancel">Отмена</button>
                 </form>
+            </div>
+
+            <!-- PIN PANEL (автовход) -->
+            <div class="panel pin-panel" id="pinPanel">
+                <div class="pin-head">
+                    <div class="pin-avatar" id="pinAvatar">K</div>
+                    <div class="pin-greet" id="pinGreet">С возвращением!</div>
+                    <div class="pin-hint" id="pinHint">Введите PIN для входа</div>
+                </div>
+
+                <div class="pin-dots" id="pinDots">
+                    <div class="pin-dot"></div>
+                    <div class="pin-dot"></div>
+                    <div class="pin-dot"></div>
+                    <div class="pin-dot"></div>
+                </div>
+
+                <div class="pin-keypad" id="pinKeypad">
+                    <button type="button" class="pin-key" data-digit="1">1</button>
+                    <button type="button" class="pin-key" data-digit="2">2</button>
+                    <button type="button" class="pin-key" data-digit="3">3</button>
+                    <button type="button" class="pin-key" data-digit="4">4</button>
+                    <button type="button" class="pin-key" data-digit="5">5</button>
+                    <button type="button" class="pin-key" data-digit="6">6</button>
+                    <button type="button" class="pin-key" data-digit="7">7</button>
+                    <button type="button" class="pin-key" data-digit="8">8</button>
+                    <button type="button" class="pin-key" data-digit="9">9</button>
+                    <button type="button" class="pin-key" data-action="clear">C</button>
+                    <button type="button" class="pin-key" data-digit="0">0</button>
+                    <button type="button" class="pin-key" data-action="del">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 5H8L3 12l5 7h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/>
+                            <path d="m17 9-6 6M11 9l6 6"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="pin-actions">
+                    <button type="button" class="pin-link" id="pinUsePassword">
+                        Войти по паролю
+                    </button>
+                    <button type="button" class="pin-link danger" id="pinForgot">
+                        Забыли PIN?
+                    </button>
+                </div>
             </div>
 
             <!-- REGISTER -->
@@ -1260,7 +1561,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 /* =========================================
-   EMAILJS — уведомление админу
+   EMAILJS
 ========================================= */
 const EMAILJS_SERVICE_ID  = "service_50x4f98";
 const EMAILJS_TEMPLATE_ID = "template_spjjzec";
@@ -1272,10 +1573,7 @@ if (typeof emailjs !== "undefined") {
 }
 
 async function sendAdminEmail(senderEmail, senderName, subject, message) {
-    if (typeof emailjs === "undefined") {
-        console.warn("EmailJS не загружен");
-        return;
-    }
+    if (typeof emailjs === "undefined") return;
     try {
         await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
             to_email: ADMIN_EMAIL,
@@ -1309,6 +1607,19 @@ const LOCK_KEY = "kurator_lock";
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 60_000;
 
+/* === АВТОВХОД === */
+const LAST_ID_KEY        = "kurator_last_login_id";
+const REMEMBER_FLAG_KEY  = "kurator_remember_flag";
+
+/* === PIN === */
+const PIN_HASH_KEY       = "kurator_pin_hash_v1";
+const PIN_SALT_KEY       = "kurator_pin_salt_v1";
+const PIN_NAME_KEY       = "kurator_pin_name_v1";
+const PIN_ATTEMPTS_KEY   = "kurator_pin_attempts_v1";
+const PIN_LENGTH         = 4;
+const PIN_MAX_ATTEMPTS   = 5;
+const AUTH_TIMEOUT_MS    = 3000;   // ждём Firebase перед принудительным показом формы
+
 /* =========================================
    ELEMENTS
 ========================================= */
@@ -1331,7 +1642,6 @@ const sanitize = s => typeof s === "string"
 const isValidEmail = e => typeof e === "string" && e.length <= 254
     && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
 
-/* Логин — ровно 6–8 цифр */
 const LOGIN_RE = /^\d{6,8}$/;
 const isValidLogin = l => typeof l === "string" && LOGIN_RE.test(l);
 
@@ -1352,7 +1662,6 @@ function safeRedirect(page){
 
 /* =========================================
    ПОИСК ПО ЛОГИНУ
-   (поле login хранится в users/{uid}, структура не меняется)
 ========================================= */
 async function findUserByLogin(login){
     const snap = await getDocs(query(collection(db, "users"), where("login", "==", login)));
@@ -1442,7 +1751,7 @@ bindCaps("loginPassword","loginCaps");
 bindCaps("regPassword","regCaps");
 
 /* =========================================
-   NUMERIC FIELDS (логин — только цифры)
+   NUMERIC FIELDS
 ========================================= */
 document.querySelectorAll("input[data-numeric]").forEach(i => {
     i.addEventListener("input", () => { i.value = i.value.replace(/\D/g, "").slice(0, 8); });
@@ -1594,6 +1903,9 @@ $("retryBtn").addEventListener("click", () => {
         $("setupLogin").focus();
         return;
     }
+    if (card.dataset.step === "pin"){
+        return;
+    }
     if (mode === "login"){
         $("loginPassword").value = "";
         $("loginId").focus();
@@ -1610,6 +1922,7 @@ let switching = false;
 
 function getActivePanel(){
     if (card.dataset.step === "setup") return $("setupPanel");
+    if (card.dataset.step === "pin")   return $("pinPanel");
     return mode === "login" ? $("loginPanel") : $("registerPanel");
 }
 function setViewportHeight(h){ viewport.style.height = h + "px"; }
@@ -1625,6 +1938,7 @@ const TITLES = {
 
 async function switchMode(next){
     if (next === mode || switching || card.dataset.state) return;
+    if (card.dataset.step) return;  // в режиме setup/pin не переключаемся
     switching = true;
     clearMsg();
 
@@ -1708,9 +2022,8 @@ document.querySelectorAll(".role").forEach(el => {
 
 /* =========================================
    ОБЩАЯ МАРШРУТИЗАЦИЯ ПО СТАТУСУ
-   (используется и при входе, и при восстановлении сессии)
 ========================================= */
-let loginFlow = false;      // пока true — onAuthStateChanged не вмешивается
+let loginFlow = false;
 let setupUser = null;
 let setupPwd = "";
 
@@ -1761,7 +2074,7 @@ async function routeByStatus(user, data){
 }
 
 /* =========================================
-   SETUP STEP — придумать логин и повторить пароль
+   SETUP STEP
 ========================================= */
 function showSetup(user, pwd){
     setupUser = user;
@@ -1848,7 +2161,348 @@ $("setupForm").addEventListener("submit", async e => {
 });
 
 /* =========================================
-   LOGIN — логин (6–8 цифр) или почта
+   PIN — утилиты (WebCrypto)
+========================================= */
+async function sha256Hex(str){
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2,"0"))
+        .join("");
+}
+
+function randomSalt(){
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+
+async function hashPin(pin, salt){
+    return sha256Hex(`${salt}::${pin}::kurator`);
+}
+
+function savePin(pin, salt, displayName){
+    localStorage.setItem(PIN_HASH_KEY, pin);
+    localStorage.setItem(PIN_SALT_KEY, salt);
+    localStorage.setItem(PIN_NAME_KEY, displayName || "");
+    localStorage.removeItem(PIN_ATTEMPTS_KEY);
+}
+
+function hasPin(){
+    return !!localStorage.getItem(PIN_HASH_KEY) && !!localStorage.getItem(PIN_SALT_KEY);
+}
+
+function clearPin(){
+    localStorage.removeItem(PIN_HASH_KEY);
+    localStorage.removeItem(PIN_SALT_KEY);
+    localStorage.removeItem(PIN_NAME_KEY);
+    localStorage.removeItem(PIN_ATTEMPTS_KEY);
+}
+
+function getPinAttempts(){
+    try { return parseInt(localStorage.getItem(PIN_ATTEMPTS_KEY) || "0", 10) || 0; }
+    catch { return 0; }
+}
+function incPinAttempts(){
+    const n = getPinAttempts() + 1;
+    localStorage.setItem(PIN_ATTEMPTS_KEY, String(n));
+    return n;
+}
+function resetPinAttempts(){
+    localStorage.removeItem(PIN_ATTEMPTS_KEY);
+}
+
+/* =========================================
+   PIN PANEL (автовход)
+========================================= */
+let pinBuffer = "";
+let pinBusy = false;
+
+function openPinPanel(user, data){
+    const name = sanitize(String(data.name || "").split(" ")[0]) || "пользователь";
+    $("pinAvatar").textContent = (name[0] || "K").toUpperCase();
+    $("pinGreet").textContent = `С возвращением, ${name}!`;
+    $("pinHint").textContent = `Введите ${PIN_LENGTH}-значный PIN`;
+
+    pinBuffer = "";
+    updatePinDots();
+
+    card.dataset.state = "";
+    card.dataset.step = "pin";
+    card.dataset.mode = "login";
+
+    setTimeout(() => refreshHeight(), 60);
+}
+
+function closePinPanel(){
+    card.dataset.step = "";
+    pinBuffer = "";
+    refreshHeight();
+}
+
+function updatePinDots(){
+    const dots = $("pinDots").children;
+    for (let i = 0; i < dots.length; i++){
+        dots[i].classList.toggle("on", i < pinBuffer.length);
+    }
+}
+
+function flashPinError(){
+    const dots = $("pinDots");
+    dots.classList.add("err");
+    setTimeout(() => dots.classList.remove("err"), 500);
+}
+
+async function tryPinLogin(){
+    if (pinBusy) return;
+    pinBusy = true;
+
+    const stored = localStorage.getItem(PIN_HASH_KEY);
+    const salt   = localStorage.getItem(PIN_SALT_KEY);
+    const attempt = await hashPin(pinBuffer, salt);
+
+    if (attempt === stored){
+        resetPinAttempts();
+        pinBuffer = "";
+        updatePinDots();
+
+        // Резолвим сессию → редирект по роли
+        try {
+            const user = auth.currentUser;
+            if (!user){
+                // Сессия пропала — надо логиниться заново
+                toast("Сессия истекла. Войдите по паролю.");
+                clearPin();
+                closePinPanel();
+                return;
+            }
+            const snap = await getDoc(doc(db, "users", user.uid));
+            if (!snap.exists()){
+                toast("Профиль не найден");
+                clearPin();
+                closePinPanel();
+                await signOut(auth);
+                return;
+            }
+            loginFlow = true;
+            await routeByStatus(user, snap.data());
+        } catch (e){
+            logErr(e);
+            toast("Ошибка. Войдите по паролю.");
+            clearPin();
+            closePinPanel();
+        } finally {
+            pinBusy = false;
+        }
+        return;
+    }
+
+    // Неверный PIN
+    const n = incPinAttempts();
+    flashPinError();
+    pinBuffer = "";
+    updatePinDots();
+
+    if (n >= PIN_MAX_ATTEMPTS){
+        clearPin();
+        toast("Слишком много попыток. Войдите по паролю.", 3500);
+        closePinPanel();
+        return;
+    }
+
+    toast(`Неверный PIN. Осталось попыток: ${PIN_MAX_ATTEMPTS - n}`, 2600);
+    pinBusy = false;
+}
+
+function pinInputDigit(d){
+    if (pinBusy) return;
+    if (pinBuffer.length >= PIN_LENGTH) return;
+    pinBuffer += d;
+    updatePinDots();
+    if (pinBuffer.length === PIN_LENGTH){
+        setTimeout(tryPinLogin, 120);
+    }
+}
+
+$("pinKeypad").addEventListener("click", e => {
+    const btn = e.target.closest(".pin-key");
+    if (!btn) return;
+    const digit = btn.dataset.digit;
+    const action = btn.dataset.action;
+    if (digit) pinInputDigit(digit);
+    else if (action === "del"){
+        if (pinBusy) return;
+        pinBuffer = pinBuffer.slice(0, -1);
+        updatePinDots();
+    }
+    else if (action === "clear"){
+        if (pinBusy) return;
+        pinBuffer = "";
+        updatePinDots();
+    }
+});
+
+// Поддержка физической клавиатуры
+document.addEventListener("keydown", e => {
+    if (card.dataset.step !== "pin") return;
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    if (/^\d$/.test(e.key)) pinInputDigit(e.key);
+    else if (e.key === "Backspace"){
+        if (pinBusy) return;
+        pinBuffer = pinBuffer.slice(0, -1);
+        updatePinDots();
+    }
+    else if (e.key === "Escape"){
+        if (pinBusy) return;
+        pinBuffer = "";
+        updatePinDots();
+    }
+});
+
+$("pinUsePassword").addEventListener("click", async () => {
+    closePinPanel();
+    try { await signOut(auth); } catch {}
+    loginFlow = false;
+    $("loginPassword").value = "";
+    setTimeout(() => $("loginPassword").focus({ preventScroll:true }), 100);
+});
+
+$("pinForgot").addEventListener("click", async () => {
+    if (!confirm("Забыли PIN?\n\nPIN будет удалён. В следующий раз потребуется вход по паролю.\n\nПродолжить?")) return;
+    clearPin();
+    closePinPanel();
+    try { await signOut(auth); } catch {}
+    loginFlow = false;
+    toast("PIN сброшен. Войдите по паролю.");
+    setTimeout(() => $("loginId").focus({ preventScroll:true }), 100);
+});
+
+/* =========================================
+   PIN SETUP MODAL (после входа с «Запомнить»)
+========================================= */
+let pinSetupBuffer = "";
+let pinSetupBusy = false;
+
+function openPinSetup(){
+    pinSetupBuffer = "";
+    updatePinSetupDots();
+    $("pinSetupErr").classList.remove("on");
+    $("pinSetupOverlay").classList.add("on");
+    $("pinSetupOverlay").setAttribute("aria-hidden", "false");
+}
+
+function closePinSetup(){
+    pinSetupBuffer = "";
+    $("pinSetupOverlay").classList.remove("on");
+    $("pinSetupOverlay").setAttribute("aria-hidden", "true");
+}
+
+function updatePinSetupDots(){
+    const dots = $("pinSetupDots").children;
+    for (let i = 0; i < dots.length; i++){
+        dots[i].classList.toggle("on", i < pinSetupBuffer.length);
+    }
+}
+
+function flashPinSetupError(text){
+    const err = $("pinSetupErr");
+    err.textContent = text;
+    err.classList.add("on");
+    const dots = $("pinSetupDots");
+    dots.classList.add("err");
+    setTimeout(() => dots.classList.remove("err"), 500);
+    setTimeout(() => err.classList.remove("on"), 2500);
+}
+
+$("pinSetupKeypad").addEventListener("click", e => {
+    const btn = e.target.closest(".pin-setup-key");
+    if (!btn) return;
+    if (pinSetupBusy) return;
+    const digit = btn.dataset.digit;
+    const action = btn.dataset.action;
+    if (digit){
+        if (pinSetupBuffer.length >= PIN_LENGTH) return;
+        pinSetupBuffer += digit;
+        updatePinSetupDots();
+        if (pinSetupBuffer.length === PIN_LENGTH){
+            setTimeout(savePinFromSetup, 120);
+        }
+    } else if (action === "del"){
+        pinSetupBuffer = pinSetupBuffer.slice(0, -1);
+        updatePinSetupDots();
+    } else if (action === "clear"){
+        pinSetupBuffer = "";
+        updatePinSetupDots();
+    }
+});
+
+async function savePinFromSetup(){
+    if (pinSetupBusy) return;
+    pinSetupBusy = true;
+
+    // Проверка: слишком простой PIN
+    if (/^(\d)\1+$/.test(pinSetupBuffer) ||
+        pinSetupBuffer === "1234" || pinSetupBuffer === "4321" ||
+        pinSetupBuffer === "0123"){
+        flashPinSetupError("Слишком простой PIN. Придумайте другой.");
+        pinSetupBuffer = "";
+        updatePinSetupDots();
+        pinSetupBusy = false;
+        return;
+    }
+
+    const salt = randomSalt();
+    const hash = await hashPin(pinSetupBuffer, salt);
+
+    // Имя для приветствия
+    let displayName = "";
+    try {
+        const user = auth.currentUser;
+        if (user){
+            const snap = await getDoc(doc(db, "users", user.uid));
+            if (snap.exists()){
+                displayName = sanitize(String(snap.data().name || "").split(" ")[0]) || "";
+            }
+        }
+    } catch {}
+
+    savePin(hash, salt, displayName);
+    closePinSetup();
+    toast("PIN установлен ✓");
+    pinSetupBusy = false;
+}
+
+document.addEventListener("keydown", e => {
+    if (!$("pinSetupOverlay").classList.contains("on")) return;
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    if (/^\d$/.test(e.key)){
+        if (pinSetupBuffer.length >= PIN_LENGTH) return;
+        pinSetupBuffer += e.key;
+        updatePinSetupDots();
+        if (pinSetupBuffer.length === PIN_LENGTH){
+            setTimeout(savePinFromSetup, 120);
+        }
+    } else if (e.key === "Backspace"){
+        pinSetupBuffer = pinSetupBuffer.slice(0, -1);
+        updatePinSetupDots();
+    } else if (e.key === "Escape"){
+        closePinSetup();
+    }
+});
+
+$("pinSetupSkip").addEventListener("click", () => {
+    closePinSetup();
+    // Убираем галочку «Запомнить» и сохранённый логин,
+    // чтобы при следующем открытии был обычный вход
+    try {
+        localStorage.removeItem(LAST_ID_KEY);
+        localStorage.setItem(REMEMBER_FLAG_KEY, "0");
+        $("rememberMe").checked = false;
+    } catch {}
+});
+
+/* =========================================
+   LOGIN — логин или почта
 ========================================= */
 $("loginForm").addEventListener("submit", async e => {
     e.preventDefault();
@@ -1900,6 +2554,17 @@ $("loginForm").addEventListener("submit", async e => {
         const cred = await signInWithEmailAndPassword(auth, email, pwd);
         resetAttempts();
 
+        /* Сохраняем/очищаем последний логин */
+        try {
+            if (remember){
+                localStorage.setItem(LAST_ID_KEY, idRaw);
+                localStorage.setItem(REMEMBER_FLAG_KEY, "1");
+            } else {
+                localStorage.removeItem(LAST_ID_KEY);
+                localStorage.setItem(REMEMBER_FLAG_KEY, "0");
+            }
+        } catch (err){ logErr(err); }
+
         const user = cred.user;
         const snap = await getDoc(doc(db, "users", user.uid));
 
@@ -1912,13 +2577,23 @@ $("loginForm").addEventListener("submit", async e => {
 
         const data = snap.data();
 
-        /* Одобрен, но логина ещё нет → сначала придумать логин */
+        // Одобрен, но логина ещё нет → setup
         if (data.reg === 1 && !data.login){
             showSetup(user, pwd);
             return;
         }
 
+        // Если «Запомнить» и PIN ещё нет — предложить установить
+        const needPinSetup = remember && !hasPin();
+
         await routeByStatus(user, data);
+
+        // Показываем модалку PIN сразу после того, как начался редирект
+        // (routeByStatus не await'ится до конца — внутри setTimeout)
+        if (needPinSetup && data.reg === 1){
+            // Небольшая задержка, чтобы success-экран успел появиться
+            setTimeout(() => openPinSetup(), 400);
+        }
     } catch (err){
         logErr(err);
         loginFlow = false;
@@ -2014,7 +2689,6 @@ $("regForm").addEventListener("submit", async e => {
             createdAt: serverTimestamp()
         });
 
-        /* === EMAIL АДМИНУ: новая заявка на регистрацию === */
         sendAdminEmail(
             email,
             sanitize(name),
@@ -2050,7 +2724,7 @@ $("regForm").addEventListener("submit", async e => {
 });
 
 /* =========================================
-   FORGOT PASSWORD — только по почте
+   FORGOT PASSWORD
 ========================================= */
 $("forgotBtn").addEventListener("click", async () => {
     const email = $("loginId").value.trim();
@@ -2092,33 +2766,75 @@ $("regPassword").addEventListener("input", e => {
 });
 
 /* =========================================
-   AUTH STATE (восстановление сессии)
+   AUTH STATE (автовход + PIN)
 ========================================= */
 let authCheckInProgress = false;
+let authResolved = false;
+let forceShowTimer = null;
 
 onAuthStateChanged(auth, async user => {
     if (regInProgress || loginFlow) return;
-    if (!user){
-        return;
-    }
     if (authCheckInProgress) return;
-    authCheckInProgress = true;
-    try {
-        const snap = await getDoc(doc(db, "users", user.uid));
 
-        if (!snap.exists()){
-            showError("Профиль не найден", "Обратитесь к администратору.");
-            await signOut(auth);
+    authCheckInProgress = true;
+
+    try {
+        if (!user){
+            authResolved = true;
             return;
         }
 
+        // Есть активная сессия → смотрим, что делать
+        const wasRemember = localStorage.getItem(REMEMBER_FLAG_KEY) === "1";
+        const hasPinSaved = hasPin();
+
+        if (wasRemember && hasPinSaved){
+            // Показываем PIN-панель, не редиректим сразу
+            let data = null;
+            try {
+                const snap = await getDoc(doc(db, "users", user.uid));
+                if (snap.exists()) data = snap.data();
+            } catch (e){
+                logErr(e);
+            }
+
+            if (data && data.reg === 1){
+                // Открываем PIN-панель
+                loginFlow = true;  // блокируем повторные триггеры
+                openPinPanel(user, data);
+                authResolved = true;
+                return;
+            }
+
+            // Если заявка ещё не одобрена или отклонена — обычный сценарий
+            if (data){
+                loginFlow = true;
+                await routeByStatus(user, data);
+                authResolved = true;
+                return;
+            }
+        }
+
+        // Обычный автовход (без PIN)
+        showLoading("Восстанавливаем сессию…", "Проверяем ваши данные");
+        const snap = await getDoc(doc(db, "users", user.uid));
+
+        if (!snap.exists()){
+            await signOut(auth);
+            showError("Профиль не найден", "Обратитесь к администратору.");
+            authResolved = true;
+            return;
+        }
+
+        loginFlow = true;
         await routeByStatus(user, snap.data());
     } catch (err){
         logErr(err);
-        showError("Ошибка проверки", "Попробуйте снова.");
-        await signOut(auth);
+        try { await signOut(auth); } catch {}
+        showError("Ошибка проверки", "Войдите заново.");
     } finally {
         authCheckInProgress = false;
+        authResolved = true;
     }
 });
 
@@ -2188,15 +2904,75 @@ const AGREEMENT_KEY = "kurator_agreement_accepted_v1";
 window.addEventListener("load", () => {
     requestAnimationFrame(() => {
         refreshHeight();
-        setTimeout(() => pageLoader.classList.add("hide"), 400);
+        restoreLastLogin();
+        waitForAuthReady();
     });
 });
+
 window.addEventListener("resize", () => {
     if (card.dataset.state) return;
     refreshHeight();
 });
 
-setTimeout(() => { if (mode === "login" && !card.dataset.step) $("loginId").focus(); }, 1000);
+function restoreLastLogin(){
+    try {
+        const lastId      = localStorage.getItem(LAST_ID_KEY);
+        const wasRemember = localStorage.getItem(REMEMBER_FLAG_KEY) === "1";
+
+        if (lastId && wasRemember && !card.dataset.step){
+            $("loginId").value      = lastId;
+            $("rememberMe").checked = true;
+        }
+    } catch (e){
+        logErr(e);
+    }
+}
+
+function waitForAuthReady(){
+    if (authResolved){
+        hideLoaderWhenIdle();
+        return;
+    }
+
+    forceShowTimer = setTimeout(() => {
+        if (!authResolved){
+            authResolved = true;
+            hideLoaderWhenIdle();
+            focusFirstField();
+        }
+    }, AUTH_TIMEOUT_MS);
+
+    const poll = setInterval(() => {
+        if (authResolved){
+            clearInterval(poll);
+            clearTimeout(forceShowTimer);
+            hideLoaderWhenIdle();
+            // Автофокус — только если сессии нет и PIN-панель не открыта
+            if (!auth.currentUser && card.dataset.step !== "pin"){
+                focusFirstField();
+            }
+        }
+    }, 80);
+}
+
+function hideLoaderWhenIdle(){
+    setTimeout(() => {
+        pageLoader.classList.add("hide");
+    }, 200);
+}
+
+function focusFirstField(){
+    if (mode !== "login") return;
+    if (card.dataset.step) return;
+    if (card.dataset.state) return;
+
+    const id = $("loginId");
+    if (!id) return;
+    if (id.value) return;
+    if (document.activeElement === id) return;
+
+    id.focus({ preventScroll:true });
+}
 
 </script>
 

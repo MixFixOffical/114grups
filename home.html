@@ -35,47 +35,39 @@
 }
 
 :root {
-    /* Brand */
     --accent: #1d4ed8;
     --accent-dark: #1e3a8a;
     --accent-soft: #eff6ff;
     --accent-line: #bfdbfe;
 
-    /* Accent palette */
     --teal: #047857;      --teal-soft: #ecfdf5;
     --violet: #6d28d9;    --violet-soft: #f5f3ff;
     --amber: #b45309;     --amber-soft: #fffbeb;
     --rose: #b91c1c;      --rose-soft: #fef2f2;
     --cyan: #0e7490;      --cyan-soft: #ecfeff;
 
-    /* Text */
     --text: #0f172a;
     --text-2: #475569;
     --text-3: #94a3b8;
 
-    /* Surfaces */
     --surface: #ffffff;
     --surface-2: #f5f7fa;
     --border: #e2e8f0;
     --border-2: #cbd5e1;
 
-    /* Background */
     --bg: #eef2f7;
     --header-bg: #ffffff;
 
-    /* Shadows */
     --shadow-xs: 0 1px 2px rgba(15,23,42,.04);
     --shadow-sm: 0 1px 3px rgba(15,23,42,.07);
     --shadow-md: 0 6px 16px -8px rgba(15,23,42,.15);
     --shadow-lg: 0 12px 32px -12px rgba(15,23,42,.2);
 
-    /* Radii */
     --r-xs: 6px;
     --r-sm: 8px;
     --r-md: 10px;
     --r-lg: 14px;
 
-    /* Motion */
     --ease: cubic-bezier(.4,0,.2,1);
 }
 
@@ -238,7 +230,6 @@ header {
 
 .header-right { display: flex; align-items: center; gap: 10px; }
 
-/* Индикатор соединения */
 .conn-dot {
     width: 8px; height: 8px; border-radius: 50%;
     background: var(--teal);
@@ -268,6 +259,12 @@ header {
     border: 2px solid var(--surface);
 }
 .header-bell.has-unread .bell-badge { display: flex; }
+
+.header-bell.danger:hover {
+    background: var(--rose-soft);
+    color: var(--rose);
+    border-color: var(--rose);
+}
 
 .user-menu { position: relative; }
 .user-menu-button {
@@ -333,6 +330,18 @@ header {
     font-size: 10.5px; font-weight: 600;
     border: 1px solid var(--border);
 }
+.dropdown-pin {
+    margin-top: 8px; padding: 0 12px;
+    font-size: 11.5px; color: var(--text-2);
+    display: flex; align-items: center; gap: 6px;
+}
+.dropdown-pin .pin-dot-status {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-3); flex-shrink: 0;
+}
+.dropdown-pin .pin-dot-status.on { background: var(--teal); }
+.dropdown-pin b { color: var(--text); font-weight: 600; }
+
 .dropdown-divider { height: 1px; margin: 5px 4px; background: var(--border); }
 
 .dropdown-item {
@@ -555,7 +564,6 @@ header {
 }
 .week-stats-right canvas { width: 100% !important; height: 100% !important; }
 
-/* Skeleton для графика */
 .chart-skeleton {
     position: absolute; inset: 12px;
     border-radius: var(--r-sm);
@@ -785,6 +793,104 @@ footer {
 #confetti.active { opacity: 1; }
 
 /* =========================================================
+   LOGOUT MODAL
+========================================================= */
+.logout-overlay {
+    position: fixed; inset: 0; z-index: 1100;
+    display: flex; align-items: center; justify-content: center;
+    padding: 20px 14px calc(20px + env(safe-area-inset-bottom, 0px));
+    background: rgba(15,23,42,.55);
+    opacity: 0; visibility: hidden;
+    transition: opacity .2s ease, visibility .2s ease;
+}
+.logout-overlay.on { opacity: 1; visibility: visible; }
+
+.logout-card {
+    width: 100%; max-width: 420px;
+    padding: 26px 24px 20px;
+    border-radius: var(--r-lg);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(12px);
+    transition: transform .25s var(--ease);
+}
+.logout-overlay.on .logout-card { transform: none; }
+
+.logout-icon {
+    width: 56px; height: 56px;
+    margin: 0 auto 14px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--r-md);
+    background: var(--rose-soft);
+    color: var(--rose);
+    border: 1px solid var(--rose);
+}
+.logout-icon svg { width: 26px; height: 26px; }
+
+.logout-title {
+    font-size: 18px; font-weight: 700; letter-spacing: -.2px;
+    text-align: center; color: var(--text);
+    margin-bottom: 6px;
+}
+.logout-sub {
+    font-size: 13px; line-height: 1.55;
+    text-align: center; color: var(--text-2);
+    margin-bottom: 18px;
+}
+
+.logout-option {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 12px 14px; margin-bottom: 8px;
+    border-radius: var(--r-sm);
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
+}
+.logout-option:hover { border-color: var(--text-3); background: var(--surface); }
+.logout-option.picked {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+}
+.logout-option input[type="radio"] {
+    margin-top: 2px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    width: 16px; height: 16px;
+    flex-shrink: 0;
+}
+.logout-option-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.logout-option-title { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.logout-option-desc { font-size: 11.5px; color: var(--text-2); line-height: 1.45; }
+
+.logout-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 18px;
+}
+.logout-btn {
+    height: 46px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--r-sm);
+    font-family: inherit; font-size: 13.5px; font-weight: 600;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.logout-btn.cancel {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-2);
+}
+.logout-btn.cancel:hover { background: var(--surface-2); color: var(--text); border-color: var(--text-3); }
+.logout-btn.confirm {
+    border: 1px solid var(--rose);
+    background: var(--rose);
+    color: #fff;
+}
+.logout-btn.confirm:hover { background: #991b1b; border-color: #991b1b; }
+
+/* =========================================================
    RESPONSIVE
 ========================================================= */
 @media (max-width: 1099px) {
@@ -869,6 +975,9 @@ footer {
     .week-stats-title { font-size: 15.5px; }
     .week-stats-group-value { font-size: 14.5px; }
     .week-stats-right { min-height: 200px; padding: 8px; }
+
+    .logout-card { padding: 22px 18px 16px; }
+    .logout-actions { grid-template-columns: 1fr; }
 }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
@@ -948,6 +1057,14 @@ footer {
             <span class="bell-badge" id="bellBadge">0</span>
         </button>
 
+        <button class="header-bell danger" id="quickLogout" type="button" data-action="logout" aria-label="Выйти из аккаунта" title="Выйти">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/>
+                <path d="m11 8-4 4 4 4"/>
+                <path d="M7 12h10"/>
+            </svg>
+        </button>
+
         <div class="user-menu" id="userMenu">
             <button class="user-menu-button" id="userMenuButton" type="button" data-action="toggle-user-menu" aria-haspopup="true" aria-expanded="false">
                 <div class="user-avatar-wrap">
@@ -964,6 +1081,10 @@ footer {
                     <div class="dropdown-name" id="dropdownName">Пользователь</div>
                     <div class="dropdown-email" id="dropdownEmail"></div>
                     <div class="dropdown-role" id="dropdownRole">Пользователь</div>
+                    <div class="dropdown-pin" id="dropdownPin">
+                        <span class="pin-dot-status" id="pinDotStatus"></span>
+                        <span>PIN-код: <b id="pinStatusValue">не установлен</b></span>
+                    </div>
                 </div>
                 <div class="dropdown-divider"></div>
 
@@ -982,6 +1103,15 @@ footer {
                         <path d="m9.3 12 1.9 1.9 3.5-3.8"/>
                     </svg>
                     <span>Безопасность</span>
+                </button>
+
+                <button class="dropdown-item" type="button" data-action="change-pin" role="menuitem">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="4" y="10" width="16" height="10" rx="2"/>
+                        <path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+                        <circle cx="12" cy="15" r="1.2"/>
+                    </svg>
+                    <span>Сменить PIN-код</span>
                 </button>
 
                 <button class="dropdown-item" type="button" data-action="properties" role="menuitem">
@@ -1282,6 +1412,44 @@ footer {
     </footer>
 </main>
 
+<!-- LOGOUT MODAL -->
+<div class="logout-overlay" id="logoutOverlay" aria-hidden="true">
+    <div class="logout-card" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
+        <div class="logout-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/>
+                <path d="m11 8-4 4 4 4"/>
+                <path d="M7 12h10"/>
+            </svg>
+        </div>
+        <div class="logout-title" id="logoutTitle">Выйти из аккаунта?</div>
+        <div class="logout-sub">
+            Выберите, что сделать с сохранённым PIN-кодом на этом устройстве.
+        </div>
+
+        <label class="logout-option picked" data-option="keep">
+            <input type="radio" name="logout-option" value="keep" checked>
+            <span class="logout-option-text">
+                <span class="logout-option-title">Сохранить PIN</span>
+                <span class="logout-option-desc">При следующем входе сможете ввести PIN вместо пароля.</span>
+            </span>
+        </label>
+
+        <label class="logout-option" data-option="forget">
+            <input type="radio" name="logout-option" value="forget">
+            <span class="logout-option-text">
+                <span class="logout-option-title">Забыть PIN и логин</span>
+                <span class="logout-option-desc">Понадобится ввести пароль и (по желанию) установить новый PIN.</span>
+            </span>
+        </label>
+
+        <div class="logout-actions">
+            <button type="button" class="logout-btn cancel" id="logoutCancel">Отмена</button>
+            <button type="button" class="logout-btn confirm" id="logoutConfirm">Выйти</button>
+        </div>
+    </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -1305,6 +1473,15 @@ const CONFIG = Object.freeze({
     STATS_ROLES: Object.freeze(["admin", "curator"]),
     CHART_WAIT_MAX_ATTEMPTS: 25,
     FIRESTORE_BATCH_LIMIT: 500
+});
+
+const STORAGE_KEYS = Object.freeze({
+    PIN_HASH: "kurator_pin_hash_v1",
+    PIN_SALT: "kurator_pin_salt_v1",
+    PIN_NAME: "kurator_pin_name_v1",
+    PIN_ATTEMPTS: "kurator_pin_attempts_v1",
+    LAST_LOGIN: "kurator_last_login_id",
+    REMEMBER: "kurator_remember_flag"
 });
 
 /* =========================================================
@@ -1356,6 +1533,29 @@ function throttle(fn, limit = 100) {
 function safeText(el, text) {
     if (!el) return;
     el.textContent = String(text ?? "");
+}
+
+function hasPin() {
+    try {
+        return !!(localStorage.getItem(STORAGE_KEYS.PIN_HASH) &&
+                  localStorage.getItem(STORAGE_KEYS.PIN_SALT));
+    } catch { return false; }
+}
+
+function clearPinStorage() {
+    try {
+        localStorage.removeItem(STORAGE_KEYS.PIN_HASH);
+        localStorage.removeItem(STORAGE_KEYS.PIN_SALT);
+        localStorage.removeItem(STORAGE_KEYS.PIN_NAME);
+        localStorage.removeItem(STORAGE_KEYS.PIN_ATTEMPTS);
+    } catch { /* ignore */ }
+}
+
+function clearLoginStorage() {
+    try {
+        localStorage.removeItem(STORAGE_KEYS.LAST_LOGIN);
+        localStorage.setItem(STORAGE_KEYS.REMEMBER, "0");
+    } catch { /* ignore */ }
 }
 
 /* =========================================================
@@ -1537,7 +1737,7 @@ function isFirebaseReady() {
 }
 
 /* =========================================================
-   CONFETTI (без декоративной анимации — только для celebratory-триггера)
+   CONFETTI
 ========================================================= */
 const Confetti = (() => {
     let canvas = null;
@@ -1713,6 +1913,89 @@ const MessagesUI = (() => {
 })();
 
 /* =========================================================
+   LOGOUT MODAL
+========================================================= */
+const LogoutModal = (() => {
+    let resolver = null;
+    let currentChoice = "keep";
+
+    function open() {
+        const overlay = DOM.get("logoutOverlay");
+        if (!overlay) return Promise.resolve("keep");
+
+        // Сброс на «Сохранить PIN»
+        currentChoice = "keep";
+        const options = overlay.querySelectorAll(".logout-option");
+        options.forEach((opt) => {
+            const input = opt.querySelector("input[type=radio]");
+            const picked = opt.dataset.option === "keep";
+            opt.classList.toggle("picked", picked);
+            if (input) input.checked = picked;
+        });
+
+        overlay.classList.add("on");
+        overlay.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+
+        return new Promise((resolve) => {
+            resolver = resolve;
+        });
+    }
+
+    function close(choice) {
+        const overlay = DOM.get("logoutOverlay");
+        if (overlay) {
+            overlay.classList.remove("on");
+            overlay.setAttribute("aria-hidden", "true");
+        }
+        document.body.style.overflow = "";
+
+        const r = resolver;
+        resolver = null;
+        if (r) r(choice || null);
+    }
+
+    function init() {
+        const overlay = DOM.get("logoutOverlay");
+        if (!overlay) return;
+
+        // Клик по опциям
+        overlay.querySelectorAll(".logout-option").forEach((opt) => {
+            opt.addEventListener("click", () => {
+                const value = opt.dataset.option;
+                currentChoice = value;
+                overlay.querySelectorAll(".logout-option").forEach((o) => {
+                    const input = o.querySelector("input[type=radio]");
+                    const picked = o.dataset.option === value;
+                    o.classList.toggle("picked", picked);
+                    if (input) input.checked = picked;
+                });
+            });
+        });
+
+        // Отмена
+        const cancelBtn = overlay.querySelector("#logoutCancel");
+        if (cancelBtn) cancelBtn.addEventListener("click", () => close(null));
+
+        // Подтверждение
+        const confirmBtn = overlay.querySelector("#logoutConfirm");
+        if (confirmBtn) confirmBtn.addEventListener("click", () => close(currentChoice));
+
+        // Клик по фону — отмена
+        overlay.addEventListener("click", (e) => {
+            if (e.target === overlay) close(null);
+        });
+
+        // Escape — отмена
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && overlay.classList.contains("on")) close(null);
+        });
+    }
+
+    return { init, open };
+})();
+
+/* =========================================================
    USER
 ========================================================= */
 const User = (() => {
@@ -1722,6 +2005,7 @@ const User = (() => {
     let roleResolved = false;
     let chatsUnsub = null;
     let pendingRoleResolvers = [];
+    let logoutInProgress = false;
 
     function getRole() { return currentRole; }
     function getUser() { return currentUser; }
@@ -1745,6 +2029,14 @@ const User = (() => {
         if (el) el.style.display = show ? "flex" : "none";
     }
 
+    function updatePinStatus() {
+        const dot = DOM.get("pinDotStatus");
+        const val = DOM.get("pinStatusValue");
+        const has = hasPin();
+        if (dot) dot.classList.toggle("on", has);
+        if (val) val.textContent = has ? "установлен" : "не установлен";
+    }
+
     function updateInterface(user) {
         const fio = currentName || "Пользователь";
         const email = user?.email || "";
@@ -1766,6 +2058,8 @@ const User = (() => {
 
         toggleElement("adminPanelButton", currentRole === CONFIG.ROLES.ADMIN);
         toggleElement("parentsButton", isStatsRole());
+
+        updatePinStatus();
     }
 
     function setGuest() {
@@ -1778,6 +2072,7 @@ const User = (() => {
         toggleElement("parentsButton", false);
         const ws = DOM.get("weekStats");
         if (ws) ws.classList.remove("visible");
+        updatePinStatus();
     }
 
     function startChatsListener(user) {
@@ -1868,6 +2163,17 @@ const User = (() => {
             MessagesUI.reset();
             setGuest();
             Loader.hide();
+
+            // Если сессии нет и мы не в процессе logout — выкидываем на страницу входа
+            if (!logoutInProgress) {
+                const path = (location.pathname || "").toLowerCase();
+                const isLoginPage = path.endsWith("index.html") || path.endsWith("/") || path === "";
+                if (!isLoginPage) {
+                    setTimeout(() => {
+                        window.location.replace("index.html");
+                    }, 400);
+                }
+            }
             return;
         }
 
@@ -1893,8 +2199,18 @@ const User = (() => {
         firebase.auth().onAuthStateChanged(handleAuthState);
     }
 
-    function logout() {
+    async function logout() {
         if (!isFirebaseReady()) return;
+        if (logoutInProgress) return;
+
+        // Показать модалку, узнать выбор
+        const choice = await LogoutModal.open();   // "keep" | "forget" | null (отмена)
+        if (choice === null) {
+            Toast.show("Выход отменён");
+            return;
+        }
+
+        logoutInProgress = true;
 
         if (chatsUnsub) {
             try { chatsUnsub(); } catch (e) { /* ignore */ }
@@ -1902,20 +2218,51 @@ const User = (() => {
         }
         WeekStats.destroy();
 
-        firebase.auth().signOut()
-            .then(() => {
-                currentUser = null;
-                currentRole = null;
-                currentName = "Пользователь";
-                roleResolved = false;
-                MessagesUI.reset();
-                Toast.show("Вы вышли из системы");
-                setTimeout(() => { window.location.href = "index.html"; }, 500);
-            })
-            .catch((error) => {
-                console.error("Ошибка выхода:", error);
-                Toast.show("Не удалось выйти. Попробуйте снова.");
-            });
+        try {
+            await firebase.auth().signOut();
+
+            if (choice === "forget") {
+                clearPinStorage();
+                clearLoginStorage();
+            }
+
+            currentUser = null;
+            currentRole = null;
+            currentName = "Пользователь";
+            roleResolved = false;
+            MessagesUI.reset();
+
+            Toast.show(choice === "forget"
+                ? "Вы вышли. PIN удалён"
+                : "Вы вышли из системы");
+
+            setTimeout(() => {
+                window.location.replace("index.html");
+            }, 500);
+        } catch (error) {
+            console.error("Ошибка выхода:", error);
+            Toast.show("Не удалось выйти. Попробуйте снова.");
+            logoutInProgress = false;
+        }
+    }
+
+    function changePin() {
+        if (!hasPin()) {
+            Toast.show("PIN не установлен");
+            return;
+        }
+
+        // Простое подтверждение без модалки
+        const ok = window.confirm(
+            "Сменить PIN-код?\n\n" +
+            "Текущий PIN будет удалён. При следующем входе потребуется ввести пароль " +
+            "и установить новый PIN."
+        );
+        if (!ok) return;
+
+        clearPinStorage();
+        updatePinStatus();
+        Toast.show("PIN сброшен. Установите новый при следующем входе");
     }
 
     function toggleMenu() {
@@ -1934,7 +2281,7 @@ const User = (() => {
     }
 
     return {
-        init, logout, toggleMenu, closeMenu, whenRoleReady,
+        init, logout, changePin, toggleMenu, closeMenu, whenRoleReady,
         getRole, getUser, getName, isStatsRole, isRoleResolved
     };
 })();
@@ -2429,6 +2776,7 @@ const ACTIONS = {
     "properties":        () => Nav.properties(),
     "admin-panel":       () => Nav.adminPanel(),
     "logout":            () => User.logout(),
+    "change-pin":        () => User.changePin(),
     "toggle-theme":      () => Theme.toggle(),
     "toggle-user-menu":  () => User.toggleMenu(),
     "open-messages":     () => Nav.messages(),
@@ -2467,6 +2815,8 @@ const Events = (() => {
             const tag = e.target.tagName;
             if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
             if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+            if (document.querySelector(".logout-overlay.on")) return;
+            if (DOM.get("logoutOverlay")?.classList.contains("on")) return;
 
             switch (e.key) {
                 case "1": Nav.attendance(); break;
@@ -2499,6 +2849,7 @@ const App = (() => {
         Loader.init();
         Connection.init();
         Clock.init();
+        LogoutModal.init();
         Events.init();
         User.init();
     }

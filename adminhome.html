@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f172a" id="metaThemeColor">
+<meta name="theme-color" content="#1e293b" id="metaThemeColor">
 <meta name="description" content="Система управления посещаемостью студентов">
-<title>[ KURATOR ] — панель администратора</title>
+<title>Посещаемость — Панель управления</title>
 
 <!-- PWA -->
 <link rel="manifest" href="manifest.json">
@@ -15,7 +15,7 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
@@ -23,1830 +23,1599 @@
 <script src="firebase-config.js"></script>
 
 <style>
-/* =========================================================
-   ТЕРМИНАЛЬНАЯ ТЕМА
-   Светлая по умолчанию, тёмная — через data-theme="dark"
-========================================================= */
-
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+*{margin:0;padding:0;box-sizing:border-box}
 
 :root{
-    color-scheme: light;
+    color-scheme: light dark;
 
-    /* Светлая тема — «бумажный терминал» */
-    --bg:           #f5f5f0;
-    --surface:      #fbfbf6;
-    --surface-2:    #efeee8;
-    --surface-3:    #e6e4dc;
-    --border:       #111111;
-    --border-soft:  #a8a49a;
+    --accent:#1d4ed8;
+    --accent-dark:#1e3a8a;
+    --accent-soft:#eff6ff;
 
-    --text:         #111111;
-    --text-2:       #333333;
-    --text-3:       #6b6b6b;
-    --muted:        #8a8a8a;
+    --text:#0f172a;
+    --text-secondary:#475569;
+    --text-light:#94a3b8;
 
-    --accent:       #0a5c2e;
-    --accent-soft:  #d8e8de;
-    --accent-line:  #0a5c2e;
+    --surface:#ffffff;
+    --surface-2:#f5f7fa;
+    --surface-3:#eef2f7;
+    --border:#e2e8f0;
+    --border-soft:#eef2f7;
 
-    --green:        #0a5c2e;
-    --green-soft:   #d8e8de;
-    --red:          #9b1c1c;
-    --red-soft:     #f2dcdc;
-    --amber:        #8a5200;
-    --amber-soft:   #f5e6cc;
-    --cyan:         #0b4f5e;
-    --cyan-soft:    #d8e8ec;
-    --violet:       #4a1f8a;
-    --violet-soft:  #e4dcf0;
+    --green:#047857;
+    --green-soft:#ecfdf5;
+    --amber:#b45309;
+    --amber-soft:#fffbeb;
+    --red:#b91c1c;
+    --red-soft:#fef2f2;
 
-    --sidebar-w:    260px;
-    --topbar-h:     52px;
+    --sidebar-w:264px;
+    --topbar-h:60px;
 
-    --font: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+    --shadow-xs:0 1px 2px rgba(15,23,42,.05);
+    --shadow-sm:0 1px 3px rgba(15,23,42,.07);
+    --shadow-md:0 6px 16px -8px rgba(15,23,42,.15);
+
+    --radius-sm:8px;
+    --radius-md:10px;
+    --radius-lg:14px;
+
+    --ease:cubic-bezier(.4,0,.2,1);
 }
 
 [data-theme="dark"]{
     color-scheme: dark;
 
-    --bg:           #0a0a0a;
-    --surface:      #101010;
-    --surface-2:    #171717;
-    --surface-3:    #0a0a0a;
-    --border:       #3a3a3a;
-    --border-soft:  #262626;
+    --accent:#60a5fa;
+    --accent-dark:#1e3a8a;
+    --accent-soft:rgba(29,78,216,.15);
 
-    --text:         #e6e6e6;
-    --text-2:       #bdbdbd;
-    --text-3:       #7a7a7a;
-    --muted:        #6b6b6b;
+    --text:#e2e8f0;
+    --text-secondary:#94a3b8;
+    --text-light:#64748b;
 
-    --accent:       #4ade80;
-    --accent-soft:  rgba(74,222,128,.12);
-    --accent-line:  #4ade80;
+    --surface:#1e293b;
+    --surface-2:#172033;
+    --surface-3:#0f172a;
+    --border:#334155;
+    --border-soft:#1e293b;
 
-    --green:        #4ade80;
-    --green-soft:   rgba(74,222,128,.12);
-    --red:          #f87171;
-    --red-soft:     rgba(248,113,113,.12);
-    --amber:        #fbbf24;
-    --amber-soft:   rgba(251,191,36,.12);
-    --cyan:         #67e8f9;
-    --cyan-soft:    rgba(103,232,249,.12);
-    --violet:       #c4b5fd;
-    --violet-soft:  rgba(196,181,253,.12);
+    --green:#4ade80;
+    --green-soft:rgba(4,120,87,.15);
+    --amber:#fbbf24;
+    --amber-soft:rgba(180,83,9,.15);
+    --red:#f87171;
+    --red-soft:rgba(185,28,28,.15);
+
+    --shadow-xs:0 1px 2px rgba(0,0,0,.3);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.4);
+    --shadow-md:0 6px 16px -8px rgba(0,0,0,.5);
 }
 
-html{scroll-behavior:auto}
+html{scroll-behavior:smooth}
 body{
     min-height:100vh;
-    font-family:var(--font);
-    font-size:13px;
-    line-height:1.45;
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     color:var(--text);
-    background:var(--bg);
+    background:var(--surface-3);
     overflow-x:hidden;
     -webkit-font-smoothing:antialiased;
     -moz-osx-font-smoothing:grayscale;
-    transition:background .1s linear,color .1s linear;
-    letter-spacing:.01em;
+    transition:background .2s ease,color .2s ease;
 }
 
-button,input,select,textarea{font:inherit;color:inherit;font-family:var(--font)}
-button{cursor:pointer;border:0;background:none}
-button:disabled{opacity:.5;cursor:not-allowed}
-:focus-visible{outline:1px dashed var(--accent);outline-offset:2px}
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 
-::selection{background:var(--accent);color:var(--surface)}
-
-/* Отключаем все анимации — терминал сухой */
 @media (prefers-reduced-motion:reduce){
     *,*::before,*::after{
-        animation-duration:0s!important;
-        transition-duration:0s!important;
+        animation-duration:.001ms!important;
+        animation-iteration-count:1!important;
+        transition-duration:.001ms!important;
     }
 }
 
-/* =========================================================
-   LAYOUT
-========================================================= */
+/* ============ LAYOUT ============ */
 .app{
     display:grid;
     grid-template-columns:var(--sidebar-w) 1fr;
     min-height:100vh;
 }
 
-/* =========================================================
-   SIDEBAR OVERLAY (mobile)
-========================================================= */
+/* ============ SIDEBAR OVERLAY ============ */
 .sidebar-overlay{
     display:none;
-    position:fixed;inset:0;
-    background:rgba(0,0,0,.5);
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.5);
     z-index:60;
     opacity:0;
-    transition:opacity .12s linear;
+    transition:opacity .2s ease;
 }
 .sidebar-overlay.show{opacity:1}
 
-/* =========================================================
-   SIDEBAR
-========================================================= */
+/* ============ SIDEBAR ============ */
 .sidebar{
-    position:sticky;top:0;
+    position:sticky;
+    top:0;
     height:100vh;
-    display:flex;flex-direction:column;
+    display:flex;
+    flex-direction:column;
     background:var(--surface);
     border-right:1px solid var(--border);
-    padding:14px 0 0;
+    padding:20px 14px 16px;
     z-index:70;
-    transition:transform .15s linear,background .1s linear;
+    transition:transform .25s var(--ease),background .2s ease;
 }
 
 .sidebar-brand{
-    display:flex;align-items:center;gap:10px;
-    padding:0 14px 14px;
-    margin-bottom:12px;
-    border-bottom:1px dashed var(--border-soft);
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:4px 6px 18px;
+    border-bottom:1px solid var(--border-soft);
+    margin-bottom:14px;
 }
-
 .sidebar-logo{
-    width:36px;height:36px;flex-shrink:0;
+    width:40px;height:40px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--border);
-    color:var(--text);
-    font-weight:700;
-    font-size:14px;
-    background:var(--surface-2);
+    border-radius:var(--radius-md);color:#fff;
+    background:var(--accent-dark);
 }
+.sidebar-logo svg{width:20px;height:20px}
 
 .sidebar-brand-text{display:flex;flex-direction:column;min-width:0}
-.brand-title{
-    font-size:13px;font-weight:700;
-    letter-spacing:.06em;color:var(--text);
-    text-transform:uppercase;
-}
-.brand-subtitle{
-    margin-top:2px;font-size:11px;
-    color:var(--text-3);
-    letter-spacing:.04em;
-}
+.brand-title{font-size:14.5px;font-weight:700;letter-spacing:-.2px;color:var(--text)}
+.brand-subtitle{margin-top:2px;font-size:11px;font-weight:500;color:var(--text-secondary)}
 
 .sidebar-close{
     display:none;
     margin-left:auto;
-    width:28px;height:28px;
+    width:32px;height:32px;
     border:1px solid var(--border);
+    border-radius:var(--radius-sm);
     background:var(--surface);
-    color:var(--text-2);
+    color:var(--text-secondary);
+    cursor:pointer;
     align-items:center;justify-content:center;
-    font-family:var(--font);
-    font-size:14px;
+    transition:background .15s ease,color .15s ease;
 }
 .sidebar-close:hover{background:var(--surface-2);color:var(--text)}
+.sidebar-close svg{width:15px;height:15px}
 
 .sidebar-nav{
     flex:1;
-    display:flex;flex-direction:column;
-    gap:18px;
+    display:flex;
+    flex-direction:column;
+    gap:20px;
     overflow-y:auto;
-    padding:0 0 12px;
+    padding-right:2px;
 }
-
 .nav-group-title{
-    padding:0 14px;
-    margin-bottom:4px;
+    padding:0 10px;
+    margin-bottom:6px;
     font-size:10.5px;
     font-weight:700;
-    letter-spacing:.14em;
+    letter-spacing:.7px;
     text-transform:uppercase;
-    color:var(--text-3);
+    color:var(--text-light);
 }
-.nav-list{display:flex;flex-direction:column}
+.nav-list{display:flex;flex-direction:column;gap:2px}
 
 .sidebar-link{
     position:relative;
-    display:flex;align-items:center;gap:8px;
-    padding:7px 14px;
-    font-size:12.5px;
-    color:var(--text-2);
+    display:flex;align-items:center;gap:11px;
+    padding:9px 12px;
+    border-radius:var(--radius-sm);
+    font-size:13.5px;font-weight:500;
+    color:var(--text-secondary);
     cursor:pointer;text-decoration:none;
-    border-left:2px solid transparent;
-    transition:background .08s linear,color .08s linear,border-color .08s linear;
-    white-space:nowrap;
+    transition:background .15s ease,color .15s ease;
 }
-.sidebar-link::before{
-    content:">";
-    color:var(--text-3);
-    font-weight:700;
-    width:10px;flex:none;
-    text-align:left;
+.sidebar-link svg{
+    width:17px;height:17px;flex-shrink:0;
+    color:var(--text-light);
+    transition:color .15s ease;
 }
 .sidebar-link:hover{background:var(--surface-2);color:var(--text)}
-.sidebar-link:hover::before{color:var(--accent)}
-.sidebar-link.active{
-    color:var(--accent);
-    background:var(--accent-soft);
-    border-left-color:var(--accent);
-    font-weight:700;
+.sidebar-link:hover svg{color:var(--text-secondary)}
+.sidebar-link.active{color:var(--accent);background:var(--accent-soft);font-weight:600}
+.sidebar-link.active::before{
+    content:"";position:absolute;
+    left:-14px;top:50%;transform:translateY(-50%);
+    width:3px;height:18px;border-radius:0 3px 3px 0;
+    background:var(--accent);
 }
-.sidebar-link.active::before{color:var(--accent);content:">"}
+.sidebar-link.active svg{color:var(--accent)}
 
 .permissions-badge,
 .messages-badge{
-    min-width:22px;height:18px;padding:0 5px;
+    min-width:20px;height:20px;padding:0 6px;
     display:none;align-items:center;justify-content:center;
-    margin-left:auto;
-    border:1px solid var(--border);
-    color:var(--surface);
-    background:var(--red);
+    margin-left:auto;border-radius:999px;color:#fff;
     font-size:10.5px;font-weight:700;line-height:1;
 }
+.permissions-badge{background:var(--red)}
+.messages-badge{background:var(--red)}
 .permissions-badge.show,
 .messages-badge.show{display:flex}
 
-.sidebar-link.nav-permissions.has-requests,
-.sidebar-link.nav-messages.has-unread{
-    color:var(--red);
-    background:var(--red-soft);
-    border-left-color:var(--red);
+.sidebar-link.nav-permissions.has-requests{
+    color:var(--red);background:var(--red-soft);
 }
-.sidebar-link.nav-permissions.has-requests::before,
-.sidebar-link.nav-messages.has-unread::before{color:var(--red);content:"!"}
+.sidebar-link.nav-permissions.has-requests svg{color:var(--red)}
+.sidebar-link.nav-messages.has-unread{
+    color:var(--red);background:var(--red-soft);
+}
+.sidebar-link.nav-messages.has-unread svg{color:var(--red)}
 
 .sidebar-footer{
-    padding:10px 14px 14px;
-    border-top:1px dashed var(--border-soft);
     margin-top:auto;
+    padding-top:14px;
+    border-top:1px solid var(--border-soft);
 }
 .status-card{
-    display:flex;align-items:center;gap:8px;
-    padding:6px 9px;
-    border:1px solid var(--border);
-    background:var(--surface-2);
-    color:var(--text-2);
-    font-size:11.5px;
-    letter-spacing:.03em;
+    display:flex;align-items:center;gap:10px;
+    padding:9px 12px;border-radius:var(--radius-sm);
+    background:var(--green-soft);
+    border:1px solid rgba(4,120,87,.2);
+    color:var(--green);font-size:12px;font-weight:500;
 }
 .status-dot{
-    width:8px;height:8px;
+    width:7px;height:7px;border-radius:50%;
     background:var(--green);
-    border:1px solid var(--border);
-    flex:none;
+    flex-shrink:0;
 }
 
-/* =========================================================
-   MAIN
-========================================================= */
+/* ============ MAIN ============ */
 .main{display:flex;flex-direction:column;min-width:0}
 
-/* =========================================================
-   TOPBAR
-========================================================= */
+/* ============ TOPBAR ============ */
 .topbar{
     position:sticky;top:0;z-index:50;
     height:var(--topbar-h);
     display:flex;align-items:center;justify-content:space-between;
-    gap:10px;
-    padding:0 18px;
+    gap:12px;
+    padding:0 28px;
     background:var(--surface);
     border-bottom:1px solid var(--border);
-    transition:background .1s linear,border-color .1s linear;
+    transition:background .2s ease,border-color .2s ease;
 }
 .topbar.scrolled{
-    border-bottom-style:solid;
-    box-shadow:0 1px 0 var(--border-soft);
+    box-shadow:var(--shadow-sm);
 }
 
 .topbar-left{
-    display:flex;align-items:center;gap:10px;min-width:0;
+    display:flex;align-items:center;gap:12px;min-width:0;
 }
 
 .hamburger{
     display:none;
-    width:32px;height:32px;
+    width:40px;height:40px;
     border:1px solid var(--border);
+    border-radius:var(--radius-sm);
     background:var(--surface);
     color:var(--text);
+    cursor:pointer;
     align-items:center;justify-content:center;
-    font-family:var(--font);
-    font-size:14px;
+    transition:background .15s ease,color .15s ease;
+    flex-shrink:0;
 }
 .hamburger:hover{background:var(--surface-2);color:var(--accent)}
+.hamburger svg{width:20px;height:20px}
 
-.topbar-title{display:flex;flex-direction:column;gap:1px;min-width:0}
+.topbar-title{display:flex;flex-direction:column;gap:2px;min-width:0}
 .topbar-title h1{
-    font-size:13px;font-weight:700;
-    letter-spacing:.06em;
-    color:var(--text);
-    text-transform:uppercase;
+    font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .topbar-title span{
-    font-size:11px;
-    color:var(--text-3);
-    letter-spacing:.03em;
+    font-size:11.5px;font-weight:500;color:var(--text-secondary);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 
-.topbar-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
+.topbar-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
 
 .topbar-btn{
-    display:flex;align-items:center;gap:6px;
-    height:32px;
-    padding:0 10px;
+    display:flex;align-items:center;gap:7px;
+    height:38px;
+    padding:0 13px;
     border:1px solid var(--border);
-    background:var(--surface);
-    color:var(--text-2);
-    font-family:var(--font);
-    font-size:11.5px;
-    font-weight:500;
-    letter-spacing:.02em;
-    transition:background .08s linear,color .08s linear,border-color .08s linear;
+    border-radius:var(--radius-sm);
+    background:var(--surface);color:var(--text-secondary);
+    font-size:12.5px;font-weight:500;
+    cursor:pointer;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;
 }
-.topbar-btn::before{
-    content:"[";
-    color:var(--text-3);
-    font-weight:700;
-}
-.topbar-btn::after{
-    content:"]";
-    color:var(--text-3);
-    font-weight:700;
-}
-.topbar-btn:hover{
-    background:var(--surface-2);
-    color:var(--text);
-    border-color:var(--accent);
-}
-.topbar-btn:hover::before,
-.topbar-btn:hover::after{color:var(--accent)}
+.topbar-btn svg{width:15px;height:15px}
+.topbar-btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
 
 .topbar-icon-btn{
     position:relative;
-    width:32px;height:32px;
+    width:38px;height:38px;
     display:flex;align-items:center;justify-content:center;
     border:1px solid var(--border);
-    background:var(--surface);
-    color:var(--text-2);
-    font-family:var(--font);
-    font-size:14px;
-    font-weight:700;
-    transition:background .08s linear,color .08s linear,border-color .08s linear;
+    border-radius:var(--radius-sm);
+    background:var(--surface);color:var(--text-secondary);
+    cursor:pointer;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;
 }
-.topbar-icon-btn:hover{
-    background:var(--surface-2);
-    color:var(--text);
-    border-color:var(--accent);
-}
-.topbar-icon-btn.has-unread{
-    color:var(--red);
-    border-color:var(--red);
-}
+.topbar-icon-btn svg{width:17px;height:17px}
+.topbar-icon-btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
+.topbar-icon-btn.has-unread{color:var(--red);border-color:rgba(185,28,28,.3)}
 
 .unread-dot{
-    position:absolute;top:2px;right:2px;
-    width:6px;height:6px;
+    position:absolute;top:6px;right:6px;
+    width:8px;height:8px;border-radius:50%;
     background:var(--red);
-    border:1px solid var(--surface);
+    border:2px solid var(--surface);
     display:none;
 }
 .unread-dot.show{display:block}
 
+/* Кнопка темы */
 .theme-toggle-btn{
-    width:32px;height:32px;
+    position:relative;
+    width:38px;height:38px;
     display:flex;align-items:center;justify-content:center;
     border:1px solid var(--border);
-    background:var(--surface);
-    color:var(--text-2);
-    font-family:var(--font);
-    font-size:12px;
-    font-weight:700;
-    transition:background .08s linear,color .08s linear,border-color .08s linear;
+    border-radius:var(--radius-sm);
+    background:var(--surface);color:var(--text-secondary);
+    cursor:pointer;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;
+    overflow:hidden;
 }
-.theme-toggle-btn:hover{
-    background:var(--surface-2);
-    color:var(--text);
-    border-color:var(--accent);
+.theme-toggle-btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
+.theme-toggle-btn svg{width:17px;height:17px}
+.theme-toggle-btn .icon-sun,
+.theme-toggle-btn .icon-moon{
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    transition:opacity .2s ease;
 }
+.theme-toggle-btn .icon-moon{opacity:0}
+[data-theme="dark"] .theme-toggle-btn .icon-sun{opacity:0}
+[data-theme="dark"] .theme-toggle-btn .icon-moon{opacity:1}
 
-/* =========================================================
-   USER MENU
-========================================================= */
+/* ============ USER MENU ============ */
 .user-menu{position:relative}
 
 .user-menu-button{
-    display:flex;align-items:center;gap:7px;
-    height:32px;
-    padding:0 8px;
+    display:flex;align-items:center;gap:9px;
+    padding:4px 12px 4px 4px;
     border:1px solid var(--border);
+    border-radius:var(--radius-sm);
     background:var(--surface);
-    font-family:var(--font);
-    font-size:11.5px;
-    font-weight:500;
-    color:var(--text);
-    transition:background .08s linear,border-color .08s linear;
-    max-width:200px;
+    cursor:pointer;
+    font-family:inherit;font-size:12.5px;font-weight:500;color:var(--text);
+    transition:background .15s ease,border-color .15s ease;
+    max-width:220px;
 }
-.user-menu-button:hover{background:var(--surface-2);border-color:var(--accent)}
+.user-menu-button:hover{background:var(--surface-2);border-color:var(--text-light)}
 .user-menu-button.open{
     background:var(--surface-2);
-    border-color:var(--accent);
+    border-color:var(--text-light);
 }
 .user-menu-button > span:not(.user-avatar){
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    max-width:120px;
+    max-width:130px;
 }
 
 .user-avatar{
-    width:22px;height:22px;flex-shrink:0;
+    width:30px;height:30px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    color:var(--surface);
-    background:var(--text);
-    font-size:10.5px;font-weight:700;
-    letter-spacing:.02em;
+    border-radius:50%;color:#fff;font-size:11.5px;font-weight:600;
+    background:var(--accent-dark);
 }
 
 .user-chevron{
-    width:10px;height:10px;
-    color:var(--text-3);
+    width:14px;height:14px;color:var(--text-light);
+    transition:transform .2s var(--ease);
     flex-shrink:0;
-    font-size:10px;
 }
-.user-menu.open .user-chevron{transform:rotate(180deg);display:inline-block}
+.user-menu.open .user-chevron{transform:rotate(180deg)}
 
 .user-dropdown{
-    position:absolute;top:calc(100% + 4px);right:0;
-    z-index:200;width:240px;
-    padding:0;
+    position:absolute;top:calc(100% + 8px);right:0;
+    z-index:200;width:250px;
+    padding:6px;
+    border-radius:var(--radius-md);
     background:var(--surface);
     border:1px solid var(--border);
-    box-shadow:3px 3px 0 var(--border-soft);
+    box-shadow:var(--shadow-md);
     opacity:0;visibility:hidden;
-    transform:translateY(-2px);
-    transition:opacity .1s linear,transform .1s linear,visibility .1s linear;
+    transform:translateY(-6px);
+    transition:opacity .15s ease,transform .15s ease,visibility .15s ease;
 }
 .user-menu.open .user-dropdown{
     opacity:1;visibility:visible;
     transform:translateY(0);
 }
 .dropdown-header{
-    padding:9px 12px;
-    border-bottom:1px dashed var(--border-soft);
+    padding:11px 12px 12px;
+    margin-bottom:4px;
+    border-bottom:1px solid var(--border-soft);
 }
 .dropdown-name{
-    font-size:12px;font-weight:700;
-    color:var(--text);
+    font-size:13px;font-weight:600;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-    letter-spacing:.02em;
 }
-.dropdown-role{
-    margin-top:3px;font-size:10.5px;
-    color:var(--text-3);
-    letter-spacing:.05em;
-    text-transform:uppercase;
-}
+.dropdown-role{margin-top:4px;font-size:11.5px;font-weight:500;color:var(--text-secondary)}
 
 .dropdown-item{
-    display:flex;align-items:center;gap:8px;
-    width:100%;padding:8px 12px;
-    border:0;
+    display:flex;align-items:center;gap:11px;
+    width:100%;padding:9px 12px;
+    border:none;border-radius:var(--radius-sm);
     background:transparent;cursor:pointer;text-align:left;
-    font-family:var(--font);font-size:12px;font-weight:500;
-    color:var(--text-2);
-    transition:background .08s linear,color .08s linear;
-    border-left:2px solid transparent;
+    font-family:inherit;font-size:13px;font-weight:500;color:var(--text);
+    transition:background .15s ease,color .15s ease;
 }
-.dropdown-item::before{
-    content:">";
-    color:var(--text-3);
-    font-weight:700;
-    width:8px;flex:none;
+.dropdown-item svg{
+    width:16px;height:16px;flex-shrink:0;
+    color:var(--text-light);
+    transition:color .15s ease;
 }
-.dropdown-item:hover{
-    background:var(--surface-2);
-    color:var(--text);
-}
-.dropdown-item:hover::before{color:var(--accent)}
+.dropdown-item:hover{background:var(--surface-2)}
 .dropdown-item.danger{color:var(--red)}
-.dropdown-item.danger::before{color:var(--red);content:"!"}
 .dropdown-item.danger:hover{background:var(--red-soft)}
 .dropdown-item .item-badge{
     margin-left:auto;
-    min-width:20px;height:16px;padding:0 5px;
+    min-width:20px;height:20px;padding:0 6px;
     display:none;align-items:center;justify-content:center;
+    border-radius:999px;
     background:var(--red);
-    color:var(--surface);
-    font-size:10px;font-weight:700;line-height:1;
+    color:#fff;font-size:10px;font-weight:700;line-height:1;
 }
 .dropdown-item .item-badge.show{display:flex}
 
-/* =========================================================
-   PAGE
-========================================================= */
+/* ============ PAGE ============ */
 .page{
-    padding:18px 22px 36px;
+    padding:24px 28px 40px;
     max-width:1400px;
     width:100%;
     margin:0 auto;
 }
 
-/* =========================================================
-   HERO (welcome + clock)
-========================================================= */
+/* ============ HERO ============ */
 .hero{
+    position:relative;
     display:grid;
     grid-template-columns:1fr auto;
-    align-items:stretch;
-    gap:14px;
-    padding:0;
-    margin-bottom:14px;
+    align-items:center;
+    gap:28px;
+    padding:28px 30px;
+    margin-bottom:20px;
+    border-radius:var(--radius-lg);
+    color:var(--text);
     background:var(--surface);
     border:1px solid var(--border);
+    box-shadow:var(--shadow-sm);
 }
-
-.hero-content{
-    padding:16px 18px;
-    display:flex;flex-direction:column;justify-content:center;
-    min-width:0;
-    border-right:1px dashed var(--border-soft);
-}
+.hero-content{position:relative;z-index:2;min-width:0}
 .hero-badge{
-    display:inline-flex;align-items:center;gap:6px;
-    padding:2px 8px;margin-bottom:8px;
-    font-size:10.5px;font-weight:700;
+    display:inline-flex;align-items:center;gap:7px;
+    padding:5px 11px;margin-bottom:12px;
+    border-radius:var(--radius-sm);
+    font-size:11.5px;font-weight:600;
     background:var(--surface-2);
     border:1px solid var(--border);
-    color:var(--text-3);
-    letter-spacing:.1em;
-    text-transform:uppercase;
-    width:fit-content;
+    color:var(--text-secondary);
 }
-.hero-badge::before{content:"#";color:var(--accent);font-weight:700}
 .hero h1{
-    font-size:18px;line-height:1.2;margin-bottom:6px;
-    font-weight:700;letter-spacing:.02em;
+    font-size:24px;line-height:1.2;margin-bottom:8px;
+    font-weight:700;letter-spacing:-.5px;
     color:var(--text);
 }
-.hero h1::before{
-    content:"$ ";
-    color:var(--accent);
-    font-weight:700;
-}
 .hero p{
-    font-size:12px;line-height:1.55;
-    color:var(--text-2);
+    max-width:560px;font-size:13.5px;line-height:1.6;
+    color:var(--text-secondary);
 }
 
 .hero-clock{
-    width:200px;
-    padding:14px 16px;
-    display:flex;flex-direction:column;justify-content:center;
-    text-align:left;
+    position:relative;z-index:2;
+    width:200px;padding:18px 18px;text-align:center;
+    border-radius:var(--radius-md);
     background:var(--surface-2);
-    min-width:0;
+    border:1px solid var(--border);
 }
 .hero-clock-label{
-    margin-bottom:5px;
-    font-size:10.5px;font-weight:700;
-    color:var(--text-3);
-    letter-spacing:.1em;
-    text-transform:uppercase;
+    margin-bottom:6px;font-size:11px;font-weight:500;
+    color:var(--text-light);letter-spacing:.3px;text-transform:uppercase;
 }
 .hero-clock-time{
-    font-size:24px;font-weight:700;
-    font-variant-numeric:tabular-nums;
-    letter-spacing:.06em;
-    color:var(--accent);
+    font-size:28px;font-weight:700;
+    font-variant-numeric:tabular-nums;letter-spacing:.3px;
+    color:var(--text);
 }
-.hero-clock-time::before{content:">";color:var(--text-3);margin-right:6px;font-weight:700}
 .hero-clock-date{
-    margin-top:5px;font-size:11px;line-height:1.4;
-    color:var(--text-3);
+    margin-top:8px;font-size:11.5px;line-height:1.4;
+    color:var(--text-secondary);
 }
 
-/* =========================================================
-   ATTENTION
-========================================================= */
+/* ============ ATTENTION BLOCK ============ */
 .attention-card{
-    display:flex;align-items:center;gap:14px;
-    padding:10px 14px;
-    margin-bottom:14px;
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:16px;
+    padding:14px 18px;
+    margin-bottom:20px;
+    border-radius:var(--radius-md);
     background:var(--red-soft);
-    border:1px solid var(--red);
+    border:1px solid rgba(185,28,28,.2);
 }
 .attention-card.hidden{display:none}
 .attention-card .att-icon{
-    width:32px;height:32px;flex-shrink:0;
+    width:40px;height:40px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--red);
+    border-radius:var(--radius-sm);
+    background:var(--surface);
     color:var(--red);
-    font-weight:700;
-    font-size:16px;
+    border:1px solid rgba(185,28,28,.2);
 }
-.attention-card .att-icon::before{content:"!"}
+.attention-card .att-icon svg{width:20px;height:20px}
 .attention-card .att-body{flex:1;min-width:0}
 .attention-card .att-title{
-    font-size:11.5px;font-weight:700;
-    color:var(--red);
-    margin-bottom:5px;
-    letter-spacing:.06em;
-    text-transform:uppercase;
+    font-size:13px;font-weight:600;color:var(--text);
+    margin-bottom:6px;
 }
 .attention-card .att-list{
-    display:flex;flex-wrap:wrap;gap:5px;
+    display:flex;flex-wrap:wrap;gap:6px;
 }
 .attention-card .att-tag{
     display:inline-flex;align-items:center;gap:5px;
-    padding:3px 9px;
+    padding:4px 10px;
+    border-radius:var(--radius-sm);
     background:var(--surface);
-    border:1px solid var(--red);
-    font-size:11px;font-weight:500;color:var(--red);
+    border:1px solid rgba(185,28,28,.2);
+    font-size:11.5px;font-weight:500;color:var(--red);
     cursor:pointer;
-    transition:background .08s linear;
-    font-family:var(--font);
+    transition:background .15s ease;
 }
-.attention-card .att-tag:hover{background:var(--red-soft)}
-.attention-card .att-tag svg{width:11px;height:11px}
+.attention-card .att-tag:hover{background:var(--surface-2)}
+.attention-card .att-tag svg{width:12px;height:12px}
 
-/* =========================================================
-   STATS
-========================================================= */
+/* ============ STATS ============ */
 .stats-grid{
     display:grid;
     grid-template-columns:repeat(4,1fr);
-    gap:0;
-    margin-bottom:14px;
-    background:var(--surface);
-    border:1px solid var(--border);
+    gap:14px;
+    margin-bottom:20px;
 }
 .stat-card{
     position:relative;
-    display:flex;flex-direction:column;gap:7px;
-    padding:13px 15px;
-    border-right:1px dashed var(--border-soft);
-    transition:background .08s linear;
-}
-.stat-card:last-child{border-right:0}
-.stat-card:hover{background:var(--surface-2)}
-
-.stat-header{
-    display:flex;align-items:center;justify-content:space-between;
-    margin-bottom:2px;
-}
-.stat-icon{
-    width:24px;height:24px;
-    display:flex;align-items:center;justify-content:center;
+    display:flex;flex-direction:column;gap:10px;
+    padding:16px 18px;
+    border-radius:var(--radius-md);
+    background:var(--surface);
     border:1px solid var(--border);
-    font-size:12px;
-    font-weight:700;
-    color:var(--text-2);
+    box-shadow:var(--shadow-xs);
+    transition:border-color .15s ease,box-shadow .15s ease;
+}
+.stat-card:hover{
+    border-color:var(--text-light);
+    box-shadow:var(--shadow-sm);
+}
+
+.stat-header{display:flex;align-items:center;justify-content:space-between}
+.stat-icon{
+    width:36px;height:36px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:var(--radius-sm);
     background:var(--surface-2);
+    color:var(--text-secondary);
 }
-.stat-icon.blue::before{content:"[k]";font-size:9.5px;font-weight:700;color:var(--accent)}
-.stat-icon.teal::before{content:"[u]";font-size:9.5px;font-weight:700;color:var(--green)}
-.stat-icon.violet::before{content:"[g]";font-size:9.5px;font-weight:700;color:var(--violet)}
-.stat-icon.amber::before{content:"[m]";font-size:9.5px;font-weight:700;color:var(--amber)}
-.stat-icon.rose::before{content:"[x]";font-size:9.5px;font-weight:700;color:var(--red)}
-.stat-icon svg{display:none}
+.stat-icon svg{width:18px;height:18px}
+.stat-icon.blue{color:var(--accent)}
+.stat-icon.teal{color:var(--green)}
+.stat-icon.violet{color:#6d28d9}
+.stat-icon.amber{color:var(--amber)}
+.stat-icon.rose{color:var(--red)}
 
-.stat-label{
-    font-size:10.5px;font-weight:500;
-    color:var(--text-3);
-    letter-spacing:.05em;
-    text-transform:uppercase;
-}
+.stat-label{font-size:11.5px;font-weight:500;color:var(--text-secondary)}
 .stat-value{
-    font-size:20px;font-weight:700;
-    letter-spacing:.02em;
-    color:var(--text);
-    font-variant-numeric:tabular-nums;
-    line-height:1.1;
+    font-size:24px;font-weight:700;letter-spacing:-.4px;
+    color:var(--text);font-variant-numeric:tabular-nums;line-height:1.1;
 }
+.stat-value small{font-size:13px;font-weight:500;color:var(--text-light);letter-spacing:0;margin-left:2px}
 .stat-value.pending{
-    color:var(--text-3);
-    font-weight:400;
+    background:linear-gradient(90deg,var(--surface-3) 25%,var(--surface-2) 50%,var(--surface-3) 75%);
+    background-size:200% 100%;
+    animation:shimmer 1.4s linear infinite;
+    color:transparent;
+    border-radius:4px;
+    min-width:40px;display:inline-block;
 }
-.stat-value.pending::after{
-    content:"...";
-    animation:none;
+@keyframes shimmer{
+    0%{background-position:200% 0}
+    100%{background-position:-200% 0}
 }
 
-/* =========================================================
-   PROGRESS
-========================================================= */
+/* ============ PROGRESS ============ */
 .progress-card{
     display:grid;
     grid-template-columns:auto 1fr auto;
-    align-items:center;gap:14px;
-    padding:12px 16px;
-    margin-bottom:14px;
+    align-items:center;gap:20px;
+    padding:18px 22px;margin-bottom:20px;
+    border-radius:var(--radius-md);
     background:var(--surface);
     border:1px solid var(--border);
+    box-shadow:var(--shadow-xs);
 }
 .progress-icon{
-    width:30px;height:30px;
+    width:40px;height:40px;
     display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--border);
-    color:var(--accent);
+    border-radius:var(--radius-sm);
     background:var(--surface-2);
-    font-weight:700;
-    font-size:13px;
+    color:var(--accent);
 }
-.progress-icon::before{content:"%";}
-.progress-icon svg{display:none}
+.progress-icon svg{width:20px;height:20px}
 .progress-body{min-width:0}
 .progress-title{
-    font-size:11.5px;font-weight:700;
-    margin-bottom:6px;color:var(--text-2);
-    letter-spacing:.06em;
-    text-transform:uppercase;
+    font-size:13px;font-weight:600;
+    margin-bottom:6px;color:var(--text);
 }
 .progress-track{
-    width:100%;height:8px;
+    width:100%;height:6px;border-radius:999px;
     background:var(--surface-3);
-    border:1px solid var(--border);
     overflow:hidden;
 }
 .progress-bar{
-    width:0%;height:100%;
+    width:0%;height:100%;border-radius:999px;
     background:var(--accent);
-    transition:width .3s linear;
+    transition:width .6s var(--ease);
 }
 .progress-percent{
-    font-size:16px;font-weight:700;
-    color:var(--accent);
-    font-variant-numeric:tabular-nums;
-    letter-spacing:.04em;
+    font-size:20px;font-weight:700;letter-spacing:-.3px;
+    color:var(--accent);font-variant-numeric:tabular-nums;
 }
 
-/* =========================================================
-   SECTION HEADER
-========================================================= */
+/* ============ SECTION ============ */
 .section-header{
     display:flex;align-items:flex-end;justify-content:space-between;
-    margin-bottom:10px;
+    margin-bottom:14px;
     gap:12px;
 }
-.section-title{
-    font-size:13px;font-weight:700;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    color:var(--text);
-}
-.section-title::before{content:"# ";color:var(--accent)}
-.section-subtitle{
-    margin-top:3px;
-    color:var(--text-3);
-    font-size:11.5px;
-}
+.section-title{font-size:16px;font-weight:600;letter-spacing:-.2px}
+.section-subtitle{margin-top:4px;color:var(--text-secondary);font-size:12.5px}
 .section-action{
-    display:inline-flex;align-items:center;gap:5px;
-    padding:5px 10px;
+    display:inline-flex;align-items:center;gap:6px;
+    padding:7px 13px;
     border:1px solid var(--border);
+    border-radius:var(--radius-sm);
     background:var(--surface);
-    color:var(--text-2);
-    font-family:var(--font);
-    font-size:11px;font-weight:500;
-    letter-spacing:.02em;
-    transition:background .08s linear,color .08s linear,border-color .08s linear;
+    color:var(--text-secondary);
+    font-size:12px;font-weight:500;
+    cursor:pointer;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;
 }
-.section-action::before{content:"[";}
-.section-action::after{content:"]";}
-.section-action::before,
-.section-action::after{color:var(--text-3);font-weight:700}
-.section-action:hover{
-    background:var(--surface-2);
-    color:var(--text);
-    border-color:var(--accent);
-}
-.section-action:hover::before,
-.section-action:hover::after{color:var(--accent)}
-.section-action svg{display:none}
+.section-action svg{width:14px;height:14px}
+.section-action:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
 
-/* =========================================================
-   MENU (quick actions)
-========================================================= */
+/* ============ QUICK ACTIONS ============ */
 .menu{
     display:grid;
     grid-template-columns:repeat(3,1fr);
-    gap:0;
-    background:var(--surface);
-    border:1px solid var(--border);
+    gap:14px;
 }
 .menu-button{
     position:relative;
-    display:flex;align-items:flex-start;gap:12px;
-    padding:14px 15px;
-    border:0;
-    border-right:1px dashed var(--border-soft);
-    border-bottom:1px dashed var(--border-soft);
-    background:transparent;
+    display:flex;align-items:flex-start;gap:14px;
+    padding:18px 18px;
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    background:var(--surface);
     color:var(--text);
     cursor:pointer;text-align:left;
-    transition:background .08s linear;
-    font-family:var(--font);
+    box-shadow:var(--shadow-xs);
+    transition:border-color .15s ease,background .15s ease;
 }
-.menu-button:nth-child(3n){border-right:0}
-.menu-button:hover{background:var(--surface-2)}
+.menu-button:hover{
+    border-color:var(--text-light);
+    background:var(--surface-2);
+}
 
 .icon{
-    position:relative;flex-shrink:0;
-    width:36px;height:36px;
+    position:relative;z-index:2;
+    width:42px;height:42px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
     background:var(--surface-2);
-    font-size:11px;font-weight:700;
-    color:var(--text-2);
-    letter-spacing:.02em;
+    color:var(--text-secondary);
 }
-.icon::before{
-    content:"[ ]";
-    color:var(--text-3);
-    letter-spacing:.02em;
-}
-.icon svg{display:none}
+.icon svg{width:20px;height:20px}
+.attendance .icon{color:var(--green)}
+.history .icon{color:var(--accent)}
+.students .icon{color:#6d28d9}
+.groups .icon{color:var(--accent)}
+.parents .icon{color:#0e7490}
+.settings .icon{color:var(--amber)}
+.messages .icon{color:var(--red)}
 
-.attendance .icon::before{content:"[✓]";color:var(--green)}
-.history    .icon::before{content:"[≡]";color:var(--accent)}
-.students   .icon::before{content:"[S]";color:var(--violet)}
-.groups     .icon::before{content:"[G]";color:var(--accent)}
-.parents    .icon::before{content:"[P]";color:var(--cyan)}
-.settings   .icon::before{content:"[*]";color:var(--amber)}
-.messages   .icon::before{content:"[@]";color:var(--red)}
-
-.button-content{position:relative;min-width:0;flex:1}
+.button-content{position:relative;z-index:2;min-width:0;flex:1}
 .button-title{
     display:block;margin-bottom:4px;
-    font-size:12.5px;font-weight:700;
-    letter-spacing:.02em;
-    color:var(--text);
+    font-size:13.5px;font-weight:600;letter-spacing:-.2px;color:var(--text);
 }
 .button-description{
-    display:block;
-    color:var(--text-3);
-    font-size:11.5px;
-    line-height:1.5;
+    display:block;color:var(--text-secondary);
+    font-size:12px;line-height:1.5;
 }
 .shortcut{
-    position:absolute;top:10px;right:12px;
-    min-width:18px;height:18px;
+    position:absolute;top:12px;right:14px;
+    width:20px;height:20px;
     display:flex;align-items:center;justify-content:center;
-    padding:0 4px;
-    font-size:10.5px;font-weight:700;
-    color:var(--text-3);
+    border-radius:5px;
+    font-size:10.5px;font-weight:600;
+    color:var(--text-light);
     background:var(--surface-2);
     border:1px solid var(--border);
 }
 
-/* =========================================================
-   DEBTORS
-========================================================= */
+/* ============ TOP DEBTORS ============ */
 .debtors-card{
-    margin-top:14px;
+    margin-top:20px;
+    border-radius:var(--radius-md);
     background:var(--surface);
     border:1px solid var(--border);
+    box-shadow:var(--shadow-xs);
     overflow:hidden;
 }
 .debtors-head{
     display:flex;align-items:center;justify-content:space-between;
-    padding:10px 14px;
-    border-bottom:1px solid var(--border);
-    background:var(--surface-2);
+    padding:14px 18px;
+    border-bottom:1px solid var(--border-soft);
 }
 .debtors-title{
-    font-size:11.5px;font-weight:700;
-    color:var(--text);
-    letter-spacing:.06em;
-    text-transform:uppercase;
-    display:flex;align-items:center;gap:7px;
+    font-size:13px;font-weight:600;color:var(--text);
+    display:flex;align-items:center;gap:8px;
 }
-.debtors-title::before{
-    content:"[!]";
-    color:var(--amber);
-    font-weight:700;
-}
-.debtors-title svg{display:none}
-.debtors-body{padding:0}
+.debtors-title svg{width:16px;height:16px;color:var(--amber)}
+.debtors-body{padding:6px 0}
 .debtor-row{
-    display:flex;align-items:center;gap:10px;
-    padding:9px 14px;
-    border-bottom:1px dashed var(--border-soft);
-    transition:background .08s linear;
+    display:flex;align-items:center;gap:12px;
+    padding:10px 18px;
+    transition:background .15s ease;
     cursor:pointer;
 }
-.debtor-row:last-child{border-bottom:0}
 .debtor-row:hover{background:var(--surface-2)}
 .debtor-avatar{
-    width:26px;height:26px;flex-shrink:0;
+    width:32px;height:32px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--border);
+    border-radius:50%;
     background:var(--surface-2);
-    color:var(--text-2);
-    font-size:10.5px;font-weight:700;
+    color:var(--text-secondary);
+    font-size:11.5px;font-weight:600;
 }
 .debtor-info{flex:1;min-width:0}
 .debtor-name{
-    font-size:12px;font-weight:500;
-    color:var(--text);
+    font-size:13px;font-weight:500;color:var(--text);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
-.debtor-group{
-    font-size:10.5px;
-    color:var(--text-3);
-    margin-top:1px;
-}
+.debtor-group{font-size:11px;color:var(--text-light);margin-top:1px}
 .debtor-value{
-    font-size:12.5px;font-weight:700;
+    font-size:13.5px;font-weight:700;
     color:var(--amber);
     font-variant-numeric:tabular-nums;
 }
 .debtors-empty{
-    padding:22px 18px;
+    padding:28px 20px;
     text-align:center;
-    color:var(--text-3);
-    font-size:11.5px;
+    color:var(--text-light);
+    font-size:12.5px;
 }
-.debtors-empty svg{display:none}
-.debtors-empty::before{
-    content:"[ OK ]";
-    display:block;
+.debtors-empty svg{
+    width:30px;height:30px;opacity:.5;
+    margin-bottom:8px;
     color:var(--green);
-    font-weight:700;
-    margin-bottom:6px;
-    letter-spacing:.1em;
 }
 
-/* =========================================================
-   SPARKLINE
-========================================================= */
+/* ============ SPARKLINE ============ */
 .spark-card{
-    margin-top:14px;
-    padding:12px 14px;
+    margin-top:20px;
+    padding:18px 20px;
+    border-radius:var(--radius-md);
     background:var(--surface);
     border:1px solid var(--border);
+    box-shadow:var(--shadow-xs);
 }
 .spark-head{
     display:flex;align-items:center;justify-content:space-between;
-    margin-bottom:10px;
+    margin-bottom:14px;
 }
 .spark-title{
-    font-size:11.5px;font-weight:700;
-    color:var(--text);
-    letter-spacing:.06em;
-    text-transform:uppercase;
-    display:flex;align-items:center;gap:7px;
+    font-size:13px;font-weight:600;color:var(--text);
+    display:flex;align-items:center;gap:8px;
 }
-.spark-title::before{content:"#";color:var(--accent);font-weight:700}
-.spark-title svg{display:none}
+.spark-title svg{width:16px;height:16px;color:var(--accent)}
 .spark-value{
-    font-size:14px;font-weight:700;
+    font-size:17px;font-weight:700;
     color:var(--accent);
     font-variant-numeric:tabular-nums;
-    letter-spacing:.04em;
 }
 .spark-chart{
-    display:flex;align-items:flex-end;gap:3px;
-    height:48px;
+    display:flex;align-items:flex-end;gap:5px;
+    height:60px;
 }
 .spark-bar{
     flex:1;
+    border-radius:3px;
     background:var(--accent);
-    min-height:2px;
-    transition:height .3s linear;
+    min-height:4px;
+    transition:height .5s var(--ease),background .15s ease;
+    position:relative;
     cursor:pointer;
     opacity:.85;
-    border:1px solid var(--border);
 }
 .spark-bar:hover{opacity:1}
 .spark-labels{
-    display:flex;gap:3px;
-    margin-top:18px;
+    display:flex;gap:5px;
+    margin-top:22px;
     font-size:10px;
-    color:var(--text-3);
-    letter-spacing:.03em;
+    color:var(--text-light);
 }
 .spark-labels span{flex:1;text-align:center;font-weight:500}
 
-/* =========================================================
-   FOOTER
-========================================================= */
+/* ============ FOOTER ============ */
 footer{
-    margin-top:26px;padding:14px 0 0;
-    text-align:center;color:var(--text-3);
-    font-size:11px;
-    border-top:1px dashed var(--border-soft);
-    letter-spacing:.03em;
+    margin-top:36px;padding:18px 0 0;
+    text-align:center;color:var(--text-light);
+    font-size:12px;border-top:1px solid var(--border-soft);
 }
 .footer-line{
-    width:30px;height:1px;margin:0 auto 10px;
+    width:36px;height:2px;margin:0 auto 12px;
+    border-radius:999px;
     background:var(--border);
 }
 
-/* =========================================================
-   LOADER
-========================================================= */
+
+/* ============ МОДАЛЬНОЕ ОКНО ВЫХОДА ============ */
+.logout-overlay{
+    position:fixed;inset:0;z-index:1250;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px 14px calc(20px + env(safe-area-inset-bottom,0px));
+    background:rgba(15,23,42,.55);
+    opacity:0;visibility:hidden;
+    transition:opacity .2s ease,visibility .2s ease;
+}
+.logout-overlay.on{opacity:1;visibility:visible}
+.logout-card{
+    width:100%;max-width:420px;
+    padding:26px 24px 20px;
+    border-radius:var(--radius-lg);
+    background:var(--surface);
+    border:1px solid var(--border);
+    box-shadow:var(--shadow-md);
+    transform:translateY(12px);
+    transition:transform .25s var(--ease);
+}
+.logout-overlay.on .logout-card{transform:none}
+.logout-icon{
+    width:56px;height:56px;margin:0 auto 14px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:var(--radius-md);
+    background:var(--red-soft);color:var(--red);
+    border:1px solid rgba(185,28,28,.22);
+}
+.logout-icon svg{width:26px;height:26px}
+.logout-title{
+    font-size:18px;font-weight:700;letter-spacing:-.2px;
+    text-align:center;color:var(--text);margin-bottom:6px;
+}
+.logout-sub{
+    font-size:13px;line-height:1.55;text-align:center;
+    color:var(--text-secondary);margin-bottom:18px;
+}
+.logout-option{
+    display:flex;align-items:flex-start;gap:12px;
+    padding:12px 14px;margin-bottom:8px;
+    border-radius:var(--radius-sm);border:1px solid var(--border);
+    background:var(--surface-2);cursor:pointer;
+    transition:border-color .15s ease,background .15s ease;
+}
+.logout-option:hover{border-color:var(--text-light);background:var(--surface)}
+.logout-option.picked{border-color:var(--accent);background:var(--accent-soft)}
+.logout-option input[type="radio"]{
+    margin-top:2px;accent-color:var(--accent);cursor:pointer;
+    width:16px;height:16px;flex-shrink:0;
+}
+.logout-option-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+.logout-option-title{font-size:13.5px;font-weight:600;color:var(--text)}
+.logout-option-desc{font-size:11.5px;color:var(--text-secondary);line-height:1.45}
+.logout-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px}
+.logout-btn{
+    height:46px;display:flex;align-items:center;justify-content:center;
+    border-radius:var(--radius-sm);font-family:inherit;font-size:13.5px;
+    font-weight:600;cursor:pointer;
+    transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+.logout-btn.cancel{border:1px solid var(--border);background:var(--surface);color:var(--text-secondary)}
+.logout-btn.cancel:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
+.logout-btn.confirm{border:1px solid var(--red);background:var(--red);color:#fff}
+.logout-btn.confirm:hover{background:#991b1b;border-color:#991b1b}
+.logout-btn:disabled{opacity:.6;cursor:wait}
+@media(max-width:640px){
+    .logout-card{padding:22px 18px 16px}
+    .logout-actions{grid-template-columns:1fr}
+}
+
+/* ============ LOADER ============ */
 .page-loader{
     position:fixed;inset:0;z-index:999;
     display:flex;align-items:center;justify-content:center;
-    background:var(--bg);
-    transition:opacity .2s linear,visibility .2s linear;
+    background:var(--surface-3);
+    transition:opacity .3s ease,visibility .3s ease,background .2s ease;
 }
 .page-loader.hidden{opacity:0;visibility:hidden}
-body.auth-pending main,
-body.auth-pending header,
-body.auth-pending aside{visibility:hidden}
-
+body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibility:hidden}
 .loader-content{text-align:center}
 .loader-logo{
-    width:48px;height:48px;
+    width:56px;height:56px;color:#fff;
     display:flex;align-items:center;justify-content:center;
-    margin:0 auto 12px;
-    border:1px solid var(--border);
-    background:var(--surface-2);
-    color:var(--accent);
-    font-weight:700;
-    font-size:20px;
-    letter-spacing:.05em;
+    margin:0 auto 16px;border-radius:var(--radius-lg);
+    background:var(--accent-dark);
 }
-.loader-logo::before{content:"K";}
-.loader-logo svg{display:none}
-.loader-text{
-    font-size:12px;font-weight:500;
-    color:var(--text-3);
-    letter-spacing:.06em;
-    text-transform:uppercase;
-}
+.loader-logo svg{width:26px;height:26px}
+.loader-text{font-size:13px;font-weight:500;color:var(--text-secondary)}
 
-/* =========================================================
-   TOAST
-========================================================= */
+/* ============ TOAST ============ */
 .toast{
-    position:fixed;left:50%;bottom:20px;z-index:1000;
-    transform:translate(-50%,80px);
-    padding:9px 16px;
-    border:1px solid var(--border);
+    position:fixed;left:50%;bottom:30px;z-index:1000;
+    transform:translate(-50%,120px);
+    padding:12px 20px;
+    border-radius:var(--radius-md);
     background:var(--text);
-    color:var(--surface);
-    font-family:var(--font);
-    font-size:12px;
-    font-weight:500;
-    letter-spacing:.02em;
+    color:#fff;font-size:13px;font-weight:500;
+    box-shadow:var(--shadow-md);
     opacity:0;pointer-events:none;
-    transition:transform .15s linear,opacity .15s linear;
+    transition:transform .25s var(--ease),opacity .25s ease;
     max-width:calc(100vw - 40px);
     text-align:center;
 }
-.toast::before{content:"» ";color:var(--accent);font-weight:700}
 .toast.show{transform:translate(-50%,0);opacity:1}
 
-/* =========================================================
-   NOTIFICATIONS
-========================================================= */
+/* ============================================================
+   УВЕДОМЛЕНИЯ
+============================================================ */
 .notif-container{
     position:fixed;
-    top:calc(var(--topbar-h) + 10px);
-    right:14px;
+    top:calc(var(--topbar-h) + 14px);
+    right:20px;
     z-index:1100;
-    display:flex;flex-direction:column;
-    gap:6px;
+    display:flex;
+    flex-direction:column;
+    gap:10px;
     pointer-events:none;
-    max-width:360px;
-    width:calc(100vw - 28px);
+    max-width:380px;
+    width:calc(100vw - 40px);
 }
+
 .notif{
-    display:flex;align-items:center;gap:10px;
-    padding:10px 12px;
+    position:relative;
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:13px 15px;
+    border-radius:var(--radius-md);
     background:var(--surface);
     border:1px solid var(--border);
-    box-shadow:3px 3px 0 var(--border-soft);
+    box-shadow:var(--shadow-md);
     pointer-events:auto;
     cursor:pointer;
-    font-family:var(--font);
-    transition:transform .08s linear,box-shadow .08s linear;
+    overflow:hidden;
+    transition:transform .15s ease,box-shadow .15s ease,background .2s ease;
 }
 .notif:hover{
-    transform:translate(-1px,-1px);
-    box-shadow:4px 4px 0 var(--border-soft);
+    transform:translateY(-1px);
+    box-shadow:0 8px 20px -8px rgba(15,23,42,.2);
 }
+
 .notif::before{
     content:"";
     position:absolute;
     left:0;top:0;bottom:0;
     width:3px;
-    background:var(--accent);
 }
-.notif{position:relative;overflow:hidden}
-.notif.notif-request::before{background:var(--violet)}
+.notif.notif-request::before{background:#6d28d9}
 .notif.notif-message::before{background:var(--red)}
 .notif.notif-info::before{background:var(--accent)}
 
 .notif-icon{
-    width:28px;height:28px;flex-shrink:0;
+    width:38px;height:38px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
     background:var(--surface-2);
-    color:var(--text-2);
-    font-weight:700;
-    font-size:13px;
+    color:var(--text-secondary);
 }
-.notif.notif-request .notif-icon::before{content:"?";color:var(--violet)}
-.notif.notif-message .notif-icon::before{content:"@";color:var(--red)}
-.notif.notif-info    .notif-icon::before{content:"i";color:var(--accent)}
-.notif-icon svg{display:none}
+.notif-icon svg{width:18px;height:18px}
+.notif-request .notif-icon{color:#6d28d9}
+.notif-message .notif-icon{color:var(--red)}
+.notif-info .notif-icon{color:var(--accent)}
 
 .notif-body{flex:1;min-width:0}
 .notif-title{
-    font-size:12px;font-weight:700;
-    color:var(--text);
+    font-size:13px;font-weight:600;color:var(--text);
     margin-bottom:3px;
-    letter-spacing:.02em;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .notif-text{
-    font-size:11.5px;
-    color:var(--text-2);
+    font-size:12px;font-weight:400;color:var(--text-secondary);
     line-height:1.4;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
+
 .notif-arrow{
     flex-shrink:0;
-    color:var(--text-3);
-    font-size:13px;
-    font-weight:700;
-}
-.notif-arrow::before{content:"→"}
-.notif-arrow svg{display:none}
-.notif:hover .notif-arrow{color:var(--accent)}
-
-.notif-close{
-    position:absolute;top:4px;right:4px;
     width:20px;height:20px;
     display:flex;align-items:center;justify-content:center;
-    border:0;background:transparent;
-    color:var(--text-3);
-    font-family:var(--font);
-    font-size:14px;
-    font-weight:700;
+    color:var(--text-light);
+    transition:color .15s ease;
+}
+.notif-arrow svg{width:14px;height:14px}
+.notif:hover .notif-arrow{color:var(--text-secondary)}
+
+.notif-close{
+    position:absolute;
+    top:8px;right:8px;
+    width:20px;height:20px;
+    display:flex;align-items:center;justify-content:center;
+    border:none;background:transparent;border-radius:4px;
+    color:var(--text-light);
     cursor:pointer;
     opacity:0;
-    transition:opacity .08s linear,background .08s linear,color .08s linear;
+    transition:opacity .15s ease,background .15s ease,color .15s ease;
 }
-.notif-close::before{content:"×"}
-.notif-close svg{display:none}
+.notif-close svg{width:12px;height:12px}
 .notif:hover .notif-close{opacity:1}
 .notif-close:hover{background:var(--surface-2);color:var(--text)}
 
-/* =========================================================
-   OFFLINE BANNER
-========================================================= */
+/* ============================================================
+   БАННЕР «НЕТ СОЕДИНЕНИЯ»
+============================================================ */
 .offline-banner{
     position:fixed;
     top:0;left:0;right:0;
     z-index:1050;
-    display:flex;align-items:center;justify-content:center;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     gap:10px;
-    padding:8px 16px;
+    padding:10px 18px;
     background:var(--red);
-    color:var(--surface);
-    font-family:var(--font);
-    font-size:11.5px;
-    font-weight:700;
-    letter-spacing:.04em;
+    color:#fff;
+    font-size:12.5px;
+    font-weight:500;
+    box-shadow:var(--shadow-sm);
     transform:translateY(-100%);
-    transition:transform .15s linear;
+    transition:transform .25s var(--ease);
 }
 .offline-banner.show{transform:translateY(0)}
-.offline-banner::before{content:"[!]";font-weight:700}
-.offline-banner svg{display:none}
-.offline-banner .retry-btn{
-    margin-left:8px;
-    padding:3px 10px;
-    border:1px solid var(--surface);
-    background:transparent;
-    color:var(--surface);
-    font-family:var(--font);
-    font-size:11px;
-    font-weight:700;
-    cursor:pointer;
-    transition:background .08s linear,color .08s linear;
-}
-.offline-banner .retry-btn:hover{background:var(--surface);color:var(--red)}
+.offline-banner svg{width:16px;height:16px;flex-shrink:0}
 
-/* =========================================================
-   IDLE MODAL
-========================================================= */
+.offline-banner .retry-btn{
+    margin-left:10px;
+    padding:5px 12px;
+    border:1px solid rgba(255,255,255,.4);
+    border-radius:var(--radius-sm);
+    background:rgba(255,255,255,.1);
+    color:#fff;
+    font-family:inherit;
+    font-size:11.5px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .15s ease;
+}
+.offline-banner .retry-btn:hover{background:rgba(255,255,255,.22)}
+
+/* ============================================================
+   МОДАЛКА ТАЙМАУТА
+============================================================ */
 .idle-modal-overlay{
     position:fixed;inset:0;z-index:1200;
     display:flex;align-items:center;justify-content:center;
-    padding:18px;
-    background:rgba(0,0,0,.55);
+    padding:20px;
+    background:rgba(15,23,42,.55);
     opacity:0;visibility:hidden;
-    transition:opacity .15s linear,visibility .15s linear;
+    transition:opacity .2s ease,visibility .2s ease;
 }
 .idle-modal-overlay.show{opacity:1;visibility:visible}
 
 .idle-modal{
-    width:100%;max-width:380px;
-    padding:20px 22px 18px;
+    width:100%;max-width:400px;
+    padding:26px 24px 22px;
+    border-radius:var(--radius-lg);
     background:var(--surface);
     border:1px solid var(--border);
-    box-shadow:4px 4px 0 var(--border-soft);
-    text-align:left;
-    transform:translateY(6px);
-    transition:transform .15s linear;
-    font-family:var(--font);
+    box-shadow:var(--shadow-md);
+    text-align:center;
+    transform:translateY(10px);
+    transition:transform .2s var(--ease);
 }
 .idle-modal-overlay.show .idle-modal{transform:translateY(0)}
 
 .idle-icon{
-    width:40px;height:40px;
+    width:56px;height:56px;
     display:flex;align-items:center;justify-content:center;
-    margin:0 0 12px;
-    border:1px solid var(--amber);
+    margin:0 auto 16px;
+    border-radius:var(--radius-md);
     background:var(--amber-soft);
     color:var(--amber);
-    font-weight:700;
-    font-size:18px;
 }
-.idle-icon::before{content:"!"}
-.idle-icon svg{display:none}
+.idle-icon svg{width:26px;height:26px}
 
 .idle-title{
-    font-size:14px;font-weight:700;
-    color:var(--text);
-    margin-bottom:8px;
-    letter-spacing:.04em;
-    text-transform:uppercase;
+    font-size:17px;font-weight:700;letter-spacing:-.2px;
+    color:var(--text);margin-bottom:8px;
 }
-.idle-title::before{content:"> ";color:var(--accent)}
-
 .idle-text{
-    font-size:12px;line-height:1.55;
-    color:var(--text-2);
+    font-size:13px;line-height:1.55;
+    color:var(--text-secondary);
     margin-bottom:8px;
 }
 .idle-timer{
-    font-size:22px;font-weight:700;
+    font-size:28px;font-weight:700;letter-spacing:-.4px;
     color:var(--amber);
     font-variant-numeric:tabular-nums;
-    margin:12px 0 16px;
-    padding:10px 12px;
-    border:1px solid var(--border);
-    background:var(--surface-2);
-    letter-spacing:.06em;
-    text-align:center;
+    margin:14px 0 20px;
+    padding:12px 0;
+    border-top:1px solid var(--border-soft);
+    border-bottom:1px solid var(--border-soft);
 }
-.idle-timer::before{content:"TTL: ";color:var(--text-3);font-size:12px;letter-spacing:.04em}
-.idle-actions{display:flex;gap:8px}
+.idle-actions{display:flex;gap:10px}
 .idle-btn{
     flex:1;
-    padding:9px 14px;
-    border:1px solid var(--border);
-    background:var(--surface);
-    color:var(--text-2);
-    font-family:var(--font);
-    font-size:12px;
-    font-weight:700;
-    letter-spacing:.02em;
+    padding:11px 18px;
+    border:none;
+    border-radius:var(--radius-md);
+    font-family:inherit;
+    font-size:13px;
+    font-weight:600;
     cursor:pointer;
-    transition:background .08s linear,color .08s linear,border-color .08s linear;
+    transition:background .15s ease,color .15s ease;
 }
-.idle-btn::before{content:"[";}
-.idle-btn::after{content:"]";}
-.idle-btn::before,
-.idle-btn::after{color:var(--text-3)}
-.idle-btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--accent)}
-.idle-btn:hover::before,
-.idle-btn:hover::after{color:var(--accent)}
 .idle-btn.primary{
-    background:var(--accent);
-    color:var(--surface);
-    border-color:var(--accent);
+    background:var(--accent-dark);
+    color:#fff;
 }
-.idle-btn.primary::before,
-.idle-btn.primary::after{color:var(--surface)}
-.idle-btn.primary:hover{background:var(--accent);opacity:.9}
+.idle-btn.primary:hover{background:var(--accent)}
+.idle-btn.ghost{
+    background:var(--surface-2);
+    color:var(--text-secondary);
+    border:1px solid var(--border);
+}
+.idle-btn.ghost:hover{background:var(--surface-3);color:var(--text)}
 
-/* =========================================================
+/* ============================================================
    COMMAND PALETTE
-========================================================= */
+============================================================ */
 .cmd-overlay{
     position:fixed;inset:0;z-index:1300;
     display:flex;align-items:flex-start;justify-content:center;
-    padding:10vh 18px 20px;
-    background:rgba(0,0,0,.5);
+    padding:14vh 20px 20px;
+    background:rgba(15,23,42,.55);
     opacity:0;visibility:hidden;
-    transition:opacity .15s linear,visibility .15s linear;
+    transition:opacity .2s ease,visibility .2s ease;
 }
 .cmd-overlay.show{opacity:1;visibility:visible}
+
 .cmd-box{
-    width:100%;max-width:520px;
+    width:100%;max-width:560px;
     background:var(--surface);
     border:1px solid var(--border);
-    box-shadow:4px 4px 0 var(--border-soft);
-    transform:translateY(-4px);
-    transition:transform .15s linear;
-    font-family:var(--font);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-md);
+    overflow:hidden;
+    transform:translateY(-6px);
+    transition:transform .2s var(--ease);
 }
 .cmd-overlay.show .cmd-box{transform:translateY(0)}
 
 .cmd-input-wrap{
+    position:relative;
     display:flex;align-items:center;
-    padding:0 14px;
-    border-bottom:1px solid var(--border);
-    background:var(--surface-2);
+    padding:0 18px;
+    border-bottom:1px solid var(--border-soft);
 }
-.cmd-input-wrap::before{
-    content:">";
-    color:var(--accent);
-    font-weight:700;
-    margin-right:6px;
+.cmd-input-wrap svg{
+    width:18px;height:18px;color:var(--text-light);
+    flex-shrink:0;
 }
-.cmd-input-wrap svg{display:none}
 .cmd-input{
     flex:1;
-    padding:12px 0;
+    padding:16px 12px;
     border:none;outline:none;
     background:transparent;
-    font-family:var(--font);
-    font-size:13px;
-    font-weight:500;
-    color:var(--text);
+    font-family:inherit;font-size:14.5px;font-weight:500;color:var(--text);
 }
-.cmd-input::placeholder{color:var(--text-3)}
+.cmd-input::placeholder{color:var(--text-light)}
 .cmd-hint{
-    padding:2px 6px;
+    padding:4px 8px;
+    border-radius:5px;
+    background:var(--surface-2);
     border:1px solid var(--border);
-    background:var(--surface);
-    font-size:10.5px;
-    font-weight:700;
-    color:var(--text-3);
-    letter-spacing:.05em;
+    font-size:10.5px;font-weight:600;
+    color:var(--text-light);
+    letter-spacing:.4px;
 }
 
 .cmd-list{
-    max-height:340px;
+    max-height:380px;
     overflow-y:auto;
-    padding:0;
+    padding:6px;
 }
 .cmd-empty{
-    padding:28px 18px;
+    padding:36px 20px;
     text-align:center;
-    color:var(--text-3);
-    font-size:12px;
+    color:var(--text-light);
+    font-size:13px;
 }
 .cmd-item{
-    display:flex;align-items:center;gap:10px;
-    padding:9px 14px;
-    border-bottom:1px dashed var(--border-soft);
+    display:flex;align-items:center;gap:12px;
+    padding:10px 12px;
+    border-radius:var(--radius-sm);
     cursor:pointer;
-    transition:background .08s linear,color .08s linear;
-    border-left:2px solid transparent;
+    transition:background .15s ease;
 }
-.cmd-item:last-child{border-bottom:0}
-.cmd-item:hover,
-.cmd-item.selected{
-    background:var(--surface-2);
-    border-left-color:var(--accent);
-}
+.cmd-item:hover,.cmd-item.selected{background:var(--surface-2)}
 .cmd-item-icon{
-    width:24px;height:24px;flex-shrink:0;
+    width:32px;height:32px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--border);
+    border-radius:var(--radius-sm);
     background:var(--surface-2);
-    font-size:11px;
-    font-weight:700;
-    color:var(--text-2);
+    color:var(--text-secondary);
 }
-.cmd-item-icon svg{display:none}
-.cmd-item-icon.blue::before{content:"k";color:var(--accent)}
-.cmd-item-icon.teal::before{content:"u";color:var(--green)}
-.cmd-item-icon.violet::before{content:"g";color:var(--violet)}
-.cmd-item-icon.amber::before{content:"s";color:var(--amber)}
-.cmd-item-icon.rose::before{content:"@";color:var(--red)}
-.cmd-item-icon.cyan::before{content:"p";color:var(--cyan)}
-.cmd-item-icon::before{content:"?";color:var(--text-3)}
-
+.cmd-item-icon svg{width:16px;height:16px}
+.cmd-item-icon.blue{color:var(--accent)}
+.cmd-item-icon.teal{color:var(--green)}
+.cmd-item-icon.violet{color:#6d28d9}
+.cmd-item-icon.amber{color:var(--amber)}
+.cmd-item-icon.rose{color:var(--red)}
+.cmd-item-icon.cyan{color:#0e7490}
 .cmd-item-body{flex:1;min-width:0}
 .cmd-item-title{
-    font-size:12.5px;font-weight:500;
-    color:var(--text);
+    font-size:13.5px;font-weight:500;color:var(--text);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .cmd-item-sub{
-    font-size:11px;
-    color:var(--text-3);
+    font-size:11.5px;color:var(--text-light);
     margin-top:1px;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
 }
 .cmd-item-key{
-    font-size:10.5px;font-weight:700;
-    padding:2px 6px;
-    border:1px solid var(--border);
+    font-size:10.5px;font-weight:600;
+    padding:3px 7px;border-radius:5px;
     background:var(--surface-2);
-    color:var(--text-3);
+    border:1px solid var(--border);
+    color:var(--text-light);
 }
 
-/* =========================================================
-   HOTKEYS MODAL
-========================================================= */
+/* ============================================================
+   МОДАЛКА ГОРЯЧИХ КЛАВИШ
+============================================================ */
 .hotkeys-overlay{
     position:fixed;inset:0;z-index:1250;
     display:flex;align-items:center;justify-content:center;
-    padding:18px;
-    background:rgba(0,0,0,.5);
+    padding:20px;
+    background:rgba(15,23,42,.55);
     opacity:0;visibility:hidden;
-    transition:opacity .15s linear,visibility .15s linear;
+    transition:opacity .2s ease,visibility .2s ease;
 }
 .hotkeys-overlay.show{opacity:1;visibility:visible}
 .hotkeys-box{
-    width:100%;max-width:440px;
+    width:100%;max-width:460px;
     max-height:80vh;overflow-y:auto;
     background:var(--surface);
     border:1px solid var(--border);
-    box-shadow:4px 4px 0 var(--border-soft);
-    transform:translateY(6px);
-    transition:transform .15s linear;
-    font-family:var(--font);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-md);
+    transform:translateY(10px);
+    transition:transform .2s var(--ease);
 }
 .hotkeys-overlay.show .hotkeys-box{transform:translateY(0)}
 .hotkeys-head{
     display:flex;align-items:center;justify-content:space-between;
-    padding:14px 16px 12px;
-    border-bottom:1px solid var(--border);
-    background:var(--surface-2);
+    padding:18px 20px 14px;
+    border-bottom:1px solid var(--border-soft);
 }
 .hotkeys-head h3{
-    font-size:12.5px;font-weight:700;
-    color:var(--text);
-    letter-spacing:.08em;
-    text-transform:uppercase;
+    font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text);
 }
-.hotkeys-head h3::before{content:"# ";color:var(--accent)}
 .hotkeys-close{
-    width:24px;height:24px;
+    width:30px;height:30px;
     border:1px solid var(--border);
+    border-radius:var(--radius-sm);
     background:var(--surface);
-    color:var(--text-2);
+    color:var(--text-secondary);
     cursor:pointer;
     display:flex;align-items:center;justify-content:center;
-    font-family:var(--font);
-    font-size:14px;
-    font-weight:700;
-    transition:background .08s linear,color .08s linear;
+    transition:background .15s ease,color .15s ease;
 }
-.hotkeys-close::before{content:"×"}
-.hotkeys-close svg{display:none}
 .hotkeys-close:hover{background:var(--surface-2);color:var(--text)}
-.hotkeys-body{padding:8px 16px 14px}
+.hotkeys-close svg{width:14px;height:14px}
+.hotkeys-body{padding:12px 20px 18px}
 .hotkeys-row{
     display:flex;align-items:center;justify-content:space-between;
-    padding:7px 2px;
-    border-bottom:1px dashed var(--border-soft);
+    padding:10px 2px;
+    border-bottom:1px solid var(--border-soft);
 }
 .hotkeys-row:last-child{border-bottom:none}
-.hotkeys-label{
-    font-size:12px;
-    color:var(--text-2);
-    font-weight:400;
+.hotkeys-label{font-size:13px;color:var(--text-secondary);font-weight:400}
+.hotkeys-key{
+    display:inline-flex;align-items:center;gap:5px;
 }
-.hotkeys-key{display:inline-flex;align-items:center;gap:4px}
 .hotkeys-key kbd{
     display:inline-flex;align-items:center;justify-content:center;
-    min-width:22px;height:20px;padding:0 6px;
-    border:1px solid var(--border);
+    min-width:26px;height:24px;padding:0 8px;
+    border-radius:5px;
     background:var(--surface-2);
-    font-family:var(--font);
-    font-size:10.5px;
-    font-weight:700;
+    border:1px solid var(--border);
+    font-family:inherit;font-size:11.5px;font-weight:600;
     color:var(--text);
 }
 
-/* =========================================================
-   PWA BANNER
-========================================================= */
+/* ============================================================
+   PWA INSTALL BANNER
+============================================================ */
 .pwa-banner{
     position:fixed;
-    left:50%;bottom:18px;
-    transform:translate(-50%,140%);
+    left:50%;bottom:24px;
+    transform:translate(-50%,160%);
     z-index:1150;
-    display:flex;align-items:center;gap:10px;
-    padding:10px 14px;
+    display:flex;align-items:center;gap:12px;
+    padding:12px 16px;
+    border-radius:var(--radius-md);
     background:var(--surface);
     border:1px solid var(--border);
-    box-shadow:3px 3px 0 var(--border-soft);
-    transition:transform .15s linear;
+    box-shadow:var(--shadow-md);
+    transition:transform .3s var(--ease);
     max-width:calc(100vw - 32px);
-    font-family:var(--font);
 }
 .pwa-banner.show{transform:translate(-50%,0)}
 .pwa-banner-icon{
-    width:30px;height:30px;flex-shrink:0;
+    width:36px;height:36px;flex-shrink:0;
     display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--border);
-    background:var(--accent);
-    color:var(--surface);
-    font-weight:700;
-    font-size:14px;
+    border-radius:var(--radius-sm);
+    background:var(--accent-dark);
+    color:#fff;
 }
-.pwa-banner-icon::before{content:"↓"}
-.pwa-banner-icon svg{display:none}
+.pwa-banner-icon svg{width:18px;height:18px}
 .pwa-banner-body{flex:1;min-width:0}
-.pwa-banner-title{
-    font-size:12px;font-weight:700;
-    color:var(--text);
-    margin-bottom:2px;
-    letter-spacing:.02em;
-}
-.pwa-banner-text{
-    font-size:11px;
-    color:var(--text-3);
-}
-.pwa-banner-actions{display:flex;gap:5px}
+.pwa-banner-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:2px}
+.pwa-banner-text{font-size:11.5px;color:var(--text-secondary)}
+.pwa-banner-actions{display:flex;gap:6px}
 .pwa-banner-actions button{
-    padding:5px 10px;
-    border:1px solid var(--border);
-    background:var(--surface);
-    color:var(--text-2);
-    font-family:var(--font);
-    font-size:11px;
-    font-weight:700;
+    padding:7px 13px;
+    border:none;border-radius:var(--radius-sm);
+    font-family:inherit;font-size:12px;font-weight:600;
     cursor:pointer;
-    transition:background .08s linear,color .08s linear,border-color .08s linear;
+    transition:background .15s ease,color .15s ease;
 }
 .pwa-install{
-    background:var(--accent);
-    color:var(--surface);
-    border-color:var(--accent);
+    background:var(--accent-dark);color:#fff;
 }
-.pwa-install:hover{opacity:.9}
-.pwa-dismiss{background:transparent}
-.pwa-dismiss:hover{background:var(--surface-2);color:var(--text)}
+.pwa-install:hover{background:var(--accent)}
+.pwa-dismiss{
+    background:transparent;color:var(--text-light);
+}
+.pwa-dismiss:hover{color:var(--text)}
 
-/* =========================================================
-   LOGOUT MODAL
-========================================================= */
-.logout-overlay{
-    position:fixed;inset:0;z-index:1250;
-    display:flex;align-items:center;justify-content:center;
-    padding:18px;
-    background:rgba(0,0,0,.55);
-    opacity:0;visibility:hidden;
-    transition:opacity .15s linear,visibility .15s linear;
-}
-.logout-overlay.on{opacity:1;visibility:visible}
-.logout-card{
-    width:100%;max-width:420px;
-    padding:20px 22px 18px;
-    background:var(--surface);
-    border:1px solid var(--border);
-    box-shadow:4px 4px 0 var(--border-soft);
-    transform:translateY(6px);
-    transition:transform .15s linear;
-    font-family:var(--font);
-}
-.logout-overlay.on .logout-card{transform:none}
-.logout-icon{
-    width:40px;height:40px;
-    display:flex;align-items:center;justify-content:center;
-    margin:0 0 12px;
-    border:1px solid var(--red);
-    background:var(--red-soft);
-    color:var(--red);
-    font-weight:700;
-    font-size:18px;
-}
-.logout-icon::before{content:"!"}
-.logout-icon svg{display:none}
-.logout-title{
-    font-size:14px;font-weight:700;
-    letter-spacing:.04em;
-    text-transform:uppercase;
-    color:var(--text);
-    margin-bottom:6px;
-}
-.logout-title::before{content:"> ";color:var(--accent)}
-.logout-sub{
-    font-size:12px;line-height:1.55;
-    color:var(--text-2);
-    margin-bottom:14px;
-}
-.logout-option{
-    display:flex;align-items:flex-start;gap:10px;
-    padding:10px 12px;margin-bottom:6px;
-    border:1px solid var(--border);
-    background:var(--surface-2);
-    cursor:pointer;
-    transition:background .08s linear,border-color .08s linear;
-}
-.logout-option:hover{background:var(--surface)}
-.logout-option.picked{
-    border-color:var(--accent);
-    background:var(--accent-soft);
-}
-.logout-option input[type="radio"]{
-    margin-top:2px;
-    accent-color:var(--accent);
-    cursor:pointer;
-    width:14px;height:14px;
-    flex-shrink:0;
-}
-.logout-option-text{display:flex;flex-direction:column;gap:2px;min-width:0}
-.logout-option-title{
-    font-size:12.5px;font-weight:700;
-    color:var(--text);
-    letter-spacing:.02em;
-}
-.logout-option-desc{
-    font-size:11px;
-    color:var(--text-3);
-    line-height:1.45;
-}
-.logout-actions{
-    display:grid;grid-template-columns:1fr 1fr;
-    gap:8px;margin-top:14px;
-}
-.logout-btn{
-    height:38px;
-    display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--border);
-    background:var(--surface);
-    color:var(--text-2);
-    font-family:var(--font);
-    font-size:12px;
-    font-weight:700;
-    letter-spacing:.02em;
-    cursor:pointer;
-    transition:background .08s linear,color .08s linear,border-color .08s linear;
-}
-.logout-btn::before{content:"[";}
-.logout-btn::after{content:"]";}
-.logout-btn::before,
-.logout-btn::after{color:var(--text-3)}
-.logout-btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--accent)}
-.logout-btn:hover::before,
-.logout-btn:hover::after{color:var(--accent)}
-.logout-btn.confirm{
-    background:var(--red);
-    color:var(--surface);
-    border-color:var(--red);
-}
-.logout-btn.confirm::before,
-.logout-btn.confirm::after{color:var(--surface)}
-.logout-btn.confirm:hover{opacity:.9;background:var(--red)}
-.logout-btn:disabled{opacity:.5;cursor:wait}
+/* ============================================================
+   МОБИЛЬНАЯ АДАПТАЦИЯ
+============================================================ */
 
-/* =========================================================
-   RESPONSIVE
-========================================================= */
 @media (max-width:1200px){
-    .page{padding:16px 18px 32px}
-    .topbar{padding:0 16px}
-    .hero-content{padding:14px 16px}
-    .hero h1{font-size:16px}
-    .hero-clock{width:180px;padding:12px 14px}
-    .hero-clock-time{font-size:22px}
+    .page{padding:22px 24px 36px}
+    .topbar{padding:0 24px}
+    .hero{padding:24px 24px;gap:22px}
+    .hero h1{font-size:22px}
+    .hero-clock{width:180px;padding:16px 16px}
+    .hero-clock-time{font-size:24px}
     .stats-grid{grid-template-columns:repeat(2,1fr)}
-    .stat-card:nth-child(2){border-right:0}
-    .stat-card:nth-child(1),
-    .stat-card:nth-child(2){border-bottom:1px dashed var(--border-soft)}
     .menu{grid-template-columns:repeat(2,1fr)}
-    .menu-button:nth-child(3n){border-right:1px dashed var(--border-soft)}
-    .menu-button:nth-child(2n){border-right:0}
 }
 
 @media (max-width:1024px){
+    html,body{min-width:0;width:100%;overflow-x:hidden}
     .app{grid-template-columns:1fr}
+
     .sidebar{
         position:fixed;left:0;top:0;
-        width:272px;height:100vh;
+        width:280px;height:100vh;
         transform:translateX(-100%);
-        box-shadow:2px 0 0 var(--border-soft);
+        box-shadow:4px 0 40px rgba(15,23,42,.2);
         z-index:70;
     }
     .sidebar.open{transform:translateX(0)}
     .sidebar-overlay{display:block;pointer-events:none}
     .sidebar-overlay.show{pointer-events:auto}
     .sidebar-close{display:flex}
+    .sidebar-link.active::before{left:-14px}
+
     .hamburger{display:flex}
 
-    .topbar{padding:0 14px;gap:8px}
-    .topbar-title h1{font-size:12px}
+    .topbar{padding:0 16px;gap:8px}
+    .topbar-title h1{font-size:14.5px}
+    .topbar-title span{font-size:11px}
 
-    .page{padding:14px 14px 28px}
+    .page{padding:18px 16px 32px}
 
-    .hero{grid-template-columns:1fr}
-    .hero-content{border-right:0;border-bottom:1px dashed var(--border-soft)}
-    .hero-clock{width:100%;padding:10px 14px}
+    .hero{
+        grid-template-columns:1fr;
+        padding:22px 20px;
+        gap:18px;
+        text-align:left;
+    }
+    .hero h1{font-size:20px;letter-spacing:-.3px}
+    .hero p{font-size:13px}
+    .hero-clock{
+        width:100%;
+        padding:14px 16px;
+        display:flex;
+        align-items:center;
+        gap:16px;
+        text-align:left;
+    }
+    .hero-clock-label{display:none}
+    .hero-clock-time{font-size:22px;letter-spacing:.2px}
+    .hero-clock-date{margin-top:0;font-size:11px}
 
-    .stats-grid{grid-template-columns:repeat(2,1fr)}
-    .stat-card{padding:11px 13px}
-    .stat-value{font-size:17px}
+    .stats-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+    .stat-card{padding:14px 16px}
+    .stat-value{font-size:20px}
 
-    .menu{grid-template-columns:1fr}
-    .menu-button{border-right:0}
+    .progress-card{padding:16px 18px;gap:14px}
+    .progress-percent{font-size:17px}
+
+    .menu{grid-template-columns:1fr;gap:12px}
+    .menu-button{padding:16px 16px}
+    .icon{width:40px;height:40px}
+    .button-title{font-size:13.5px}
+    .button-description{font-size:12px}
+
+    .topbar-btn span{display:none}
+    .topbar-btn{padding:0 11px}
+    .topbar-btn svg{width:16px;height:16px}
 
     .notif-container{
-        top:auto;bottom:14px;right:10px;left:10px;
-        width:auto;max-width:none;
+        top:auto;
+        bottom:20px;
+        right:12px;
+        left:12px;
+        width:auto;
+        max-width:none;
     }
-    .cmd-overlay{padding:6vh 12px 18px}
+
+    .cmd-overlay{padding:8vh 12px 20px}
     .cmd-box{max-width:none}
 }
 
-@media (max-width:600px){
-    :root{--topbar-h:48px}
+@media (max-width:640px){
+    :root{--topbar-h:56px}
 
-    .topbar{padding:0 10px}
+    .topbar{padding:0 12px}
     .topbar-title span{display:none}
-    .topbar-title h1{font-size:11.5px}
+    .topbar-title h1{font-size:14px}
 
-    .user-menu-button{padding:0 6px;max-width:150px;gap:5px}
-    .user-menu-button > span:not(.user-avatar){max-width:70px;font-size:11px}
-    .user-avatar{width:20px;height:20px;font-size:10px}
+    .user-menu-button{padding:4px 10px 4px 4px;gap:8px;max-width:160px}
+    .user-menu-button > span:not(.user-avatar){max-width:80px;font-size:12px}
+    .user-avatar{width:28px;height:28px;font-size:11px}
 
-    .user-dropdown{width:calc(100vw - 20px);right:-2px}
+    .user-dropdown{width:calc(100vw - 24px);right:-4px}
 
-    .page{padding:12px 10px 24px}
+    .page{padding:14px 12px 28px}
 
-    .hero-content{padding:12px 14px}
-    .hero h1{font-size:15px}
-    .hero p{font-size:11.5px}
-    .hero-clock{padding:8px 12px}
-    .hero-clock-time{font-size:18px}
+    .hero{padding:18px 16px;gap:14px;border-radius:var(--radius-md)}
+    .hero h1{font-size:18px}
+    .hero p{font-size:12.5px}
+    .hero-badge{font-size:10.5px;padding:4px 9px}
+    .hero-clock{padding:12px 14px}
+    .hero-clock-time{font-size:20px}
     .hero-clock-date{font-size:10.5px}
 
-    .stats-grid{grid-template-columns:1fr}
-    .stat-card{border-right:0;border-bottom:1px dashed var(--border-soft);flex-direction:row;align-items:center;gap:12px;padding:10px 12px}
-    .stat-card:last-child{border-bottom:0}
-    .stat-card .stat-header{margin:0}
-    .stat-card .stat-label{font-size:10px}
-    .stat-card .stat-value{margin-left:auto;font-size:16px}
+    .attention-card{flex-direction:column;align-items:flex-start;gap:10px;padding:12px 14px}
+    .attention-card .att-icon{width:36px;height:36px}
 
-    .progress-card{padding:10px 12px;gap:10px}
-    .progress-percent{font-size:14px}
+    .stats-grid{grid-template-columns:1fr;gap:10px}
+    .stat-card{padding:14px 16px;flex-direction:row;align-items:center;gap:14px}
+    .stat-card .stat-header{flex-shrink:0}
+    .stat-icon{width:40px;height:40px}
+    .stat-label{font-size:11px}
+    .stat-value{font-size:19px;margin-left:auto}
 
-    .section-title{font-size:12px}
-    .section-subtitle{font-size:11px}
-    .section-action{padding:4px 8px;font-size:10.5px}
+    .progress-card{
+        grid-template-columns:auto 1fr;
+        gap:12px;
+        padding:14px 16px;
+    }
+    .progress-icon{width:36px;height:36px}
+    .progress-percent{
+        grid-column:1 / -1;
+        text-align:right;
+        font-size:16px;
+    }
+    .progress-title{font-size:12.5px}
 
-    .menu-button{padding:12px 12px;gap:10px}
-    .icon{width:32px;height:32px;font-size:10px}
-    .button-title{font-size:12px}
-    .button-description{font-size:11px}
+    .section-title{font-size:15px}
+    .section-subtitle{font-size:12px}
 
-    .debtor-row{padding:8px 12px}
-    .debtor-name{font-size:11.5px}
+    .menu{gap:10px}
+    .menu-button{padding:14px 14px;gap:12px}
+    .icon{width:38px;height:38px}
+    .icon svg{width:18px;height:18px}
+    .button-title{font-size:13px}
+    .button-description{font-size:11.5px;line-height:1.45}
+    .shortcut{width:18px;height:18px;font-size:10px;top:10px;right:10px}
 
-    .spark-card{padding:10px 12px}
-    .spark-value{font-size:13px}
+    .debtors-head{padding:12px 14px}
+    .debtor-row{padding:10px 14px}
+    .debtor-name{font-size:12.5px}
 
-    footer{font-size:10.5px;margin-top:18px}
+    .spark-card{padding:14px 16px}
 
-    .toast{font-size:11.5px;padding:8px 12px;bottom:14px}
+    footer{font-size:11px;margin-top:24px}
 
-    .idle-modal{padding:16px 14px 14px}
-    .idle-title{font-size:13px}
-    .idle-timer{font-size:18px;margin:10px 0 12px;padding:8px 10px}
+    .toast{font-size:12px;padding:10px 14px;bottom:20px}
 
-    .logout-card{padding:16px 14px 12px}
-    .logout-actions{grid-template-columns:1fr}
+    .idle-modal{padding:22px 18px 18px}
+    .idle-title{font-size:16px}
+    .idle-timer{font-size:24px;margin:12px 0 16px}
 
-    .pwa-banner{padding:8px 10px;gap:8px;bottom:12px}
+    .offline-banner{font-size:12px;padding:9px 14px}
+
+    .pwa-banner{padding:10px 12px;gap:10px;bottom:16px}
     .pwa-banner-text{display:none}
 }
 
-@media (max-width:380px){
-    .topbar-title h1{font-size:11px}
-    .hamburger,
-    .topbar-icon-btn,
-    .theme-toggle-btn{width:30px;height:30px;font-size:12px}
+@media (max-width:400px){
+    .topbar-title h1{font-size:13.5px}
+    .hamburger{width:36px;height:36px}
+    .topbar-icon-btn{width:36px;height:36px}
+    .topbar-icon-btn svg{width:16px;height:16px}
+    .topbar-btn{padding:0 10px}
+    .theme-toggle-btn{width:36px;height:36px}
 
-    .hero h1{font-size:14px}
-    .hero-clock-time{font-size:16px}
+    .hero h1{font-size:17px}
+    .hero-clock-time{font-size:18px}
 
-    .menu-button{padding:10px}
+    .menu-button{padding:12px 12px}
+    .icon{width:36px;height:36px}
+    .icon svg{width:17px;height:17px}
     .button-description{display:none}
 }
 </style>
+
 </head>
 
 <body class="auth-pending">
 
 <!-- OFFLINE BANNER -->
 <div class="offline-banner" id="offlineBanner">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M1 1l22 22"/>
+        <path d="M16.7 11.7A11 11 0 0 0 5 6.3"/>
+        <path d="M5 12.5a11 11 0 0 1 4-1.4"/>
+        <path d="M10.7 16.1a6 6 0 0 1 3.8.8"/>
+        <path d="M8.5 16a11 11 0 0 0-3 1.2"/>
+        <path d="M12 20h.01"/>
+    </svg>
     <span>Нет соединения с интернетом</span>
     <button class="retry-btn" onclick="window.location.reload()">Обновить</button>
 </div>
 
+<!-- OVERLAY для мобильного сайдбара -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 
 <!-- LOADER -->
 <div class="page-loader" id="pageLoader">
     <div class="loader-content">
-        <div class="loader-logo">K</div>
+        <div class="loader-logo">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3 2 8l10 5 10-5-10-5Z"/>
+                <path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/>
+                <path d="M22 8v6"/>
+            </svg>
+        </div>
         <div class="loader-text">Загрузка системы...</div>
     </div>
 </div>
@@ -1858,46 +1627,142 @@ body.auth-pending aside{visibility:hidden}
     <aside class="sidebar" id="sidebar">
 
         <div class="sidebar-brand">
-            <div class="sidebar-logo">K</div>
-            <div class="sidebar-brand-text">
-                <div class="brand-title">KURATOR</div>
-                <div class="brand-subtitle">admin panel v1.0</div>
+            <div class="sidebar-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 3 2 8l10 5 10-5-10-5Z"/>
+                    <path d="M6 10.5V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-5.5"/>
+                    <path d="M22 8v6"/>
+                </svg>
             </div>
-            <button class="sidebar-close" onclick="closeSidebar()" aria-label="Закрыть меню">×</button>
+            <div class="sidebar-brand-text">
+                <div class="brand-title">Посещаемость</div>
+                <div class="brand-subtitle">Админ-панель</div>
+            </div>
+            <button class="sidebar-close" onclick="closeSidebar()" aria-label="Закрыть меню">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+            </button>
         </div>
 
         <nav class="sidebar-nav">
 
             <div>
-                <div class="nav-group-title">// Работа</div>
+                <div class="nav-group-title">Работа</div>
                 <div class="nav-list">
-                    <a class="sidebar-link" onclick="openAttendance()">Отметить посещаемость</a>
-                    <a class="sidebar-link" onclick="openHistory()">Посещаемость</a>
+
+                    <a class="sidebar-link" onclick="openAttendance()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"/>
+                            <rect x="5" y="6" width="14" height="15" rx="2.5"/>
+                            <path d="m9 13.2 2.3 2.3L15.5 11"/>
+                        </svg>
+                        Отметить посещаемость
+                    </a>
+
+                    <a class="sidebar-link" onclick="openHistory()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 20V11"/><path d="M10.5 20V4"/>
+                            <path d="M17 20v-8"/><path d="M3 20h18"/>
+                        </svg>
+                        Посещаемость
+                    </a>
+
                     <a class="sidebar-link nav-messages" id="messagesNav" onclick="openMessages()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            <path d="M8.5 11.5h.01"/><path d="M12.5 11.5h.01"/><path d="M16.5 11.5h.01"/>
+                        </svg>
                         Сообщения
                         <span class="messages-badge" id="messagesBadge">0</span>
                     </a>
+
                 </div>
             </div>
 
             <div>
-                <div class="nav-group-title">// Справочники</div>
+                <div class="nav-group-title">Справочники</div>
                 <div class="nav-list">
-                    <a class="sidebar-link" onclick="openStudents()">Студенты</a>
-                    <a class="sidebar-link" onclick="openGroups()">Группы</a>
-                    <a class="sidebar-link nav-parents" onclick="openParents()">Родители</a>
+
+                    <a class="sidebar-link" onclick="openStudents()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                            <circle cx="11.5" cy="7.2" r="3"/>
+                            <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                            <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                        </svg>
+                        Студенты
+                    </a>
+
+                    <a class="sidebar-link" onclick="openGroups()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                        Группы
+                    </a>
+
+                    <a class="sidebar-link nav-parents" onclick="openParents()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="8" cy="7" r="3"/>
+                            <circle cx="17" cy="8" r="2.5"/>
+                            <path d="M2 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+                            <path d="M15 20v-1a4 4 0 0 1 4-4h1a3 3 0 0 1 3 3v2"/>
+                        </svg>
+                        Родители
+                    </a>
+
                 </div>
             </div>
 
             <div>
-                <div class="nav-group-title">// Управление</div>
+                <div class="nav-group-title">Управление</div>
                 <div class="nav-list">
+
                     <a class="sidebar-link nav-permissions" id="permissionsNav" onclick="openPermissions()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="5" y="10.5" width="14" height="10" rx="2.5"/>
+                            <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+                            <circle cx="12" cy="15.5" r="1.4"/>
+                        </svg>
                         Разрешения
                         <span class="permissions-badge" id="permissionsBadge">0</span>
                     </a>
-                    <a class="sidebar-link nav-users" onclick="openUsers()">Пользователи</a>
-                    <a class="sidebar-link" onclick="openSettings()">Настройки</a>
+
+                    <a class="sidebar-link nav-users" onclick="openUsers()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                            <circle cx="11.5" cy="7.2" r="3"/>
+                            <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                            <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                        </svg>
+                        Пользователи
+                    </a>
+
+                    <a class="sidebar-link" onclick="openSettings()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3.3"/>
+                            <path d="M12 2.5v3.2"/><path d="M12 18.3v3.2"/>
+                            <path d="M4.5 4.5l2.3 2.3"/><path d="M17.2 17.2l2.3 2.3"/>
+                            <path d="M2.5 12h3.2"/><path d="M18.3 12h3.2"/>
+                            <path d="M4.5 19.5l2.3-2.3"/><path d="M17.2 6.8l2.3-2.3"/>
+                        </svg>
+                        Настройки
+                    </a>
+
                 </div>
             </div>
 
@@ -1906,7 +1771,7 @@ body.auth-pending aside{visibility:hidden}
         <div class="sidebar-footer">
             <div class="status-card">
                 <span class="status-dot"></span>
-                status: online
+                Система активна
             </div>
         </div>
 
@@ -1919,53 +1784,126 @@ body.auth-pending aside{visibility:hidden}
         <header class="topbar" id="topbar">
 
             <div class="topbar-left">
-                <button class="hamburger" onclick="openSidebar()" aria-label="Открыть меню">≡</button>
+                <button class="hamburger" onclick="openSidebar()" aria-label="Открыть меню">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/>
+                    </svg>
+                </button>
 
                 <div class="topbar-title">
                     <h1>Панель управления</h1>
-                    <span>// центр администрирования</span>
+                    <span>Центр администрирования</span>
                 </div>
             </div>
 
             <div class="topbar-actions">
 
                 <button class="topbar-btn" onclick="openCmdPalette()" title="Поиск (Ctrl+K)" aria-label="Поиск">
-                    Поиск
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="7"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    <span>Поиск</span>
                 </button>
 
                 <button class="topbar-icon-btn" id="topbarMessagesBtn" onclick="openMessages()" title="Сообщения" aria-label="Сообщения">
-                    @
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                        <path d="M8.5 11.5h.01"/><path d="M12.5 11.5h.01"/><path d="M16.5 11.5h.01"/>
+                    </svg>
                     <span class="unread-dot" id="topbarUnreadDot"></span>
                 </button>
 
                 <button class="theme-toggle-btn" onclick="toggleTheme()" title="Переключить тему" aria-label="Переключить тему">
-                    <span id="themeIcon">◐</span>
+                    <span class="icon-sun">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="4"/>
+                            <path d="M12 2v2"/><path d="M12 20v2"/>
+                            <path d="m4.93 4.93 1.41 1.41"/>
+                            <path d="m17.66 17.66 1.41 1.41"/>
+                            <path d="M2 12h2"/><path d="M20 12h2"/>
+                            <path d="m4.93 19.07 1.41-1.41"/>
+                            <path d="m17.66 6.34 1.41-1.41"/>
+                        </svg>
+                    </span>
+                    <span class="icon-moon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>
+                        </svg>
+                    </span>
                 </button>
 
-                <button class="topbar-btn" onclick="openHotkeys()">Клавиши</button>
+                <button class="topbar-btn" onclick="openHotkeys()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="6" width="18" height="12" rx="2.5"/>
+                        <path d="M7 10h.01"/><path d="M11 10h.01"/>
+                        <path d="M15 10h.01"/><path d="M7 14h10"/>
+                    </svg>
+                    <span>Клавиши</span>
+                </button>
 
                 <div class="user-menu" id="userMenu">
                     <button class="user-menu-button" id="userMenuButton" onclick="toggleUserMenu()" aria-haspopup="true" aria-expanded="false">
                         <span class="user-avatar" id="userAvatar">?</span>
                         <span id="userFio">Загрузка...</span>
-                        <span class="user-chevron">▼</span>
+                        <svg class="user-chevron" viewBox="0 0 24 24" fill="none"
+                             stroke="currentColor" stroke-width="2"
+                             stroke-linecap="round" stroke-linejoin="round">
+                            <path d="m6 9 6 6 6-6"/>
+                        </svg>
                     </button>
 
                     <div class="user-dropdown" id="userDropdown">
 
                         <div class="dropdown-header">
                             <div class="dropdown-name" id="dropdownName">Пользователь</div>
-                            <div class="dropdown-role">администратор</div>
+                            <div class="dropdown-role">Администратор</div>
                         </div>
 
                         <button class="dropdown-item" onclick="openMessages()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            </svg>
                             Сообщения
                             <span class="item-badge" id="dropdownMessagesBadge">0</span>
                         </button>
 
-                        <button class="dropdown-item" onclick="openMyButtons()">Мои кнопки</button>
-                        <button class="dropdown-item" onclick="openSecurity()">Безопасность</button>
-                        <button class="dropdown-item danger" onclick="logout()">Выход</button>
+                        <button class="dropdown-item" onclick="openMyButtons()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3.5" y="3.5" width="7" height="7" rx="2"/>
+                                <rect x="13.5" y="3.5" width="7" height="7" rx="2"/>
+                                <rect x="3.5" y="13.5" width="7" height="7" rx="2"/>
+                                <rect x="13.5" y="13.5" width="7" height="7" rx="2"/>
+                            </svg>
+                            Мои кнопки
+                        </button>
+
+                        <button class="dropdown-item" onclick="openSecurity()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3 5 5.8v5.4c0 4.4 3 8.4 7 9.8 4-1.4 7-5.4 7-9.8V5.8L12 3Z"/>
+                                <path d="m9.3 12 1.9 1.9 3.5-3.8"/>
+                            </svg>
+                            Безопасность
+                        </button>
+
+                        <button class="dropdown-item danger" onclick="logout()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/>
+                                <path d="m11 8-4 4 4 4"/>
+                                <path d="M7 12h10"/>
+                            </svg>
+                            Выход
+                        </button>
 
                     </div>
                 </div>
@@ -1979,20 +1917,31 @@ body.auth-pending aside{visibility:hidden}
 
             <section class="hero">
                 <div class="hero-content">
-                    <div class="hero-badge">administrator</div>
+                    <div class="hero-badge">Администрирование</div>
                     <h1 id="greeting">Добро пожаловать</h1>
-                    <p>Полный доступ: управляйте студентами, посещаемостью, пользователями и разрешениями системы.</p>
+                    <p>
+                        Полный доступ: управляйте студентами, посещаемостью,
+                        пользователями и разрешениями системы.
+                    </p>
                 </div>
 
                 <div class="hero-clock">
-                    <div class="hero-clock-label">current time</div>
+                    <div class="hero-clock-label">Текущее время</div>
                     <div class="hero-clock-time" id="clock">00:00:00</div>
                     <div class="hero-clock-date" id="date">Загрузка даты...</div>
                 </div>
             </section>
 
+            <!-- ТРЕБУЕТ ВНИМАНИЯ -->
             <section class="attention-card hidden" id="attentionCard">
-                <div class="att-icon"></div>
+                <div class="att-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 9v4"/>
+                        <path d="M12 17h.01"/>
+                        <path d="M10.3 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.7 3.86a2 2 0 0 0-3.4 0Z"/>
+                    </svg>
+                </div>
                 <div class="att-body">
                     <div class="att-title">Требует вашего внимания</div>
                     <div class="att-list" id="attentionList"></div>
@@ -2003,7 +1952,14 @@ body.auth-pending aside{visibility:hidden}
             <section class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-icon blue"></div>
+                        <div class="stat-icon blue">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="5" y="10.5" width="14" height="10" rx="2.5"/>
+                                <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+                                <circle cx="12" cy="15.5" r="1.4"/>
+                            </svg>
+                        </div>
                     </div>
                     <div class="stat-label">Заявки на регистрацию</div>
                     <div class="stat-value pending" id="statRequests">0</div>
@@ -2011,7 +1967,15 @@ body.auth-pending aside{visibility:hidden}
 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-icon teal"></div>
+                        <div class="stat-icon teal">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                                <circle cx="11.5" cy="7.2" r="3"/>
+                                <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                                <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                            </svg>
+                        </div>
                     </div>
                     <div class="stat-label">Всего студентов</div>
                     <div class="stat-value pending" id="statStudents">0</div>
@@ -2019,7 +1983,15 @@ body.auth-pending aside{visibility:hidden}
 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-icon violet"></div>
+                        <div class="stat-icon violet">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                        </div>
                     </div>
                     <div class="stat-label">Учебных групп</div>
                     <div class="stat-value pending" id="statGroups">0</div>
@@ -2027,7 +1999,12 @@ body.auth-pending aside{visibility:hidden}
 
                 <div class="stat-card">
                     <div class="stat-header">
-                        <div class="stat-icon amber"></div>
+                        <div class="stat-icon amber">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            </svg>
+                        </div>
                     </div>
                     <div class="stat-label">Новых сообщений</div>
                     <div class="stat-value pending" id="statMessages">0</div>
@@ -2037,7 +2014,15 @@ body.auth-pending aside{visibility:hidden}
             <div id="statParents" style="display:none">0</div>
 
             <section class="progress-card">
-                <div class="progress-icon"></div>
+                <div class="progress-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 20h18"/>
+                        <path d="M6 20V10"/>
+                        <path d="M12 20V4"/>
+                        <path d="M18 20v-7"/>
+                    </svg>
+                </div>
                 <div class="progress-body">
                     <div class="progress-title">Активность системы</div>
                     <div class="progress-track">
@@ -2047,22 +2032,51 @@ body.auth-pending aside{visibility:hidden}
                 <div class="progress-percent" id="activityPercent">0%</div>
             </section>
 
+            <!-- SPARKLINE ПОСЕЩАЕМОСТИ -->
             <section class="spark-card" id="sparkCard">
                 <div class="spark-head">
-                    <div class="spark-title">Посещаемость за 7 дней</div>
+                    <div class="spark-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 17l6-6 4 4 8-8"/>
+                            <path d="M17 7h4v4"/>
+                        </svg>
+                        Посещаемость за 7 дней
+                    </div>
                     <div class="spark-value" id="sparkValue">—%</div>
                 </div>
                 <div class="spark-chart" id="sparkChart"></div>
                 <div class="spark-labels" id="sparkLabels"></div>
             </section>
 
+            <!-- ТОП ДОЛЖНИКОВ -->
             <section class="debtors-card" id="debtorsCard">
                 <div class="debtors-head">
-                    <div class="debtors-title">Требуют внимания — низкая посещаемость</div>
-                    <button class="section-action" onclick="openStudents()">Все студенты</button>
+                    <div class="debtors-title">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M12 9v4"/>
+                            <path d="M12 17h.01"/>
+                            <circle cx="12" cy="12" r="10"/>
+                        </svg>
+                        Требуют внимания — низкая посещаемость
+                    </div>
+                    <button class="section-action" onclick="openStudents()">
+                        Все студенты
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M5 12h14"/>
+                            <path d="m12 5 7 7-7 7"/>
+                        </svg>
+                    </button>
                 </div>
                 <div class="debtors-body" id="debtorsBody">
                     <div class="debtors-empty">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <path d="m9 11 3 3L22 4"/>
+                        </svg>
                         <div>Загрузка...</div>
                     </div>
                 </div>
@@ -2074,70 +2088,147 @@ body.auth-pending aside{visibility:hidden}
                     <div class="section-title">Быстрые действия</div>
                     <div class="section-subtitle">Выберите необходимый раздел</div>
                 </div>
-                <button class="section-action" onclick="openCmdPalette()">Поиск (Ctrl+K)</button>
+                <button class="section-action" onclick="openCmdPalette()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="7"/>
+                        <path d="m21 21-4.35-4.35"/>
+                    </svg>
+                    Поиск (Ctrl+K)
+                </button>
             </div>
 
             <section class="menu">
 
                 <button class="menu-button attendance" onclick="openAttendance()">
-                    <span class="icon"></span>
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"/>
+                            <rect x="5" y="6" width="14" height="15" rx="2.5"/>
+                            <path d="m9 13.2 2.3 2.3L15.5 11"/>
+                        </svg>
+                    </span>
                     <span class="button-content">
                         <span class="button-title">Отметить посещаемость</span>
-                        <span class="button-description">Отметьте присутствующих и отсутствующих студентов.</span>
+                        <span class="button-description">
+                            Отметьте присутствующих и отсутствующих студентов на занятиях.
+                        </span>
                     </span>
                     <span class="shortcut">1</span>
                 </button>
 
                 <button class="menu-button history" onclick="openHistory()">
-                    <span class="icon"></span>
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 20V11"/>
+                            <path d="M10.5 20V4"/>
+                            <path d="M17 20v-8"/>
+                            <path d="M3 20h18"/>
+                        </svg>
+                    </span>
                     <span class="button-content">
                         <span class="button-title">Посещаемость</span>
-                        <span class="button-description">Статистика по дням и учебным неделям.</span>
+                        <span class="button-description">
+                            Просматривайте статистику посещаемости по дням и учебным неделям.
+                        </span>
                     </span>
                     <span class="shortcut">2</span>
                 </button>
 
                 <button class="menu-button students" onclick="openStudents()">
-                    <span class="icon"></span>
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+                            <circle cx="11.5" cy="7.2" r="3"/>
+                            <path d="M20 20v-1.2a3.3 3.3 0 0 0-2.4-3.2"/>
+                            <path d="M15 4.1a3 3 0 0 1 0 5.8"/>
+                        </svg>
+                    </span>
                     <span class="button-content">
                         <span class="button-title">Студенты</span>
-                        <span class="button-description">Список и управление студентами.</span>
+                        <span class="button-description">
+                            Добавляйте, просматривайте и управляйте списком студентов.
+                        </span>
                     </span>
                     <span class="shortcut">3</span>
                 </button>
 
                 <button class="menu-button groups" onclick="openGroups()">
-                    <span class="icon"></span>
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </span>
                     <span class="button-content">
                         <span class="button-title">Группы</span>
-                        <span class="button-description">Учебные группы, курсы, специальности.</span>
+                        <span class="button-description">
+                            Управляйте учебными группами, курсами и специальностями.
+                        </span>
                     </span>
                     <span class="shortcut">4</span>
                 </button>
 
                 <button class="menu-button settings" onclick="openSettings()">
-                    <span class="icon"></span>
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="3.3"/>
+                            <path d="M12 2.5v3.2"/><path d="M12 18.3v3.2"/>
+                            <path d="M4.5 4.5l2.3 2.3"/><path d="M17.2 17.2l2.3 2.3"/>
+                            <path d="M2.5 12h3.2"/><path d="M18.3 12h3.2"/>
+                            <path d="M4.5 19.5l2.3-2.3"/><path d="M17.2 6.8l2.3-2.3"/>
+                        </svg>
+                    </span>
                     <span class="button-content">
                         <span class="button-title">Настройки</span>
-                        <span class="button-description">Расписание, семестры, периоды.</span>
+                        <span class="button-description">
+                            Настройте расписание, семестры и учебные периоды.
+                        </span>
                     </span>
                     <span class="shortcut">5</span>
                 </button>
 
                 <button class="menu-button parents" onclick="openParents()">
-                    <span class="icon"></span>
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="8" cy="7" r="3"/>
+                            <circle cx="17" cy="8" r="2.5"/>
+                            <path d="M2 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+                            <path d="M15 20v-1a4 4 0 0 1 4-4h1a3 3 0 0 1 3 3v2"/>
+                        </svg>
+                    </span>
                     <span class="button-content">
                         <span class="button-title">Родители</span>
-                        <span class="button-description">Список и привязка к студентам.</span>
+                        <span class="button-description">
+                            Список родителей, привязка к студентам и контактные данные.
+                        </span>
                     </span>
                     <span class="shortcut">7</span>
                 </button>
 
                 <button class="menu-button messages" onclick="openMessages()">
-                    <span class="icon"></span>
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+                            <path d="M8.5 11.5h.01"/>
+                            <path d="M12.5 11.5h.01"/>
+                            <path d="M16.5 11.5h.01"/>
+                        </svg>
+                    </span>
                     <span class="button-content">
                         <span class="button-title">Сообщения</span>
-                        <span class="button-description">Внутренние сообщения и обращения.</span>
+                        <span class="button-description">
+                            Внутренние сообщения, уведомления и обращения от кураторов.
+                        </span>
                     </span>
                     <span class="shortcut">6</span>
                 </button>
@@ -2147,8 +2238,8 @@ body.auth-pending aside{visibility:hidden}
 
             <footer>
                 <div class="footer-line"></div>
-                <div>© 2026 KURATOR — система посещаемости</div>
-                <div style="margin-top:4px">admin panel v1.0</div>
+                <div>© 2026 Система посещаемости</div>
+                <div style="margin-top:5px">Админ-панель • Полный доступ</div>
             </footer>
 
         </main>
@@ -2158,12 +2249,20 @@ body.auth-pending aside{visibility:hidden}
 </div>
 
 
+<!-- КОНТЕЙНЕР УВЕДОМЛЕНИЙ -->
 <div class="notif-container" id="notifContainer" aria-live="polite"></div>
 
-<!-- LOGOUT MODAL -->
+
+<!-- МОДАЛЬНОЕ ОКНО ВЫХОДА -->
 <div class="logout-overlay" id="logoutOverlay" aria-hidden="true">
     <div class="logout-card" role="dialog" aria-modal="true" aria-labelledby="logoutTitle">
-        <div class="logout-icon"></div>
+        <div class="logout-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 4h3.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H15"/>
+                <path d="m11 8-4 4 4 4"/>
+                <path d="M7 12h10"/>
+            </svg>
+        </div>
         <div class="logout-title" id="logoutTitle">Выйти из аккаунта?</div>
         <div class="logout-sub">Выберите, что сделать с сохранённым PIN-кодом на этом устройстве.</div>
 
@@ -2190,16 +2289,22 @@ body.auth-pending aside{visibility:hidden}
     </div>
 </div>
 
-<!-- IDLE MODAL -->
+<!-- МОДАЛКА ТАЙМАУТА -->
 <div class="idle-modal-overlay" id="idleModal" role="dialog" aria-modal="true">
     <div class="idle-modal">
-        <div class="idle-icon"></div>
+        <div class="idle-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M12 7v5l3 2"/>
+            </svg>
+        </div>
         <div class="idle-title">Сессия скоро истечёт</div>
         <div class="idle-text">Вы давно не проявляли активность. Система автоматически выйдет через:</div>
         <div class="idle-timer" id="idleTimer">02:00</div>
         <div class="idle-actions">
             <button class="idle-btn ghost" onclick="logout()">Выйти</button>
-            <button class="idle-btn primary" id="idleStayBtn" onclick="stayLoggedIn()">Остаться</button>
+            <button class="idle-btn primary" id="idleStayBtn" onclick="stayLoggedIn()">Остаться в системе</button>
         </div>
     </div>
 </div>
@@ -2208,19 +2313,29 @@ body.auth-pending aside{visibility:hidden}
 <div class="cmd-overlay" id="cmdOverlay">
     <div class="cmd-box">
         <div class="cmd-input-wrap">
-            <input type="text" class="cmd-input" id="cmdInput" placeholder="Найти раздел...">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7"/>
+                <path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input type="text" class="cmd-input" id="cmdInput" placeholder="Найти раздел, студента, группу...">
             <span class="cmd-hint">ESC</span>
         </div>
         <div class="cmd-list" id="cmdList"></div>
     </div>
 </div>
 
-<!-- HOTKEYS -->
+<!-- МОДАЛКА ГОРЯЧИХ КЛАВИШ -->
 <div class="hotkeys-overlay" id="hotkeysOverlay">
     <div class="hotkeys-box">
         <div class="hotkeys-head">
             <h3>Горячие клавиши</h3>
-            <button class="hotkeys-close" onclick="closeHotkeys()" aria-label="Закрыть"></button>
+            <button class="hotkeys-close" onclick="closeHotkeys()" aria-label="Закрыть">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+                </svg>
+            </button>
         </div>
         <div class="hotkeys-body">
             <div class="hotkeys-row"><span class="hotkeys-label">Отметить посещаемость</span><span class="hotkeys-key"><kbd>1</kbd></span></div>
@@ -2238,9 +2353,16 @@ body.auth-pending aside{visibility:hidden}
     </div>
 </div>
 
-<!-- PWA BANNER -->
+<!-- PWA INSTALL BANNER -->
 <div class="pwa-banner" id="pwaBanner">
-    <div class="pwa-banner-icon"></div>
+    <div class="pwa-banner-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 3v12"/>
+            <path d="m7 10 5 5 5-5"/>
+            <path d="M5 21h14"/>
+        </svg>
+    </div>
     <div class="pwa-banner-body">
         <div class="pwa-banner-title">Установить приложение</div>
         <div class="pwa-banner-text">Быстрый доступ с домашнего экрана</div>
@@ -2257,7 +2379,7 @@ body.auth-pending aside{visibility:hidden}
 <script>
 
 /* =========================================================
-   CONFIG
+   CONFIG & SHORTCUTS
 ========================================================= */
 
 const CONFIG = {
@@ -2280,6 +2402,7 @@ let currentUserUid = null;
 let currentUserRole = null;
 let isInitialLoad = true;
 
+// Флаги запуска слушателей
 const listenerFlags = {
     requests: false,
     messages: false
@@ -2288,6 +2411,7 @@ const listenerFlags = {
 let unsubscribeRequests = null;
 let unsubscribeMessages = null;
 
+// Счётчики для отслеживания роста
 let prevRequestsCount = null;
 let prevMessagesCount = null;
 let prevStudentsCount = null;
@@ -2345,9 +2469,7 @@ function applyMetaTheme() {
     const meta = document.getElementById("metaThemeColor");
     if (!meta) return;
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-    meta.setAttribute("content", isDark ? "#0a0a0a" : "#f5f5f0");
-    const icon = document.getElementById("themeIcon");
-    if (icon) icon.textContent = isDark ? "☀" : "◐";
+    meta.setAttribute("content", isDark ? "#0f172a" : "#1e293b");
 }
 
 function autoThemeByTime() {
@@ -2422,12 +2544,14 @@ function closeSidebar() {
 }
 
 window.addEventListener("resize", function() {
-    if (window.innerWidth > 1024) closeSidebar();
+    if (window.innerWidth > 1024) {
+        closeSidebar();
+    }
 });
 
 
 /* =========================================================
-   USER MENU
+   МЕНЮ ПОЛЬЗОВАТЕЛЯ
 ========================================================= */
 
 function toggleUserMenu() {
@@ -2446,12 +2570,14 @@ function closeUserMenu() {
 
 document.addEventListener("click", function(event) {
     const menu = document.getElementById("userMenu");
-    if (menu && !menu.contains(event.target)) closeUserMenu();
+    if (menu && !menu.contains(event.target)) {
+        closeUserMenu();
+    }
 });
 
 
 /* =========================================================
-   LOGOUT MODAL
+   МОДАЛЬНОЕ ОКНО ВЫХОДА
 ========================================================= */
 const LogoutModal = (() => {
     let resolver = null;
@@ -2524,22 +2650,23 @@ const LogoutModal = (() => {
 LogoutModal.init();
 
 function clearSavedPinAndLogin() {
+    // Совместимо со страницей входа: очищаются только данные для быстрого входа.
     ["kurator_pin_hash_v1", "kurator_pin_salt_v1", "kurator_pin_name_v1",
      "kurator_pin_attempts_v1", "kurator_last_login_id"].forEach((key) => {
-        try { localStorage.removeItem(key); } catch (error) { /* ignore */ }
+        try { localStorage.removeItem(key); } catch (error) { /* хранилище недоступно */ }
     });
     try { localStorage.setItem("kurator_remember_flag", "0"); } catch (error) { /* ignore */ }
 }
 
 /* =========================================================
-   LOGOUT
+   ВЫХОД
 ========================================================= */
 let logoutInProgress = false;
 
 async function logout() {
     if (logoutInProgress) return;
 
-    const choice = await LogoutModal.open();
+    const choice = await LogoutModal.open(); // "keep" | "forget" | null
     if (choice === null) {
         showToast("Выход отменён");
         return;
@@ -2549,7 +2676,7 @@ async function logout() {
     const confirmButton = document.getElementById("logoutConfirm");
     if (confirmButton) {
         confirmButton.disabled = true;
-        confirmButton.textContent = "Выходим...";
+        confirmButton.textContent = "Выходим…";
     }
 
     try {
@@ -2562,7 +2689,7 @@ async function logout() {
         showToast(choice === "forget" ? "Вы вышли. PIN удалён" : "Вы вышли из системы");
         setTimeout(function() {
             window.location.replace("index.html");
-        }, 400);
+        }, 500);
     } catch (error) {
         console.warn("Ошибка выхода:", error);
         showToast("Не удалось выйти. Попробуйте снова.");
@@ -2650,10 +2777,30 @@ function showToast(message) {
 
 
 /* =========================================================
-   NOTIFICATIONS
+   УВЕДОМЛЕНИЯ
 ========================================================= */
 
 const notifContainer = document.getElementById("notifContainer");
+
+const NOTIF_ICONS = {
+    request: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="5" y="10.5" width="14" height="10" rx="2.5"/>
+        <path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>
+        <circle cx="12" cy="15.5" r="1.4"/>
+    </svg>`,
+    message: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/>
+        <path d="M8.5 11.5h.01"/><path d="M12.5 11.5h.01"/><path d="M16.5 11.5h.01"/>
+    </svg>`,
+    info: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+        stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="9"/>
+        <path d="M12 8h.01"/>
+        <path d="M11 12h1v4h1"/>
+    </svg>`
+};
 
 function showNotification(type, title, text, onClick) {
     const existing = notifContainer.querySelectorAll(".notif");
@@ -2665,13 +2812,24 @@ function showNotification(type, title, text, onClick) {
     notif.className = `notif notif-${type}`;
 
     notif.innerHTML = `
-        <div class="notif-icon"></div>
+        <div class="notif-icon">${NOTIF_ICONS[type] || NOTIF_ICONS.info}</div>
         <div class="notif-body">
             <div class="notif-title">${escapeHtml(title)}</div>
             <div class="notif-text">${escapeHtml(text)}</div>
         </div>
-        <div class="notif-arrow"></div>
-        <button class="notif-close" aria-label="Закрыть"></button>
+        <div class="notif-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14"/>
+                <path d="m12 5 7 7-7 7"/>
+            </svg>
+        </div>
+        <button class="notif-close" aria-label="Закрыть">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+            </svg>
+        </button>
     `;
 
     const closeBtn = notif.querySelector(".notif-close");
@@ -2695,14 +2853,15 @@ function removeNotification(notif) {
     if (!notif.parentNode) return;
     clearTimeout(notif._autoHide);
     notif.style.opacity = "0";
+    notif.style.transform = "translateY(-6px)";
     setTimeout(() => {
         if (notif.parentNode) notif.parentNode.removeChild(notif);
-    }, 150);
+    }, 200);
 }
 
 
 /* =========================================================
-   BROWSER NOTIFICATIONS
+   БРАУЗЕРНЫЕ УВЕДОМЛЕНИЯ
 ========================================================= */
 
 function tryBrowserNotification(title, body) {
@@ -2711,8 +2870,14 @@ function tryBrowserNotification(title, body) {
     if (document.visibilityState === "visible") return;
 
     try {
-        new Notification(title, { body, icon: "icon-192.png", badge: "icon-192.png" });
-    } catch (e) { /* ignore */ }
+        new Notification(title, {
+            body: body,
+            icon: "icon-192.png",
+            badge: "icon-192.png"
+        });
+    } catch (e) {
+        // тихо
+    }
 }
 
 function requestNotificationPermission() {
@@ -2724,14 +2889,17 @@ function requestNotificationPermission() {
 
 
 /* =========================================================
-   OFFLINE
+   OFFLINE / ONLINE
 ========================================================= */
 
 const offlineBanner = document.getElementById("offlineBanner");
 
 function updateOnlineStatus() {
-    if (!navigator.onLine) offlineBanner.classList.add("show");
-    else offlineBanner.classList.remove("show");
+    if (!navigator.onLine) {
+        offlineBanner.classList.add("show");
+    } else {
+        offlineBanner.classList.remove("show");
+    }
 }
 
 window.addEventListener("online", updateOnlineStatus);
@@ -2740,7 +2908,7 @@ window.addEventListener("load", updateOnlineStatus);
 
 
 /* =========================================================
-   TOPBAR SCROLL
+   TOPBAR SCROLL SHADOW
 ========================================================= */
 
 (function initTopbarScroll() {
@@ -2761,7 +2929,7 @@ window.addEventListener("load", updateOnlineStatus);
 
 
 /* =========================================================
-   HOTKEYS
+   ГОРЯЧИЕ КЛАВИШИ
 ========================================================= */
 
 document.addEventListener("keydown", function(event) {
@@ -2805,7 +2973,7 @@ document.addEventListener("keydown", function(event) {
 
 
 /* =========================================================
-   LOAD
+   ЗАГРУЗКА
 ========================================================= */
 
 window.addEventListener("load", function() {
@@ -2814,7 +2982,7 @@ window.addEventListener("load", function() {
 
 
 /* =========================================================
-   LISTENERS
+   СЛУШАТЕЛИ ДАННЫХ
 ========================================================= */
 
 function updateBadge(badge, nav, count, activeClass) {
@@ -2946,7 +3114,7 @@ function startMessagesListener() {
 
 
 /* =========================================================
-   COLLECTIONS
+   ЗАГРУЗКА КОЛЛЕКЦИЙ
 ========================================================= */
 
 function loadCollectionCount(collectionName, elementId, onCount) {
@@ -2972,7 +3140,7 @@ function loadCollectionCount(collectionName, elementId, onCount) {
 
 
 /* =========================================================
-   ACTIVITY PROGRESS
+   ПРОГРЕСС АКТИВНОСТИ
 ========================================================= */
 
 function _updateActivityNow() {
@@ -3003,7 +3171,7 @@ const scheduleUpdateActivity = debounce(_updateActivityNow, CONFIG.ACTIVITY_THRO
 
 
 /* =========================================================
-   ATTENTION CARD
+   БЛОК «ТРЕБУЕТ ВНИМАНИЯ»
 ========================================================= */
 
 function updateAttentionCard() {
@@ -3015,13 +3183,26 @@ function updateAttentionCard() {
 
     const requests = parseInt(document.getElementById("statRequests")?.textContent || "0", 10) || 0;
     if (requests > 0) {
-        tags.push({ text: `Заявок на регистрацию: ${requests}`, onClick: openPermissions });
+        tags.push({
+            icon: "lock",
+            text: `Заявок на регистрацию: ${requests}`,
+            onClick: openPermissions
+        });
     }
 
     const messages = parseInt(document.getElementById("statMessages")?.textContent || "0", 10) || 0;
     if (messages > 5) {
-        tags.push({ text: `Непрочитанных сообщений: ${messages}`, onClick: openMessages });
+        tags.push({
+            icon: "msg",
+            text: `Непрочитанных сообщений: ${messages}`,
+            onClick: openMessages
+        });
     }
+
+    const icons = {
+        lock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>`,
+        msg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/></svg>`
+    };
 
     if (!tags.length) {
         card.classList.add("hidden");
@@ -3031,7 +3212,8 @@ function updateAttentionCard() {
     card.classList.remove("hidden");
     list.innerHTML = tags.map((t, i) => `
         <span class="att-tag" data-idx="${i}">
-            [!] ${escapeHtml(t.text)}
+            ${icons[t.icon] || ""}
+            ${escapeHtml(t.text)}
         </span>
     `).join("");
 
@@ -3045,7 +3227,7 @@ function updateAttentionCard() {
 
 
 /* =========================================================
-   SPARKLINE
+   СПАРКЛАЙН ПОСЕЩАЕМОСТИ (7 дней)
 ========================================================= */
 
 function initSparkline() {
@@ -3080,7 +3262,7 @@ function initSparkline() {
     const avg = Math.round(data.reduce((a, b) => a + b, 0) / data.length);
 
     chart.innerHTML = data.map((v, i) =>
-        `<div class="spark-bar" style="height:${Math.max(4, (v / max) * 100)}%" data-day="${labelArr[i]}" title="${labelArr[i]}: ${v}%"></div>`
+        `<div class="spark-bar" style="height:${Math.max(6, (v / max) * 100)}%" data-day="${labelArr[i]}" title="${labelArr[i]}: ${v}%"></div>`
     ).join("");
 
     labels.innerHTML = labelArr.map(l => `<span>${l}</span>`).join("");
@@ -3089,7 +3271,7 @@ function initSparkline() {
 
 
 /* =========================================================
-   DEBTORS
+   ТОП-ДОЛЖНИКОВ
 ========================================================= */
 
 function renderDebtors(students) {
@@ -3099,6 +3281,11 @@ function renderDebtors(students) {
     if (!students || !students.length) {
         body.innerHTML = `
             <div class="debtors-empty">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                     stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <path d="m9 11 3 3L22 4"/>
+                </svg>
                 <div>Все студенты в норме — посещаемость выше ${CONFIG.LOW_ATTENDANCE}%</div>
             </div>`;
         return;
@@ -3143,7 +3330,10 @@ function loadDebtors() {
                 console.warn("Debtors:", error.code || error.message);
             }
             if (body) {
-                body.innerHTML = `<div class="debtors-empty"><div>Данные о посещаемости недоступны</div></div>`;
+                body.innerHTML = `
+                    <div class="debtors-empty">
+                        <div>Данные о посещаемости недоступны</div>
+                    </div>`;
             }
         }
     );
@@ -3151,7 +3341,7 @@ function loadDebtors() {
 
 
 /* =========================================================
-   IDLE TIMEOUT
+   ТАЙМАУТ НЕАКТИВНОСТИ
 ========================================================= */
 
 let idleTimer = null;
@@ -3168,7 +3358,9 @@ function resetIdleTimer() {
     clearTimeout(warningTimer);
     clearInterval(warningCountdown);
 
-    if (idleWarningShown) hideIdleWarning();
+    if (idleWarningShown) {
+        hideIdleWarning();
+    }
 
     warningTimer = setTimeout(showIdleWarning, CONFIG.IDLE_TIMEOUT - CONFIG.WARNING_TIME);
     idleTimer = setTimeout(idleLogout, CONFIG.IDLE_TIMEOUT);
@@ -3183,7 +3375,7 @@ function showIdleWarning() {
     setTimeout(() => {
         const btn = document.getElementById("idleStayBtn");
         if (btn) btn.focus();
-    }, 300);
+    }, 350);
 
     let secondsLeft = Math.round(CONFIG.WARNING_TIME / 1000);
     timerEl.textContent = formatTime(secondsLeft);
@@ -3270,7 +3462,7 @@ function openCmdPalette() {
     document.getElementById("cmdInput").value = "";
     renderCmdList();
     document.getElementById("cmdOverlay").classList.add("show");
-    setTimeout(() => document.getElementById("cmdInput").focus(), 80);
+    setTimeout(() => document.getElementById("cmdInput").focus(), 100);
 }
 
 function closeCmdPalette() {
@@ -3282,6 +3474,16 @@ function toggleCmdPalette() {
     if (overlay.classList.contains("show")) closeCmdPalette();
     else openCmdPalette();
 }
+
+const CMD_ICON_SVG = {
+    blue: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>`,
+    teal: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"/><rect x="5" y="6" width="14" height="15" rx="2.5"/><path d="m9 13.2 2.3 2.3L15.5 11"/></svg>`,
+    violet: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/><circle cx="11.5" cy="7.2" r="3"/></svg>`,
+    amber: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3.3"/><path d="M12 2.5v3.2"/><path d="M12 18.3v3.2"/><path d="M2.5 12h3.2"/><path d="M18.3 12h3.2"/></svg>`,
+    rose: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 9.2 9.2 0 0 1-3.4-.6L3 21l1.8-4.9A8.4 8.4 0 0 1 4 11.5 8.4 8.4 0 0 1 12.5 3 8.4 8.4 0 0 1 21 11.5Z"/></svg>`,
+    cyan: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="7" r="3"/><circle cx="17" cy="8" r="2.5"/><path d="M2 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/></svg>`,
+    default: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>`
+};
 
 function renderCmdList() {
     const list = document.getElementById("cmdList");
@@ -3303,7 +3505,7 @@ function renderCmdList() {
 
     list.innerHTML = items.map((it, i) => `
         <div class="cmd-item ${i === cmdSelectedIndex ? "selected" : ""}" data-idx="${i}">
-            <div class="cmd-item-icon ${it.icon || ""}"></div>
+            <div class="cmd-item-icon ${it.icon || ""}">${CMD_ICON_SVG[it.icon] || CMD_ICON_SVG.default}</div>
             <div class="cmd-item-body">
                 <div class="cmd-item-title">${escapeHtml(it.title)}</div>
                 ${it.sub ? `<div class="cmd-item-sub">${escapeHtml(it.sub)}</div>` : ""}
@@ -3318,7 +3520,7 @@ function renderCmdList() {
             const item = cmdFilteredItems[idx];
             if (item && typeof item.action === "function") {
                 closeCmdPalette();
-                setTimeout(() => item.action(), 80);
+                setTimeout(() => item.action(), 100);
             }
         });
         el.addEventListener("mouseenter", () => {
@@ -3350,7 +3552,7 @@ document.getElementById("cmdInput").addEventListener("keydown", (e) => {
         const item = cmdFilteredItems[cmdSelectedIndex];
         if (item && typeof item.action === "function") {
             closeCmdPalette();
-            setTimeout(() => item.action(), 80);
+            setTimeout(() => item.action(), 100);
         }
     }
 });
@@ -3376,7 +3578,7 @@ window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
     deferredPrompt = e;
     if (!localStorage.getItem("pwa-dismissed")) {
-        setTimeout(() => pwaBanner.classList.add("show"), 2500);
+        setTimeout(() => pwaBanner.classList.add("show"), 3000);
     }
 });
 
@@ -3407,7 +3609,7 @@ window.addEventListener("appinstalled", () => {
 
 
 /* =========================================================
-   AUTH
+   АВТОРИЗАЦИЯ
 ========================================================= */
 
 auth.onAuthStateChanged(function(user) {
@@ -3432,7 +3634,7 @@ auth.onAuthStateChanged(function(user) {
                 document.querySelector(".loader-text").textContent = "Доступ только для администраторов";
                 setTimeout(() => {
                     window.location.href = "home.html";
-                }, 1000);
+                }, 1200);
                 return;
             }
 
@@ -3482,19 +3684,22 @@ auth.onAuthStateChanged(function(user) {
 
 
 /* =========================================================
-   SERVICE WORKER
+   PWA — Service Worker
 ========================================================= */
 
 if ("serviceWorker" in navigator) {
     window.addEventListener("load", function() {
         navigator.serviceWorker.register("service-worker.js")
-            .catch(function() { /* ignore */ });
+            .then(function(reg) { /* ok */ })
+            .catch(function(err) {
+                // тихо
+            });
     });
 }
 
 
 /* =========================================================
-   ERRORS
+   ОБРАБОТКА ОШИБОК
 ========================================================= */
 
 window.addEventListener("error", function(event) {
@@ -3511,7 +3716,7 @@ window.addEventListener("unhandledrejection", function(event) {
 
 
 /* =========================================================
-   CLEANUP
+   ОЧИСТКА
 ========================================================= */
 
 window.addEventListener("beforeunload", function() {

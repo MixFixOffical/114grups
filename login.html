@@ -218,6 +218,29 @@ input:focus{
 input[type="password"]{letter-spacing:.3px}
 input[data-numeric]{letter-spacing:2px}
 
+/* === ВАЖНО: чекбоксы не должны терять нативный вид === */
+input[type="checkbox"]{
+    -webkit-appearance:checkbox;
+    appearance:auto;
+    width:16px;
+    height:16px;
+    padding:0;
+    margin:0;
+    border:none;
+    border-radius:4px;
+    box-shadow:none;
+    background:initial;
+    cursor:pointer;
+    accent-color:var(--blue-600);
+    flex-shrink:0;
+    vertical-align:middle;
+}
+input[type="checkbox"]:hover{border-color:transparent}
+input[type="checkbox"]:focus{
+    box-shadow:0 0 0 3px rgba(29,78,216,.18);
+    border-color:transparent;
+}
+
 .field.err input{
     border-color:var(--red-600);
     box-shadow:0 0 0 3px rgba(185,28,28,.12);
@@ -260,17 +283,26 @@ input[data-numeric]{letter-spacing:2px}
 .opts{
     display:flex;align-items:center;justify-content:space-between;
     margin:4px 2px 16px;
-    opacity:0;transition:opacity .25s var(--ease);
+    opacity:1;
+    position:relative;
+    z-index:2;
 }
 .remember{
     display:flex;align-items:center;gap:8px;
     color:var(--ink-600);font-size:12.5px;font-weight:500;
     cursor:pointer;user-select:none;
+    padding:4px 0;
+    position:relative;
+    z-index:3;
 }
-.remember input{
-    width:16px;height:16px;padding:0;
+.remember input[type="checkbox"]{
+    width:16px;height:16px;
+    padding:0;margin:0;
     accent-color:var(--blue-600);
-    box-shadow:none;cursor:pointer;
+    cursor:pointer;
+    flex-shrink:0;
+    -webkit-appearance:checkbox;
+    appearance:auto;
 }
 .forgot{
     border:0;background:transparent;color:var(--blue-600);
@@ -390,12 +422,6 @@ input[data-numeric]{letter-spacing:2px}
 .pin-link:hover{background:var(--ink-100)}
 .pin-link.danger{color:var(--red-600)}
 .pin-link.danger:hover{background:var(--red-50)}
-
-/* Установка PIN */
-.pin-setup-hint{
-    text-align:center;font-size:12.5px;color:var(--ink-500);
-    line-height:1.5;margin-bottom:16px;
-}
 
 /* =========================================================
    ROLE SELECT
@@ -1116,7 +1142,7 @@ input[data-numeric]{letter-spacing:2px}
 </div>
 
 <!-- =========================================================
-     PIN SETUP MODAL (появляется после входа с «Запомнить»)
+     PIN SETUP MODAL
 ========================================================= -->
 <div class="pin-setup-overlay" id="pinSetupOverlay" aria-hidden="true">
     <div class="pin-setup-card" role="dialog" aria-modal="true" aria-labelledby="pinSetupTitle">
@@ -1279,7 +1305,7 @@ input[data-numeric]{letter-spacing:2px}
                 </form>
             </div>
 
-            <!-- PIN PANEL (автовход) -->
+            <!-- PIN PANEL -->
             <div class="panel pin-panel" id="pinPanel">
                 <div class="pin-head">
                     <div class="pin-avatar" id="pinAvatar">K</div>
@@ -1327,7 +1353,6 @@ input[data-numeric]{letter-spacing:2px}
             <!-- REGISTER -->
             <div class="panel register-panel" id="registerPanel">
 
-                <!-- ROLE PICK -->
                 <div class="roles" id="roles">
                     <div class="roles-title">Выберите роль</div>
                     <div class="roles-sub">Это определит набор доступных функций системы</div>
@@ -1378,7 +1403,6 @@ input[data-numeric]{letter-spacing:2px}
                     </div>
                 </div>
 
-                <!-- FORM -->
                 <form id="regForm" class="reg-form hide" novalidate>
                     <button type="button" class="back-btn" id="backToRoles">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
@@ -1618,7 +1642,7 @@ const PIN_NAME_KEY       = "kurator_pin_name_v1";
 const PIN_ATTEMPTS_KEY   = "kurator_pin_attempts_v1";
 const PIN_LENGTH         = 4;
 const PIN_MAX_ATTEMPTS   = 5;
-const AUTH_TIMEOUT_MS    = 3000;   // ждём Firebase перед принудительным показом формы
+const AUTH_TIMEOUT_MS    = 3000;
 
 /* =========================================
    ELEMENTS
@@ -1903,9 +1927,7 @@ $("retryBtn").addEventListener("click", () => {
         $("setupLogin").focus();
         return;
     }
-    if (card.dataset.step === "pin"){
-        return;
-    }
+    if (card.dataset.step === "pin") return;
     if (mode === "login"){
         $("loginPassword").value = "";
         $("loginId").focus();
@@ -1938,7 +1960,7 @@ const TITLES = {
 
 async function switchMode(next){
     if (next === mode || switching || card.dataset.state) return;
-    if (card.dataset.step) return;  // в режиме setup/pin не переключаемся
+    if (card.dataset.step) return;
     switching = true;
     clearMsg();
 
@@ -2161,7 +2183,7 @@ $("setupForm").addEventListener("submit", async e => {
 });
 
 /* =========================================
-   PIN — утилиты (WebCrypto)
+   PIN — утилиты
 ========================================= */
 async function sha256Hex(str){
     const enc = new TextEncoder().encode(str);
@@ -2170,35 +2192,29 @@ async function sha256Hex(str){
         .map(b => b.toString(16).padStart(2,"0"))
         .join("");
 }
-
 function randomSalt(){
     const arr = new Uint8Array(16);
     crypto.getRandomValues(arr);
     return Array.from(arr).map(b => b.toString(16).padStart(2,"0")).join("");
 }
-
 async function hashPin(pin, salt){
     return sha256Hex(`${salt}::${pin}::kurator`);
 }
-
-function savePin(pin, salt, displayName){
-    localStorage.setItem(PIN_HASH_KEY, pin);
+function savePin(hash, salt, displayName){
+    localStorage.setItem(PIN_HASH_KEY, hash);
     localStorage.setItem(PIN_SALT_KEY, salt);
     localStorage.setItem(PIN_NAME_KEY, displayName || "");
     localStorage.removeItem(PIN_ATTEMPTS_KEY);
 }
-
 function hasPin(){
     return !!localStorage.getItem(PIN_HASH_KEY) && !!localStorage.getItem(PIN_SALT_KEY);
 }
-
 function clearPin(){
     localStorage.removeItem(PIN_HASH_KEY);
     localStorage.removeItem(PIN_SALT_KEY);
     localStorage.removeItem(PIN_NAME_KEY);
     localStorage.removeItem(PIN_ATTEMPTS_KEY);
 }
-
 function getPinAttempts(){
     try { return parseInt(localStorage.getItem(PIN_ATTEMPTS_KEY) || "0", 10) || 0; }
     catch { return 0; }
@@ -2266,14 +2282,14 @@ async function tryPinLogin(){
         pinBuffer = "";
         updatePinDots();
 
-        // Резолвим сессию → редирект по роли
         try {
             const user = auth.currentUser;
             if (!user){
-                // Сессия пропала — надо логиниться заново
                 toast("Сессия истекла. Войдите по паролю.");
                 clearPin();
                 closePinPanel();
+                loginFlow = false;
+                pinBusy = false;
                 return;
             }
             const snap = await getDoc(doc(db, "users", user.uid));
@@ -2282,22 +2298,23 @@ async function tryPinLogin(){
                 clearPin();
                 closePinPanel();
                 await signOut(auth);
+                loginFlow = false;
+                pinBusy = false;
                 return;
             }
-            loginFlow = true;
             await routeByStatus(user, snap.data());
         } catch (e){
             logErr(e);
             toast("Ошибка. Войдите по паролю.");
             clearPin();
             closePinPanel();
+            loginFlow = false;
         } finally {
             pinBusy = false;
         }
         return;
     }
 
-    // Неверный PIN
     const n = incPinAttempts();
     flashPinError();
     pinBuffer = "";
@@ -2307,6 +2324,8 @@ async function tryPinLogin(){
         clearPin();
         toast("Слишком много попыток. Войдите по паролю.", 3500);
         closePinPanel();
+        loginFlow = false;
+        pinBusy = false;
         return;
     }
 
@@ -2342,7 +2361,6 @@ $("pinKeypad").addEventListener("click", e => {
     }
 });
 
-// Поддержка физической клавиатуры
 document.addEventListener("keydown", e => {
     if (card.dataset.step !== "pin") return;
     if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
@@ -2378,7 +2396,7 @@ $("pinForgot").addEventListener("click", async () => {
 });
 
 /* =========================================
-   PIN SETUP MODAL (после входа с «Запомнить»)
+   PIN SETUP MODAL
 ========================================= */
 let pinSetupBuffer = "";
 let pinSetupBusy = false;
@@ -2390,20 +2408,17 @@ function openPinSetup(){
     $("pinSetupOverlay").classList.add("on");
     $("pinSetupOverlay").setAttribute("aria-hidden", "false");
 }
-
 function closePinSetup(){
     pinSetupBuffer = "";
     $("pinSetupOverlay").classList.remove("on");
     $("pinSetupOverlay").setAttribute("aria-hidden", "true");
 }
-
 function updatePinSetupDots(){
     const dots = $("pinSetupDots").children;
     for (let i = 0; i < dots.length; i++){
         dots[i].classList.toggle("on", i < pinSetupBuffer.length);
     }
 }
-
 function flashPinSetupError(text){
     const err = $("pinSetupErr");
     err.textContent = text;
@@ -2440,7 +2455,6 @@ async function savePinFromSetup(){
     if (pinSetupBusy) return;
     pinSetupBusy = true;
 
-    // Проверка: слишком простой PIN
     if (/^(\d)\1+$/.test(pinSetupBuffer) ||
         pinSetupBuffer === "1234" || pinSetupBuffer === "4321" ||
         pinSetupBuffer === "0123"){
@@ -2454,7 +2468,6 @@ async function savePinFromSetup(){
     const salt = randomSalt();
     const hash = await hashPin(pinSetupBuffer, salt);
 
-    // Имя для приветствия
     let displayName = "";
     try {
         const user = auth.currentUser;
@@ -2492,8 +2505,6 @@ document.addEventListener("keydown", e => {
 
 $("pinSetupSkip").addEventListener("click", () => {
     closePinSetup();
-    // Убираем галочку «Запомнить» и сохранённый логин,
-    // чтобы при следующем открытии был обычный вход
     try {
         localStorage.removeItem(LAST_ID_KEY);
         localStorage.setItem(REMEMBER_FLAG_KEY, "0");
@@ -2502,7 +2513,7 @@ $("pinSetupSkip").addEventListener("click", () => {
 });
 
 /* =========================================
-   LOGIN — логин или почта
+   LOGIN
 ========================================= */
 $("loginForm").addEventListener("submit", async e => {
     e.preventDefault();
@@ -2554,7 +2565,6 @@ $("loginForm").addEventListener("submit", async e => {
         const cred = await signInWithEmailAndPassword(auth, email, pwd);
         resetAttempts();
 
-        /* Сохраняем/очищаем последний логин */
         try {
             if (remember){
                 localStorage.setItem(LAST_ID_KEY, idRaw);
@@ -2577,21 +2587,16 @@ $("loginForm").addEventListener("submit", async e => {
 
         const data = snap.data();
 
-        // Одобрен, но логина ещё нет → setup
         if (data.reg === 1 && !data.login){
             showSetup(user, pwd);
             return;
         }
 
-        // Если «Запомнить» и PIN ещё нет — предложить установить
         const needPinSetup = remember && !hasPin();
 
         await routeByStatus(user, data);
 
-        // Показываем модалку PIN сразу после того, как начался редирект
-        // (routeByStatus не await'ится до конца — внутри setTimeout)
         if (needPinSetup && data.reg === 1){
-            // Небольшая задержка, чтобы success-экран успел появиться
             setTimeout(() => openPinSetup(), 400);
         }
     } catch (err){
@@ -2766,30 +2771,38 @@ $("regPassword").addEventListener("input", e => {
 });
 
 /* =========================================
-   AUTH STATE (автовход + PIN)
+   AUTH STATE — автовход + PIN
 ========================================= */
 let authCheckInProgress = false;
 let authResolved = false;
 let forceShowTimer = null;
 
 onAuthStateChanged(auth, async user => {
-    if (regInProgress || loginFlow) return;
+    if (regInProgress) return;
     if (authCheckInProgress) return;
 
+    // Нет пользователя — сессии нет, показываем форму
+    if (!user){
+        loginFlow = false;
+        authResolved = true;
+        return;
+    }
+
+    // Если мы уже в процессе обработки (например, loginFlow=true после формы)
+    if (loginFlow){
+        authResolved = true;
+        return;
+    }
+
     authCheckInProgress = true;
+    loginFlow = true;
 
     try {
-        if (!user){
-            authResolved = true;
-            return;
-        }
-
-        // Есть активная сессия → смотрим, что делать
         const wasRemember = localStorage.getItem(REMEMBER_FLAG_KEY) === "1";
         const hasPinSaved = hasPin();
 
+        // === Сценарий 1: Запомнить + PIN → показываем PIN-панель ===
         if (wasRemember && hasPinSaved){
-            // Показываем PIN-панель, не редиректим сразу
             let data = null;
             try {
                 const snap = await getDoc(doc(db, "users", user.uid));
@@ -2799,38 +2812,37 @@ onAuthStateChanged(auth, async user => {
             }
 
             if (data && data.reg === 1){
-                // Открываем PIN-панель
-                loginFlow = true;  // блокируем повторные триггеры
                 openPinPanel(user, data);
                 authResolved = true;
                 return;
             }
 
-            // Если заявка ещё не одобрена или отклонена — обычный сценарий
             if (data){
-                loginFlow = true;
                 await routeByStatus(user, data);
                 authResolved = true;
                 return;
             }
         }
 
-        // Обычный автовход (без PIN)
+        // === Сценарий 2: обычный автовход ===
         showLoading("Восстанавливаем сессию…", "Проверяем ваши данные");
         const snap = await getDoc(doc(db, "users", user.uid));
 
         if (!snap.exists()){
             await signOut(auth);
+            loginFlow = false;
             showError("Профиль не найден", "Обратитесь к администратору.");
             authResolved = true;
             return;
         }
 
-        loginFlow = true;
         await routeByStatus(user, snap.data());
+        authResolved = true;
+
     } catch (err){
         logErr(err);
         try { await signOut(auth); } catch {}
+        loginFlow = false;
         showError("Ошибка проверки", "Войдите заново.");
     } finally {
         authCheckInProgress = false;
@@ -2904,7 +2916,6 @@ const AGREEMENT_KEY = "kurator_agreement_accepted_v1";
 window.addEventListener("load", () => {
     requestAnimationFrame(() => {
         refreshHeight();
-        restoreLastLogin();
         waitForAuthReady();
     });
 });
@@ -2919,8 +2930,8 @@ function restoreLastLogin(){
         const lastId      = localStorage.getItem(LAST_ID_KEY);
         const wasRemember = localStorage.getItem(REMEMBER_FLAG_KEY) === "1";
 
-        if (lastId && wasRemember && !card.dataset.step){
-            $("loginId").value      = lastId;
+        if (lastId && wasRemember){
+            $("loginId").value = lastId;
             $("rememberMe").checked = true;
         }
     } catch (e){
@@ -2930,15 +2941,14 @@ function restoreLastLogin(){
 
 function waitForAuthReady(){
     if (authResolved){
-        hideLoaderWhenIdle();
+        onAuthResolved();
         return;
     }
 
     forceShowTimer = setTimeout(() => {
         if (!authResolved){
             authResolved = true;
-            hideLoaderWhenIdle();
-            focusFirstField();
+            onAuthResolved();
         }
     }, AUTH_TIMEOUT_MS);
 
@@ -2946,13 +2956,19 @@ function waitForAuthReady(){
         if (authResolved){
             clearInterval(poll);
             clearTimeout(forceShowTimer);
-            hideLoaderWhenIdle();
-            // Автофокус — только если сессии нет и PIN-панель не открыта
-            if (!auth.currentUser && card.dataset.step !== "pin"){
-                focusFirstField();
-            }
+            onAuthResolved();
         }
     }, 80);
+}
+
+function onAuthResolved(){
+    hideLoaderWhenIdle();
+
+    // Если сессии нет — показываем форму и восстанавливаем логин
+    if (!auth.currentUser){
+        restoreLastLogin();
+        setTimeout(focusFirstField, 150);
+    }
 }
 
 function hideLoaderWhenIdle(){

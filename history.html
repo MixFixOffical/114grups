@@ -2562,10 +2562,15 @@ function printReport() {
 }
 window.printReport = printReport;
 
+/* =========================================================
+   [ИСПРАВЛЕНО] Месяцы семестра
+   Осень (нечётный семестр): Сентябрь–Декабрь
+   Весна (чётный семестр):   Январь–Июнь
+========================================================= */
 function getSemesterMonths(semester) {
     return Number(semester) % 2 === 1
-        ? [{n:8,t:"Сентябрь"},{n:9,t:"Октябрь"},{n:10,t:"Ноябрь"},{n:11,t:"Декабрь"},{n:0,t:"Январь"}]
-        : [{n:1,t:"Февраль"},{n:2,t:"Март"},{n:3,t:"Апрель"},{n:4,t:"Май"},{n:5,t:"Июнь"}];
+        ? [{n:8,t:"Сентябрь"},{n:9,t:"Октябрь"},{n:10,t:"Ноябрь"},{n:11,t:"Декабрь"}]
+        : [{n:0,t:"Январь"},{n:1,t:"Февраль"},{n:2,t:"Март"},{n:3,t:"Апрель"},{n:4,t:"Май"},{n:5,t:"Июнь"}];
 }
 
 /* =========================================================
@@ -2573,7 +2578,8 @@ function getSemesterMonths(semester) {
    - Ширины колонок в мм (сумма = 270 мм = ширина A4 landscape минус поля @page)
    - Собственный класс таблицы sem-tbl, не зависит от общих правил .pt
    - border-collapse: collapse, чтобы рамки и колонки совпадали
-   - Заголовок «Всего/Н/У/Б» строго под своим месяцем
+   - Год выбирается по семестру: осень — последний прошедший сентябрь,
+     весна — последний январь–июнь
 ========================================================= */
 function printSemesterReport() {
     const semester = Number(document.getElementById("reportSemester").value);
@@ -2588,11 +2594,13 @@ function printSemesterReport() {
         totals.set(String(st.id), { all: 0, n: 0, u: 0, b: 0 });
     });
 
+    // Осенний семестр: сентябрь–декабрь последнего прошедшего сентября.
+    // Весенний семестр: январь–июнь последнего прошедшего июня (или текущего года, если июнь уже наступил).
     const now = new Date();
     const isAutumn = Number(semester) % 2 === 1;
-    const startYear = isAutumn
-        ? (now.getMonth() >= 7 ? now.getFullYear() : now.getFullYear() - 1)
-        : (now.getMonth() >= 1 ? now.getFullYear() : now.getFullYear() - 1);
+    const autumnYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+    const springYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
+    const targetYear = isAutumn ? autumnYear : springYear;
 
     for (const rec of Object.values(attendance)) {
         if (!rec.date || rec.status !== "absent") continue;
@@ -2600,9 +2608,7 @@ function printSemesterReport() {
         const m = d.getMonth();
         const mi = months.findIndex(x => x.n === m);
         if (mi < 0) continue;
-
-        const expectedYear = (m === 0 ? startYear + 1 : startYear);
-        if (d.getFullYear() !== expectedYear) continue;
+        if (d.getFullYear() !== targetYear) continue;
 
         const sid = String(rec.studentId);
         if (!monthCounts.has(sid)) continue;
@@ -2615,7 +2621,7 @@ function printSemesterReport() {
         else { cell.n++; total.n++; }
     }
 
-    // Ширины в мм: A4 landscape (297) минус поля @page (12 + 15) = 270 мм
+    // Ширина A4 landscape (297) минус поля @page (12 + 15) = 270 мм
     const PRINT_W = 270, NUM_MM = 8, NAME_MM = 52;
     const totalDataCols = months.length * 4 + 4;
     const dataMm = ((PRINT_W - NUM_MM - NAME_MM) / totalDataCols).toFixed(3);
@@ -2626,7 +2632,7 @@ function printSemesterReport() {
 
     const monthHeads = months.map(m => `<th colspan="4">${m.t}</th>`).join("");
     const subHeads = months.map(() =>
-        `<th>Всего</th><th>Н</th><th>У</th><th>Б</th>`
+        `<th>Вс</th><th>Н</th><th>У</th><th>Б</th>`
     ).join("");
 
     const theadHtml =
@@ -2711,8 +2717,8 @@ function printSemesterReport() {
         #printSheet table.sem-tbl th,
         #printSheet table.sem-tbl td {
             border: 0.5pt solid #000; box-shadow: none; background: none;
-            padding: 0.6mm 0.4mm; text-align: center; vertical-align: middle;
-            font-size: 7pt; font-weight: normal; line-height: 1.1;
+            padding: 0.6mm 0.2mm; text-align: center; vertical-align: middle;
+            font-size: 6.5pt; font-weight: normal; line-height: 1.1;
             white-space: nowrap; overflow: hidden; min-width: 0;
         }
         #printSheet table.sem-tbl thead th { font-weight: bold; }

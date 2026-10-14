@@ -2543,6 +2543,12 @@ window.updateSemesterLabel = updateSemesterLabel;
 function printReport() {
     closeReportMenu();
 
+    // Снимаем стили семестрового отчёта, если он был открыт ранее
+    const sheetEl = document.getElementById("printSheet");
+    if (sheetEl) sheetEl.classList.remove("sem-print");
+    const semStyle = document.getElementById("semDynamicStyle");
+    if (semStyle) semStyle.remove();
+
     const dates = getWeekDates();
     const rangeText = `с ${formatShortDate(dates[0], true)} — ${formatShortDate(dates[5], true)} гг.`;
     setPrintHeader("Информация о ежедневной посещаемости занятий", rangeText);
@@ -2564,8 +2570,10 @@ function getSemesterMonths(semester) {
 
 /* =========================================================
    [ИСПРАВЛЕНО] PRINT: семестровый отчёт
-   - Явные проценты вместо calc для colgroup (чтобы не «съезжало»)
-   - Правильное число колонок = 2 + 4*месяцев + 4
+   - Ширины колонок в мм (сумма = 270 мм = ширина A4 landscape минус поля @page)
+   - Собственный класс таблицы sem-tbl, не зависит от общих правил .pt
+   - border-collapse: collapse, чтобы рамки и колонки совпадали
+   - Заголовок «Всего/Н/У/Б» строго под своим месяцем
 ========================================================= */
 function printSemesterReport() {
     const semester = Number(document.getElementById("reportSemester").value);
@@ -2576,8 +2584,8 @@ function printSemesterReport() {
     const totals = new Map();
 
     students.forEach(st => {
-        monthCounts.set(String(st.id), months.map(() => ({all:0,n:0,u:0,b:0})));
-        totals.set(String(st.id),{all:0,n:0,u:0,b:0});
+        monthCounts.set(String(st.id), months.map(() => ({ all: 0, n: 0, u: 0, b: 0 })));
+        totals.set(String(st.id), { all: 0, n: 0, u: 0, b: 0 });
     });
 
     const now = new Date();
@@ -2607,13 +2615,31 @@ function printSemesterReport() {
         else { cell.n++; total.n++; }
     }
 
-    const monthHeads = months.map(m =>
-        `<th colspan="4" class="sem-month-head">${m.t}</th>`
+    // Ширины в мм: A4 landscape (297) минус поля @page (12 + 15) = 270 мм
+    const PRINT_W = 270, NUM_MM = 8, NAME_MM = 52;
+    const totalDataCols = months.length * 4 + 4;
+    const dataMm = ((PRINT_W - NUM_MM - NAME_MM) / totalDataCols).toFixed(3);
+
+    let colgroup = `<colgroup><col style="width:${NUM_MM}mm"><col style="width:${NAME_MM}mm">`;
+    for (let i = 0; i < totalDataCols; i++) colgroup += `<col style="width:${dataMm}mm">`;
+    colgroup += `</colgroup>`;
+
+    const monthHeads = months.map(m => `<th colspan="4">${m.t}</th>`).join("");
+    const subHeads = months.map(() =>
+        `<th>Всего</th><th>Н</th><th>У</th><th>Б</th>`
     ).join("");
 
-    const subHeads = months.map(() =>
-        `<th class="sem-sub">Всего</th><th class="sem-sub">Н</th><th class="sem-sub">У</th><th class="sem-sub">Б</th>`
-    ).join("");
+    const theadHtml =
+        `<tr>` +
+            `<th rowspan="2">№</th>` +
+            `<th rowspan="2">ФИО</th>` +
+            monthHeads +
+            `<th colspan="4">Всего за семестр</th>` +
+        `</tr>` +
+        `<tr>` +
+            subHeads +
+            `<th>Н</th><th>У</th><th>Б</th><th>Вс</th>` +
+        `</tr>`;
 
     let rows = "";
     students.forEach((st, i) => {
@@ -2623,27 +2649,29 @@ function printSemesterReport() {
         const t = totals.get(String(st.id));
         rows +=
             `<tr>` +
-                `<td class="sem-num">${i+1}</td>` +
-                `<td class="semester-name">${escapeHtml(st.name || "Без имени")}</td>` +
+                `<td>${i + 1}</td>` +
+                `<td class="sem-name">${escapeHtml(st.name || "Без имени")}</td>` +
                 cells +
                 `<td>${t.n}</td><td>${t.u}</td><td>${t.b}</td><td><b>${t.all}</b></td>` +
             `</tr>`;
     });
 
-    const grand = {n:0,u:0,b:0,all:0};
-    totals.forEach(t => { grand.n+=t.n; grand.u+=t.u; grand.b+=t.b; grand.all+=t.all; });
+    const grand = { n: 0, u: 0, b: 0, all: 0 };
+    totals.forEach(t => { grand.n += t.n; grand.u += t.u; grand.b += t.b; grand.all += t.all; });
+
+    const monthTotalCells = months.map((_, i) => {
+        const c = students.reduce((a, st) => {
+            const x = monthCounts.get(String(st.id))[i];
+            a.all += x.all; a.n += x.n; a.u += x.u; a.b += x.b;
+            return a;
+        }, { all: 0, n: 0, u: 0, b: 0 });
+        return `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`;
+    }).join("");
 
     rows +=
-        `<tr class="semester-total">` +
+        `<tr class="sem-total">` +
             `<td colspan="2">ИТОГО</td>` +
-            months.map((_,i)=>{
-                const c = students.reduce((a,st)=>{
-                    const x = monthCounts.get(String(st.id))[i];
-                    a.all+=x.all; a.n+=x.n; a.u+=x.u; a.b+=x.b;
-                    return a;
-                },{all:0,n:0,u:0,b:0});
-                return `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`;
-            }).join("") +
+            monthTotalCells +
             `<td>${grand.n}</td><td>${grand.u}</td><td>${grand.b}</td><td>${grand.all}</td>` +
         `</tr>`;
 
@@ -2655,87 +2683,48 @@ function printSemesterReport() {
 
     const sheet = document.getElementById("printSheet");
     if (!sheet) return;
-
-    // Итоговое число колонок: № + ФИО + месяцы*4 + итоги*4
-    // Проценты: № = 3%, ФИО = 13%, остальные делим поровну
-    const totalDataCols = months.length * 4 + 4;
-    const dataWidth = (84 / totalDataCols).toFixed(4);
-
-    let colgroup = '<colgroup>';
-    colgroup += '<col style="width:3%">';
-    colgroup += '<col style="width:13%">';
-    for (let i = 0; i < totalDataCols; i++) {
-        colgroup += `<col style="width:${dataWidth}%">`;
-    }
-    colgroup += '</colgroup>';
-
-    const theadHtml =
-        '<tr>' +
-            '<th rowspan="2" class="sem-num-head">№</th>' +
-            '<th rowspan="2" class="sem-name-head">ФИО</th>' +
-            monthHeads +
-            '<th colspan="4" class="sem-total-head">Всего за семестр</th>' +
-        '</tr>' +
-        '<tr>' +
-            '<th></th><th></th>' +
-            subHeads +
-            '<th class="sem-sub">Н</th><th class="sem-sub">У</th><th class="sem-sub">Б</th><th class="sem-sub">Вс</th>' +
-        '</tr>';
+    sheet.classList.add("sem-print");
 
     sheet.innerHTML =
         `<div class="semester-print-title">Группа: ${escapeHtml(groupName)} &nbsp;&nbsp; Семестр: ${semester}</div>` +
-        `<table class="pt semester-table">` +
+        `<table class="sem-tbl">` +
             colgroup +
             `<thead>${theadHtml}</thead>` +
             `<tbody>${rows}</tbody>` +
         `</table>`;
 
-    const style = document.getElementById("ptDynamicStyle");
-    if (style) style.remove();
+    const old = document.getElementById("semDynamicStyle");
+    if (old) old.remove();
 
-    const dynamic = document.createElement("style");
-    dynamic.id = "ptDynamicStyle";
-    dynamic.textContent = `
-        #printSheet .semester-print-title{
-            font-weight:bold;text-align:left;margin:0 0 3mm;font-size:10pt;
+    const style = document.createElement("style");
+    style.id = "semDynamicStyle";
+    style.textContent = `
+        #printSheet.sem-print { page-break-inside: auto; break-inside: auto; }
+        #printSheet .semester-print-title {
+            font-weight: bold; text-align: left; margin: 0 0 3mm; font-size: 10pt;
         }
-        #printSheet table.semester-table{
-            font-size:6.5pt;
-            width:100%;
-            table-layout:fixed;
-            border-collapse:separate;
-            border-spacing:0;
-            page-break-inside:auto;
+        #printSheet table.sem-tbl {
+            width: ${PRINT_W}mm; max-width: ${PRINT_W}mm; margin: 0;
+            table-layout: fixed; border-collapse: collapse; border-spacing: 0;
+            font-family: "Times New Roman", Times, serif; color: #000; background: #fff;
         }
-        #printSheet table.semester-table th,
-        #printSheet table.semester-table td{
-            border:0;
-            box-shadow:inset 0 0 0 .25pt #000;
-            padding:.5mm .1mm;
-            text-align:center;
-            vertical-align:middle;
-            overflow:hidden;
-            word-wrap:break-word;
-            overflow-wrap:anywhere;
-            line-height:1.05;
+        #printSheet table.sem-tbl th,
+        #printSheet table.sem-tbl td {
+            border: 0.5pt solid #000; box-shadow: none; background: none;
+            padding: 0.6mm 0.4mm; text-align: center; vertical-align: middle;
+            font-size: 7pt; font-weight: normal; line-height: 1.1;
+            white-space: nowrap; overflow: hidden; min-width: 0;
         }
-        #printSheet table.semester-table thead th{ font-weight:bold; }
-        #printSheet table.semester-table .sem-num,
-        #printSheet table.semester-table .sem-num-head{ text-align:center; }
-        #printSheet table.semester-table .sem-name-head,
-        #printSheet table.semester-table td.semester-name{
-            text-align:left;padding-left:1mm;padding-right:1mm;
+        #printSheet table.sem-tbl thead th { font-weight: bold; }
+        #printSheet table.sem-tbl td.sem-name {
+            text-align: left; padding-left: 1.2mm; white-space: normal; font-size: 8pt;
         }
-        #printSheet table.semester-table .sem-month-head{ white-space:nowrap; }
-        #printSheet table.semester-table .sem-sub{
-            white-space:nowrap;font-size:5.8pt;
-        }
-        #printSheet table.semester-table .sem-total-head{ white-space:nowrap; }
-        #printSheet table.semester-table .semester-total{ font-weight:bold; }
-        #printSheet table.semester-table thead{ display:table-header-group; }
-        #printSheet table.semester-table tbody tr{ page-break-inside:avoid; }
+        #printSheet table.sem-tbl thead { display: table-header-group; }
+        #printSheet table.sem-tbl tr { page-break-inside: avoid; break-inside: avoid; }
+        #printSheet table.sem-tbl tr.sem-total td { font-weight: bold; }
     `;
-    document.head.appendChild(dynamic);
+    document.head.appendChild(style);
+
     setTimeout(() => window.print(), 150);
 }
 window.printSemesterReport = printSemesterReport;

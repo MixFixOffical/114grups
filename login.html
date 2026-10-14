@@ -218,7 +218,7 @@ input:focus{
 input[type="password"]{letter-spacing:.3px}
 input[data-numeric]{letter-spacing:2px}
 
-/* === ВАЖНО: чекбоксы не должны терять нативный вид === */
+/* === Чекбоксы сохраняют нативный вид === */
 input[type="checkbox"]{
     -webkit-appearance:checkbox;
     appearance:auto;
@@ -2043,13 +2043,20 @@ document.querySelectorAll(".role").forEach(el => {
 });
 
 /* =========================================
-   ОБЩАЯ МАРШРУТИЗАЦИЯ ПО СТАТУСУ
+   ФЛАГИ
 ========================================= */
-let loginFlow = false;
+let loginFlow = false;      // идёт процесс входа/восстановления
+let pinMode = false;        // пользователь на PIN-панели — блокируем редиректы
 let setupUser = null;
 let setupPwd = "";
 
+/* =========================================
+   МАРШРУТИЗАЦИЯ ПО СТАТУСУ
+========================================= */
 async function routeByStatus(user, data){
+    // Пока пользователь на PIN-панели — не редиректим
+    if (pinMode) return;
+
     const reg = data.reg;
 
     if (reg === 0){
@@ -2084,6 +2091,7 @@ async function routeByStatus(user, data){
         return;
     }
 
+    // reg === 1 — одобрен
     const name = sanitize(String(data.name || "").split(" ")[0]) || "пользователь";
     showSuccess(`Здравствуйте, ${name}`, "Открываем систему…");
 
@@ -2092,7 +2100,12 @@ async function routeByStatus(user, data){
         data.role === "parent" ? "phome" :
         "home"
     );
-    setTimeout(() => { window.location.href = page; }, REDIRECT_DELAY);
+
+    setTimeout(() => {
+        // Двойная защита: если за это время включился PIN-режим — не редиректим
+        if (pinMode) return;
+        window.location.href = page;
+    }, REDIRECT_DELAY);
 }
 
 /* =========================================
@@ -2289,6 +2302,7 @@ async function tryPinLogin(){
                 clearPin();
                 closePinPanel();
                 loginFlow = false;
+                pinMode = false;
                 pinBusy = false;
                 return;
             }
@@ -2299,16 +2313,25 @@ async function tryPinLogin(){
                 closePinPanel();
                 await signOut(auth);
                 loginFlow = false;
+                pinMode = false;
                 pinBusy = false;
                 return;
             }
+
+            // Снимаем защиту — теперь можно редиректить
+            pinMode = false;
+            loginFlow = false;
+            closePinPanel();
+
             await routeByStatus(user, snap.data());
+
         } catch (e){
             logErr(e);
             toast("Ошибка. Войдите по паролю.");
             clearPin();
             closePinPanel();
             loginFlow = false;
+            pinMode = false;
         } finally {
             pinBusy = false;
         }
@@ -2325,6 +2348,7 @@ async function tryPinLogin(){
         toast("Слишком много попыток. Войдите по паролю.", 3500);
         closePinPanel();
         loginFlow = false;
+        pinMode = false;
         pinBusy = false;
         return;
     }
@@ -2379,8 +2403,9 @@ document.addEventListener("keydown", e => {
 
 $("pinUsePassword").addEventListener("click", async () => {
     closePinPanel();
-    try { await signOut(auth); } catch {}
+    pinMode = false;
     loginFlow = false;
+    try { await signOut(auth); } catch {}
     $("loginPassword").value = "";
     setTimeout(() => $("loginPassword").focus({ preventScroll:true }), 100);
 });
@@ -2389,8 +2414,9 @@ $("pinForgot").addEventListener("click", async () => {
     if (!confirm("Забыли PIN?\n\nPIN будет удалён. В следующий раз потребуется вход по паролю.\n\nПродолжить?")) return;
     clearPin();
     closePinPanel();
-    try { await signOut(auth); } catch {}
+    pinMode = false;
     loginFlow = false;
+    try { await signOut(auth); } catch {}
     toast("PIN сброшен. Войдите по паролю.");
     setTimeout(() => $("loginId").focus({ preventScroll:true }), 100);
 });
@@ -2550,6 +2576,7 @@ $("loginForm").addEventListener("submit", async e => {
     await sleep(600);
 
     loginFlow = true;
+    pinMode = false;
     try {
         await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
 
@@ -2777,77 +2804,79 @@ let authCheckInProgress = false;
 let authResolved = false;
 let forceShowTimer = null;
 
-onAuthStateChanged(auth, async user => {
-    if (regInProgress) return;
+/* Единая точка входа после разрешения auth */
+async function handleAuthenticatedUser(user){
     if (authCheckInProgress) return;
-
-    // Нет пользователя — сессии нет, показываем форму
-    if (!user){
-        loginFlow = false;
-        authResolved = true;
-        return;
-    }
-
-    // Если мы уже в процессе обработки (например, loginFlow=true после формы)
-    if (loginFlow){
-        authResolved = true;
-        return;
-    }
-
     authCheckInProgress = true;
-    loginFlow = true;
 
     try {
         const wasRemember = localStorage.getItem(REMEMBER_FLAG_KEY) === "1";
         const hasPinSaved = hasPin();
 
-        // === Сценарий 1: Запомнить + PIN → показываем PIN-панель ===
-        if (wasRemember && hasPinSaved){
-            let data = null;
-            try {
-                const snap = await getDoc(doc(db, "users", user.uid));
-                if (snap.exists()) data = snap.data();
-            } catch (e){
-                logErr(e);
-            }
+        let data = null;
+        try {
+            const snap = await getDoc(doc(db, "users", user.uid));
+            if (snap.exists()) data = snap.data();
+        } catch (e){
+            logErr(e);
+        }
 
-            if (data && data.reg === 1){
-                openPinPanel(user, data);
-                authResolved = true;
-                return;
-            }
+        if (!data){
+            await signOut(auth);
+            loginFlow = false;
+            showError("Профиль не найден", "Обратитесь к администратору.");
+            return;
+        }
 
-            if (data){
-                await routeByStatus(user, data);
-                authResolved = true;
-                return;
-            }
+        // === Сценарий 1: «Запомнить» + PIN → показываем PIN-панель ===
+        if (wasRemember && hasPinSaved && data.reg === 1){
+            pinMode = true;
+            loginFlow = true;      // блокируем другие обработчики
+            openPinPanel(user, data);
+            return;                // ← НЕ вызываем routeByStatus
         }
 
         // === Сценарий 2: обычный автовход ===
         showLoading("Восстанавливаем сессию…", "Проверяем ваши данные");
-        const snap = await getDoc(doc(db, "users", user.uid));
-
-        if (!snap.exists()){
-            await signOut(auth);
-            loginFlow = false;
-            showError("Профиль не найден", "Обратитесь к администратору.");
-            authResolved = true;
-            return;
-        }
-
-        await routeByStatus(user, snap.data());
-        authResolved = true;
+        loginFlow = true;
+        await routeByStatus(user, data);
 
     } catch (err){
         logErr(err);
         try { await signOut(auth); } catch {}
         loginFlow = false;
+        pinMode = false;
         showError("Ошибка проверки", "Войдите заново.");
     } finally {
         authCheckInProgress = false;
         authResolved = true;
     }
+}
+
+onAuthStateChanged(auth, async user => {
+    if (regInProgress) return;
+
+    // Нет пользователя — сессии нет
+    if (!user){
+        loginFlow = false;
+        pinMode = false;
+        authResolved = true;
+        return;
+    }
+
+    // Обработка уже идёт — не дублируем
+    if (authCheckInProgress){
+        authResolved = true;
+        return;
+    }
+
+    // Уже обработали (например, только что вошли через форму)
+    if (loginFlow && !pinMode){
+        authResolved = true;
+        return;
+    }
+
+    await handleAuthenticatedUser(user);
 });
 
 /* =========================================
@@ -2964,8 +2993,8 @@ function waitForAuthReady(){
 function onAuthResolved(){
     hideLoaderWhenIdle();
 
-    // Если сессии нет — показываем форму и восстанавливаем логин
-    if (!auth.currentUser){
+    // Если сессии нет и мы не на PIN-панели — показываем форму
+    if (!auth.currentUser && !pinMode){
         restoreLastLogin();
         setTimeout(focusFirstField, 150);
     }

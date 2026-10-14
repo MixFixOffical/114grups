@@ -166,7 +166,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
 }
 .icon-btn:hover{background:var(--card-2);color:var(--text);border-color:var(--muted-2)}
 
-.role-badge,.group-badge{
+.role-badge,.group-badge,.semester-badge{
     display:inline-flex;align-items:center;gap:6px;
     padding:6px 10px;border-radius:var(--radius-sm);
     font-size:11px;font-weight:500;
@@ -177,6 +177,8 @@ button:disabled{opacity:.55;cursor:not-allowed}
 }
 .role-badge.admin{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
 .role-badge.curator{background:var(--violet-soft);color:var(--violet);border-color:rgba(109,40,217,.25)}
+/* [ИЗМЕНЕНО] бейдж семестров */
+.semester-badge{background:var(--green-soft);color:var(--green);border-color:rgba(4,120,87,.25)}
 
 /* =========================================================
    LAYOUT
@@ -640,8 +642,9 @@ button:disabled{opacity:.55;cursor:not-allowed}
     .back-button{width:34px;height:34px;font-size:15px}
     .header-title h1{font-size:14px}
     .header-title span{font-size:10px}
-    .role-badge,.group-badge{padding:5px 9px;font-size:10.5px}
+    .role-badge,.group-badge,.semester-badge{padding:5px 9px;font-size:10.5px}
     .group-badge{display:none}
+    .semester-badge{display:none} /* [ИЗМЕНЕНО] скрываем на узких экранах */
     .icon-btn{width:34px;height:34px}
 
     .container{padding:14px 12px calc(90px + var(--safe-bottom))}
@@ -740,6 +743,8 @@ button:disabled{opacity:.55;cursor:not-allowed}
             </button>
             <span id="roleBadge" class="role-badge">Проверка…</span>
             <span id="headerGroup" class="group-badge">Группа: —</span>
+            <!-- [ИЗМЕНЕНО] бейдж семестров группы -->
+            <span id="headerSemester" class="semester-badge">Семестры: —</span>
         </div>
     </div>
 </header>
@@ -880,6 +885,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
     </section>
 
     <!-- ПЛАН -->
+    <!-- [ИЗМЕНЕНО] Заголовки блоков подставляются динамически по номеру группы -->
     <section class="section" id="planSection">
         <div class="card">
             <div class="card-head">
@@ -891,12 +897,15 @@ button:disabled{opacity:.55;cursor:not-allowed}
                 </div>
                 <div>
                     <div class="card-title">Учебный план и аттестации</div>
-                    <div class="card-subtitle">Даты аттестаций по семестрам. Доступно администратору.</div>
+                    <div class="card-subtitle" id="planSubtitle">Даты аттестаций по семестрам. Доступно администратору.</div>
                 </div>
             </div>
             <div class="card-body">
+                <div class="readonly-note" id="planReadonlyNote" style="display:none">
+                    Раздел доступен только администратору. Вы можете просматривать даты, но не изменять их.
+                </div>
                 <div class="semester">
-                    <div class="card-title" style="margin-bottom:12px">Первый семестр</div>
+                    <div class="card-title" style="margin-bottom:12px" id="sem1Title">Первый семестр</div>
                     <div class="input-grid">
                         <div class="field"><label>Аттестация 1 — начало</label><input type="date" id="sem1att1start"></div>
                         <div class="field"><label>Аттестация 1 — конец</label><input type="date" id="sem1att1end"></div>
@@ -905,7 +914,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
                     </div>
                 </div>
                 <div class="semester">
-                    <div class="card-title" style="margin-bottom:12px">Второй семестр</div>
+                    <div class="card-title" style="margin-bottom:12px" id="sem2Title">Второй семестр</div>
                     <div class="input-grid">
                         <div class="field"><label>Аттестация 1 — начало</label><input type="date" id="sem2att1start"></div>
                         <div class="field"><label>Аттестация 1 — конец</label><input type="date" id="sem2att1end"></div>
@@ -919,12 +928,12 @@ button:disabled{opacity:.55;cursor:not-allowed}
             <div class="save-left">
                 <span class="message" id="planMessage"></span>
             </div>
-            <button class="save-button" onclick="saveSettings()">
+            <button class="save-button" onclick="saveSettings()" id="planSaveBtn">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
                     <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                     <path d="M17 21v-8H7v8M7 3v5h8"/>
                 </svg>
-                Сохранить
+                Сохранить для всех групп
             </button>
         </div>
     </section>
@@ -1057,6 +1066,7 @@ let selectedGroupName = "";
 let schedule = {};
 let disciplines = {};
 let bells = {};
+// [ИЗМЕНЕНО] semester1/semester2 — как было, только добавляем вычисление номеров
 let semester1 = {attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
 let semester2 = {attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
 let saving = false;
@@ -1173,6 +1183,30 @@ function plural(n,a,b,c){
 }
 
 /* =========================================================
+   [ИЗМЕНЕНО] ОПРЕДЕЛЕНИЕ СЕМЕСТРОВ ПО НОМЕРУ ГРУППЫ
+   Пример: 111 -> 1 курс -> 1,2
+           211 -> 2 курс -> 3,4
+           311 -> 3 курс -> 5,6
+           411 -> 4 курс -> 7,8
+========================================================= */
+function getSemestersForGroup(groupName){
+    const match = String(groupName || "").trim().match(/^(\d)/);
+    if(!match) return null;
+    const course = parseInt(match[1], 10);
+    if(course < 1 || course > 4) return null;
+    const first = (course - 1) * 2 + 1;
+    return { first, second: first + 1 };
+}
+
+// [ИЗМЕНЕНО] Красивое название семестра
+function getSemesterTitle(n){
+    if(!n) return "—";
+    const course = Math.ceil(n / 2);
+    const half = (n % 2 === 1) ? "осенний" : "весенний";
+    return `${n} семестр · ${course} курс · ${half}`;
+}
+
+/* =========================================================
    LOAD GROUPS
 ========================================================= */
 async function loadAllowedGroups(){
@@ -1265,6 +1299,27 @@ function updateGroupLabels(){
     document.getElementById("heroTitle").textContent = name
         ? "Настройки группы " + name
         : "Настройки группы";
+
+    // [ИЗМЕНЕНО] бейдж семестров + заголовки блоков «План»
+    const semesters = getSemestersForGroup(name);
+    const semEl = document.getElementById("headerSemester");
+    const sem1Title = document.getElementById("sem1Title");
+    const sem2Title = document.getElementById("sem2Title");
+    const planSubtitle = document.getElementById("planSubtitle");
+
+    if(semesters){
+        semEl.textContent = `Семестры: ${semesters.first} и ${semesters.second}`;
+        sem1Title.textContent = getSemesterTitle(semesters.first);
+        sem2Title.textContent = getSemesterTitle(semesters.second);
+        planSubtitle.textContent =
+            `Даты аттестаций для группы ${name}: семестры ${semesters.first} и ${semesters.second}. ` +
+            `Сохраняются во все группы, чтобы у всех были одинаковые даты.`;
+    } else {
+        semEl.textContent = "Семестры: —";
+        sem1Title.textContent = "Первый семестр";
+        sem2Title.textContent = "Второй семестр";
+        planSubtitle.textContent = "Даты аттестаций по семестрам. Доступно администратору.";
+    }
 }
 
 /* =========================================================
@@ -1289,7 +1344,10 @@ function applyRoleUI(){
 }
 
 /* =========================================================
-   LOAD SETTINGS
+   [ИЗМЕНЕНО] LOAD GROUP SETTINGS
+   - читаем из groupSettings/{selectedGroupId}
+   - если semester1/semester2 пустые — берём из эталонной группы
+     (первой группы, у которой они заполнены)
 ========================================================= */
 async function loadGroupSettings(){
     resetLocalSettings();
@@ -1309,12 +1367,47 @@ async function loadGroupSettings(){
             if(data.semester1) semester1 = {...semester1, ...data.semester1};
             if(data.semester2) semester2 = {...semester2, ...data.semester2};
         }
+
+        // [ИЗМЕНЕНО] если у текущей группы аттестации пустые — тянем из эталона
+        if(!hasAnyAttestation(semester1) && !hasAnyAttestation(semester2)){
+            const ref = await findReferenceAttestations();
+            if(ref){
+                semester1 = ref.semester1;
+                semester2 = ref.semester2;
+            }
+        }
     }catch(e){
         console.warn("Не удалось загрузить настройки группы:", e);
     }
 
     hasUnsavedChanges = false;
     renderAll();
+}
+
+// [ИЗМЕНЕНО] проверка, есть ли хоть одна дата
+function hasAnyAttestation(sem){
+    if(!sem) return false;
+    const a1 = sem.attestation1 || {};
+    const a2 = sem.attestation2 || {};
+    return Boolean(a1.start || a1.end || a2.start || a2.end);
+}
+
+// [ИЗМЕНЕНО] ищем эталонную группу с заполненными аттестациями
+async function findReferenceAttestations(){
+    for(const g of allowedGroups){
+        if(g.id === selectedGroupId) continue;
+        try{
+            const snap = await db.collection("groupSettings").doc(g.id).get();
+            if(!snap.exists) continue;
+            const data = snap.data() || {};
+            const s1 = data.semester1 || {};
+            const s2 = data.semester2 || {};
+            if(hasAnyAttestation(s1) || hasAnyAttestation(s2)){
+                return { semester1: s1, semester2: s2 };
+            }
+        }catch(e){ /* пропускаем */ }
+    }
+    return null;
 }
 
 /* =========================================================
@@ -1568,6 +1661,7 @@ function renderBells(){
 
 /* =========================================================
    RENDER: SEMESTERS
+   [ИЗМЕНЕНО] используем semester1/semester2, как было
 ========================================================= */
 function renderSemesters(){
     const ids = [
@@ -1636,7 +1730,9 @@ function renderAll(){
 }
 
 /* =========================================================
-   SAVE
+   [ИЗМЕНЕНО] SAVE
+   - групповые настройки (schedule, disciplines, bells) — в текущую группу
+   - semester1/semester2 — во ВСЕ группы (batch), чтобы не менять структуру БД
 ========================================================= */
 async function saveSettings(){
     if(saving) return;
@@ -1654,17 +1750,9 @@ async function saveSettings(){
         if(el){ el.textContent = "Сохранение…"; el.className = "message info"; }
     });
 
-    const payload = {
-        group: selectedGroupName,
-        groupId: selectedGroupId,
-        schedule,
-        disciplines,
-        updatedAt: new Date().toISOString()
-    };
-
-    if(role === "admin"){
-        payload.bells = bells;
-        payload.semester1 = {
+    // Считываем актуальные значения из полей «План»
+    const plan = {
+        semester1: {
             attestation1: {
                 start: document.getElementById("sem1att1start").value,
                 end: document.getElementById("sem1att1end").value
@@ -1673,8 +1761,8 @@ async function saveSettings(){
                 start: document.getElementById("sem1att2start").value,
                 end: document.getElementById("sem1att2end").value
             }
-        };
-        payload.semester2 = {
+        },
+        semester2: {
             attestation1: {
                 start: document.getElementById("sem2att1start").value,
                 end: document.getElementById("sem2att1end").value
@@ -1683,18 +1771,60 @@ async function saveSettings(){
                 start: document.getElementById("sem2att2start").value,
                 end: document.getElementById("sem2att2end").value
             }
-        };
+        }
+    };
+
+    const basePayload = {
+        group: selectedGroupName,
+        groupId: selectedGroupId,
+        schedule,
+        disciplines,
+        updatedAt: new Date().toISOString()
+    };
+
+    if(role === "admin"){
+        basePayload.bells = bells;
     }
 
     try{
+        // 1) Текущая группа — всё, включая аттестации (если админ)
+        const payload = {...basePayload};
+        if(role === "admin"){
+            payload.semester1 = plan.semester1;
+            payload.semester2 = plan.semester2;
+        }
         await db.collection("groupSettings").doc(selectedGroupId).set(payload, {merge: true});
+
+        // 2) [ИЗМЕНЕНО] Если админ — пишем аттестации во все группы (batch)
+        if(role === "admin"){
+            const others = allowedGroups.filter(g => g.id !== selectedGroupId);
+            if(others.length){
+                const batch = db.batch();
+                others.forEach(g => {
+                    const ref = db.collection("groupSettings").doc(g.id);
+                    batch.set(ref, {
+                        group: g.name,
+                        groupId: g.id,
+                        semester1: plan.semester1,
+                        semester2: plan.semester2,
+                        updatedAt: new Date().toISOString()
+                    }, {merge: true});
+                });
+                await batch.commit();
+            }
+        }
 
         ["scheduleMessage","disciplineMessage","planMessage","bellsMessage"].forEach(id => {
             const el = document.getElementById(id);
             if(el){ el.textContent = "Настройки сохранены"; el.className = "message"; }
         });
 
-        toast("Настройки группы сохранены", "success");
+        toast(
+            role === "admin"
+                ? "Настройки сохранены во все группы"
+                : "Настройки группы сохранены",
+            "success"
+        );
         hasUnsavedChanges = false;
 
         setTimeout(() => {

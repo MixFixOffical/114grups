@@ -367,7 +367,7 @@
             autocomplete="email" maxlength="254"
             autocapitalize="off" spellcheck="false" inputmode="email"
             placeholder="name@example.com" required>
-          <p class="hint">Нужна для восстановления пароля.</p>
+          <p class="hint">На этот адрес придёт ссылка для восстановления пароля.</p>
         </div>
 
         <div class="field">
@@ -471,9 +471,6 @@
       measurementId: "G-B3SDDN1T50"
     };
 
-    // Домен-заглушка для синтетического email в Firebase Auth
-    const LOGIN_DOMAIN = "sokrat.local";
-
     const ROLE_HOME = {
       admin:       "adminhome.html",
       director:    "directorhome.html",
@@ -527,10 +524,6 @@
       if (login.length > 64) return "Логин не должен превышать 64 символа.";
       if (/[@\s]/.test(login)) return "Логин не должен содержать символ @ и пробелы.";
       return "";
-    }
-
-    function loginToSyntheticEmail(login) {
-      return login + "@" + LOGIN_DOMAIN;
     }
 
     /* ============ ЗАЩИТА ОТ ПОДБОРА ============ */
@@ -672,24 +665,38 @@
       pwMeter.className = "pw-meter" + (s ? " s" + s : "");
     });
 
-    /* ============ ОШИБКИ FIREBASE ============ */
+    /* ============ ОШИБКИ ============ */
 
     function translateAuthError(code) {
       const map = {
-        "auth/invalid-email": "Некорректные данные для входа.",
+        "auth/invalid-email": "Некорректный адрес электронной почты.",
         "auth/user-disabled": "Учётная запись отключена.",
         "auth/user-not-found": "Неверный логин или пароль.",
         "auth/wrong-password": "Неверный логин или пароль.",
         "auth/invalid-credential": "Неверный логин или пароль.",
         "auth/invalid-login-credentials": "Неверный логин или пароль.",
-        "auth/email-already-in-use": "Такой логин уже занят.",
+        "auth/email-already-in-use": "Этот адрес электронной почты уже зарегистрирован.",
         "auth/weak-password": "Слишком слабый пароль (минимум 8 символов: буквы и цифры).",
         "auth/too-many-requests": "Слишком много попыток. Доступ временно заблокирован.",
         "auth/network-request-failed": "Ошибка сети. Проверьте подключение.",
         "auth/operation-not-allowed": "Вход по email/паролю отключён в консоли Firebase.",
         "auth/missing-password": "Введите пароль."
       };
-      return map[code] || "Ошибка авторизации. Попробуйте ещё раз.";
+      return map[code] || ("Ошибка авторизации: " + (code || "неизвестная"));
+    }
+
+    function formatFirestoreError(error) {
+      const code = error && error.code ? error.code : "unknown";
+      const map = {
+        "permission-denied": "Нет доступа к Firestore. Проверь правила (Rules).",
+        "unavailable": "Firestore недоступен. Проверь интернет или регион базы.",
+        "failed-precondition": "Firestore не инициализирован. Создай базу в консоли Firebase.",
+        "not-found": "Документ не найден.",
+        "already-exists": "Документ уже существует.",
+        "unauthenticated": "Требуется вход в систему.",
+        "resource-exhausted": "Превышен лимит запросов к Firestore."
+      };
+      return map[code] || ("Ошибка Firestore (" + code + "): " + (error.message || ""));
     }
 
     /* ============ РОЛЬ -> ДОМАШНИЙ ЭКРАН ============ */
@@ -750,36 +757,28 @@
       const password = $("regPassword").value;
       const confirm = $("regPasswordConfirm").value;
 
-      if (fullName.length < 2) {
-        showMessage("Введите ФИО.", "error");
-        return;
-      }
+      if (fullName.length < 2) { showMessage("Введите ФИО.", "error"); return; }
 
       const loginError = validateLogin(login);
-      if (loginError) {
-        showMessage(loginError, "error");
-        return;
+      if (loginError) { showMessage(loginError, "error"); return; }
+
+      if (!email || !email.includes("@")) {
+        showMessage("Введите корректный адрес электронной почты.", "error"); return;
       }
 
       if (!role || !ROLE_HOME[role]) {
-        showMessage("Выберите роль в системе.", "error");
-        return;
+        showMessage("Выберите роль в системе.", "error"); return;
       }
 
       const pwError = validatePasswordPolicy(password);
-      if (pwError) {
-        showMessage(pwError, "error");
-        return;
-      }
+      if (pwError) { showMessage(pwError, "error"); return; }
 
       if (password !== confirm) {
-        showMessage("Пароли не совпадают.", "error");
-        return;
+        showMessage("Пароли не совпадают.", "error"); return;
       }
 
       if (!$("acceptTerms").checked) {
-        showMessage("Для продолжения примите условия использования.", "error");
-        return;
+        showMessage("Для продолжения примите условия использования.", "error"); return;
       }
 
       const button = $("registerSubmit");
@@ -788,7 +787,15 @@
       try {
         // 1. Проверяем, не занят ли логин
         const loginRef = doc(db, "logins", login);
-        const loginSnap = await getDoc(loginRef);
+        let loginSnap;
+        try {
+          loginSnap = await getDoc(loginRef);
+        } catch (fsErr) {
+          console.error("Firestore read (check login) error:", fsErr);
+          showMessage(formatFirestoreError(fsErr), "error");
+          setLoading(button, false, "Создать аккаунт");
+          return;
+        }
 
         if (loginSnap.exists()) {
           showMessage("Такой логин уже занят. Выберите другой.", "error");
@@ -796,27 +803,31 @@
           return;
         }
 
-        // 2. Создаём пользователя в Firebase Auth
-        const syntheticEmail = loginToSyntheticEmail(login);
-        const { user } = await createUserWithEmailAndPassword(auth, syntheticEmail, password);
-
+        // 2. Создаём пользователя в Firebase Auth с РЕАЛЬНЫМ email
+        const { user } = await createUserWithEmailAndPassword(auth, email, password);
         await updateProfile(user, { displayName: fullName });
 
-        // 3. Сохраняем профиль в Firestore
-        await setDoc(doc(db, "users", user.uid), {
-          full_name: fullName,
-          login: login,
-          email: email,
-          role: role,
-          created_at: serverTimestamp()
-        });
+        // 3. Сохраняем профиль и карту логина в Firestore
+        try {
+          await setDoc(doc(db, "users", user.uid), {
+            full_name: fullName,
+            login: login,
+            email: email,
+            role: role,
+            created_at: serverTimestamp()
+          });
 
-        // 4. Сохраняем карту логин -> email для входа и восстановления
-        await setDoc(loginRef, {
-          uid: user.uid,
-          email: email,
-          created_at: serverTimestamp()
-        });
+          await setDoc(loginRef, {
+            uid: user.uid,
+            email: email,
+            created_at: serverTimestamp()
+          });
+        } catch (fsErr) {
+          console.error("Firestore write error:", fsErr);
+          showMessage(formatFirestoreError(fsErr), "error");
+          setLoading(button, false, "Создать аккаунт");
+          return;
+        }
 
         registerForm.reset();
         showMessage("Аккаунт создан. Выполняется вход...", "success");
@@ -846,17 +857,22 @@
       const button = $("loginSubmit");
 
       const loginError = validateLogin(login);
-      if (loginError) {
-        showMessage(loginError, "error");
-        return;
-      }
+      if (loginError) { showMessage(loginError, "error"); return; }
 
       setLoading(button, true, "Войти в систему");
 
       try {
-        // Ищем email по логину
+        // 1. Ищем email по логину
         const loginRef = doc(db, "logins", login);
-        const loginSnap = await getDoc(loginRef);
+        let loginSnap;
+        try {
+          loginSnap = await getDoc(loginRef);
+        } catch (fsErr) {
+          console.error("Firestore read error:", fsErr);
+          showMessage(formatFirestoreError(fsErr), "error");
+          setLoading(button, false, "Войти в систему");
+          return;
+        }
 
         if (!loginSnap.exists()) {
           registerFailedAttempt();
@@ -866,17 +882,17 @@
         }
 
         const emailForLogin = loginSnap.data().email;
-        const syntheticEmail = loginToSyntheticEmail(login);
 
+        // 2. Входим по реальному email
         await setPersistence(
           auth,
           remember ? browserLocalPersistence : browserSessionPersistence
         );
 
-        await signInWithEmailAndPassword(auth, syntheticEmail, password);
+        await signInWithEmailAndPassword(auth, emailForLogin, password);
 
         registerSuccessfulLogin();
-        await redirectByRole(null, "Вход выполнен.");
+        await redirectByRole(auth.currentUser, "Вход выполнен.");
       } catch (error) {
         console.error("Login error:", error);
 
@@ -922,10 +938,7 @@
       const login = normalizeLogin(resetLogin.value);
 
       const loginError = validateLogin(login);
-      if (loginError) {
-        showMessage(loginError, "error");
-        return;
-      }
+      if (loginError) { showMessage(loginError, "error"); return; }
 
       setLoading(resetSend, true, "Отправить ссылку");
 
@@ -934,7 +947,7 @@
 
         if (!loginSnap.exists()) {
           showMessage(
-            "Если такой логин зарегистрирован, ссылка для сброса отправлена на привязанную почту.",
+            "Если такой логин зарегистрирован, ссылка отправлена на привязанную почту.",
             "success"
           );
           closeResetModal();
@@ -951,11 +964,23 @@
         closeResetModal();
       } catch (error) {
         console.error("Password recovery error:", error);
-        showMessage(translateAuthError(error.code), "error");
+        showMessage(formatFirestoreError(error) || translateAuthError(error.code), "error");
       } finally {
         setLoading(resetSend, false, "Отправить ссылку");
       }
     });
+
+    /* ============ HEALTH-CHECK FIRESTORE ============ */
+
+    (async () => {
+      try {
+        await getDoc(doc(db, "logins", "__healthcheck__"));
+        console.log("[СОКРАТ] Firestore доступен.");
+      } catch (e) {
+        console.error("[СОКРАТ] Firestore НЕ доступен:", e.code, e.message);
+        console.error("Проверь: 1) база создана, 2) rules применены, 3) проект совпадает.");
+      }
+    })();
   </script>
 </body>
 </html>

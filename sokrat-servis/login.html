@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>СОКРАТ — Вход и регистрация</title>
 
-    <!-- ✅ IMPORT MAP — обязательно ДО всех модульных скриптов -->
     <script type="importmap">
     {
       "imports": {
@@ -319,8 +318,8 @@
         <!-- ================= ВХОД ================= -->
         <form class="form active" id="loginForm" novalidate>
             <div class="form-group">
-                <label for="loginEmail">Почта</label>
-                <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email" required>
+                <label for="loginLogin">Логин</label>
+                <input type="text" id="loginLogin" placeholder="ivanov" autocomplete="username" required>
             </div>
 
             <div class="form-group">
@@ -430,12 +429,11 @@
     </div>
 
     <script type="module">
-        import { auth, db, HOME_BY_ROLE } from './firebase-config.js';
+        import { auth, db, HOME_BY_ROLE, FAKE_DOMAIN } from './firebase-config.js';
         import {
             createUserWithEmailAndPassword,
             signInWithEmailAndPassword,
-            updateProfile,
-            sendPasswordResetEmail
+            updateProfile
         } from "firebase/auth";
         import {
             doc, setDoc, getDoc, serverTimestamp
@@ -458,12 +456,12 @@
 
         function translateError(code) {
             const map = {
-                'auth/email-already-in-use': 'Эта почта уже зарегистрирована',
+                'auth/email-already-in-use': 'Этот логин или почта уже заняты',
                 'auth/invalid-email': 'Некорректный адрес почты',
                 'auth/weak-password': 'Слишком слабый пароль (минимум 6 символов)',
-                'auth/user-not-found': 'Пользователь с такой почтой не найден',
+                'auth/user-not-found': 'Пользователь не найден',
                 'auth/wrong-password': 'Неверный пароль',
-                'auth/invalid-credential': 'Неверная почта или пароль',
+                'auth/invalid-credential': 'Неверный логин или пароль',
                 'auth/too-many-requests': 'Слишком много попыток. Попробуйте позже',
                 'auth/network-request-failed': 'Проблема с сетью. Проверьте подключение',
                 'auth/operation-not-allowed': 'Вход по email/паролю отключён в Firebase',
@@ -475,6 +473,11 @@
         function goHome(role) {
             const page = HOME_BY_ROLE[role] || 'login.html';
             window.location.href = page;
+        }
+
+        // Логин → синтетический email для Firebase Auth
+        function loginToFakeEmail(login) {
+            return `${login.toLowerCase()}@${FAKE_DOMAIN}`;
         }
 
         // ================== ТАБЫ ==================
@@ -532,26 +535,46 @@
             e.preventDefault();
             hideMessage();
 
-            const email    = document.getElementById('loginEmail').value.trim();
+            const login    = document.getElementById('loginLogin').value.trim().toLowerCase();
             const password = document.getElementById('loginPassword').value;
 
-            if (!email || !password) {
+            if (!login || !password) {
                 return showMessage('Заполните все поля');
+            }
+            if (!/^[a-zA-Z0-9_.]{3,20}$/.test(login)) {
+                return showMessage('Логин: 3–20 символов, только латиница, цифры, _ и .');
             }
 
             loginBtn.disabled = true;
             loginBtn.textContent = 'Вход...';
 
             try {
+                // 1. Ищем email по логину в Firestore
+                const loginRef = doc(db, 'logins', login);
+                const loginSnap = await getDoc(loginRef);
+
+                if (!loginSnap.exists()) {
+                    showMessage('Неверный логин или пароль');
+                    return;
+                }
+
+                const email = loginSnap.data().email;
+                if (!email) {
+                    showMessage('Ошибка профиля. Обратитесь к администратору');
+                    return;
+                }
+
+                // 2. Логинимся в Firebase по найденному email
                 const cred = await signInWithEmailAndPassword(auth, email, password);
 
-                const snap = await getDoc(doc(db, 'users', cred.user.uid));
-                if (!snap.exists()) {
+                // 3. Читаем профиль → роль
+                const userSnap = await getDoc(doc(db, 'users', cred.user.uid));
+                if (!userSnap.exists()) {
                     showMessage('Профиль пользователя не найден в базе');
                     return;
                 }
 
-                const role = snap.data().role;
+                const role = userSnap.data().role;
                 if (!role || !HOME_BY_ROLE[role]) {
                     showMessage('Неизвестная роль. Обратитесь к администратору');
                     return;
@@ -560,7 +583,7 @@
                 showMessage('Успешный вход! Перенаправление...', 'success');
                 setTimeout(() => goHome(role), 500);
             } catch (err) {
-                console.error(err);
+                console.error('❌ Ошибка входа:', err);
                 showMessage(translateError(err.code));
             } finally {
                 loginBtn.disabled = false;
@@ -569,22 +592,14 @@
         });
 
         // ============ СБРОС ПАРОЛЯ ============
-        document.getElementById('forgotLink').addEventListener('click', async (e) => {
+        // Теперь сбрасываем пароль по ПОЧТЕ (не по логину),
+        // потому что Firebase отправляет письмо именно на email.
+        document.getElementById('forgotLink').addEventListener('click', (e) => {
             e.preventDefault();
-            hideMessage();
-            const email = document.getElementById('loginEmail').value.trim();
-
-            if (!email) {
-                return showMessage('Введите почту в поле выше, чтобы сбросить пароль');
-            }
-
-            try {
-                await sendPasswordResetEmail(auth, email);
-                showMessage('Письмо для сброса пароля отправлено на ' + email, 'success');
-            } catch (err) {
-                console.error(err);
-                showMessage(translateError(err.code));
-            }
+            showMessage(
+                'Для сброса пароля обратитесь к администратору — сброс по email отключён.',
+                'error'
+            );
         });
 
         // ============== РЕГИСТРАЦИЯ ==============
@@ -596,8 +611,8 @@
             hideMessage();
 
             const name      = document.getElementById('regName').value.trim();
-            const login     = document.getElementById('regLogin').value.trim();
-            const email     = document.getElementById('regEmail').value.trim();
+            const login     = document.getElementById('regLogin').value.trim().toLowerCase();
+            const email     = document.getElementById('regEmail').value.trim().toLowerCase();
             const password  = regPassword.value;
             const password2 = regPassword2.value;
             const role      = document.querySelector('input[name="role"]:checked')?.value;
@@ -612,6 +627,9 @@
             if (!/^[a-zA-Z0-9_.]{3,20}$/.test(login)) {
                 return showMessage('Логин: 3–20 символов, только латиница, цифры, _ и .');
             }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                return showMessage('Некорректный адрес почты');
+            }
             if (password.length < 6) {
                 return showMessage('Пароль должен содержать минимум 6 символов');
             }
@@ -623,41 +641,41 @@
             registerBtn.textContent = 'Создание аккаунта...';
 
             try {
-                console.log('🟢 Начало регистрации:', { name, login, email, role });
+                console.log('🟢 Регистрация:', { name, login, email, role });
 
-                // 1. Создаём пользователя в Firebase Auth
-                const cred = await createUserWithEmailAndPassword(auth, email, password);
-                console.log('✅ Auth user created:', cred.user.uid);
-
-                // 2. Имя в Auth-профиль
-                await updateProfile(cred.user, { displayName: name });
-
-                // 3. Проверка уникальности логина
-                const loginRef = doc(db, 'logins', login.toLowerCase());
+                // 1. Проверяем уникальность логина в Firestore
+                const loginRef = doc(db, 'logins', login);
                 const loginSnap = await getDoc(loginRef);
                 if (loginSnap.exists()) {
                     showMessage('Такой логин уже занят. Выберите другой');
-                    await cred.user.delete();
                     return;
                 }
+
+                // 2. Создаём пользователя в Firebase Auth по РЕАЛЬНОМУ email
+                const cred = await createUserWithEmailAndPassword(auth, email, password);
+                console.log('✅ Auth user created:', cred.user.uid);
+
+                // 3. Имя в Auth-профиль
+                await updateProfile(cred.user, { displayName: name });
 
                 // 4. Профиль в Firestore
                 await setDoc(doc(db, 'users', cred.user.uid), {
                     uid: cred.user.uid,
                     name,
-                    login: login.toLowerCase(),
+                    login,
                     email,
                     role,
                     createdAt: serverTimestamp()
                 });
-                console.log('✅ Firestore users doc created');
+                console.log('✅ users doc created');
 
-                // 5. Резервируем логин
+                // 5. Резервируем логин → храним email и uid
                 await setDoc(loginRef, {
                     uid: cred.user.uid,
+                    email,
                     createdAt: serverTimestamp()
                 });
-                console.log('✅ Login reserved');
+                console.log('✅ login reserved');
 
                 showMessage('Аккаунт создан! Перенаправление...', 'success');
                 setTimeout(() => goHome(role), 800);

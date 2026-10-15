@@ -294,10 +294,10 @@
         <p class="description">Войдите в свою учётную запись СОКРАТ.</p>
 
         <div class="field">
-          <label class="field-label" for="loginUsername">Логин</label>
-          <input id="loginUsername" name="username"
-            autocomplete="username" minlength="3" maxlength="30"
-            placeholder="Введите логин" required>
+          <label class="field-label" for="loginEmail">Электронная почта</label>
+          <input id="loginEmail" name="email" type="email"
+            autocomplete="email" maxlength="254"
+            placeholder="name@example.com" required>
         </div>
 
         <div class="field">
@@ -336,16 +336,6 @@
         </div>
 
         <div class="field">
-          <label class="field-label" for="regUsername">Логин</label>
-          <input id="regUsername" name="username"
-            autocomplete="username" minlength="3" maxlength="30"
-            pattern="[A-Za-z0-9_.\-]{3,30}"
-            title="От 3 до 30 символов: латинские буквы, цифры, точка, дефис или подчёркивание"
-            placeholder="Например, ivanov_01" required>
-        </div>
-        <p class="hint">Латинские буквы, цифры, точка, дефис или подчёркивание.</p>
-
-        <div class="field">
           <label class="field-label" for="regEmail">Электронная почта</label>
           <input id="regEmail" name="email" type="email"
             autocomplete="email" maxlength="254"
@@ -356,8 +346,8 @@
           <label class="field-label" for="regPassword">Пароль</label>
           <div class="input-wrap">
             <input id="regPassword" class="password-input"
-              name="password" type="password" minlength="8"
-              autocomplete="new-password" placeholder="Не менее 8 символов" required>
+              name="password" type="password" minlength="6"
+              autocomplete="new-password" placeholder="Не менее 6 символов" required>
             <button class="toggle" type="button" data-target="regPassword">Показать</button>
           </div>
         </div>
@@ -366,7 +356,7 @@
           <label class="field-label" for="regPasswordConfirm">Повторите пароль</label>
           <div class="input-wrap">
             <input id="regPasswordConfirm" class="password-input"
-              name="password_confirm" type="password" minlength="8"
+              name="password_confirm" type="password" minlength="6"
               autocomplete="new-password" placeholder="Введите пароль ещё раз" required>
             <button class="toggle" type="button" data-target="regPasswordConfirm">Показать</button>
           </div>
@@ -388,20 +378,33 @@
   </main>
 
   <script type="module">
-    import { createClient } from
-      "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      updateProfile,
+      sendPasswordResetEmail,
+      setPersistence,
+      browserLocalPersistence,
+      browserSessionPersistence,
+      onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-    const SUPABASE_URL = "https://sfukwttzlmaflqmyskps.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_ZEeW_eJMaYp9Zk5Tm6Uelg_BGO5Cfg6";
+    const firebaseConfig = {
+      apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
+      authDomain: "sokrat-7c938.firebaseapp.com",
+      projectId: "sokrat-7c938",
+      storageBucket: "sokrat-7c938.firebasestorage.app",
+      messagingSenderId: "19858604945",
+      appId: "1:19858604945:web:8ec6dc1a81dba35c481030",
+      measurementId: "G-B3SDDN1T50"
+    };
+
     const DASHBOARD_URL = "adminhome.html";
 
-    const client = createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
-    });
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
 
     const $ = id => document.getElementById(id);
     const loginForm = $("loginForm");
@@ -416,10 +419,6 @@
     function clearMessage() {
       message.textContent = "";
       message.className = "message";
-    }
-
-    function normalizeUsername(value) {
-      return value.trim().toLowerCase();
     }
 
     function showTab(tab) {
@@ -448,29 +447,49 @@
       button.textContent = loading ? "Подождите..." : normalText;
     }
 
+    // Перевод кодов ошибок Firebase на русский
+    function translateAuthError(code) {
+      const map = {
+        "auth/invalid-email": "Некорректный адрес электронной почты.",
+        "auth/user-disabled": "Учётная запись отключена.",
+        "auth/user-not-found": "Пользователь с такой почтой не найден.",
+        "auth/wrong-password": "Неверный пароль.",
+        "auth/invalid-credential": "Неверный email или пароль.",
+        "auth/invalid-login-credentials": "Неверный email или пароль.",
+        "auth/email-already-in-use": "Этот адрес электронной почты уже зарегистрирован.",
+        "auth/weak-password": "Слишком слабый пароль (минимум 6 символов).",
+        "auth/too-many-requests": "Слишком много попыток. Попробуйте позже.",
+        "auth/network-request-failed": "Ошибка сети. Проверьте подключение.",
+        "auth/operation-not-allowed": "Вход по email/паролю отключён в консоли Firebase.",
+        "auth/missing-password": "Введите пароль."
+      };
+      return map[code] || "Ошибка авторизации. Попробуйте ещё раз.";
+    }
+
+    // Если пользователь уже вошёл — сразу на дашборд
+    onAuthStateChanged(auth, user => {
+      if (user) {
+        window.location.replace(DASHBOARD_URL);
+      }
+    });
+
     // РЕГИСТРАЦИЯ
     registerForm.addEventListener("submit", async event => {
       event.preventDefault();
       clearMessage();
 
       const fullName = $("regFullName").value.trim();
-      const username = normalizeUsername($("regUsername").value);
       const email = $("regEmail").value.trim().toLowerCase();
       const password = $("regPassword").value;
       const confirm = $("regPasswordConfirm").value;
-
-      if (!/^[a-z0-9_.-]{3,30}$/.test(username)) {
-        showMessage("Логин должен содержать 3–30 символов: латинские буквы, цифры, точку, дефис или подчёркивание.", "error");
-        return;
-      }
 
       if (fullName.length < 2) {
         showMessage("Введите ФИО.", "error");
         return;
       }
 
-      if (password.length < 8) {
-        showMessage("Пароль должен содержать не менее 8 символов.", "error");
+      if (password.length < 6) {
+        showMessage("Пароль должен содержать не менее 6 символов.", "error");
         return;
       }
 
@@ -488,99 +507,44 @@
       setLoading(button, true, "Создать аккаунт");
 
       try {
-        const { data, error } = await client.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              username,
-              full_name: fullName
-            },
-            emailRedirectTo: window.location.origin + "/" + DASHBOARD_URL
-          }
-        });
-
-        if (error) {
-          const text = (error.message || "").toLowerCase();
-
-          if (text.includes("duplicate key") ||
-              text.includes("profiles_username_key") ||
-              text.includes("unique constraint")) {
-            throw new Error("Этот логин уже занят. Придумайте другой.");
-          }
-
-          throw error;
-        }
+        const { user } = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(user, { displayName: fullName });
 
         registerForm.reset();
-
-        if (data.session) {
-          showMessage("Аккаунт создан. Выполняется вход...", "success");
-          window.location.replace(DASHBOARD_URL);
-        } else {
-          showMessage(
-            "Регистрация принята. Проверьте почту и подтвердите адрес, если Supabase требует подтверждение. Логин сохранится в profiles через настроенный триггер.",
-            "success"
-          );
-        }
+        showMessage("Аккаунт создан. Выполняется вход...", "success");
+        window.location.replace(DASHBOARD_URL);
       } catch (error) {
         console.error("Registration error:", error);
-        showMessage(error.message || "Ошибка регистрации. Проверьте настройки Supabase.", "error");
+        showMessage(translateAuthError(error.code), "error");
       } finally {
         setLoading(button, false, "Создать аккаунт");
       }
     });
 
-    // ВХОД ПО ЛОГИНУ
-    $("loginForm").addEventListener("submit", async event => {
+    // ВХОД
+    loginForm.addEventListener("submit", async event => {
       event.preventDefault();
       clearMessage();
 
-      const username = normalizeUsername($("loginUsername").value);
+      const email = $("loginEmail").value.trim().toLowerCase();
       const password = $("loginPassword").value;
+      const remember = $("rememberMe").checked;
       const button = $("loginSubmit");
 
       setLoading(button, true, "Войти в систему");
 
       try {
-        const response = await fetch(
-          SUPABASE_URL + "/functions/v1/login-by-username",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "apikey": SUPABASE_KEY,
-              "Authorization": "Bearer " + SUPABASE_KEY
-            },
-            body: JSON.stringify({ username, password })
-          }
+        await setPersistence(
+          auth,
+          remember ? browserLocalPersistence : browserSessionPersistence
         );
 
-        const result = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          throw new Error(result.error || "Неверный логин или пароль.");
-        }
-
-        if (!result.access_token || !result.refresh_token) {
-          throw new Error("Сервер входа вернул неполный ответ. Проверьте Edge Function.");
-        }
-
-        const { error } = await client.auth.setSession({
-          access_token: result.access_token,
-          refresh_token: result.refresh_token
-        });
-
-        if (error) throw error;
-
+        await signInWithEmailAndPassword(auth, email, password);
         showMessage("Вход выполнен. Открываем СОКРАТ...", "success");
         window.location.replace(DASHBOARD_URL);
       } catch (error) {
         console.error("Login error:", error);
-        showMessage(
-          error.message || "Не удалось войти. Проверьте подключение и настройки Supabase.",
-          "error"
-        );
+        showMessage(translateAuthError(error.code), "error");
       } finally {
         setLoading(button, false, "Войти в систему");
       }
@@ -594,22 +558,14 @@
       clearMessage();
 
       try {
-        const { error } = await client.auth.resetPasswordForEmail(
-          email.trim(),
-          {
-            redirectTo: window.location.origin + "/reset-password.html"
-          }
-        );
-
-        if (error) throw error;
-
+        await sendPasswordResetEmail(auth, email.trim().toLowerCase());
         showMessage(
-          "Если адрес зарегистрирован, инструкция будет отправлена на почту. Для завершения восстановления настройте reset-password.html.",
+          "Если адрес зарегистрирован, инструкция по восстановлению отправлена на почту.",
           "success"
         );
       } catch (error) {
         console.error("Password recovery error:", error);
-        showMessage("Не удалось отправить письмо. Проверьте настройки почты Supabase.", "error");
+        showMessage(translateAuthError(error.code), "error");
       }
     });
   </script>

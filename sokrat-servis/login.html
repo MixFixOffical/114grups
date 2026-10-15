@@ -4,6 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>СОКРАТ — Вход и регистрация</title>
+
+    <!-- ✅ IMPORT MAP — обязательно ДО всех модульных скриптов -->
+    <script type="importmap">
+    {
+      "imports": {
+        "firebase/app":        "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+        "firebase/auth":       "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js",
+        "firebase/firestore":  "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js",
+        "firebase/analytics":  "https://www.gstatic.com/firebasejs/10.12.0/firebase-analytics.js"
+      }
+    }
+    </script>
+
     <style>
         * {
             margin: 0;
@@ -227,7 +240,6 @@
         .hint.invalid { color: #dc2626; }
         .hint.valid   { color: #16a34a; }
 
-        /* Плитки выбора должности */
         .roles {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -424,10 +436,10 @@
             signInWithEmailAndPassword,
             updateProfile,
             sendPasswordResetEmail
-        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        } from "firebase/auth";
         import {
             doc, setDoc, getDoc, serverTimestamp
-        } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        } from "firebase/firestore";
 
         // ================== УТИЛИТЫ ==================
         const messageBox = document.getElementById('message');
@@ -453,12 +465,13 @@
                 'auth/wrong-password': 'Неверный пароль',
                 'auth/invalid-credential': 'Неверная почта или пароль',
                 'auth/too-many-requests': 'Слишком много попыток. Попробуйте позже',
-                'auth/network-request-failed': 'Проблема с сетью. Проверьте подключение'
+                'auth/network-request-failed': 'Проблема с сетью. Проверьте подключение',
+                'auth/operation-not-allowed': 'Вход по email/паролю отключён в Firebase',
+                'permission-denied': 'Нет доступа к базе данных. Проверьте правила Firestore'
             };
-            return map[code] || 'Произошла ошибка. Попробуйте ещё раз';
+            return map[code] || `Ошибка: ${code || 'неизвестная'}`;
         }
 
-        // Роутинг по роли
         function goHome(role) {
             const page = HOME_BY_ROLE[role] || 'login.html';
             window.location.href = page;
@@ -532,7 +545,6 @@
             try {
                 const cred = await signInWithEmailAndPassword(auth, email, password);
 
-                // Загружаем профиль → определяем роль → редирект
                 const snap = await getDoc(doc(db, 'users', cred.user.uid));
                 if (!snap.exists()) {
                     showMessage('Профиль пользователя не найден в базе');
@@ -548,6 +560,7 @@
                 showMessage('Успешный вход! Перенаправление...', 'success');
                 setTimeout(() => goHome(role), 500);
             } catch (err) {
+                console.error(err);
                 showMessage(translateError(err.code));
             } finally {
                 loginBtn.disabled = false;
@@ -569,6 +582,7 @@
                 await sendPasswordResetEmail(auth, email);
                 showMessage('Письмо для сброса пароля отправлено на ' + email, 'success');
             } catch (err) {
+                console.error(err);
                 showMessage(translateError(err.code));
             }
         });
@@ -609,8 +623,11 @@
             registerBtn.textContent = 'Создание аккаунта...';
 
             try {
+                console.log('🟢 Начало регистрации:', { name, login, email, role });
+
                 // 1. Создаём пользователя в Firebase Auth
                 const cred = await createUserWithEmailAndPassword(auth, email, password);
+                console.log('✅ Auth user created:', cred.user.uid);
 
                 // 2. Имя в Auth-профиль
                 await updateProfile(cred.user, { displayName: name });
@@ -630,25 +647,30 @@
                     name,
                     login: login.toLowerCase(),
                     email,
-                    role,                  // teacher | methodist | cmc_chair | deputy_ur | director | admin
+                    role,
                     createdAt: serverTimestamp()
                 });
+                console.log('✅ Firestore users doc created');
 
                 // 5. Резервируем логин
                 await setDoc(loginRef, {
                     uid: cred.user.uid,
                     createdAt: serverTimestamp()
                 });
+                console.log('✅ Login reserved');
 
                 showMessage('Аккаунт создан! Перенаправление...', 'success');
                 setTimeout(() => goHome(role), 800);
             } catch (err) {
+                console.error('❌ Ошибка регистрации:', err);
                 showMessage(translateError(err.code));
             } finally {
                 registerBtn.disabled = false;
                 registerBtn.textContent = 'Зарегистрироваться';
             }
         });
+
+        console.log('✅ login.html scripts loaded');
     </script>
 </body>
 </html>

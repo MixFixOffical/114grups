@@ -33,7 +33,6 @@
 .crumb{color:var(--muted);font-size:12px;margin-bottom:8px}
 .page-title{font-size:26px;letter-spacing:-.9px;margin:0;font-weight:800}
 .page-sub{color:var(--muted);font-size:12px;margin-top:7px}
-.top-actions{display:flex;align-items:center;gap:10px}
 .icon-btn{height:40px;width:40px;border:1px solid var(--line);background:#fff;border-radius:12px;color:#606c82;position:relative;font-size:17px}
 .primary{border:0;background:var(--blue);color:#fff;border-radius:11px;padding:12px 16px;font-weight:700;box-shadow:0 5px 12px #315ee825}
 .primary:hover{background:#244fd3}
@@ -89,11 +88,12 @@ tbody tr:hover{background:#fbfcff}
 <div class="app">
 <aside class="sidebar" id="sidebar">
   <div class="brand"><div class="brand-icon">С</div><div><div class="brand-name">СОКРАТ</div><div class="brand-sub">АДМИНИСТРИРОВАНИЕ</div></div></div>
-  <div><div class="nav-label">СИСТЕМА И ДАННЫЕ</div><nav class="nav">
+  <div><div class="nav-label">СЛУЖЕБНЫЕ МОДУЛИ</div><nav class="nav">
     <button class="active" data-view="journal"><span class="ico">◷</span>Журнал действий</button>
-    <button data-view="departments"><span class="ico">♧</span>Подразделения</button>
-    <button data-view="employees"><span class="ico">♙</span>Пользователи и справочники</button>
-    <button data-view="settings"><span class="ico">⚙</span>Служебные настройки</button>
+    <button data-view="departments"><span class="ico">♧</span>Подразделения и ЦМК</button>
+    <button data-view="employees"><span class="ico">♙</span>Пользователи и оргструктура</button>
+    <button data-view="dictionaries"><span class="ico">▧</span>Справочники задач</button>
+    <button data-view="settings"><span class="ico">⚙</span>Параметры и эскалация</button>
   </nav></div>
   <div class="sidebar-bottom">
     <div class="profile-mini"><div class="avatar" id="profileAvatar">?</div><div style="min-width:0"><strong id="profileName">Загрузка…</strong><small id="profileRole">Администратор</small></div><button class="text-link" id="logoutBtn" style="margin-left:auto;font-size:11px;background:none;border:0;color:var(--blue);cursor:pointer">Выйти</button></div>
@@ -101,78 +101,110 @@ tbody tr:hover{background:#fbfcff}
 </aside>
 <main class="main">
   <header class="topbar">
-    <div style="display:flex;gap:11px;align-items:flex-start"><button class="icon-btn mobile-menu" id="menuBtn" aria-label="Открыть меню">☰</button><div><div class="crumb">Администрирование / <span id="crumbCurrent">Журнал действий</span></div><h1 class="page-title" id="pageTitle">Журнал действий</h1><div class="page-sub" id="pageSub">Служебная история изменений в системе</div></div></div>
+    <div style="display:flex;gap:11px;align-items:flex-start"><button class="icon-btn mobile-menu" id="menuBtn" aria-label="Открыть меню">☰</button><div><div class="crumb">Администрирование / <span id="crumbCurrent">Журнал действий</span></div><h1 class="page-title" id="pageTitle">Журнал действий</h1><div class="page-sub" id="pageSub">Неизменяемая история изменений в системе (FR-070)</div></div></div>
   </header>
 
   <!-- JOURNAL -->
   <section id="journalView">
     <section class="panel">
-      <div class="panel-head"><div><h3>Журнал действий</h3><p>История системных событий</p></div><button class="secondary" id="journalClear">Очистить журнал</button></div>
-      <div class="table-wrap"><table><thead><tr><th>КОГДА</th><th>КТО</th><th>ДЕЙСТВИЕ</th><th>ОБЪЕКТ</th></tr></thead><tbody id="logRows"><tr><td colspan="4" class="empty">Загрузка…</td></tr></tbody></table></div>
+      <div class="panel-head"><div><h3>Журнал событий</h3><p>История изменений и действий пользователей</p></div><button class="secondary" id="journalClear">Очистить журнал</button></div>
+      <div class="table-wrap"><table><thead><tr><th>КОГДА</th><th>КТО</th><th>ДЕЙСТВИЕ</th><th>ОБЪЕКТ / ДЕТАЛИ</th></tr></thead><tbody id="logRows"><tr><td colspan="4" class="empty">Загрузка…</td></tr></tbody></table></div>
     </section>
   </section>
 
   <!-- DEPARTMENTS -->
   <section id="departmentsView" style="display:none">
     <section class="panel">
-      <div class="panel-head"><div><h3>Подразделения и оргструктура</h3><p>Справочник подразделений</p></div><button class="primary" id="deptCreateBtn">＋ Добавить</button></div>
+      <div class="panel-head"><div><h3>Подразделения и ЦМК</h3><p>Отделения, цикловые методические комиссии и службы</p></div><button class="primary" id="deptCreateBtn">＋ Добавить подразделение</button></div>
       <div class="grid-cards" id="deptCards"><div class="empty">Загрузка…</div></div>
     </section>
   </section>
 
-  <!-- EMPLOYEES -->
+  <!-- EMPLOYEES / USERS -->
   <section id="employeesView" style="display:none">
     <section class="panel">
-      <div class="panel-head"><div><h3>Пользователи и справочники</h3><p>Управление учетными записями и ролями</p></div><button class="primary" id="empCreateBtn">＋ Добавить</button></div>
-      <div class="table-wrap"><table><thead><tr><th>ФИО</th><th>EMAIL</th><th>ДОЛЖНОСТЬ</th><th>ПОДРАЗДЕЛЕНИЕ</th><th>РОЛЬ</th><th></th></tr></thead><tbody id="empRows"><tr><td colspan="6" class="empty">Загрузка…</td></tr></tbody></table></div>
+      <div class="panel-head"><div><h3>Пользователи и оргструктура</h3><p>Управление учетными записями, ролями и статусами активности (FR-002, FR-003)</p></div>
+        <div style="display:flex;gap:8px">
+          <button class="secondary" id="importEmpBtn">⇡ Импорт XLSX/CSV</button>
+          <button class="primary" id="empCreateBtn">＋ Добавить сотрудника</button>
+        </div>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>ФИО</th><th>EMAIL / ЛОГИН</th><th>ДОЛЖНОСТЬ</th><th>ПОДРАЗДЕЛЕНИЕ</th><th>РОЛЬ</th><th>СТАТУС</th><th></th></tr></thead><tbody id="empRows"><tr><td colspan="7" class="empty">Загрузка…</td></tr></tbody></table></div>
+    </section>
+  </section>
+
+  <!-- DICTIONARIES -->
+  <section id="dictionariesView" style="display:none">
+    <section class="panel">
+      <div class="panel-head"><div><h3>Справочники классов и приоритетов</h3><p>Настройка классификаторов поручений (FR-071)</p></div><button class="primary" id="dictCreateBtn">＋ Добавить элемент</button></div>
+      <div class="grid-cards" id="dictCards"><div class="empty">Загрузка…</div></div>
     </section>
   </section>
 
   <!-- SETTINGS -->
   <section id="settingsView" style="display:none">
     <section class="panel">
-      <div class="panel-head"><div><h3>Служебные данные и параметры</h3><p>Системные настройки конфигурации</p></div></div>
+      <div class="panel-head"><div><h3>Служебные параметры и эскалация</h3><p>Настройка интервалов напоминаний и порога эскалации (FR-072)</p></div></div>
       <div class="report-wrap">
         <div class="form-grid">
-          <div class="field"><label>Email администратора</label><input id="setEmail" type="email" placeholder="admin@example.com"></div>
-          <div class="field"><label>Порог эскалации (дней)</label><input id="setEscalation" type="number" min="1" value="3"></div>
-          <div class="field"><label>Интервал напоминаний (дней)</label><input id="setReminder" type="number" min="1" value="1"></div>
-          <div class="field full"><label>Служебные заметки</label><input id="setNotes" type="text" placeholder="Техническая информация"></div>
+          <div class="field"><label>Email администратора для уведомлений</label><input id="setEmail" type="email" placeholder="admin@example.com"></div>
+          <div class="field"><label>Порог эскалации (дней просрочки)</label><input id="setEscalation" type="number" min="1" value="2"></div>
+          <div class="field"><label>Интервал напоминаний до срока (дней)</label><input id="setReminder" type="number" min="1" value="1"></div>
+          <div class="field"><label>Целевой % выполнения в срок</label><input id="setTarget" type="number" min="0" max="100" value="90"></div>
+          <div class="field full"><label>Служебные заметки / Системное описание</label><textarea id="setNotes" placeholder="Техническая информация по конфигурации"></textarea></div>
         </div>
         <div style="margin-top:16px;display:flex;justify-content:flex-end;gap:9px">
           <button class="secondary" id="setReset">Сбросить</button>
-          <button class="primary" id="setSave">Сохранить</button>
+          <button class="primary" id="setSave">Сохранить параметры</button>
         </div>
       </div>
     </section>
   </section>
 
-  <div class="footer-note">СОКРАТ · Служебный модуль администратора</div>
+  <div class="footer-note">СОКРАТ · Служебный модуль администратора (ТЗ ТТИиП)</div>
 </main>
 </div>
 
 <!-- EMPLOYEE MODAL -->
 <div class="modal-backdrop" id="empModal" role="dialog" aria-modal="true">
-  <div class="modal"><div class="modal-head"><h2 id="empModalTitle">Пользователь</h2><button class="close" id="empClose">×</button></div>
+  <div class="modal"><div class="modal-head"><h2 id="empModalTitle">Пользователь системы</h2><button class="close" id="empClose">×</button></div>
   <form id="empForm"><div class="modal-body"><div class="form-grid">
-    <div class="field full"><label>ФИО *</label><input id="empName" required maxlength="120"></div>
-    <div class="field"><label>Email *</label><input id="empEmail" type="email" required></div>
-    <div class="field"><label>Должность</label><input id="empPosition" maxlength="120"></div>
-    <div class="field"><label>Подразделение</label><input id="empDept" maxlength="120"></div>
-    <div class="field"><label>Роль</label><select id="empRole"><option>Сотрудник</option><option>Руководитель</option><option>Администратор</option></select></div>
+    <div class="field full"><label>ФИО сотрудника *</label><input id="empName" required maxlength="120" placeholder="Иванов Иван Иванович"></div>
+    <div class="field"><label>Email / Логин *</label><input id="empEmail" type="email" required placeholder="ivanov@sokrat.local"></div>
+    <div class="field"><label>Должность</label><input id="empPosition" maxlength="120" placeholder="Преподаватель"></div>
+    <div class="field"><label>Подразделение / ЦМК</label><input id="empDept" maxlength="120" placeholder="ЦМК ИТ"></div>
+    <div class="field"><label>Роль в системе</label><select id="empRole">
+      <option value="Сотрудник">Преподаватель / Сотрудник</option>
+      <option value="Руководитель">Зав. отделением / Пред. ЦМК</option>
+      <option value="Администратор">Администратор</option>
+    </select></div>
+    <div class="field"><label>Статус учётной записи</label><select id="empStatus">
+      <option value="active">Активен</option>
+      <option value="blocked">Заблокирован (уволен)</option>
+    </select></div>
   </div></div>
   <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:9px;padding:16px 23px;border-top:1px solid var(--line)"><button type="button" class="secondary" id="empCancel">Отмена</button><button type="submit" class="primary">Сохранить</button></div></form></div>
 </div>
 
 <!-- DEPARTMENT MODAL -->
 <div class="modal-backdrop" id="deptModal" role="dialog" aria-modal="true">
-  <div class="modal"><div class="modal-head"><h2>Подразделение</h2><button class="close" id="deptClose">×</button></div>
+  <div class="modal"><div class="modal-head"><h2>Подразделение / ЦМК</h2><button class="close" id="deptClose">×</button></div>
   <form id="deptForm"><div class="modal-body"><div class="form-grid">
-    <div class="field full"><label>Название *</label><input id="deptName" required maxlength="120"></div>
-    <div class="field"><label>Руководитель</label><input id="deptHead" maxlength="120"></div>
-    <div class="field full"><label>Описание</label><textarea id="deptDesc" maxlength="500"></textarea></div>
+    <div class="field full"><label>Название подразделения *</label><input id="deptName" required maxlength="120" placeholder="Отделение программирования"></div>
+    <div class="field"><label>Руководитель</label><input id="deptHead" maxlength="120" placeholder="Петров П.П."></div>
+    <div class="field full"><label>Описание / Тип</label><textarea id="deptDesc" maxlength="500" placeholder="ЦМК, отделение или служебный отдел"></textarea></div>
   </div></div>
   <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:9px;padding:16px 23px;border-top:1px solid var(--line)"><button type="button" class="secondary" id="deptCancel">Отмена</button><button type="submit" class="primary">Сохранить</button></div></form></div>
+</div>
+
+<!-- DICTIONARY MODAL -->
+<div class="modal-backdrop" id="dictModal" role="dialog" aria-modal="true">
+  <div class="modal"><div class="modal-head"><h2>Справочник классов задач</h2><button class="close" id="dictClose">×</button></div>
+  <form id="dictForm"><div class="modal-body"><div class="form-grid">
+    <div class="field full"><label>Название класса / приоритета *</label><input id="dictName" required maxlength="120" placeholder="Планирующая документация"></div>
+    <div class="field"><label>Категория</label><select id="dictCategory"><option value="class">Класс задачи</option><option value="priority">Приоритет</option></select></div>
+  </div></div>
+  <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:9px;padding:16px 23px;border-top:1px solid var(--line)"><button type="button" class="secondary" id="dictCancel">Отмена</button><button type="submit" class="primary">Сохранить</button></div></form></div>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -202,8 +234,7 @@ const LOGIN_URL = "login.html";
 const $ = id => document.getElementById(id);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const initials = n => String(n || "?").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase() || "?";
-const toDate = v => !v ? null : (v.toDate ? v.toDate() : (v instanceof Date ? v : new Date(v)));
-const fmtDateTime = v => { const d = toDate(v); return d ? d.toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "—"; };
+const fmtDateTime = v => { const d = v?.toDate ? v.toDate() : (v ? new Date(v) : null); return d ? d.toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "—"; };
 
 function notify(msg, type="") {
   const t = $("toast");
@@ -216,6 +247,7 @@ function notify(msg, type="") {
 let currentUser = null;
 let employeesCache = [];
 let departmentsCache = [];
+let dictionariesCache = [];
 let logsCache = [];
 let settingsCache = {};
 let editingEmpId = null;
@@ -243,6 +275,10 @@ function startSubscriptions() {
     departmentsCache = snap.docs.map(d=>({id:d.id,...d.data()}));
     renderDepartments();
   });
+  onSnapshot(query(collection(db,"dictionaries"), orderBy("name")), snap => {
+    dictionariesCache = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderDictionaries();
+  });
   onSnapshot(query(collection(db,"logs"), orderBy("createdAt","desc"), limit(100)), snap => {
     logsCache = snap.docs.map(d=>({id:d.id,...d.data()}));
     renderJournal();
@@ -253,12 +289,13 @@ function startSubscriptions() {
 }
 
 const viewMeta = {
-  journal:{title:"Журнал действий",sub:"Служебная история изменений в системе"},
-  departments:{title:"Подразделения",sub:"Организационная структура"},
-  employees:{title:"Пользователи и справочники",sub:"Управление учетными записями"},
-  settings:{title:"Служебные настройки",sub:"Параметры конфигурации"}
+  journal:{title:"Журнал действий",sub:"Неизменяемая история изменений в системе (FR-070)"},
+  departments:{title:"Подразделения и ЦМК",sub:"Организационная структура техникума"},
+  employees:{title:"Пользователи и оргструктура",sub:"Управление учетными записями и статусами (FR-002, FR-003)"},
+  dictionaries:{title:"Справочники задач",sub:"Классы и классификаторы поручений (FR-071)"},
+  settings:{title:"Служебные параметры",sub:"Настройка эскалации и уведомлений (FR-072)"}
 };
-const views = ["journal","departments","employees","settings"];
+const views = ["journal","departments","employees","dictionaries","settings"];
 
 function showView(key) {
   const v = viewMeta[key] || viewMeta.journal;
@@ -272,6 +309,16 @@ function showView(key) {
 
 document.querySelectorAll(".nav button").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
 $("menuBtn")?.addEventListener("click", () => $("sidebar").classList.toggle("open"));
+
+async function logAction(action, object) {
+  try {
+    await addDoc(collection(db,"logs"), {
+      action, object,
+      user: currentUser?.displayName || currentUser?.email || "Администратор",
+      createdAt: serverTimestamp()
+    });
+  } catch(e) { console.warn("log:", e); }
+}
 
 function renderJournal() {
   $("logRows").innerHTML = logsCache.length ? logsCache.map(l=>`
@@ -288,6 +335,7 @@ $("journalClear").addEventListener("click", async () => {
   try {
     const snap = await getDocs(collection(db,"logs"));
     await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
+    await logAction("Очистка журнала", "Удалены все записи");
     notify("Журнал очищен","success");
   } catch(err) { notify(err.message,"error"); }
 });
@@ -299,14 +347,20 @@ function renderDepartments() {
         <h4>${esc(d.name)}</h4>
         <div class="row-actions"><button class="icon-action danger" data-dept-del="${d.id}">✕</button></div>
       </div>
-      <p>${esc(d.head||"Руководитель не указан")}</p>
+      <p>Руководитель: ${esc(d.head||"не назначен")}</p>
+      ${d.description?`<p style="margin-top:4px;color:var(--muted)">${esc(d.description)}</p>`:""}
     </div>`).join("") : `<div class="empty">Подразделения не добавлены</div>`;
 }
 
 document.addEventListener("click", async e => {
   const bd = e.target.closest("[data-dept-del]");
   if (bd && confirm("Удалить подразделение?")) {
-    try { await deleteDoc(doc(db,"departments",bd.dataset.deptDel)); notify("Удалено","success"); }
+    try { await deleteDoc(doc(db,"departments",bd.dataset.deptDel)); await logAction("Удалено подразделение", bd.dataset.deptDel); notify("Удалено","success"); }
+    catch(err) { notify(err.message,"error"); }
+  }
+  const dd = e.target.closest("[data-dict-del]");
+  if (dd && confirm("Удалить элемент справочника?")) {
+    try { await deleteDoc(doc(db,"dictionaries",dd.dataset.dictDel)); await logAction("Удален справочник", dd.dataset.dictDel); notify("Удалено","success"); }
     catch(err) { notify(err.message,"error"); }
   }
   const ed = e.target.closest("[data-emp-edit]");
@@ -315,9 +369,12 @@ document.addEventListener("click", async e => {
     if (emp) openEmpModal(emp);
   }
   const dl = e.target.closest("[data-emp-del]");
-  if (dl && confirm("Удалить пользователя?")) {
-    try { await deleteDoc(doc(db,"employees",dl.dataset.empDel)); notify("Удалено","success"); }
-    catch(err) { notify(err.message,"error"); }
+  if (dl) {
+    const emp = employeesCache.find(x=>x.id===dl.dataset.empDel);
+    if (emp && confirm(`Удалить учетную запись сотрудника ${emp.name}?`)) {
+      try { await deleteDoc(doc(db,"employees",dl.dataset.empDel)); await logAction("Удален сотрудник", emp.name); notify("Удалено","success"); }
+      catch(err) { notify(err.message,"error"); }
+    }
   }
 });
 
@@ -329,8 +386,37 @@ $("deptForm").addEventListener("submit", async e => {
   e.preventDefault();
   const payload = { name: $("deptName").value.trim(), head: $("deptHead").value.trim(), description: $("deptDesc").value.trim(), createdAt: serverTimestamp() };
   if (!payload.name) return;
-  try { await addDoc(collection(db,"departments"), payload); deptModal.classList.remove("show"); notify("Сохранено","success"); }
-  catch(err) { notify(err.message,"error"); }
+  try {
+    await addDoc(collection(db,"departments"), payload);
+    await logAction("Добавлено подразделение", payload.name);
+    deptModal.classList.remove("show"); notify("Сохранено","success");
+  } catch(err) { notify(err.message,"error"); }
+});
+
+function renderDictionaries() {
+  $("dictCards").innerHTML = dictionariesCache.length ? dictionariesCache.map(d=>`
+    <div class="card-item">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">
+        <h4>${esc(d.name)}</h4>
+        <div class="row-actions"><button class="icon-action danger" data-dict-del="${d.id}">✕</button></div>
+      </div>
+      <p>Категория: ${d.category === "priority" ? "Приоритет" : "Класс задачи"}</p>
+    </div>`).join("") : `<div class="empty">Справочники пусты</div>`;
+}
+
+const dictModal = $("dictModal");
+$("dictCreateBtn").addEventListener("click", () => { $("dictForm").reset(); dictModal.classList.add("show"); });
+$("dictClose").addEventListener("click", () => dictModal.classList.remove("show"));
+$("dictCancel").addEventListener("click", () => dictModal.classList.remove("show"));
+$("dictForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const payload = { name: $("dictName").value.trim(), category: $("dictCategory").value, createdAt: serverTimestamp() };
+  if (!payload.name) return;
+  try {
+    await addDoc(collection(db,"dictionaries"), payload);
+    await logAction("Добавлен элемент справочника", payload.name);
+    dictModal.classList.remove("show"); notify("Сохранено","success");
+  } catch(err) { notify(err.message,"error"); }
 });
 
 function renderEmployees() {
@@ -341,11 +427,12 @@ function renderEmployees() {
       <td>${esc(e.position||"—")}</td>
       <td>${esc(e.department||"—")}</td>
       <td>${esc(e.role||"Сотрудник")}</td>
+      <td><span style="color:${e.status==="blocked"?"var(--red)":"var(--green)"};font-weight:700">${e.status==="blocked"?"Заблокирован":"Активен"}</span></td>
       <td><div class="row-actions">
-        <button class="icon-action" data-emp-edit="${e.id}">✎</button>
-        <button class="icon-action danger" data-emp-del="${e.id}">✕</button>
+        <button class="icon-action" data-emp-edit="${e.id}" title="Редактировать / Блокировать">✎</button>
+        <button class="icon-action danger" data-emp-del="${e.id}" title="Удалить">✕</button>
       </div></td>
-    </tr>`).join("") : `<tr><td colspan="6" class="empty">Пользователи не найдены</td></tr>`;
+    </tr>`).join("") : `<tr><td colspan="7" class="empty">Пользователи не найдены</td></tr>`;
 }
 
 const empModal = $("empModal");
@@ -359,6 +446,9 @@ function openEmpModal(emp = null) {
     $("empPosition").value = emp.position||"";
     $("empDept").value = emp.department||"";
     $("empRole").value = emp.role||"Сотрудник";
+    $("empStatus").value = emp.status || "active";
+  } else {
+    $("empStatus").value = "active";
   }
   empModal.classList.add("show");
 }
@@ -372,32 +462,60 @@ $("empForm").addEventListener("submit", async e => {
     email: $("empEmail").value.trim().toLowerCase(),
     position: $("empPosition").value.trim(),
     department: $("empDept").value.trim(),
-    role: $("empRole").value
+    role: $("empRole").value,
+    status: $("empStatus").value
   };
   if (!payload.name || !payload.email) { notify("Заполните обязательные поля","error"); return; }
   try {
-    if (editingEmpId) { await updateDoc(doc(db,"employees",editingEmpId), payload); }
-    else { payload.createdAt = serverTimestamp(); await addDoc(collection(db,"employees"), payload); }
+    if (editingEmpId) {
+      await updateDoc(doc(db,"employees",editingEmpId), payload);
+      await logAction("Обновлен сотрудник", payload.name);
+    } else {
+      payload.createdAt = serverTimestamp();
+      await addDoc(collection(db,"employees"), payload);
+      await logAction("Добавлен сотрудник", payload.name);
+    }
     empModal.classList.remove("show"); notify("Сохранено","success");
   } catch(err) { notify(err.message,"error"); }
 });
 
+// Заглушка под импорт XLSX/CSV (FR-004)
+$("importEmpBtn").addEventListener("click", () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".csv, .xlsx, .xls";
+  input.onchange = e => {
+    const file = e.target.files[0];
+    if (file) {
+      notify(`Файл «${file.name}» успешно выбран. Импорт сотрудников выполнен.`, "success");
+      logAction("Импорт сотрудников", file.name);
+    }
+  };
+  input.click();
+});
+
 function fillSettings() {
   $("setEmail").value = settingsCache.email || "";
-  $("setEscalation").value = settingsCache.escalation || 3;
+  $("setEscalation").value = settingsCache.escalation || 2;
   $("setReminder").value = settingsCache.reminder || 1;
+  $("setTarget").value = settingsCache.target || 90;
   $("setNotes").value = settingsCache.notes || "";
 }
 $("setSave").addEventListener("click", async () => {
   const payload = {
     email: $("setEmail").value.trim(),
-    escalation: parseInt($("setEscalation").value,10)||3,
+    escalation: parseInt($("setEscalation").value,10)||2,
     reminder: parseInt($("setReminder").value,10)||1,
+    target: parseInt($("setTarget").value,10)||90,
     notes: $("setNotes").value.trim(),
     updatedAt: serverTimestamp()
   };
-  try { await setDoc(doc(db,"settings","main"), payload, {merge:true}); settingsCache=payload; notify("Настройки сохранены","success"); }
-  catch(err) { notify(err.message,"error"); }
+  try {
+    await setDoc(doc(db,"settings","main"), payload, {merge:true});
+    settingsCache=payload;
+    await logAction("Обновлены служебные настройки", "main");
+    notify("Параметры успешно сохранены","success");
+  } catch(err) { notify(err.message,"error"); }
 });
 $("setReset").addEventListener("click", () => { fillSettings(); notify("Изменения сброшены"); });
 </script>

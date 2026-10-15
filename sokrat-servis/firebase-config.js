@@ -1,10 +1,10 @@
 // firebase-config.js
-// Импорт необходимых функций из Firebase SDK
 import { initializeApp } from "firebase/app";
 import { getAnalytics } from "firebase/analytics";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
 
 // Конфигурация Firebase проекта
-// Для Firebase JS SDK v7.20.0 и выше measurementId опционален
 const firebaseConfig = {
   apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
   authDomain: "sokrat-7c938.firebaseapp.com",
@@ -18,10 +18,24 @@ const firebaseConfig = {
 // Инициализация Firebase
 const app = initializeApp(firebaseConfig);
 
-// Инициализация Analytics (опционально, только для браузера)
+// Analytics (только в браузере)
 let analytics = null;
 if (typeof window !== "undefined") {
   analytics = getAnalytics(app);
 }
 
-export { app, analytics, firebaseConfig };
+// Auth и Firestore — то, что нужно страницам
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// Карта: роль → домашняя страница
+const HOME_BY_ROLE = {
+  admin:      'adminhome.html',
+  director:   'directorhome.html',
+  deputy_ur:  'deputy_urhome.html',
+  cmc_chair:  'cmc_chairhome.html',
+  methodist:  'methodisthome.html',
+  teacher:    'teacherhome.html'
+};
+
+export { app, analytics, auth, db, firebaseConfig, HOME_BY_ROLE };

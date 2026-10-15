@@ -618,6 +618,67 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
 .mobile-lesson.absent.bolezn .mobile-lesson-num { color: var(--violet); }
 
 /* =========================================================
+   SEMESTER VIEW (SCREEN)
+========================================================= */
+.semester-view { display: none; }
+.sv-head {
+    display: flex; align-items: center; flex-wrap: wrap; gap: 10px 18px;
+    margin-bottom: 14px;
+}
+.sv-period { font-size: 13.5px; font-weight: 600; color: var(--text); }
+.sv-note { font-size: 12.5px; color: var(--text-2); }
+.sv-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-sm);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.sv-wrap table.sem-tbl {
+    border-collapse: collapse;
+    width: 100%;
+    min-width: 760px;
+    font-size: 13px;
+}
+.sv-wrap table.sem-tbl th,
+.sv-wrap table.sem-tbl td {
+    border: 1px solid var(--border);
+    padding: 7px 6px;
+    text-align: center;
+    background: var(--surface);
+    color: var(--text);
+    white-space: nowrap;
+    font-weight: 500;
+}
+.sv-wrap table.sem-tbl thead th {
+    background: var(--accent-dark);
+    color: #fff;
+    font-weight: 600;
+    border-color: rgba(255,255,255,.12);
+    font-size: 12px;
+}
+.sv-wrap table.sem-tbl td.sem-name {
+    text-align: left;
+    padding-left: 14px;
+    white-space: normal;
+    min-width: 200px;
+    position: sticky;
+    left: 0;
+    z-index: 2;
+    font-weight: 500;
+    box-shadow: 2px 0 6px -2px rgba(15,23,42,.05);
+}
+.sv-wrap table.sem-tbl tr.sem-total td {
+    background: var(--accent-soft);
+    font-weight: 700;
+    color: var(--accent-dark);
+}
+.sv-wrap table.sem-tbl tr.sem-total td.sem-name { color: var(--accent-dark); }
+.sv-wrap table.sem-tbl tbody tr:hover td { background: var(--surface-2); }
+.sv-wrap table.sem-tbl tr.sem-total:hover td { background: var(--accent-soft); }
+
+/* =========================================================
    POPUP
 ========================================================= */
 .info-popup {
@@ -798,6 +859,18 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
 @media print { .report-overlay { display:none !important; } }
 
 /* =========================================================
+   SCOPE (НЕДЕЛЯ / СЕМЕСТР)
+========================================================= */
+body.scope-semester .table-container,
+body.scope-semester .mobile-cards,
+body.scope-semester .week-range,
+body.scope-semester .week-list,
+body.scope-semester #modeSwitch,
+body.scope-semester .week-only { display: none !important; }
+
+body.scope-semester .semester-view { display: block; }
+
+/* =========================================================
    PRINT
 ========================================================= */
 .print-only { display: none; }
@@ -841,7 +914,7 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
 
     header, .panel, .table-container, .mobile-cards, .info-popup, .status,
     .mode-switch, .controls, .group-panel, .week-list, .week-range,
-    .mobile-day-tabs, .theme-toggle {
+    .mobile-day-tabs, .theme-toggle, .semester-view {
         display: none !important;
     }
 
@@ -1018,6 +1091,8 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
 
     .table-container { display: none; }
     .mobile-cards { display: block; }
+
+    .sv-wrap table.sem-tbl { font-size: 12px; }
 }
 
 @media (max-width: 400px) {
@@ -1077,7 +1152,7 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
                 <rect x="3.5" y="5" width="17" height="16" rx="3"/>
                 <path d="M8 3v4M16 3v4M3.5 10h17"/>
             </svg>
-            Посещаемость за неделю
+            Посещаемость
         </div>
 
         <div class="group-panel" id="groupPanel">
@@ -1093,7 +1168,15 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
         </div>
 
         <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:14px;">
-            <div class="mode-switch" role="tablist" aria-label="Режим работы">
+            <div class="mode-switch" role="tablist" aria-label="Период" id="scopeSwitch">
+                <button type="button" id="scopeWeekBtn" class="active" data-scope="week" role="tab" aria-selected="true">
+                    Неделя
+                </button>
+                <button type="button" id="scopeSemBtn" data-scope="semester" role="tab" aria-selected="false">
+                    Семестр
+                </button>
+            </div>
+            <div class="mode-switch" id="modeSwitch" role="tablist" aria-label="Режим работы">
                 <button type="button" id="modeViewBtn" class="active" data-mode="view" role="tab" aria-selected="true">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/>
@@ -1112,26 +1195,26 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
         </div>
 
         <div class="controls">
-            <button class="btn-secondary" onclick="previousWeek()" title="Предыдущая неделя">
+            <button class="btn-secondary week-only" onclick="previousWeek()" title="Предыдущая неделя">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m15 6-6 6 6 6"/>
                 </svg>
                 Предыдущая неделя
             </button>
-            <button class="btn-primary" onclick="currentWeek()" title="Текущая неделя">
+            <button class="btn-primary week-only" onclick="currentWeek()" title="Текущая неделя">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="8.5"/>
                     <path d="M12 7.5V12l3 2"/>
                 </svg>
                 Текущая неделя
             </button>
-            <button class="btn-secondary" onclick="nextWeek()" title="Следующая неделя">
+            <button class="btn-secondary week-only" onclick="nextWeek()" title="Следующая неделя">
                 Следующая неделя
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="m9 6 6 6-6 6"/>
                 </svg>
             </button>
-            <button class="btn-violet" onclick="toggleWeekList()" title="Выбор недели из списка">
+            <button class="btn-violet week-only" onclick="toggleWeekList()" title="Выбор недели из списка">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M8 6h13M8 12h13M8 18h13"/>
                     <path d="M3 6h.01M3 12h.01M3 18h.01"/>
@@ -1170,6 +1253,27 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
         </div>
     </div>
 
+    <div class="semester-view" id="semesterView">
+        <div class="panel">
+            <div class="sv-head">
+                <div class="group-field">
+                    <span class="group-field-label">Семестр:</span>
+                    <select id="viewSemester" class="group-select">
+                        <option value="1">1 семестр</option><option value="2">2 семестр</option>
+                        <option value="3">3 семестр</option><option value="4">4 семестр</option>
+                        <option value="5">5 семестр</option><option value="6">6 семестр</option>
+                        <option value="7">7 семестр</option><option value="8">8 семестр</option>
+                    </select>
+                </div>
+                <span class="sv-period" id="svPeriod">—</span>
+                <span class="sv-note">Значения в часах (1 пара = 2 ч)</span>
+            </div>
+            <div class="sv-wrap" id="semesterTableWrap">
+                <div class="empty">Загрузка...</div>
+            </div>
+        </div>
+    </div>
+
     <div class="report-overlay" id="reportOverlay" role="dialog" aria-modal="true" aria-labelledby="reportMenuTitle" onclick="if(event.target===this)closeReportMenu()">
         <div class="report-modal">
             <button class="report-close" type="button" onclick="closeReportMenu()" aria-label="Закрыть">×</button>
@@ -1185,7 +1289,7 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
             <button class="report-option" type="button" onclick="printSemesterReport()">
                 <span>
                     <b>Отчёт за семестр</b>
-                    <small>Сводная таблица пропусков по месяцам</small>
+                    <small>Сводная таблица пропусков по месяцам (в часах)</small>
                 </span>
                 <span>›</span>
             </button>
@@ -1293,10 +1397,12 @@ let userGroups = [];
 let currentGroupId = null;
 let curatorNameManuallyEdited = false;
 let currentMode = "view";
+let currentScope = "week";
 let activeMobileDay = 0;
 
 const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 const HOURS_PER_LESSON = 2;
+const SEM_PRINT_W = 270;
 
 const AUTO_REASONS = {
     uv: "Уважительная причина",
@@ -1425,7 +1531,7 @@ function getCurrentGroup() {
 }
 
 /* =========================================================
-   [ИСПРАВЛЕНО] Определение семестров по номеру группы
+   Определение семестров по номеру группы
    111 → 1,2  214 → 3,4  311 → 5,6  411 → 7,8
 ========================================================= */
 function getSemestersForGroup(groupName) {
@@ -1535,6 +1641,8 @@ window.switchGroup = async (groupId) => {
         renderWeekList();
         updateCuratorNameField();
         updateSemesterInfo();
+        resetViewSemester();
+        renderSemesterView();
     } catch (e) {
         console.error(e);
         showStatus("Не удалось загрузить группу", "error");
@@ -1787,8 +1895,7 @@ function updateWeekRange() {
 }
 
 /* =========================================================
-   [ИСПРАВЛЕНО] Аттестация определяется с учётом семестров группы
-   Для 214 → semester1 = 3 семестр, semester2 = 4 семестр
+   Аттестация определяется с учётом семестров группы
 ========================================================= */
 function getAttestationInfo(dateString) {
     const date = new Date(dateString + "T00:00:00");
@@ -1811,7 +1918,7 @@ function getAttestationInfo(dateString) {
 }
 
 /* =========================================================
-   [ИСПРАВЛЕНО] Обновление плашки с семестром в шапке
+   Обновление плашки с семестром в шапке
 ========================================================= */
 function updateSemesterInfo() {
     const today = formatDate(new Date());
@@ -1829,7 +1936,7 @@ function updateSemesterInfo() {
 }
 
 /* =========================================================
-   MODE
+   MODE (просмотр / редактирование)
 ========================================================= */
 function setMode(mode) {
     currentMode = mode;
@@ -1847,6 +1954,53 @@ document.getElementById("modeViewBtn").addEventListener("click", () => setMode("
 document.getElementById("modeEditBtn").addEventListener("click", () => setMode("edit"));
 
 /* =========================================================
+   SCOPE (неделя / семестр)
+========================================================= */
+function setScope(scope) {
+    const isSem = scope === "semester";
+    currentScope = isSem ? "semester" : "week";
+
+    if (isSem && currentMode === "edit") {
+        currentMode = "view";
+        document.body.classList.remove("mode-edit");
+        document.getElementById("modeViewBtn").classList.add("active");
+        document.getElementById("modeEditBtn").classList.remove("active");
+    }
+
+    document.body.classList.toggle("scope-semester", isSem);
+    document.getElementById("scopeWeekBtn").classList.toggle("active", !isSem);
+    document.getElementById("scopeSemBtn").classList.toggle("active", isSem);
+    document.getElementById("scopeWeekBtn").setAttribute("aria-selected", String(!isSem));
+    document.getElementById("scopeSemBtn").setAttribute("aria-selected", String(isSem));
+
+    if (isSem) {
+        resetViewSemester();
+        renderSemesterView();
+    } else {
+        updateWeekRange();
+        renderTable();
+        renderMobile();
+        renderWeekList();
+    }
+}
+
+function defaultSemester() {
+    const info = getAttestationInfo(formatDate(new Date()));
+    if (info && info.semester) return Number(info.semester);
+    const group = getCurrentGroup();
+    return getSemestersForGroup(group?.name).first;
+}
+
+function resetViewSemester() {
+    const sel = document.getElementById("viewSemester");
+    if (sel) sel.value = String(defaultSemester());
+}
+
+document.getElementById("scopeWeekBtn").addEventListener("click", () => setScope("week"));
+document.getElementById("scopeSemBtn").addEventListener("click", () => setScope("semester"));
+document.getElementById("viewSemester").addEventListener("change", renderSemesterView);
+
+/* =========================================================
    MARK DISPLAY
 ========================================================= */
 function getMarkDisplay(record) {
@@ -1862,7 +2016,7 @@ function getMarkDisplay(record) {
 }
 
 /* =========================================================
-   RENDER TABLE
+   RENDER TABLE (НЕДЕЛЯ)
 ========================================================= */
 function renderTable() {
     const wrapper = document.getElementById("tableWrapper");
@@ -2015,7 +2169,7 @@ function renderTable() {
 }
 
 /* =========================================================
-   MOBILE RENDER
+   MOBILE RENDER (НЕДЕЛЯ)
 ========================================================= */
 function renderMobile() {
     const root = document.getElementById("mobileCards");
@@ -2543,7 +2697,6 @@ window.updateSemesterLabel = updateSemesterLabel;
 function printReport() {
     closeReportMenu();
 
-    // Снимаем стили семестрового отчёта, если он был открыт ранее
     const sheetEl = document.getElementById("printSheet");
     if (sheetEl) sheetEl.classList.remove("sem-print");
     const semStyle = document.getElementById("semDynamicStyle");
@@ -2563,7 +2716,7 @@ function printReport() {
 window.printReport = printReport;
 
 /* =========================================================
-   [ИСПРАВЛЕНО] Месяцы семестра
+   Месяцы семестра
    Осень (нечётный семестр): Сентябрь–Декабрь
    Весна (чётный семестр):   Январь–Июнь
 ========================================================= */
@@ -2574,114 +2727,134 @@ function getSemesterMonths(semester) {
 }
 
 /* =========================================================
-   [ИСПРАВЛЕНО] PRINT: семестровый отчёт
-   - Ширины колонок в мм (сумма = 270 мм = ширина A4 landscape минус поля @page)
-   - Собственный класс таблицы sem-tbl, не зависит от общих правил .pt
-   - border-collapse: collapse, чтобы рамки и колонки совпадали
-   - Год выбирается по семестру: осень — последний прошедший сентябрь,
-     весна — последний январь–июнь
+   СЕМЕСТР: расчёт данных (все значения — в ЧАСАХ)
+   Каждая отсутствующая пара = HOURS_PER_LESSON часов
 ========================================================= */
-function printSemesterReport() {
-    const semester = Number(document.getElementById("reportSemester").value);
-    closeReportMenu();
-    const group = getCurrentGroup();
-    const months = getSemesterMonths(semester);
-    const monthCounts = new Map();
-    const totals = new Map();
-
-    students.forEach(st => {
-        monthCounts.set(String(st.id), months.map(() => ({ all: 0, n: 0, u: 0, b: 0 })));
-        totals.set(String(st.id), { all: 0, n: 0, u: 0, b: 0 });
-    });
-
-    // Осенний семестр: сентябрь–декабрь последнего прошедшего сентября.
-    // Весенний семестр: январь–июнь последнего прошедшего июня (или текущего года, если июнь уже наступил).
+function computeSemesterData(semester) {
+    const sem = Number(semester);
+    const months = getSemesterMonths(sem);
     const now = new Date();
-    const isAutumn = Number(semester) % 2 === 1;
+    const isAutumn = sem % 2 === 1;
     const autumnYear = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
     const springYear = now.getMonth() >= 6 ? now.getFullYear() : now.getFullYear() - 1;
-    const targetYear = isAutumn ? autumnYear : springYear;
+    const year = isAutumn ? autumnYear : springYear;
+
+    const empty = () => ({ all: 0, n: 0, u: 0, b: 0 });
+    const counts = new Map();
+    students.forEach(st => counts.set(String(st.id), { months: months.map(empty), total: empty() }));
 
     for (const rec of Object.values(attendance)) {
         if (!rec.date || rec.status !== "absent") continue;
         const d = new Date(rec.date + "T00:00:00");
-        const m = d.getMonth();
-        const mi = months.findIndex(x => x.n === m);
+        if (d.getFullYear() !== year) continue;
+        const mi = months.findIndex(x => x.n === d.getMonth());
         if (mi < 0) continue;
-        if (d.getFullYear() !== targetYear) continue;
+        const entry = counts.get(String(rec.studentId));
+        if (!entry) continue;
 
-        const sid = String(rec.studentId);
-        if (!monthCounts.has(sid)) continue;
-
-        const cell = monthCounts.get(sid)[mi], total = totals.get(sid);
-        cell.all++; total.all++;
         const type = String(rec.absentType || "").toLowerCase();
-        if (type === "uv" || type === "u") { cell.u++; total.u++; }
-        else if (type === "bolezn" || type === "b") { cell.b++; total.b++; }
-        else { cell.n++; total.n++; }
+        const key = (type === "uv" || type === "u") ? "u"
+                  : (type === "bolezn" || type === "b") ? "b"
+                  : "n";
+        const h = HOURS_PER_LESSON;
+        const cell = entry.months[mi];
+        cell.all += h; cell[key] += h;
+        entry.total.all += h; entry.total[key] += h;
     }
 
-    // Ширина A4 landscape (297) минус поля @page (12 + 15) = 270 мм
-    const PRINT_W = 270, NUM_MM = 8, NAME_MM = 52;
-    const totalDataCols = months.length * 4 + 4;
-    const dataMm = ((PRINT_W - NUM_MM - NAME_MM) / totalDataCols).toFixed(3);
+    const monthTotals = months.map((_, i) => students.reduce((a, st) => {
+        const c = counts.get(String(st.id)).months[i];
+        a.all += c.all; a.n += c.n; a.u += c.u; a.b += c.b;
+        return a;
+    }, empty()));
 
-    let colgroup = `<colgroup><col style="width:${NUM_MM}mm"><col style="width:${NAME_MM}mm">`;
-    for (let i = 0; i < totalDataCols; i++) colgroup += `<col style="width:${dataMm}mm">`;
-    colgroup += `</colgroup>`;
+    const grand = students.reduce((a, st) => {
+        const t = counts.get(String(st.id)).total;
+        a.all += t.all; a.n += t.n; a.u += t.u; a.b += t.b;
+        return a;
+    }, empty());
 
-    const monthHeads = months.map(m => `<th colspan="4">${m.t}</th>`).join("");
-    const subHeads = months.map(() =>
-        `<th>Вс</th><th>Н</th><th>У</th><th>Б</th>`
-    ).join("");
+    return { semester: sem, year, months, students, counts, monthTotals, grand };
+}
 
-    const theadHtml =
+/* Таблица семестра — одна разметка для экрана и печати */
+function semesterTableHtml(data, forPrint) {
+    const { months, students: sts, counts, monthTotals, grand } = data;
+    const cols = months.length * 4 + 4;
+
+    let colgroup = "";
+    if (forPrint) {
+        const dataMm = ((SEM_PRINT_W - 8 - 52) / cols).toFixed(3);
+        colgroup = `<colgroup><col style="width:8mm"><col style="width:52mm">` +
+            `<col style="width:${dataMm}mm">`.repeat(cols) + `</colgroup>`;
+    }
+
+    const cellsOf = c => `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`;
+    const subHead = `<th>Вс</th><th>Н</th><th>У</th><th>Б</th>`;
+
+    const head =
         `<tr>` +
             `<th rowspan="2">№</th>` +
             `<th rowspan="2">ФИО</th>` +
-            monthHeads +
+            months.map(m => `<th colspan="4">${m.t}</th>`).join("") +
             `<th colspan="4">Всего за семестр</th>` +
         `</tr>` +
         `<tr>` +
-            subHeads +
-            `<th>Н</th><th>У</th><th>Б</th><th>Вс</th>` +
+            months.map(() => subHead).join("") +
+            subHead +
         `</tr>`;
 
-    let rows = "";
-    students.forEach((st, i) => {
-        const cells = monthCounts.get(String(st.id))
-            .map(c => `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`)
-            .join("");
-        const t = totals.get(String(st.id));
-        rows +=
-            `<tr>` +
-                `<td>${i + 1}</td>` +
-                `<td class="sem-name">${escapeHtml(st.name || "Без имени")}</td>` +
-                cells +
-                `<td>${t.n}</td><td>${t.u}</td><td>${t.b}</td><td><b>${t.all}</b></td>` +
-            `</tr>`;
-    });
-
-    const grand = { n: 0, u: 0, b: 0, all: 0 };
-    totals.forEach(t => { grand.n += t.n; grand.u += t.u; grand.b += t.b; grand.all += t.all; });
-
-    const monthTotalCells = months.map((_, i) => {
-        const c = students.reduce((a, st) => {
-            const x = monthCounts.get(String(st.id))[i];
-            a.all += x.all; a.n += x.n; a.u += x.u; a.b += x.b;
-            return a;
-        }, { all: 0, n: 0, u: 0, b: 0 });
-        return `<td>${c.all}</td><td>${c.n}</td><td>${c.u}</td><td>${c.b}</td>`;
+    const rows = sts.map((st, i) => {
+        const c = counts.get(String(st.id));
+        return `<tr>` +
+            `<td>${i + 1}</td>` +
+            `<td class="sem-name">${escapeHtml(st.name || "Без имени")}</td>` +
+            c.months.map(cellsOf).join("") +
+            cellsOf(c.total) +
+        `</tr>`;
     }).join("");
 
-    rows +=
+    const totalRow =
         `<tr class="sem-total">` +
             `<td colspan="2">ИТОГО</td>` +
-            monthTotalCells +
-            `<td>${grand.n}</td><td>${grand.u}</td><td>${grand.b}</td><td>${grand.all}</td>` +
+            monthTotals.map(cellsOf).join("") +
+            cellsOf(grand) +
         `</tr>`;
 
+    return `<table class="sem-tbl">${colgroup}<thead>${head}</thead><tbody>${rows}${totalRow}</tbody></table>`;
+}
+
+/* Экран: семестр */
+function renderSemesterView() {
+    const wrap = document.getElementById("semesterTableWrap");
+    const sel = document.getElementById("viewSemester");
+    const periodEl = document.getElementById("svPeriod");
+    if (!wrap || !sel) return;
+
+    if (students.length === 0) {
+        wrap.innerHTML = `<div class="empty">Студентов пока нет.</div>`;
+        if (periodEl) periodEl.textContent = "—";
+        return;
+    }
+
+    const data = computeSemesterData(Number(sel.value));
+    const first = data.months[0].t;
+    const last = data.months[data.months.length - 1].t;
+    if (periodEl) periodEl.textContent = `${first} — ${last} ${data.year}`;
+    wrap.innerHTML = semesterTableHtml(data, false);
+}
+
+/* =========================================================
+   PRINT: семестровый отчёт (часы)
+========================================================= */
+function printSemesterReport() {
+    const semester = Number(document.getElementById("reportSemester").value);
+    closeReportMenu();
+
+    const group = getCurrentGroup();
     const groupName = group ? (group.name || group.id) : "—";
+    const data = computeSemesterData(semester);
+
     setPrintHeader(
         `Сводный отчёт посещаемости — ${groupName} — ${semester} семестр`,
         `${semester} семестр`
@@ -2692,12 +2865,8 @@ function printSemesterReport() {
     sheet.classList.add("sem-print");
 
     sheet.innerHTML =
-        `<div class="semester-print-title">Группа: ${escapeHtml(groupName)} &nbsp;&nbsp; Семестр: ${semester}</div>` +
-        `<table class="sem-tbl">` +
-            colgroup +
-            `<thead>${theadHtml}</thead>` +
-            `<tbody>${rows}</tbody>` +
-        `</table>`;
+        `<div class="semester-print-title">Группа: ${escapeHtml(groupName)} &nbsp;&nbsp; Семестр: ${semester} &nbsp;&nbsp; (часы)</div>` +
+        semesterTableHtml(data, true);
 
     const old = document.getElementById("semDynamicStyle");
     if (old) old.remove();
@@ -2710,7 +2879,7 @@ function printSemesterReport() {
             font-weight: bold; text-align: left; margin: 0 0 3mm; font-size: 10pt;
         }
         #printSheet table.sem-tbl {
-            width: ${PRINT_W}mm; max-width: ${PRINT_W}mm; margin: 0;
+            width: ${SEM_PRINT_W}mm; max-width: ${SEM_PRINT_W}mm; margin: 0;
             table-layout: fixed; border-collapse: collapse; border-spacing: 0;
             font-family: "Times New Roman", Times, serif; color: #000; background: #fff;
         }
@@ -2789,6 +2958,8 @@ async function start() {
         renderMobile();
         renderWeekList();
         updateSemesterInfo();
+        resetViewSemester();
+        if (currentScope === "semester") renderSemesterView();
 
     } catch (e) {
         console.error("Ошибка запуска:", e);

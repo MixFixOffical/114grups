@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f5f7fb">
+<title>СОКРАТ — Кабинет директора</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f5f7fb;--surface:#fff;--text:#172033;--muted:#778198;--line:#e8ecf3;--blue:#315ee8;--blue-soft:#edf2ff;--red:#df4355;--red-soft:#fff0f1;--amber:#bd7b13;--amber-soft:#fff7e8;--green:#16865b;--green-soft:#e9f8f1;--shadow:0 8px 30px rgba(30,45,80,.045)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;font-size:14px}button,input,select,textarea{font:inherit}button{cursor:pointer}
+.app{min-height:100vh;display:grid;grid-template-columns:248px minmax(0,1fr)}
+.sidebar{background:#fff;border-right:1px solid var(--line);padding:24px 15px;display:flex;flex-direction:column;gap:25px;overflow-y:auto;max-height:100vh}
+.brand{display:flex;align-items:center;gap:11px;padding:0 10px}
+.brand-icon{width:39px;height:39px;background:linear-gradient(145deg,#4775ff,#2349cb);border-radius:13px;display:grid;place-items:center;color:white;font-weight:800;font-size:17px;box-shadow:0 7px 16px #315ee833}
+.brand-name{font-size:18px;font-weight:800;letter-spacing:-.6px}
+.brand-sub{font-size:10px;color:var(--muted);margin-top:3px}
+.nav-label{font-size:10px;font-weight:700;color:#a0a8b8;letter-spacing:1.2px;padding:0 13px;margin-bottom:8px}
+.nav{display:grid;gap:4px}
+.nav button{display:flex;align-items:center;gap:12px;width:100%;border:0;background:transparent;color:#677187;text-align:left;padding:12px 13px;border-radius:11px;font-weight:600;font-size:13px}
+.nav button:hover{background:#f6f8fc;color:var(--text)}
+.nav button.active{background:var(--blue-soft);color:var(--blue)}
+.ico{width:20px;text-align:center;font-size:17px}
+.nav-count{margin-left:auto;font-size:11px;background:var(--red-soft);color:var(--red);padding:3px 7px;border-radius:7px}
+.sidebar-bottom{margin-top:auto}
+.profile-mini{display:flex;align-items:center;gap:10px;padding:16px 7px 0;margin-top:15px;border-top:1px solid var(--line)}
+.avatar{width:36px;height:36px;border-radius:12px;background:#e5eaff;color:#315ee8;display:grid;place-items:center;font-weight:800;flex-shrink:0}
+.profile-mini strong{display:block;font-size:12px}
+.profile-mini small{color:var(--muted);font-size:10px;display:block;margin-top:4px}
+.main{min-width:0;padding:27px 34px 40px;max-width:1700px;width:100%;margin:0 auto}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:28px}
+.crumb{color:var(--muted);font-size:12px;margin-bottom:8px}
+.page-title{font-size:26px;letter-spacing:-.9px;margin:0;font-weight:800}
+.page-sub{color:var(--muted);font-size:12px;margin-top:7px}
+.top-actions{display:flex;align-items:center;gap:10px}
+.icon-btn{height:40px;width:40px;border:1px solid var(--line);background:#fff;border-radius:12px;color:#606c82;position:relative;font-size:17px}
+.dot{position:absolute;right:8px;top:7px;width:7px;height:7px;border-radius:50%;background:var(--red);border:1px solid white}
+.primary{border:0;background:var(--blue);color:#fff;border-radius:11px;padding:12px 16px;font-weight:700;box-shadow:0 5px 12px #315ee825}
+.primary:hover{background:#244fd3}
+.secondary{border:1px solid var(--line);background:#fff;color:#4f5b72;border-radius:10px;padding:10px 13px;font-weight:600}
+.secondary:hover{background:#f8fafc}
+.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:27px 0 14px}
+.section-head h2{font-size:15px;margin:0;font-weight:800}
+.section-head p{font-size:11px;color:var(--muted);margin:5px 0 0}
+.text-link{color:var(--blue);font-weight:700;font-size:12px;border:0;background:transparent}
+.text-link:hover{text-decoration:underline}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:15px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;box-shadow:var(--shadow)}
+.stat-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.stat-label{color:#6f7a90;font-size:12px;font-weight:600}
+.stat-icon{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;font-size:16px;background:var(--blue-soft);color:var(--blue)}
+.stat-icon.red{background:var(--red-soft);color:var(--red)}
+.stat-icon.amber{background:var(--amber-soft);color:var(--amber)}
+.stat-icon.green{background:var(--green-soft);color:var(--green)}
+.stat-number{font-size:29px;font-weight:800;letter-spacing:-1px;margin:15px 0 8px}
+.stat-foot{font-size:10px;color:var(--muted)}
+.dashboard-grid{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(300px,1fr);gap:16px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);min-width:0;overflow:hidden}
+.panel-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:19px 20px 15px;border-bottom:1px solid #f0f2f7;flex-wrap:wrap}
+.panel-head h3{margin:0;font-size:13px;font-weight:800}
+.panel-head p{font-size:11px;color:var(--muted);margin:5px 0 0}
+.table-wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;white-space:nowrap}
+th{text-align:left;color:#929bad;font-size:10px;font-weight:700;letter-spacing:.25px;padding:13px 17px;background:#fbfcfe}
+td{padding:14px 17px;border-top:1px solid #f0f2f7;font-size:11px;color:#4c5870}
+tbody tr:hover{background:#fbfcff}
+.task-title{font-size:11px;font-weight:700;color:#253047;max-width:280px;overflow:hidden;text-overflow:ellipsis}
+.task-id{font-size:10px;color:#a0a8b8;margin-top:5px}
+.person{display:flex;align-items:center;gap:8px}
+.person .avatar{width:27px;height:27px;border-radius:9px;font-size:9px}
+.person-name{font-size:10px;font-weight:700;color:#3e4960}
+.person-sub{font-size:9px;color:#9aa2b2;margin-top:3px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:6px 8px;border-radius:7px;font-size:10px;font-weight:700;cursor:pointer;border:0}
+.pill:before{content:"";width:5px;height:5px;border-radius:50%;background:currentColor}
+.pill.overdue{color:var(--red);background:var(--red-soft)}
+.pill.progress{color:#3b64d9;background:#edf2ff}
+.pill.review{color:#a36c0c;background:var(--amber-soft)}
+.pill.done{color:var(--green);background:var(--green-soft)}
+.pill.new{color:#606c82;background:#f0f2f7}
+.pill.canceled{color:#78849a;background:#f0f2f7}
+.priority{font-weight:700;font-size:10px}
+.priority.high{color:var(--red)}
+.priority.medium{color:var(--amber)}
+.priority.low{color:#78849a}
+.row-actions{display:flex;gap:6px}
+.icon-action{border:1px solid var(--line);background:#fff;width:28px;height:28px;border-radius:8px;color:#606c82;font-size:13px;display:grid;place-items:center}
+.icon-action:hover{background:#f8fafc;color:var(--text)}
+.icon-action.danger:hover{background:#fef2f2;color:var(--red);border-color:#fecaca}
+.dept-list{padding:6px 20px 14px}
+.dept-row{padding:13px 0;border-bottom:1px solid #f0f2f7}
+.dept-row:last-child{border:0}
+.dept-meta{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:9px}
+.dept-meta strong{font-size:11px}
+.dept-meta span{font-size:10px;color:var(--muted)}
+.progress-track{height:6px;border-radius:10px;background:#eef1f6;overflow:hidden}
+.progress-fill{height:100%;border-radius:10px;background:#5578ed}
+.progress-fill.warn{background:#e5a63a}
+.dept-foot{display:flex;justify-content:space-between;margin-top:7px;font-size:9px;color:#929bad}
+.bottom-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(280px,1fr);gap:16px}
+.chart-area{padding:20px;height:220px;display:flex;flex-direction:column}
+.chart-summary{display:flex;gap:20px;margin-bottom:12px}
+.chart-summary strong{font-size:19px}
+.chart-summary span{display:block;color:var(--muted);font-size:10px;margin-top:4px}
+.chart{height:140px;display:flex;align-items:flex-end;justify-content:space-around;gap:13px;border-bottom:1px solid var(--line);background:repeating-linear-gradient(to bottom,transparent 0,transparent 34px,#f0f2f7 35px)}
+.bar-group{height:100%;display:flex;align-items:flex-end;gap:4px;position:relative;flex:1;justify-content:center}
+.bar{width:13px;border-radius:4px 4px 0 0;background:#cdd8ff;min-height:5px}
+.bar.primary-bar{background:var(--blue)}
+.bar-label{position:absolute;top:calc(100% + 7px);font-size:9px;color:#9099aa}
+.activity{padding:6px 20px 12px;max-height:340px;overflow-y:auto}
+.activity-item{display:flex;gap:11px;padding:13px 0;border-bottom:1px solid #f0f2f7}
+.activity-item:last-child{border:0}
+.activity-icon{width:30px;height:30px;border-radius:10px;display:grid;place-items:center;flex-shrink:0;background:#eef2ff;color:#496be0}
+.activity-text{font-size:11px;line-height:1.5;color:#4f5b72}
+.activity-text strong{color:#263148}
+.activity-time{font-size:9px;color:#9aa2b2;margin-top:4px}
+.empty{padding:30px;text-align:center;color:var(--muted);font-size:12px}
+.footer-note{font-size:10px;color:#9aa2b2;text-align:center;margin-top:28px}
+.modal-backdrop{position:fixed;inset:0;background:#111a2b66;display:none;align-items:center;justify-content:center;padding:18px;z-index:10}
+.modal-backdrop.show{display:flex}
+.modal{width:min(620px,100%);max-height:90vh;overflow:auto;background:#fff;border-radius:18px;box-shadow:0 24px 80px #101a2b33}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:21px 23px;border-bottom:1px solid var(--line)}
+.modal-head h2{font-size:17px;margin:0}
+.close{border:0;background:#f3f5f9;width:32px;height:32px;border-radius:9px;font-size:18px;color:#68738a}
+.modal-body{padding:22px 23px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.field{display:flex;flex-direction:column;gap:7px}
+.field.full{grid-column:1/-1}
+.field label{font-size:11px;font-weight:700;color:#566178}
+.field input,.field select,.field textarea{width:100%;border:1px solid #dfe4ed;border-radius:10px;padding:11px 12px;outline:none;background:#fff;color:var(--text);font-size:12px}
+.field textarea{min-height:90px;resize:vertical}
+.warning{margin-top:15px;padding:11px 12px;border-radius:10px;background:#fff8e9;color:#956414;font-size:10px;line-height:1.5}
+.toast{position:fixed;right:22px;bottom:22px;background:#18233a;color:white;padding:13px 17px;border-radius:12px;font-size:12px;box-shadow:0 10px 30px #0002;display:none;z-index:20;max-width:340px}
+.toast.show{display:block}
+.toast.error{background:#7f1d1d}
+.toast.success{background:#166534}
+.mobile-menu{display:none}
+
+/* Kanban */
+.kanban{display:grid;grid-template-columns:repeat(5,minmax(220px,1fr));gap:12px;padding:16px;overflow-x:auto}
+.kanban-col{background:#f8fafc;border:1px solid #eef1f6;border-radius:12px;padding:11px;min-height:400px;display:flex;flex-direction:column;gap:9px}
+.kanban-col-head{display:flex;justify-content:space-between;align-items:center;padding:4px 6px 9px;border-bottom:1px solid #e8ecf3}
+.kanban-col-head strong{font-size:12px}
+.kanban-col-head span{font-size:10px;color:var(--muted);background:#fff;padding:2px 7px;border-radius:6px;border:1px solid var(--line)}
+.kanban-drop{min-height:100px;display:flex;flex-direction:column;gap:8px;flex:1}
+.kanban-drop.over{background:#edf2ff;border-radius:10px;outline:2px dashed #7692f3;outline-offset:-4px}
+.kanban-card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px;cursor:grab;box-shadow:0 2px 6px #1e293b08}
+.kanban-card .task-title{font-size:11px;margin-bottom:7px;max-width:none;white-space:normal}
+.kanban-card .meta{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:8px}
+.kanban-card .mini-date{font-size:9px;color:var(--muted)}
+
+/* Calendar */
+.calendar{padding:16px}
+.cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;gap:10px;flex-wrap:wrap}
+.cal-title{font-size:15px;font-weight:800}
+.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal-dow{text-align:center;font-size:10px;font-weight:700;color:#929bad;padding:8px 0}
+.cal-day{min-height:96px;background:#fff;border:1px solid #eef1f6;border-radius:9px;padding:7px;font-size:11px;display:flex;flex-direction:column;gap:4px}
+.cal-day.today{border-color:var(--blue);background:#f5f8ff}
+.cal-day.other{background:#fbfcfe;color:#b9c0cd}
+.cal-day-num{font-weight:700;font-size:11px;color:#606c82}
+.cal-day.today .cal-day-num{color:var(--blue)}
+.cal-task{background:#edf2ff;color:#315ee8;border-radius:5px;padding:3px 5px;font-size:9px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.cal-task.overdue{background:var(--red-soft);color:var(--red)}
+.cal-task.done{background:var(--green-soft);color:var(--green)}
+
+/* Filters */
+.filters{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;padding:14px 20px;border-bottom:1px solid #f0f2f7;background:#fbfcfe}
+.filters select,.filters input{border:1px solid #dfe4ed;background:#fff;padding:9px 11px;border-radius:9px;font-size:11px;outline:none;color:var(--text)}
+
+/* Report */
+.report-wrap{padding:20px}
+.report-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.report-card{background:#f8fafc;border:1px solid #eef1f6;border-radius:12px;padding:14px}
+.report-card span{font-size:10px;color:var(--muted);display:block}
+.report-card strong{display:block;font-size:20px;margin-top:6px;letter-spacing:-.5px}
+
+@media(max-width:1150px){.app{grid-template-columns:220px minmax(0,1fr)}.main{padding:24px 22px}.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.dashboard-grid,.bottom-grid{grid-template-columns:1fr}}
+@media(max-width:720px){.app{display:block}.sidebar{display:none;position:fixed;z-index:8;inset:0 auto 0 0;width:270px;box-shadow:10px 0 35px #14213b22}.sidebar.open{display:flex}.main{padding:18px 14px 28px}.topbar{align-items:flex-start;margin-bottom:21px;flex-direction:column}.mobile-menu{display:inline-grid;place-items:center}.page-title{font-size:21px}.stats{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <div class="brand"><div class="brand-icon">С</div><div><div class="brand-name">СОКРАТ</div><div class="brand-sub">КАБИНЕТ ДИРЕКТОРА</div></div></div>
+  <div><div class="nav-label">МОНИТОРИНГ</div><nav class="nav">
+    <button class="active" data-view="dashboard"><span class="ico">▦</span>Главный дашборд</button>
+    <button data-view="tasks"><span class="ico">☷</span>Все поручения <span class="nav-count" id="navTaskCount">0</span></button>
+    <button data-view="kanban"><span class="ico">▥</span>Kanban-доска</button>
+    <button data-view="calendar"><span class="ico">▦</span>Календарь сроков</button>
+  </nav></div>
+  <div><div class="nav-label">АНАЛИТИКА</div><nav class="nav">
+    <button data-view="reports"><span class="ico">▤</span>Отчёты и экспорт</button>
+    <button data-view="journal"><span class="ico">◷</span>Журнал событий</button>
+  </nav></div>
+  <div class="sidebar-bottom">
+    <div class="profile-mini"><div class="avatar" id="profileAvatar">Д</div><div style="min-width:0"><strong id="profileName">Директор ТТИиП</strong><small>director@sokrat.local</small></div><button class="text-link" id="logoutBtn" style="margin-left:auto;font-size:11px;background:none;border:0;color:var(--blue);cursor:pointer">Выйти</button></div>
+  </div>
+</aside>
+<main class="main">
+  <header class="topbar">
+    <div style="display:flex;gap:11px;align-items:flex-start"><button class="icon-btn mobile-menu" id="menuBtn" aria-label="Открыть меню">☰</button><div><div class="crumb">Главная / <span id="crumbCurrent">Главный дашборд</span></div><h1 class="page-title" id="pageTitle">Панель управления директора</h1><div class="page-sub" id="pageSub">Полный контроль поручений, исполнительской дисциплины и отчётности</div></div></div>
+    <div class="top-actions"><button class="icon-btn" title="Уведомления" id="notifyBtn">🔔<span class="dot"></span></button><button class="primary" id="createBtn">＋ Поставить поручение</button></div>
+  </header>
+
+  <!-- DASHBOARD -->
+  <section id="dashboardView">
+    <div class="stats">
+      <article class="stat"><div class="stat-top"><span class="stat-label">Активных поручений</span><span class="stat-icon">☷</span></div><div class="stat-number" id="activeCount">—</div><div class="stat-foot">В работе и на приёмке</div></article>
+      <article class="stat"><div class="stat-top"><span class="stat-label">Просрочено</span><span class="stat-icon red">⚠️</span></div><div class="stat-number" id="overdueCount">—</div><div class="stat-foot"><span class="trend bad">Требует внимания</span></div></article>
+      <article class="stat"><div class="stat-top"><span class="stat-label">Срок на этой неделе</span><span class="stat-icon amber">📅</span></div><div class="stat-number" id="weekCount">—</div><div class="stat-foot">Ближайшие 7 дней</div></article>
+      <article class="stat"><div class="stat-top"><span class="stat-label">Выполнено в срок</span><span class="stat-icon green">✓</span></div><div class="stat-number" id="onTimeRate">—</div><div class="stat-foot">Целевой KPI: ≥ 90%</div></article>
+    </div>
+    <div class="section-head"><div><h2>Контроль исполнительской дисциплины</h2><p>Критичные задачи и нагрузка подразделений</p></div><button class="secondary" id="exportBtn">↧ Экспорт CSV</button></div>
+    <div class="dashboard-grid">
+      <section class="panel"><div class="panel-head"><div><h3>Задачи в зоне риска</h3><p>Просроченные и ближайшие дедлайны</p></div><button class="text-link" data-go="tasks">Все поручения →</button></div>
+        <div class="table-wrap"><table><thead><tr><th>ПОРУЧЕНИЕ</th><th>ИСПОЛНИТЕЛЬ</th><th>СРОК</th><th>ПРИОРИТЕТ</th><th>СТАТУС</th></tr></thead><tbody id="attentionRows"><tr><td colspan="5" class="empty">Загрузка данных…</td></tr></tbody></table></div>
+      </section>
+      <section class="panel"><div class="panel-head"><div><h3>Дисциплина по отделениям</h3><p>Доля закрытых в срок задач</p></div></div>
+        <div class="dept-list" id="deptList"><div class="empty">Нет данных</div></div>
+      </section>
+    </div>
+    <div class="section-head"><div><h2>Динамика выполнения</h2><p>Статистика закрытия поручений за семестр</p></div><button class="text-link" data-go="journal">Журнал событий →</button></div>
+    <div class="bottom-grid">
+      <section class="panel"><div class="panel-head"><div><h3>График закрытия задач</h3><p>Сравнение созданных и выполненных</p></div><span class="pill done" id="chartTrendPill">—</span></div><div class="chart-area"><div class="chart-summary"><div><strong id="chartTotal">—</strong><span>Закрыто всего</span></div><div><strong id="chartOnTime">—</strong><span>Выполнено вовремя</span></div></div><div class="chart" id="chartBars"></div></div></section>
+      <section class="panel"><div class="panel-head"><div><h3>Последние события</h3><p>Активность в системе</p></div><button class="text-link" data-go="journal">Открыть журнал →</button></div><div class="activity" id="activityList"><div class="empty">Нет событий</div></div></section>
+    </div>
+  </section>
+
+  <!-- TASKS -->
+  <section id="tasksView" style="display:none">
+    <section class="panel">
+      <div class="panel-head"><div><h3>Реестр всех поручений</h3><p>Полный контроль задач техникума</p></div>
+        <div style="display:flex;gap:8px"><button class="secondary" id="tasksExportBtn">↧ Экспорт</button><button class="primary" id="tasksCreateBtn">＋ Поставить задачу</button></div>
+      </div>
+      <div class="filters">
+        <input id="fSearch" placeholder="Поиск по названию или исполнителю…">
+        <select id="fStatus"><option value="">Все статусы</option><option value="new">Новая</option><option value="progress">В работе</option><option value="review">На приёмке</option><option value="done">Выполнена</option><option value="canceled">Отменена</option><option value="overdue">Просрочена</option></select>
+        <select id="fPriority"><option value="">Все приоритеты</option><option>Низкий</option><option>Обычный</option><option>Высокий</option><option>Критический</option></select>
+        <select id="fClass"><option value="">Все классы</option><option>Планирующая документация</option><option>Аттестация</option><option>Учебная документация</option><option>Методическая работа</option><option>Отчётность</option><option>Мероприятия</option><option>Поручения</option></select>
+        <select id="fDept"><option value="">Все подразделения</option></select>
+      </div>
+      <div class="table-wrap"><table><thead><tr><th>ПОРУЧЕНИЕ</th><th>ИСПОЛНИТЕЛЬ</th><th>СРОК</th><th>ПРИОРИТЕТ</th><th>СТАТУС</th><th></th></tr></thead><tbody id="allTasksRows"><tr><td colspan="6" class="empty">Загрузка…</td></tr></tbody></table></div>
+    </section>
+  </section>
+
+  <!-- KANBAN -->
+  <section id="kanbanView" style="display:none">
+    <section class="panel">
+      <div class="panel-head"><div><h3>Kanban-доска поручений</h3><p>Перетаскивайте карточки для изменения статуса</p></div><button class="primary" id="kbCreateBtn">＋ Поставить задачу</button></div>
+      <div class="kanban" id="kanbanBoard"></div>
+    </section>
+  </section>
+
+  <!-- CALENDAR -->
+  <section id="calendarView" style="display:none">
+    <section class="panel">
+      <div class="calendar">
+        <div class="cal-head">
+          <div style="display:flex;gap:8px;align-items:center">
+            <button class="secondary" id="calPrev">←</button>
+            <div class="cal-title" id="calTitle">—</div>
+            <button class="secondary" id="calNext">→</button>
+            <button class="text-link" id="calToday" style="margin-left:8px">Сегодня</button>
+          </div>
+          <button class="primary" id="calCreateBtn">＋ Поставить задачу</button>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    </section>
+  </section>
+
+  <!-- REPORTS -->
+  <section id="reportsView" style="display:none">
+    <section class="panel">
+      <div class="panel-head"><div><h3>Сводные отчёты и экспорт</h3><p>Анализ исполнительской дисциплины по ТЗ</p></div>
+        <div style="display:flex;gap:8px">
+          <select class="select" id="repPeriod" style="border:1px solid var(--line);background:#fff;padding:8px 10px;border-radius:9px"><option value="30">30 дней</option><option value="90" selected>90 дней</option><option value="180">6 месяцев</option></select>
+          <button class="primary" id="repExport">↧ Выгрузить отчёт</button>
+        </div>
+      </div>
+      <div class="report-wrap">
+        <div class="report-summary">
+          <div class="report-card"><span>Всего поручений</span><strong id="repTotal">—</strong></div>
+          <div class="report-card"><span>Выполнено</span><strong id="repDone">—</strong></div>
+          <div class="report-card"><span>Просрочено</span><strong id="repOverdue">—</strong></div>
+          <div class="report-card"><span>Доля вовремя</span><strong id="repOnTime">—</strong></div>
+        </div>
+        <div id="repTable"></div>
+      </div>
+    </section>
+  </section>
+
+  <!-- JOURNAL -->
+  <section id="journalView" style="display:none">
+    <section class="panel">
+      <div class="panel-head"><div><h3>Журнал событий</h3><p>Неизменяемый аудит действий в системе</p></div><button class="secondary" id="journalClear">Очистить журнал</button></div>
+      <div class="table-wrap"><table><thead><tr><th>КОГДА</th><th>КТО</th><th>ДЕЙСТВИЕ</th><th>ОБЪЕКТ / ДЕТАЛИ</th></tr></thead><tbody id="logRows"><tr><td colspan="4" class="empty">Загрузка…</td></tr></tbody></table></div>
+    </section>
+  </section>
+
+  <div class="footer-note">СОКРАТ · Сервис мониторинга выполнения задач учебной части (Кабинет Директора)</div>
+</main>
+</div>
+
+<!-- TASK MODAL -->
+<div class="modal-backdrop" id="taskModal" role="dialog" aria-modal="true">
+  <div class="modal"><div class="modal-head"><h2 id="modalTitle">Поставить поручение</h2><button class="close" id="closeModal">×</button></div>
+  <form id="taskForm"><div class="modal-body"><div class="form-grid">
+    <div class="field full"><label for="taskName">Название поручения *</label><input id="taskName" required maxlength="160"></div>
+    <div class="field full"><label for="taskDescription">Описание задачи</label><textarea id="taskDescription" maxlength="3000"></textarea></div>
+    <div class="field"><label for="taskClass">Класс задачи *</label><select id="taskClass" required><option value="">Выберите класс</option><option>Планирующая документация</option><option>Аттестация</option><option>Учебная документация</option><option>Методическая работа</option><option>Отчётность</option><option>Мероприятия</option><option>Поручения</option></select></div>
+    <div class="field"><label for="taskPriority">Приоритет *</label><select id="taskPriority" required><option>Обычный</option><option>Низкий</option><option>Высокий</option><option>Критический</option></select></div>
+    <div class="field"><label for="taskAssignee">Исполнитель *</label><input id="taskAssignee" required placeholder="ФИО сотрудника"></div>
+    <div class="field"><label for="taskDepartment">Подразделение / ЦМК</label><input id="taskDepartment"></div>
+    <div class="field"><label for="taskDeadline">Контрольный срок *</label><input id="taskDeadline" type="date" required></div>
+    <div class="field"><label for="taskStatus">Статус</label><select id="taskStatus"><option value="new">Новая</option><option value="progress">В работе</option><option value="review">На приёмке</option><option value="done">Выполнена</option><option value="canceled">Отменена</option></select></div>
+    <div class="field"><label for="basisType">Документ-основание</label><select id="basisType"><option>Не указано</option><option>Приказ</option><option>Протокол</option><option>Письмо</option><option>Иное</option></select></div>
+    <div class="field"><label for="basisNumber">Номер документа</label><input id="basisNumber"></div>
+  </div><div class="warning">Внимание: Не допускается внесение персональных данных обучающихся (согласно требованиям ФЗ и ТЗ).</div></div>
+  <div class="modal-actions" style="display:flex;justify-content:flex-end;gap:9px;padding:16px 23px;border-top:1px solid var(--line)"><button type="button" class="secondary" id="cancelModal">Отмена</button><button type="submit" class="primary" id="saveTaskBtn">Поставить задачу</button></div></form></div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {
+  getFirestore, collection, doc, addDoc, setDoc, updateDoc, deleteDoc, getDoc, getDocs,
+  query, orderBy, onSnapshot, serverTimestamp, Timestamp, limit
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
+  authDomain: "sokrat-7c938.firebaseapp.com",
+  projectId: "sokrat-7c938",
+  storageBucket: "sokrat-7c938.firebasestorage.app",
+  messagingSenderId: "19858604945",
+  appId: "1:19858604945:web:8ec6dc1a81dba35c481030",
+  measurementId: "G-B3SDDN1T50"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const LOGIN_URL = "login.html";
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const initials = n => String(n || "?").trim().split(/\s+/).slice(0,2).map(x=>x[0]||"").join("").toUpperCase() || "?";
+const toDate = v => !v ? null : (v.toDate ? v.toDate() : (v instanceof Date ? v : new Date(v)));
+const fmtDate = v => { const d = toDate(v); return d ? d.toLocaleDateString("ru-RU",{day:"2-digit",month:"short",year:"numeric"}) : "—"; };
+const fmtDateTime = v => { const d = toDate(v); return d ? d.toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : "—"; };
+const isOverdue = t => { const d = toDate(t.deadline); if (!d) return false; if (t.status==="done"||t.status==="canceled") return false; return d.getTime() < Date.now(); };
+
+function notify(msg, type="") {
+  const t = $("toast");
+  t.textContent = msg;
+  t.className = "toast show " + type;
+  clearTimeout(window.__tt);
+  window.__tt = setTimeout(()=>{ t.className = "toast"; }, 3200);
+}
+
+function statusLabel(t) {
+  if (isOverdue(t)) return { cls: "overdue", text: "Просрочена" };
+  switch (t.status) {
+    case "progress": return { cls: "progress", text: "В работе" };
+    case "review":   return { cls: "review",   text: "На приёмке" };
+    case "done":     return { cls: "done",     text: "Выполнена" };
+    case "canceled": return { cls: "canceled", text: "Отменена" };
+    default:         return { cls: "new",      text: "Новая" };
+  }
+}
+const priorityClass = p => (p==="Высокий"||p==="Критический") ? "high" : p==="Низкий" ? "low" : "medium";
+
+let tasksCache = [];
+let departmentsCache = [];
+let logsCache = [];
+let unsubscribers = [];
+let editingTaskId = null;
+let calendarMonth = new Date();
+
+onAuthStateChanged(auth, user => {
+  if (!user) { window.location.replace(LOGIN_URL); return; }
+  $("profileName").textContent = user.displayName || "Директор ТТИиП";
+  $("profileAvatar").textContent = initials(user.displayName || "Директор");
+  startSubscriptions();
+});
+
+$("logoutBtn")?.addEventListener("click", async () => {
+  await signOut(auth);
+  window.location.replace(LOGIN_URL);
+});
+
+function startSubscriptions() {
+  unsubscribers.push(onSnapshot(query(collection(db,"tasks"), orderBy("createdAt","desc")), snap => {
+    tasksCache = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderAll();
+  }));
+  unsubscribers.push(onSnapshot(query(collection(db,"departments"), orderBy("name")), snap => {
+    departmentsCache = snap.docs.map(d=>({id:d.id,...d.data()}));
+    fillDeptFilter();
+  }));
+  unsubscribers.push(onSnapshot(query(collection(db,"logs"), orderBy("createdAt","desc"), limit(100)), snap => {
+    logsCache = snap.docs.map(d=>({id:d.id,...d.data()}));
+    renderJournal();
+    renderActivity();
+  }));
+}
+
+async function logAction(action, object) {
+  try {
+    await addDoc(collection(db,"logs"), {
+      action, object,
+      user: auth.currentUser?.displayName || "Директор",
+      createdAt: serverTimestamp()
+    });
+  } catch(e) { console.warn("log:", e); }
+}
+
+const viewMeta = {
+  dashboard:{title:"Панель управления директора",sub:"Полный контроль поручений, исполнительской дисциплины и отчётности"},
+  tasks:{title:"Реестр всех поручений",sub:"Полный контроль задач техникума"},
+  kanban:{title:"Kanban-доска поручений",sub:"Перетаскивайте карточки для изменения статуса"},
+  calendar:{title:"Календарь сроков",sub:"Контроль дедлайнов на месяц"},
+  reports:{title:"Сводные отчёты и экспорт",sub:"Анализ исполнительской дисциплины по ТЗ"},
+  journal:{title:"Журнал событий",sub:"Неизменяемый аудит действий в системе"}
+};
+const views = ["dashboard","tasks","kanban","calendar","reports","journal"];
+
+function showView(key) {
+  const v = viewMeta[key] || viewMeta.dashboard;
+  document.querySelectorAll(".nav button").forEach(b => b.classList.toggle("active", b.dataset.view === key));
+  $("pageTitle").textContent = v.title;
+  $("pageSub").textContent = v.sub;
+  $("crumbCurrent").textContent = v.title;
+  views.forEach(id => { const el = $(id+"View"); if (el) el.style.display = (id === key) ? "block" : "none"; });
+  $("sidebar").classList.remove("open");
+  if (key === "calendar") renderCalendar();
+  if (key === "reports") renderReports();
+  if (key === "kanban") renderKanban();
+}
+
+document.querySelectorAll(".nav button").forEach(b => b.addEventListener("click", () => showView(b.dataset.view)));
+document.querySelectorAll("[data-go]").forEach(b => b.addEventListener("click", () => showView(b.dataset.go)));
+$("menuBtn")?.addEventListener("click", () => $("sidebar").classList.toggle("open"));
+
+const taskModal = $("taskModal");
+function openTaskModal(task = null)

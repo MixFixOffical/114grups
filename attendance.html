@@ -814,6 +814,11 @@ tr:hover td:first-child { background: var(--surface-2); }
     .student-index { width: 30px; height: 30px; font-size: 11px; }
     .student-name { font-size: 13px; }
 }
+/* ===== Текущая пара (по времени звонков) ===== */
+th.lesson-header.now-col:not(.active-col){ background: var(--green-soft); color: var(--green); box-shadow: inset 0 -3px 0 var(--green); }
+.now-tag { display: inline-block; margin-top: 4px; font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--green); }
+td.attendance-cell.now-col { background: var(--green-soft); }
+td.attendance-cell.now-col:hover { background: var(--green-soft); }
 </style>
 </head>
 <body>
@@ -1215,11 +1220,21 @@ function getAttestationInfo(dateString) {
    DATA LOADING
 ========================================================= */
 async function resolveHomePage(user) {
+    let role = null;
     try {
         const snap = await getDoc(doc(db, "users", user.uid));
-        const role = snap.exists() ? snap.data().role : null;
-        return role === "admin" ? "adminhome.html" : "home.html";
+        role = snap.exists() ? snap.data().role : null;
     } catch (e) { return "home.html"; }
+
+    if (role === "admin") {
+        // Администратор в режиме просмотра куратора возвращается на khome
+        try {
+            const pv = JSON.parse(sessionStorage.getItem("kurator-view-as") || "null");
+            if (pv && pv.role === "curator") return "khome.html";
+        } catch (e) {}
+        return "adminhome.html";
+    }
+    return role === "curator" ? "khome.html" : "home.html";
 }
 
 onAuthStateChanged(auth, async user => {
@@ -1699,6 +1714,35 @@ function openCellMenu(student, lesson) {
 }
 window.openCellMenu = openCellMenu;
 
+/* Минуты от начала суток из строки времени "8:30" / "08:30" */
+function parseHM(v) {
+    const m = /^(\d{1,2})[:.](\d{2})/.exec(String(v ?? "").trim());
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/* Текущая пара по времени звонков (только для сегодняшней даты):
+   state: "now" — идёт сейчас, "next" — ближайшая предстоящая, "done" — все закончились */
+function getCurrentLessonInfo(dayIndex, count) {
+    const none = { lesson: 0, state: "none" };
+    if (!count || selectedDate !== formatDate(new Date())) return none;
+
+    const now = new Date();
+    const mins = now.getHours() * 60 + now.getMinutes();
+    let next = 0, last = 0;
+
+    for (let l = 1; l <= count; l++) {
+        const t = getLessonTime(dayIndex, l);
+        const s = parseHM(t.start), e = parseHM(t.end);
+        if (s === null) continue;
+        last = l;
+        if (e !== null && mins >= s && mins < e) return { lesson: l, state: "now" };
+        if (!next && mins < s) next = l;
+    }
+    if (next) return { lesson: next, state: "next" };
+    if (last) return { lesson: last, state: "done" };
+    return none;
+}
+
 function render() {
     if (!selectedDate) return;
     const dayIndex = getDayIndex(selectedDate);
@@ -1712,6 +1756,11 @@ function render() {
     $("periodInfo").textContent = `${period.semester} • ${period.attestation}`;
 
     if (currentLesson > lessonCount) currentLesson = 0;
+
+    const nowInfo = getCurrentLessonInfo(dayIndex, lessonCount);
+    // На телефоне пара для отметки выбирается сама: текущая, а если её нет — ближайшая
+    if (!currentLesson && window.innerWidth <= 768 && nowInfo.lesson) currentLesson = nowInfo.lesson;
+    const nowCol = nowInfo.state === "now" ? nowInfo.lesson : 0;
     renderLessonChips();
     updateDisciplineBanner();
     updateProgress();
@@ -1750,9 +1799,10 @@ function render() {
     let html = `<table><thead><tr><th>Студент</th>`;
     for (let l = 1; l <= lessonCount; l++) {
         const disc = getDiscipline(dayIndex, l);
-        html += `<th class="lesson-header ${l === currentLesson ? 'active-col' : ''}" title="Информация о паре" onclick="window.openLessonInfo(${l})">
+        html += `<th class="lesson-header ${l === currentLesson ? 'active-col' : ''} ${l === nowCol ? 'now-col' : ''}" title="Информация о паре" onclick="window.openLessonInfo(${l})">
             <span class="lesson-number">${l}</span>
             <span class="lesson-short-name">${escapeHtml(disc)}</span>
+            ${l === nowCol ? '<span class="now-tag">сейчас</span>' : ''}
         </th>`;
     }
     html += `</tr></thead><tbody>`;
@@ -1767,7 +1817,7 @@ function render() {
                 cls = "status-absent";
                 txt = d.absentType === "uv" ? "Н/У" : d.absentType === "bolezn" ? "Н/Б" : "Н";
             }
-            html += `<td class="attendance-cell" onclick="window.openCell('${escapeJs(student.id)}', ${l})"><div class="status ${cls}">${txt}</div></td>`;
+            html += `<td class="attendance-cell ${l === nowCol ? 'now-col' : ''}" onclick="window.openCell('${escapeJs(student.id)}', ${l})"><div class="status ${cls}">${txt}</div></td>`;
         }
         html += `</tr>`;
     });

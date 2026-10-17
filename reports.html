@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>Отчёты — Панель управления</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+    color-scheme: light dark;
+    --accent:#1d4ed8;
+    --accent-dark:#1e3a8a;
+    --accent-soft:#eff6ff;
+    --text:#0f172a;
+    --text-secondary:#475569;
+    --text-light:#94a3b8;
+    --surface:#ffffff;
+    --surface-2:#f5f7fa;
+    --surface-3:#eef2f7;
+    --border:#e2e8f0;
+    --green:#047857;
+    --green-soft:#ecfdf5;
+    --amber:#b45309;
+    --amber-soft:#fffbeb;
+    --red:#b91c1c;
+    --red-soft:#fef2f2;
+    --radius-sm:8px;
+    --radius-md:10px;
+    --radius-lg:14px;
+    --shadow-xs:0 1px 2px rgba(15,23,42,.05);
+}
+@media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+        --accent:#60a5fa;
+        --accent-soft:rgba(29,78,216,.15);
+        --text:#e2e8f0;
+        --text-secondary:#94a3b8;
+        --text-light:#64748b;
+        --surface:#1e293b;
+        --surface-2:#172033;
+        --surface-3:#0f172a;
+        --border:#334155;
+        --green:#4ade80;
+        --green-soft:rgba(4,120,87,.15);
+        --amber:#fbbf24;
+        --amber-soft:rgba(180,83,9,.15);
+        --red:#f87171;
+        --red-soft:rgba(185,28,28,.15);
+    }
+}
+[data-theme="dark"]{
+    --accent:#60a5fa;
+    --accent-soft:rgba(29,78,216,.15);
+    --text:#e2e8f0;
+    --text-secondary:#94a3b8;
+    --text-light:#64748b;
+    --surface:#1e293b;
+    --surface-2:#172033;
+    --surface-3:#0f172a;
+    --border:#334155;
+    --green:#4ade80;
+    --green-soft:rgba(4,120,87,.15);
+    --amber:#fbbf24;
+    --amber-soft:rgba(180,83,9,.15);
+    --red:#f87171;
+    --red-soft:rgba(185,28,28,.15);
+}
+
+body{
+    min-height:100vh;
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:var(--text);
+    background:var(--surface-3);
+    -webkit-font-smoothing:antialiased;
+    overflow-x:hidden;
+}
+button,input,select{font-family:inherit;font-size:13px}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+.wrap{max-width:1200px;margin:0 auto;padding:22px 24px 48px}
+
+/* ---------- header ---------- */
+.head{margin-bottom:18px}
+.back{
+    display:inline-flex;align-items:center;gap:6px;
+    color:var(--text-secondary);text-decoration:none;font-size:12.5px;font-weight:500;
+    padding:6px 10px;margin-left:-10px;border-radius:var(--radius-sm);
+}
+.back:hover{background:var(--surface);color:var(--text)}
+.head h1{margin-top:8px;font-size:22px;font-weight:700;letter-spacing:-.4px}
+.head .sub{margin-top:4px;color:var(--text-secondary);font-size:13px}
+
+/* ---------- cards ---------- */
+.card{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    box-shadow:var(--shadow-xs);
+    margin-bottom:16px;
+}
+.card-head{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;
+    padding:14px 18px;border-bottom:1px solid var(--border);
+}
+.card-head h2{font-size:15px;font-weight:600}
+.pad{padding:16px 18px}
+
+/* ---------- filters ---------- */
+.presets{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.chip{
+    padding:6px 12px;border-radius:999px;cursor:pointer;
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text-secondary);
+    font-weight:500;transition:background .15s,color .15s,border-color .15s;
+}
+.chip:hover{color:var(--text);border-color:var(--text-light)}
+.chip.active{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+
+.filters-grid{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;
+}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field span{font-size:11.5px;font-weight:600;color:var(--text-secondary);letter-spacing:.2px}
+.field input,.field select,.search{
+    height:38px;padding:0 10px;border-radius:var(--radius-sm);
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+    width:100%;min-width:0;
+}
+.field input:focus,.field select:focus,.search:focus{outline:none;border-color:var(--accent)}
+
+/* ---------- summary ---------- */
+.summary{
+    display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:16px;
+}
+.stat{
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);
+    padding:14px 16px;box-shadow:var(--shadow-xs);
+}
+.stat-label{font-size:11.5px;color:var(--text-secondary);font-weight:500}
+.stat-value{margin-top:6px;font-size:22px;font-weight:700;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+.stat-value.risk{color:var(--red)}
+.stat-value.good{color:var(--green)}
+
+/* ---------- tables ---------- */
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap}
+th{font-size:11.5px;font-weight:600;color:var(--text-secondary);background:var(--surface-2);position:sticky;top:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--surface-2)}
+td.name{font-weight:500;max-width:340px;overflow:hidden;text-overflow:ellipsis}
+tr.risk td{background:var(--red-soft)}
+tr.risk td.name{color:var(--red)}
+
+.pct{display:inline-block;min-width:58px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+.pct.bad{color:var(--red)}
+.pct.mid{color:var(--amber)}
+.pct.ok{color:var(--green)}
+.bar{width:90px;height:6px;border-radius:999px;background:var(--surface-3);overflow:hidden;display:inline-block;vertical-align:middle;margin-left:8px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:999px}
+.bar i.bad{background:var(--red)}
+.bar i.mid{background:var(--amber)}
+.bar i.ok{background:var(--green)}
+
+.empty{padding:28px 18px;text-align:center;color:var(--text-light)}
+
+/* ---------- buttons ---------- */
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{
+    height:36px;padding:0 14px;border-radius:var(--radius-sm);cursor:pointer;
+    border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-weight:500;
+}
+.btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
+.btn.primary{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
+.btn.primary:hover{background:var(--accent);border-color:var(--accent)}
+.search{width:220px;height:36px}
+
+.note{margin-top:4px;font-size:12px;color:var(--text-light);min-height:16px}
+.note.error{color:var(--red)}
+
+/* ---------- loader ---------- */
+.loader{
+    position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+    background:var(--surface-3);transition:opacity .25s ease,visibility .25s ease;
+}
+.loader.hidden{opacity:0;visibility:hidden}
+.loader-text{color:var(--text-secondary);font-weight:500}
+
+/* ---------- responsive ---------- */
+@media (max-width:1024px){
+    .filters-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media (max-width:640px){
+    .wrap{padding:16px 16px 36px}
+    .filters-grid{grid-template-columns:1fr}
+    .summary{grid-template-columns:1fr 1fr}
+    .search{width:100%}
+    .card-head .actions{width:100%}
+    .card-head .actions .btn{flex:1}
+}
+
+/* ---------- print ---------- */
+@media print{
+    body{background:#fff;color:#000}
+    .back,.filters,.card-head .actions,.note{display:none!important}
+    .card,.stat{box-shadow:none;border-color:#ccc;background:#fff}
+    tr.risk td{background:#fff}
+}
+</style>
+</head>
+<body>
+
+<div class="loader" id="loader"><div class="loader-text">Загрузка отчёта…</div></div>
+
+<main class="wrap">
+
+    <header class="head">
+        <a class="back" href="adminhome.html">← Панель управления</a>
+        <h1>Отчёты</h1>
+        <p class="sub">Посещаемость по группам и студентам за выбранный период</p>
+    </header>
+
+    <section class="card">
+        <div class="pad">
+            <div class="presets" id="presets">
+                <button class="chip" data-preset="7">7 дней</button>
+                <button class="chip" data-preset="30">30 дней</button>
+                <button class="chip" data-preset="month">Текущий месяц</button>
+            </div>
+            <div class="filters-grid filters">
+                <label class="field"><span>С даты</span><input type="date" id="dateFrom"></label>
+                <label class="field"><span>По дату</span><input type="date" id="dateTo"></label>
+                <label class="field"><span>Группа</span>
+                    <select id="groupSelect"><option value="">Все группы</option></select>
+                </label>
+                <label class="field"><span>Порог риска, %</span>
+                    <input type="number" id="threshold" min="0" max="100" value="60">
+                </label>
+            </div>
+        </div>
+    </section>
+
+    <section class="summary" id="summary" aria-live="polite"></section>
+
+    <section class="card">
+        <div class="card-head">
+            <h2>По группам</h2>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Группа</th>
+                        <th class="num">Студентов</th>
+                        <th>Посещаемость</th>
+                        <th class="num">Пропусков</th>
+                        <th class="num">Уважит.</th>
+                        <th class="num">Неуважит.</th>
+                    </tr>
+                </thead>
+                <tbody id="groupsBody"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="card">
+        <div class="card-head">
+            <h2>По студентам</h2>
+            <div class="actions">
+                <input type="search" class="search" id="search" placeholder="Поиск по ФИО">
+                <button class="btn primary" id="exportBtn">Экспорт CSV</button>
+                <button class="btn" id="printBtn">Печать</button>
+            </div>
+        </div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Студент</th>
+                        <th>Группа</th>
+                        <th class="num">Отметок</th>
+                        <th class="num">Присутствий</th>
+                        <th class="num">Пропусков</th>
+                        <th>Посещаемость</th>
+                    </tr>
+                </thead>
+                <tbody id="studentsBody"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <p class="note" id="note"></p>
+</main>
+
+<script>
+/* =========================================================
+   ОТЧЁТЫ ПОСЕЩАЕМОСТИ
+   Источники: students, groups, attendance/{дата}.students[id].lessons[n]
+   Статусы: status = present | absent; для absent absentType = neuv | uv | bolezn
+========================================================= */
+
+const state = {
+    groups: new Map(),      // id -> название
+    students: new Map(),    // id -> { id, name, group }
+    per: new Map(),         // id студента -> { total, present, excused, unexcused }
+    docsCount: 0,
+    search: "",
+    groupFilter: "",
+    threshold: 60
+};
+
+const $ = id => document.getElementById(id);
+
+function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+}
+
+function ymd(d) {
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${m}-${day}`;
+}
+
+function addDays(d, n) {
+    const x = new Date(d);
+    x.setDate(x.getDate() + n);
+    return x;
+}
+
+function setNote(text, isError) {
+    const el = $("note");
+    el.textContent = text || "";
+    el.classList.toggle("error", !!isError);
+}
+
+function showLoader(show) {
+    $("loader").classList.toggle("hidden", !show);
+}
+
+/* ---------- справочники ---------- */
+
+async function loadReference() {
+    const [groupsSnap, studentsSnap] = await Promise.all([
+        db.collection("groups").get(),
+        db.collection("students").get()
+    ]);
+
+    groupsSnap.forEach(d => {
+        const x = d.data() || {};
+        state.groups.set(d.id, x.name || "Без названия");
+    });
+
+    studentsSnap.forEach(d => {
+        const x = d.data() || {};
+        const name = x.fullName || x.fio || x.name || "Без имени";
+        const rawGroup = x.group || x.groupName || state.groups.get(x.groupId) || x.groupId || "";
+        state.students.set(d.id, {
+            id: d.id,
+            name,
+            group: rawGroup || "Без группы"
+        });
+    });
+
+    const names = [...new Set([...state.groups.values(), ...[...state.students.values()].map(s => s.group)])]
+        .filter(n => n && n !== "Без группы")
+        .sort((a, b) => a.localeCompare(b, "ru"));
+
+    const sel = $("groupSelect");
+    names.forEach(n => {
+        const opt = document.createElement("option");
+        opt.value = n;
+        opt.textContent = n;
+        sel.appendChild(opt);
+    });
+}
+
+/* ---------- посещаемость ---------- */
+
+async function fetchAttendance(from, to) {
+    const col = db.collection("attendance");
+    const idField = firebase.firestore.FieldPath.documentId();
+    try {
+        const snap = await col.where(idField, ">=", from).where(idField, "<=", to).get();
+        return snap.docs;
+    } catch (e) {
+        console.warn("Запрос по id не сработал, пробуем поле date:", e);
+        const snap = await col.where("date", ">=", from).where("date", "<=", to).get();
+        return snap.docs;
+    }
+}
+
+function aggregate(docs) {
+    const per = new Map();
+
+    docs.forEach(doc => {
+        const students = (doc.data() || {}).students;
+        if (!students || typeof students !== "object") return;
+
+        Object.entries(students).forEach(([sid, rec]) => {
+            const lessons = rec && rec.lessons;
+            if (!lessons || typeof lessons !== "object") return;
+
+            Object.values(lessons).forEach(ld => {
+                if (!ld) return;
+                const status = String(ld.status || "").toLowerCase();
+                if (status !== "present" && status !== "absent") return;
+
+                const p = per.get(sid) || { total: 0, present: 0, excused: 0, unexcused: 0 };
+                p.total++;
+                if (status === "present") {
+                    p.present++;
+                } else {
+                    const type = String(ld.absentType || "").toLowerCase();
+                    if (type === "uv" || type === "bolezn") p.excused++;
+                    else p.unexcused++;
+                }
+                per.set(sid, p);
+            });
+        });
+    });
+
+    return per;
+}
+
+/* ---------- построение строк ---------- */
+
+function buildRows() {
+    const rows = [];
+    state.students.forEach(s => {
+        if (state.groupFilter && s.group !== state.groupFilter) return;
+
+        const p = state.per.get(s.id) || { total: 0, present: 0, excused: 0, unexcused: 0 };
+        const pct = p.total ? Math.round((p.present / p.total) * 1000) / 10 : null;
+
+        rows.push({
+            id: s.id,
+            name: s.name,
+            group: s.group,
+            total: p.total,
+            present: p.present,
+            excused: p.excused,
+            unexcused: p.unexcused,
+            absent: p.excused + p.unexcused,
+            pct
+        });
+    });
+
+    // Сначала с низкой посещаемостью, без данных — в конце
+    rows.sort((a, b) => {
+        if (a.pct === null && b.pct === null) return a.name.localeCompare(b.name, "ru");
+        if (a.pct === null) return 1;
+        if (b.pct === null) return -1;
+        return a.pct - b.pct || a.name.localeCompare(b.name, "ru");
+    });
+
+    return rows;
+}
+
+function buildGroups(rows) {
+    const map = new Map();
+    rows.forEach(r => {
+        const g = map.get(r.group) || { group: r.group, students: 0, total: 0, present: 0, excused: 0, unexcused: 0 };
+        g.students++;
+        g.total += r.total;
+        g.present += r.present;
+        g.excused += r.excused;
+        g.unexcused += r.unexcused;
+        map.set(r.group, g);
+    });
+
+    return [...map.values()]
+        .map(g => ({ ...g, absent: g.excused + g.unexcused, pct: g.total ? Math.round((g.present / g.total) * 1000) / 10 : null }))
+        .sort((a, b) => {
+            if (a.pct === null && b.pct === null) return a.group.localeCompare(b.group, "ru");
+            if (a.pct === null) return 1;
+            if (b.pct === null) return -1;
+            return a.pct - b.pct;
+        });
+}
+
+/* ---------- рендер ---------- */
+
+function pctClass(pct, threshold) {
+    if (pct === null) return "";
+    if (pct < threshold) return "bad";
+    if (pct < threshold + 15) return "mid";
+    return "ok";
+}
+
+function pctHtml(pct, threshold) {
+    if (pct === null) return `<span class="pct" style="color:var(--text-light)">—</span>`;
+    const cls = pctClass(pct, threshold);
+    return `<span class="pct ${cls}">${pct.toFixed(1)}%</span><span class="bar"><i class="${cls}" style="width:${Math.min(pct, 100)}%"></i></span>`;
+}
+
+function renderSummary(rows, groups) {
+    const t = state.threshold;
+    const total = rows.reduce((s, r) => s + r.total, 0);
+    const present = rows.reduce((s, r) => s + r.present, 0);
+    const absent = rows.reduce((s, r) => s + r.absent, 0);
+    const excused = rows.reduce((s, r) => s + r.excused, 0);
+    const avg = total ? Math.round((present / total) * 1000) / 10 : null;
+    const risk = rows.filter(r => r.pct !== null && r.pct < t).length;
+
+    const avgClass = avg === null ? "" : (avg < t ? "risk" : "good");
+
+    $("summary").innerHTML = `
+        <div class="stat">
+            <div class="stat-label">Средняя посещаемость</div>
+            <div class="stat-value ${avgClass}">${avg === null ? "—" : avg.toFixed(1) + "%"}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Отметок за период</div>
+            <div class="stat-value">${total}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Пропусков</div>
+            <div class="stat-value">${absent}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Из них уважительных</div>
+            <div class="stat-value">${excused}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-label">Ниже порога ${t}%</div>
+            <div class="stat-value ${risk ? "risk" : "good"}">${risk}</div>
+        </div>`;
+}
+
+function renderGroups(groups) {
+    const body = $("groupsBody");
+    if (!groups.length) {
+        body.innerHTML = `<tr><td colspan="6" class="empty">Нет данных за выбранный период</td></tr>`;
+        return;
+    }
+    body.innerHTML = groups.map(g => `
+        <tr>
+            <td class="name">${esc(g.group)}</td>
+            <td class="num">${g.students}</td>
+            <td>${pctHtml(g.pct, state.threshold)}</td>
+            <td class="num">${g.absent}</td>
+            <td class="num">${g.excused}</td>
+            <td class="num">${g.unexcused}</td>
+        </tr>`).join("");
+}
+
+function filteredStudents(rows) {
+    const q = state.search.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter(r => r.name.toLowerCase().includes(q));
+}
+
+function renderStudents(rows) {
+    const body = $("studentsBody");
+    const list = filteredStudents(rows);
+    if (!list.length) {
+        body.innerHTML = `<tr><td colspan="6" class="empty">${state.search ? "Никого не найдено" : "Нет студентов в выбранной группе"}</td></tr>`;
+        return;
+    }
+    body.innerHTML = list.map(r => {
+        const isRisk = r.pct !== null && r.pct < state.threshold;
+        return `
+        <tr class="${isRisk ? "risk" : ""}">
+            <td class="name" title="${esc(r.name)}">${esc(r.name)}</td>
+            <td>${esc(r.group)}</td>
+            <td class="num">${r.total}</td>
+            <td class="num">${r.present}</td>
+            <td class="num">${r.absent}${r.absent ? ` <span style="color:var(--text-light)">(${r.excused} у.)</span>` : ""}</td>
+            <td>${pctHtml(r.pct, state.threshold)}</td>
+        </tr>`;
+    }).join("");
+}
+
+function renderAll() {
+    const rows = buildRows();
+    const groups = buildGroups(rows);
+    renderSummary(rows, groups);
+    renderGroups(groups);
+    renderStudents(rows);
+    state.lastRows = rows;
+}
+
+/* ---------- загрузка по периоду ---------- */
+
+function getRange() {
+    return { from: $("dateFrom").value, to: $("dateTo").value };
+}
+
+async function loadPeriod() {
+    const { from, to } = getRange();
+    if (!from || !to) return;
+    if (from > to) {
+        setNote("Дата «С» не может быть позже даты «По».", true);
+        return;
+    }
+
+    showLoader(true);
+    setNote("");
+    try {
+        const docs = await fetchAttendance(from, to);
+        state.docsCount = docs.length;
+        state.per = aggregate(docs);
+        renderAll();
+        setNote(`Записей посещаемости за период: ${docs.length}`);
+    } catch (e) {
+        console.error(e);
+        setNote("Не удалось загрузить данные. Проверьте доступ к коллекции «attendance» в Firestore.", true);
+    } finally {
+        showLoader(false);
+    }
+}
+
+function setPreset(name) {
+    const today = new Date();
+    let from;
+    if (name === "month") {
+        from = new Date(today.getFullYear(), today.getMonth(), 1);
+    } else {
+        from = addDays(today, -(Number(name) - 1));
+    }
+    $("dateFrom").value = ymd(from);
+    $("dateTo").value = ymd(today);
+    document.querySelectorAll(".chip").forEach(c => c.classList.toggle("active", c.dataset.preset === String(name)));
+}
+
+/* ---------- экспорт ---------- */
+
+function exportCsv() {
+    const rows = filteredStudents(state.lastRows || []);
+    if (!rows.length) {
+        setNote("Нечего экспортировать.", true);
+        return;
+    }
+
+    const header = ["Студент", "Группа", "Отметок", "Присутствий", "Пропусков", "Уважительных", "Неуважительных", "Посещаемость, %"];
+    const lines = [header, ...rows.map(r => [
+        r.name, r.group, r.total, r.present, r.absent, r.excused, r.unexcused,
+        r.pct === null ? "" : r.pct.toFixed(1)
+    ])].map(cols => cols.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";"));
+
+    // BOM + ";" — чтобы Excel сразу открыл файл в кодировке UTF-8 с нужными колонками
+    const blob = new Blob(["﻿" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const { from, to } = getRange();
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `otchet_${from}_${to}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* ---------- события ---------- */
+
+function bindEvents() {
+    document.querySelectorAll(".chip").forEach(btn => {
+        btn.addEventListener("click", () => {
+            setPreset(btn.dataset.preset);
+            loadPeriod();
+        });
+    });
+
+    $("dateFrom").addEventListener("change", () => { document.querySelectorAll(".chip").forEach(c => c.classList.remove("active")); loadPeriod(); });
+    $("dateTo").addEventListener("change", () => { document.querySelectorAll(".chip").forEach(c => c.classList.remove("active")); loadPeriod(); });
+
+    $("groupSelect").addEventListener("change", e => {
+        state.groupFilter = e.target.value;
+        renderAll();
+    });
+
+    $("threshold").addEventListener("change", e => {
+        const v = parseInt(e.target.value, 10);
+        state.threshold = isNaN(v) ? 60 : Math.min(100, Math.max(0, v));
+        e.target.value = state.threshold;
+        renderAll();
+    });
+
+    $("search").addEventListener("input", e => {
+        state.search = e.target.value;
+        renderStudents(state.lastRows || []);
+    });
+
+    $("exportBtn").addEventListener("click", exportCsv);
+    $("printBtn").addEventListener("click", () => window.print());
+}
+
+/* ---------- старт: доступ только администратору ---------- */
+
+auth.onAuthStateChanged(async user => {
+    if (!user) {
+        window.location.href = "login.html";
+        return;
+    }
+
+    try {
+        const snap = await db.collection("users").doc(user.uid).get();
+        const role = String((snap.data() || {}).role || "").toLowerCase();
+        if (role && !["admin", "administrator", "администратор"].includes(role)) {
+            document.querySelector(".loader-text").textContent = "Доступ только для администраторов";
+            setTimeout(() => { window.location.href = "home.html"; }, 1200);
+            return;
+        }
+    } catch (e) {
+        console.warn("Профиль:", e.code || e.message);
+    }
+
+    try {
+        await loadReference();
+    } catch (e) {
+        console.error(e);
+        setNote("Не удалось загрузить справочники студентов и групп.", true);
+    }
+
+    bindEvents();
+    setPreset("30");
+    loadPeriod();
+});
+</script>
+</body>
+</html>

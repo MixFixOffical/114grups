@@ -416,8 +416,11 @@ function aggregate(docs) {
 
             Object.values(lessons).forEach(ld => {
                 if (!ld) return;
-                const status = String(ld.status || "").toLowerCase();
-                if (status !== "present" && status !== "absent") return;
+                const raw = String(ld.status || "").trim().toLowerCase();
+                const PRESENT = ["present", "присутствовал", "присутствует", "присутствие", "п", "✓", "late", "опоздал", "опоздание"];
+                const ABSENT = ["absent", "отсутствовал", "отсутствует", "отсутствие", "н"];
+                const status = PRESENT.includes(raw) ? "present" : (ABSENT.includes(raw) ? "absent" : "");
+                if (!status) return;
 
                 const p = per.get(sid) || { total: 0, present: 0, excused: 0, unexcused: 0 };
                 p.total++;
@@ -707,16 +710,22 @@ auth.onAuthStateChanged(async user => {
         return;
     }
 
+    let profile = {};
     try {
         const snap = await db.collection("users").doc(user.uid).get();
-        const role = String((snap.data() || {}).role || "").toLowerCase();
-        if (role && !["admin", "administrator", "администратор"].includes(role)) {
-            document.querySelector(".loader-text").textContent = "Доступ только для администраторов";
-            setTimeout(() => { window.location.href = "home.html"; }, 1200);
-            return;
-        }
+        profile = snap.data() || {};
     } catch (e) {
         console.warn("Профиль:", e.code || e.message);
+    }
+
+    const role = String(profile.role || "").toLowerCase();
+    const isAdmin = !role || ["admin", "administrator", "администратор"].includes(role);
+    const isCurator = ["curator", "starosta"].includes(role);
+
+    if (!isAdmin && !isCurator) {
+        document.querySelector(".loader-text").textContent = "Нет доступа к отчётам";
+        setTimeout(() => { window.location.href = "home.html"; }, 1200);
+        return;
     }
 
     try {
@@ -724,6 +733,27 @@ auth.onAuthStateChanged(async user => {
     } catch (e) {
         console.error(e);
         setNote("Не удалось загрузить справочники студентов и групп.", true);
+    }
+
+    if (isCurator) {
+        // Куратор видит отчёт только по своей группе
+        const raw = String(profile.groupId || profile.group || profile.gruppa || profile.groupName || "").trim();
+        const groupName = state.groups.get(raw) || raw;
+        const sel = $("groupSelect");
+        if (groupName && !groupName.startsWith("Без")) {
+            if (![...sel.options].some(o => o.value === groupName)) {
+                const opt = document.createElement("option");
+                opt.value = groupName;
+                opt.textContent = groupName;
+                sel.appendChild(opt);
+            }
+            sel.value = groupName;
+            sel.disabled = true;
+            state.groupFilter = groupName;
+            setNote(`Отчёт по вашей группе: ${groupName}`);
+        } else {
+            setNote("Группа не назначена. Обратитесь к администратору.", true);
+        }
     }
 
     bindEvents();

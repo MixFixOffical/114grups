@@ -533,49 +533,6 @@ button{font-family:inherit}
     color:var(--text-secondary);
 }
 
-/* ============ ATTENTION BLOCK ============ */
-.attention-card{
-    position:relative;
-    display:flex;
-    align-items:center;
-    gap:16px;
-    padding:14px 18px;
-    margin-bottom:20px;
-    border-radius:var(--radius-md);
-    background:var(--red-soft);
-    border:1px solid rgba(185,28,28,.2);
-}
-.attention-card.hidden{display:none}
-.attention-card .att-icon{
-    width:40px;height:40px;flex-shrink:0;
-    display:flex;align-items:center;justify-content:center;
-    border-radius:var(--radius-sm);
-    background:var(--surface);
-    color:var(--red);
-    border:1px solid rgba(185,28,28,.2);
-}
-.attention-card .att-icon svg{width:20px;height:20px}
-.attention-card .att-body{flex:1;min-width:0}
-.attention-card .att-title{
-    font-size:13px;font-weight:600;color:var(--text);
-    margin-bottom:6px;
-}
-.attention-card .att-list{
-    display:flex;flex-wrap:wrap;gap:6px;
-}
-.attention-card .att-tag{
-    display:inline-flex;align-items:center;gap:5px;
-    padding:4px 10px;
-    border-radius:var(--radius-sm);
-    background:var(--surface);
-    border:1px solid rgba(185,28,28,.2);
-    font-size:11.5px;font-weight:500;color:var(--red);
-    cursor:pointer;
-    transition:background .15s ease;
-}
-.attention-card .att-tag:hover{background:var(--surface-2)}
-.attention-card .att-tag svg{width:12px;height:12px}
-
 /* ============ STATS ============ */
 .stats-grid{
     display:grid;
@@ -1514,8 +1471,6 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
     .hero-clock-time{font-size:20px}
     .hero-clock-date{font-size:10.5px}
 
-    .attention-card{flex-direction:column;align-items:flex-start;gap:10px;padding:12px 14px}
-    .attention-card .att-icon{width:36px;height:36px}
 
     .stats-grid{grid-template-columns:1fr;gap:10px}
     .stat-card{padding:14px 16px;flex-direction:row;align-items:center;gap:14px}
@@ -1627,8 +1582,6 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
 .btn-link{height:36px;display:inline-flex;align-items:center;padding:0 12px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-size:12.5px;font-weight:500;text-decoration:none;cursor:pointer}
 .btn-link:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
 
-.attention-card .att-tag.risk-tag{color:var(--red)}
-.attention-card .att-tag.warn-tag{color:var(--amber);border-color:rgba(180,83,9,.25)}
 
 .grid-2{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;margin-top:20px}
 .grid-2 > .card-block{min-width:0}
@@ -1812,17 +1765,6 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
                     <div class="hero-clock-label">Текущее время</div>
                     <div class="hero-clock-time" id="clock">00:00:00</div>
                     <div class="hero-clock-date" id="clockDate">—</div>
-                </div>
-            </section>
-
-            <!-- ===== ТРЕБУЕТ ВНИМАНИЯ ===== -->
-            <section class="attention-card hidden" id="attentionCard">
-                <div class="att-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v5"/><path d="M12 17h.01"/><path d="M10.3 3.9 2.6 17.2A2 2 0 0 0 4.3 20h15.4a2 2 0 0 0 1.7-2.8L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
-                </div>
-                <div class="att-body">
-                    <div class="att-title">Требует внимания</div>
-                    <div class="att-list" id="attentionList"></div>
                 </div>
             </section>
 
@@ -2037,8 +1979,7 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
 
 const CONFIG = {
     LOW_ATTENDANCE: 60,      // порог риска, %
-    UNEXCUSED_ALERT: 3,      // неуважительных за 30 дней → внимание
-    NO_REASON_DAYS: 7,       // пропуски без причины за N дней → внимание
+    NO_REASON_DAYS: 7,       // пропуски без причины за N дней
     STAFF_ROLES: ["curator", "starosta"],
     WEEK_DAYS: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
 };
@@ -2402,35 +2343,10 @@ function renderStudents() {
     }).join("");
 }
 
-function renderAttention() {
-    const tags = [];
-    const rows = studentRows();
-
-    rows.filter(r => r.pct !== null && r.pct < CONFIG.LOW_ATTENDANCE).slice(0, 5).forEach(r =>
-        tags.push({ cls: "risk-tag", text: `${r.name}: ${r.pct.toFixed(0)}%`, id: r.id }));
-
-    rows.filter(r => r.unexcused >= CONFIG.UNEXCUSED_ALERT).slice(0, 5).forEach(r =>
-        tags.push({ cls: "warn-tag", text: `${r.name}: ${r.unexcused} неуваж.`, id: r.id }));
-
-    rows.filter(r => r.noReasonRecent > 0).slice(0, 5).forEach(r =>
-        tags.push({ cls: "warn-tag", text: `${r.name}: без причины (${r.noReasonRecent})`, id: r.id }));
-
-    const card = $("attentionCard");
-    if (!tags.length) {
-        card.classList.add("hidden");
-        return;
-    }
-    card.classList.remove("hidden");
-    $("attentionList").innerHTML = tags.map(t =>
-        `<span class="att-tag ${t.cls}" onclick="openNote('${esc(t.id)}')">${esc(t.text)}</span>`
-    ).join("");
-}
-
 function renderAll() {
     renderStats();
     renderWeek();
     renderStudents();
-    renderAttention();
 }
 
 /* ---------- заметки ---------- */

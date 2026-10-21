@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Игра — вход по коду</title>
+  <style>
+    :root {
+      --bg1: #fff6e9; --bg2: #eef4ff; --ink: #1d1f3a; --muted: #6b6f8f;
+      --primary: #7c5cff; --primary2: #ff6fb1; --accent: #ffc34d; --mint: #3ed6b0;
+      --danger: #ff4d6d; --radius: 24px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(160deg, var(--bg1), var(--bg2));
+      min-height: 100vh; min-height: 100dvh;
+      display: flex; align-items: center; justify-content: center;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom));
+      overflow-x: hidden;
+    }
+    .bg-shapes { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .shape { position: absolute; border-radius: 40%; opacity: 0.45; filter: blur(2px); animation: float 12s ease-in-out infinite; }
+    .s1 { width: 220px; height: 220px; background: var(--primary); top: -60px; left: -60px; }
+    .s2 { width: 180px; height: 180px; background: var(--primary2); bottom: -50px; right: -40px; animation-delay: -4s; }
+    .s3 { width: 110px; height: 110px; background: var(--accent); top: 30%; right: 8%; animation-delay: -8s; }
+    .s4 { width: 80px; height: 80px; background: var(--mint); bottom: 20%; left: 10%; animation-delay: -2s; }
+    @keyframes float { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(20px, -30px) rotate(20deg); } }
+
+    .card {
+      position: relative; z-index: 1; width: 100%; max-width: 420px;
+      background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 2px solid #fff; border-radius: var(--radius); padding: 32px 24px; text-align: center;
+      box-shadow: 0 20px 60px rgba(124, 92, 255, 0.18);
+      animation: pop 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    }
+    @keyframes pop { from { transform: scale(0.8); opacity: 0; } to { transform: none; opacity: 1; } }
+    [hidden] { display: none !important; }
+
+    .logo { font-size: 56px; display: inline-block; animation: bounce 1.6s ease-in-out infinite; }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    h1 { font-size: clamp(24px, 6vw, 30px); font-weight: 900; margin-top: 8px; }
+    .sub { color: var(--muted); font-size: 16px; margin: 8px 0 24px; }
+
+    .code-boxes { display: flex; justify-content: center; gap: 10px; margin-bottom: 24px; }
+    .digit {
+      width: clamp(52px, 16vw, 68px); height: clamp(64px, 18vw, 76px); border-radius: 18px;
+      border: 3px solid #e3e6ff; background: #fff; text-align: center; font-size: 30px; font-weight: 800;
+      color: var(--ink); outline: none; caret-color: var(--primary);
+      transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    }
+    .digit:focus { border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 8px 20px rgba(124, 92, 255, 0.25); }
+    .digit.filled { border-color: var(--mint); }
+
+    .txt {
+      width: 100%; padding: 16px; border-radius: 18px; border: 3px solid #e3e6ff; font-size: 18px;
+      color: var(--ink); outline: none; background: #fff; font-family: inherit; text-align: center; margin-bottom: 16px;
+    }
+    .txt:focus { border-color: var(--primary); }
+
+    .btn-play {
+      width: 100%; padding: 18px; border: 0; border-radius: 18px; font-size: 19px; font-weight: 800; color: #fff;
+      background: linear-gradient(90deg, var(--primary), var(--primary2));
+      box-shadow: 0 10px 25px rgba(255, 111, 177, 0.35); cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+    }
+    .btn-play:hover { transform: translateY(-2px); }
+    .btn-play:active { transform: scale(0.97); }
+    .btn-play:disabled { opacity: 0.6; cursor: wait; }
+
+    .message { min-height: 24px; margin-top: 16px; font-size: 16px; font-weight: 700; }
+    .message.error { color: var(--danger); }
+    .message.success { color: #1fa37f; }
+    .shake { animation: shake 0.45s; }
+    @keyframes shake {
+      0%, 100% { transform: none; } 20% { transform: translateX(-10px); } 40% { transform: translateX(10px); }
+      60% { transform: translateX(-6px); } 80% { transform: translateX(6px); }
+    }
+    @media (max-width: 360px) { .code-boxes { gap: 6px; } .card { padding: 24px 16px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+
+  <div class="bg-shapes" aria-hidden="true">
+    <span class="shape s1"></span><span class="shape s2"></span><span class="shape s3"></span><span class="shape s4"></span>
+  </div>
+
+  <main class="card" id="card">
+    <div class="logo" aria-hidden="true">🎮</div>
+    <h1 id="title">Введи код игры</h1>
+    <p class="sub" id="subtitle">Попроси код у ведущего и вступай в игру!</p>
+
+    <form id="codeForm" novalidate>
+      <div class="code-boxes">
+        <input class="digit" type="tel" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Цифра 1">
+        <input class="digit" type="tel" inputmode="numeric" maxlength="1" aria-label="Цифра 2">
+        <input class="digit" type="tel" inputmode="numeric" maxlength="1" aria-label="Цифра 3">
+        <input class="digit" type="tel" inputmode="numeric" maxlength="1" aria-label="Цифра 4">
+      </div>
+      <button type="submit" class="btn-play" id="submitBtn">Войти в игру</button>
+    </form>
+
+    <form id="nameForm" novalidate hidden>
+      <input class="txt" id="nameInput" type="text" maxlength="20" placeholder="Твой никнейм" autocomplete="nickname">
+      <button type="submit" class="btn-play" id="nameBtn">Вступить в игру</button>
+    </form>
+
+    <p class="message" id="message" role="status" aria-live="polite"></p>
+  </main>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, getDocs, setDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
+      authDomain: "sokrat-7c938.firebaseapp.com",
+      projectId: "sokrat-7c938",
+      storageBucket: "sokrat-7c938.firebasestorage.app",
+      messagingSenderId: "19858604945",
+      appId: "1:19858604945:web:244b77bbe5afb849481030",
+      measurementId: "G-K06CVPVD15"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const CONFIG = { CODE_LENGTH: 4, ADMIN_CODE: "2702", ADMIN_PAGE: "adminhome.html", GAMES: "games" };
+
+    const $ = (id) => document.getElementById(id);
+    const card = $("card");
+    const form = $("codeForm");
+    const nameForm = $("nameForm");
+    const boxes = [...document.querySelectorAll(".digit")];
+    const message = $("message");
+    const submitBtn = $("submitBtn");
+    const nameInput = $("nameInput");
+    const nameBtn = $("nameBtn");
+
+    let pendingCode = null;
+
+    // ===== Ввод по ячейкам =====
+    boxes.forEach((box, i) => {
+      box.addEventListener("input", () => {
+        box.value = box.value.replace(/\D/g, "").slice(-1);
+        box.classList.toggle("filled", Boolean(box.value));
+        if (box.value && i < boxes.length - 1) boxes[i + 1].focus();
+        clearMessage();
+      });
+      box.addEventListener("keydown", (e) => {
+        if (e.key === "Backspace" && !box.value && i > 0) {
+          boxes[i - 1].value = "";
+          boxes[i - 1].classList.remove("filled");
+          boxes[i - 1].focus();
+        }
+      });
+      box.addEventListener("focus", () => box.select());
+      box.addEventListener("paste", (e) => {
+        e.preventDefault();
+        const digits = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, CONFIG.CODE_LENGTH);
+        digits.split("").forEach((d, j) => {
+          if (boxes[i + j]) { boxes[i + j].value = d; boxes[i + j].classList.add("filled"); }
+        });
+        boxes[Math.min(i + digits.length, boxes.length - 1)].focus();
+      });
+    });
+
+    const getCode = () => boxes.map((b) => b.value).join("");
+
+    function resetBoxes() {
+      boxes.forEach((b) => { b.value = ""; b.classList.remove("filled"); });
+      boxes[0].focus();
+    }
+
+    // ===== Сообщения =====
+    function showMessage(text, type) { message.textContent = text; message.className = "message " + type; }
+    function clearMessage() { message.textContent = ""; message.className = "message"; }
+    function showError(text) {
+      showMessage(text, "error");
+      card.classList.remove("shake");
+      void card.offsetWidth;
+      card.classList.add("shake");
+    }
+    function setLoading(isLoading) {
+      submitBtn.disabled = isLoading;
+      submitBtn.textContent = isLoading ? "Проверяем…" : "Войти в игру";
+    }
+
+    // ===== Шаг 1: код игры =====
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearMessage();
+      const code = getCode();
+
+      if (code.length < CONFIG.CODE_LENGTH) return showError("Введи все цифры кода");
+      if (code === CONFIG.ADMIN_CODE) { location.href = CONFIG.ADMIN_PAGE; return; }
+
+      setLoading(true);
+      try {
+        const snap = await getDoc(doc(db, CONFIG.GAMES, code));
+        if (!snap.exists()) return showError("Игра с таким кодом не найдена");
+
+        const status = snap.data().status;
+        if (status === "finished" || status === "cancelled") return showError("Игра уже завершена");
+        if (status === "running") return showError("Игра уже идёт");
+
+        pendingCode = code;
+        form.hidden = true;
+        nameForm.hidden = false;
+        $("title").textContent = "Как тебя зовут?";
+        $("subtitle").textContent = "Придумай никнейм для игры";
+        nameInput.focus();
+      } catch (err) {
+        console.error(err);
+        showError("Нет связи с базой, попробуй ещё раз");
+      } finally {
+        setLoading(false);
+      }
+    });
+
+    // ===== Шаг 2: никнейм и вход =====
+    nameForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      clearMessage();
+      const name = nameInput.value.trim().replace(/\s+/g, " ");
+      if (!name) return showError("Введи никнейм");
+
+      nameBtn.disabled = true;
+      try {
+        // Проверка уникальности никнейма без учёта регистра
+        const players = await getDocs(collection(db, CONFIG.GAMES, pendingCode, "players"));
+        const taken = players.docs.some((d) => (d.data().name || "").toLowerCase() === name.toLowerCase());
+        if (taken) return showError("Такой никнейм уже занят");
+
+        const pid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+        await setDoc(doc(db, CONFIG.GAMES, pendingCode, "players", pid), {
+          name,
+          joinedAt: Date.now(),
+        });
+
+        sessionStorage.setItem("player", JSON.stringify({ code: pendingCode, pid, name }));
+        location.href = "game.html";
+      } catch (err) {
+        console.error(err);
+        showError("Не удалось войти, попробуй ещё раз");
+      } finally {
+        nameBtn.disabled = false;
+      }
+    });
+
+    boxes[0].focus();
+  </script>
+</body>
+</html>

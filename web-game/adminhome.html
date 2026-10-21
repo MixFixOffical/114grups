@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Админ-панель</title>
+  <style>
+    :root {
+      --bg1: #fff6e9; --bg2: #eef4ff; --ink: #1d1f3a; --muted: #6b6f8f;
+      --primary: #7c5cff; --primary2: #ff6fb1; --accent: #ffc34d; --mint: #3ed6b0;
+      --danger: #ff4d6d; --radius: 24px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { min-height: 100%; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      background: linear-gradient(160deg, var(--bg1), var(--bg2));
+      min-height: 100vh; min-height: 100dvh;
+      padding: max(16px, env(safe-area-inset-top)) 16px 140px;
+      overflow-x: hidden;
+    }
+    [hidden] { display: none !important; }
+
+    .bg-shapes { position: fixed; inset: 0; pointer-events: none; z-index: 0; }
+    .shape { position: absolute; border-radius: 40%; opacity: 0.45; filter: blur(2px); animation: float 12s ease-in-out infinite; }
+    .s1 { width: 220px; height: 220px; background: var(--primary); top: -60px; left: -60px; }
+    .s2 { width: 180px; height: 180px; background: var(--primary2); bottom: 10%; right: -50px; animation-delay: -4s; }
+    .s3 { width: 110px; height: 110px; background: var(--accent); top: 35%; right: 6%; animation-delay: -8s; }
+    .s4 { width: 80px; height: 80px; background: var(--mint); bottom: 25%; left: 8%; animation-delay: -2s; }
+    @keyframes float { 0%, 100% { transform: translate(0, 0) rotate(0deg); } 50% { transform: translate(20px, -30px) rotate(20deg); } }
+
+    .wrap { position: relative; z-index: 1; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 16px; }
+    .topbar { display: flex; justify-content: space-between; align-items: center; }
+    .title { font-size: 22px; font-weight: 900; }
+    .back { color: var(--primary); text-decoration: none; font-weight: 700; font-size: 15px; }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border: 2px solid #fff; border-radius: var(--radius); padding: 24px; text-align: center;
+      box-shadow: 0 20px 60px rgba(124, 92, 255, 0.18);
+      animation: pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    }
+    @keyframes pop { from { transform: scale(0.85); opacity: 0; } to { transform: none; opacity: 1; } }
+
+    .logo { font-size: 56px; display: inline-block; animation: bounce 1.6s ease-in-out infinite; }
+    @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+    h2 { font-size: 26px; font-weight: 900; margin: 8px 0 4px; }
+    .label { color: var(--muted); font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .section-title { font-weight: 900; font-size: 18px; margin-bottom: 14px; }
+
+    .btn {
+      display: block; width: 100%; padding: 16px; border: 0; border-radius: 18px; font-size: 18px; font-weight: 800;
+      color: #fff; background: linear-gradient(90deg, var(--primary), var(--primary2));
+      box-shadow: 0 10px 25px rgba(255, 111, 177, 0.35); cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s; font-family: inherit;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn.big { padding: 26px; font-size: 22px; }
+    .btn.alt { background: linear-gradient(90deg, var(--mint), #27b8ff); box-shadow: 0 10px 25px rgba(62, 214, 176, 0.35); }
+    .btn.danger { background: linear-gradient(90deg, #ff7a8a, var(--danger)); box-shadow: 0 10px 25px rgba(255, 77, 109, 0.3); }
+    .btn.ghost { background: #fff; color: var(--primary); border: 2px solid #e3e6ff; box-shadow: none; }
+    .btn-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn-stack { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+    .link-btn {
+      background: none; border: 0; color: var(--muted); font-weight: 700; font-size: 15px;
+      cursor: pointer; text-decoration: underline; padding: 8px; font-family: inherit;
+    }
+
+    .code { display: flex; justify-content: center; gap: 10px; margin: 14px 0 18px; }
+    .tile {
+      width: clamp(56px, 17vw, 72px); height: clamp(72px, 20vw, 88px); border-radius: 20px;
+      background: linear-gradient(160deg, var(--primary), var(--primary2)); color: #fff;
+      font-size: clamp(34px, 10vw, 44px); font-weight: 900; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 10px 25px rgba(124, 92, 255, 0.3); animation: pop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    }
+    .tile:nth-child(2) { animation-delay: 0.05s; }
+    .tile:nth-child(3) { animation-delay: 0.1s; }
+    .tile:nth-child(4) { animation-delay: 0.15s; }
+    .count { font-size: 18px; font-weight: 800; margin-bottom: 12px; }
+    .count b { color: var(--primary); font-size: 26px; }
+    .players { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; min-height: 36px; }
+    .chip {
+      background: #fff; border: 2px solid #e3e6ff; border-radius: 999px; padding: 6px 14px;
+      font-weight: 700; font-size: 14px; animation: pop 0.4s both;
+    }
+    .empty { color: var(--muted); font-size: 15px; }
+
+    .status-line { font-weight: 800; color: var(--primary); margin-bottom: 12px; font-size: 16px; }
+
+    .qlist { list-style: none; display: flex; flex-direction: column; gap: 10px; text-align: left; }
+    .qlist li {
+      background: #fff; border: 2px solid #f0f2ff; border-radius: 16px; padding: 12px 16px; font-weight: 700;
+    }
+    .qlist li.cur { border-color: var(--primary); background: #f6f3ff; }
+    .qlist small { display: block; color: var(--muted); font-weight: 700; margin-top: 4px; }
+    .qlist .ok { color: #1fa37f; }
+
+    /* Секундомер */
+    .stopwatch {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 2;
+      background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+      border-top: 2px solid #fff; padding: 14px 16px max(14px, env(safe-area-inset-bottom));
+      text-align: center; box-shadow: 0 -10px 30px rgba(124, 92, 255, 0.15);
+    }
+    .sw-time {
+      font-size: 34px; font-weight: 900; font-variant-numeric: tabular-nums;
+      background: linear-gradient(90deg, var(--primary), var(--primary2));
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+
+    /* Модальное окно */
+    .overlay {
+      position: fixed; inset: 0; background: rgba(29, 31, 58, 0.35); backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center;
+      padding: 16px; z-index: 10;
+    }
+    .modal {
+      width: 100%; max-width: 520px; max-height: 88vh; overflow-y: auto; background: #fff;
+      border-radius: var(--radius); padding: 24px; animation: pop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    }
+    .qrow {
+      border: 2px solid #eef0ff; border-radius: 18px; padding: 14px; margin-bottom: 14px; text-align: left;
+    }
+    .txt {
+      width: 100%; padding: 12px 14px; border-radius: 14px; border: 2px solid #e3e6ff; font-size: 16px;
+      color: var(--ink); outline: none; background: #fff; font-family: inherit; margin-bottom: 8px;
+    }
+    .txt:focus { border-color: var(--primary); }
+    .opts { display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: 8px; }
+    .opt-line { display: grid; grid-template-columns: 28px 1fr; align-items: center; gap: 8px; }
+    .opt-line input[type="radio"] { width: 20px; height: 20px; accent-color: var(--primary); }
+    .qbottom { display: grid; grid-template-columns: 1fr 44px; gap: 8px; align-items: center; }
+    .secs { font-size: 14px; color: var(--muted); font-weight: 700; }
+    .secs-row { display: flex; align-items: center; gap: 8px; }
+    .secs-row .txt { margin: 0; width: 90px; }
+    .del {
+      border: 0; border-radius: 12px; background: #ffe3ea; color: var(--danger); font-size: 18px;
+      cursor: pointer; height: 44px;
+    }
+    .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+    .msg { min-height: 22px; margin-top: 10px; font-weight: 700; font-size: 15px; color: var(--danger); }
+
+    .toast {
+      position: fixed; top: max(16px, env(safe-area-inset-top)); left: 50%;
+      transform: translateX(-50%) translateY(-120px); background: #fff; border-radius: 16px; padding: 12px 20px;
+      font-weight: 800; box-shadow: 0 14px 40px rgba(124, 92, 255, 0.25);
+      transition: transform 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); z-index: 20;
+      max-width: calc(100% - 32px); text-align: center;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 360px) { .btn-row { grid-template-columns: 1fr; } .modal-actions { grid-template-columns: 1fr; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+  </style>
+</head>
+<body>
+
+  <div class="bg-shapes" aria-hidden="true">
+    <span class="shape s1"></span><span class="shape s2"></span><span class="shape s3"></span><span class="shape s4"></span>
+  </div>
+
+  <div class="wrap">
+
+    <header class="topbar">
+      <div class="title">🛠️ Админ-панель</div>
+      <a class="back" href="index.html">← Назад</a>
+    </header>
+
+    <!-- Экран 1: создание игры -->
+    <section class="panel" id="screenHome">
+      <div class="logo" aria-hidden="true">🎮</div>
+      <h2>Новая игра</h2>
+      <p class="label">Создай игру и поделись кодом с игроками</p>
+      <div style="height: 20px"></div>
+      <button class="btn big" id="createBtn">✨ Создать игру</button>
+    </section>
+
+    <!-- Экран 2: игра создана -->
+    <div id="screenGame" hidden>
+      <section class="panel">
+        <div class="label">Код игры</div>
+        <div class="code" id="codeTiles"></div>
+        <div class="count">👥 Присоединилось: <b id="playerCount">0</b></div>
+        <div class="players" id="players"></div>
+      </section>
+
+      <section class="panel" style="margin-top: 16px">
+        <div class="status-line" id="statusLine">Ожидание</div>
+        <div class="btn-row">
+          <button class="btn alt" id="startLobbyBtn">▶ Начать</button>
+          <button class="btn ghost" id="settingsBtn">⚙ Настройка игры</button>
+        </div>
+        <div class="btn-stack">
+          <button class="btn" id="gameStartBtn" hidden>🚀 Старт</button>
+          <button class="btn alt" id="nextBtn" hidden>➡ Следующий вопрос</button>
+          <button class="btn danger" id="finishBtn" hidden>⏹ Завершить игру</button>
+        </div>
+      </section>
+
+      <section class="panel" id="levelsPanel" hidden style="margin-top: 16px">
+        <div class="section-title">Вопросы игры</div>
+        <ol class="qlist" id="levelsList"></ol>
+      </section>
+
+      <div style="text-align: center; margin-top: 16px">
+        <button class="link-btn" id="newGameBtn">Новая игра</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Секундомер -->
+  <div class="stopwatch">
+    <div class="label">⏱ Время игры</div>
+    <div class="sw-time" id="swTime">00:00</div>
+  </div>
+
+  <!-- Настройка вопросов -->
+  <div class="overlay" id="settingsModal" hidden>
+    <div class="modal">
+      <div class="section-title">Настройка игры — вопросы</div>
+      <div id="questionRows"></div>
+      <button class="btn ghost" id="addQuestionBtn">+ Добавить вопрос</button>
+      <div class="msg" id="settingsMsg"></div>
+      <div class="modal-actions">
+        <button class="btn ghost" id="cancelSettingsBtn">Отмена</button>
+        <button class="btn" id="saveSettingsBtn">Сохранить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, doc, getDoc, setDoc, updateDoc, collection, onSnapshot
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
+      authDomain: "sokrat-7c938.firebaseapp.com",
+      projectId: "sokrat-7c938",
+      storageBucket: "sokrat-7c938.firebasestorage.app",
+      messagingSenderId: "19858604945",
+      appId: "1:19858604945:web:244b77bbe5afb849481030",
+      measurementId: "G-K06CVPVD15"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const CONFIG = { ADMIN_CODE: "2702", GAMES: "games", STORAGE_KEY: "adminGameCode", MAX_OPTIONS: 4 };
+
+    const $ = (id) => document.getElementById(id);
+    const el = {
+      screenHome: $("screenHome"),
+      screenGame: $("screenGame"),
+      createBtn: $("createBtn"),
+      codeTiles: $("codeTiles"),
+      playerCount: $("playerCount"),
+      players: $("players"),
+      statusLine: $("statusLine"),
+      startLobbyBtn: $("startLobbyBtn"),
+      settingsBtn: $("settingsBtn"),
+      gameStartBtn: $("gameStartBtn"),
+      nextBtn: $("nextBtn"),
+      finishBtn: $("finishBtn"),
+      levelsPanel: $("levelsPanel"),
+      levelsList: $("levelsList"),
+      newGameBtn: $("newGameBtn"),
+      swTime: $("swTime"),
+      settingsModal: $("settingsModal"),
+      questionRows: $("questionRows"),
+      addQuestionBtn: $("addQuestionBtn"),
+      cancelSettingsBtn: $("cancelSettingsBtn"),
+      saveSettingsBtn: $("saveSettingsBtn"),
+      settingsMsg: $("settingsMsg"),
+      toast: $("toast"),
+    };
+
+    let gameCode = null;
+    let gameData = null;
+    let unsubGame = null;
+    let unsubPlayers = null;
+    let timerId = null;
+    let timerFrom = null;
+
+    const gameRef = (code) => doc(db, CONFIG.GAMES, code);
+
+    // ===== Уведомления =====
+    let toastTimer = null;
+    function toast(text) {
+      el.toast.textContent = text;
+      el.toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.toast.classList.remove("show"), 2500);
+    }
+
+    // ===== Код игры =====
+    async function generateUniqueCode() {
+      for (let i = 0; i < 25; i++) {
+        const code = String(Math.floor(1000 + Math.random() * 9000));
+        if (code === CONFIG.ADMIN_CODE) continue;
+        const snap = await getDoc(gameRef(code));
+        if (!snap.exists()) return code;
+      }
+      throw new Error("Не удалось подобрать свободный код");
+    }
+
+    // ===== Создание игры =====
+    el.createBtn.addEventListener("click", async () => {
+      el.createBtn.disabled = true;
+      try {
+        const code = await generateUniqueCode();
+        await setDoc(gameRef(code), {
+          status: "waiting",
+          createdAt: Date.now(),
+          startedAt: null,
+          levels: [],
+        });
+        localStorage.setItem(CONFIG.STORAGE_KEY, code);
+        openGame(code);
+        toast("Игра создана!");
+      } catch (err) {
+        console.error(err);
+        toast("Ошибка: проверь правила Firestore");
+      } finally {
+        el.createBtn.disabled = false;
+      }
+    });
+
+    // ===== Открыть игру =====
+    function openGame(code) {
+      closeGame();
+      gameCode = code;
+      renderCode(code);
+      el.screenHome.hidden = true;
+      el.screenGame.hidden = false;
+
+      unsubGame = onSnapshot(gameRef(code), (snap) => {
+        if (!snap.exists()) {
+          toast("Игра удалена");
+          resetToHome();
+          return;
+        }
+        gameData = snap.data();
+        renderGame();
+      }, (err) => console.error(err));
+
+      unsubPlayers = onSnapshot(collection(db, CONFIG.GAMES, code, "players"),
+        (snap) => renderPlayers(snap),
+        (err) => console.error(err)
+      );
+    }
+
+    function closeGame() {
+      if (unsubGame) unsubGame();
+      if (unsubPlayers) unsubPlayers();
+      unsubGame = null;
+      unsubPlayers = null;
+      stopTimer();
+      gameCode = null;
+      gameData = null;
+    }
+
+    function resetToHome() {
+      closeGame();
+      localStorage.removeItem(CONFIG.STORAGE_KEY);
+      el.screenGame.hidden = true;
+      el.screenHome.hidden = false;
+      el.swTime.textContent = "00:00";
+      el.levelsPanel.hidden = true;
+    }
+
+    el.newGameBtn.addEventListener("click", resetToHome);
+
+    // ===== Отрисовка =====
+    function renderCode(code) {
+      el.codeTiles.replaceChildren(...code.split("").map((d) => {
+        const t = document.createElement("div");
+        t.className = "tile";
+        t.textContent = d;
+        return t;
+      }));
+    }
+
+    function renderPlayers(snap) {
+      const names = snap.docs.map((d) => d.data().name || "Игрок");
+      el.playerCount.textContent = snap.size;
+
+      if (names.length === 0) {
+        const e = document.createElement("span");
+        e.className = "empty";
+        e.textContent = "Пока никто не присоединился";
+        el.players.replaceChildren(e);
+        return;
+      }
+
+      el.players.replaceChildren(...names.map((n) => {
+        const c = document.createElement("span");
+        c.className = "chip";
+        c.textContent = n;
+        return c;
+      }));
+    }
+
+    const STATUS_TEXT = {
+      waiting: "Ожидание: игра создана",
+      lobby: "Набор игроков открыт",
+      running: "Игра идёт",
+      finished: "Игра завершена",
+      cancelled: "Игра отменена",
+    };
+
+    function renderGame() {
+      if (!gameData) return;
+      const status = gameData.status;
+      const questions = gameData.levels || [];
+      const started = gameData.startedAt != null;
+      const cq = gameData.currentQuestion ?? -1;
+      const running = status === "running";
+
+      el.statusLine.textContent = running && cq >= 0
+        ? `Вопрос ${cq + 1} из ${questions.length}`
+        : (STATUS_TEXT[status] || "");
+
+      el.startLobbyBtn.disabled = started;
+      el.startLobbyBtn.textContent = started ? "✓ Открыта" : "▶ Начать";
+      el.gameStartBtn.hidden = status !== "lobby";
+      el.nextBtn.hidden = !running;
+      el.finishBtn.hidden = !running;
+      el.nextBtn.textContent = cq + 1 >= questions.length ? "⏹ Завершить (последний вопрос)" : "➡ Следующий вопрос";
+
+      if (started && (status === "waiting" || status === "lobby")) {
+        startTimer(gameData.startedAt);
+      } else if (started && status !== "waiting") {
+        startTimer(gameData.startedAt);
+      } else {
+        stopTimer();
+        el.swTime.textContent = "00:00";
+      }
+
+      el.levelsPanel.hidden = !started;
+      if (!el.levelsPanel.hidden) renderLevels();
+    }
+
+    // ===== Начать (открыть набор игроков, запустить секундомер) =====
+    el.startLobbyBtn.addEventListener("click", async () => {
+      if (!gameCode) return;
+      el.startLobbyBtn.disabled = true;
+      try {
+        await updateDoc(gameRef(gameCode), { status: "lobby", startedAt: Date.now() });
+      } catch (err) {
+        console.error(err);
+        toast("Не удалось начать");
+        el.startLobbyBtn.disabled = false;
+      }
+    });
+
+    // ===== Старт (первый вопрос) =====
+    el.gameStartBtn.addEventListener("click", async () => {
+      if (!gameCode) return;
+      const questions = gameData?.levels || [];
+      if (questions.length === 0) return toast("Сначала добавь вопросы в настройках");
+      try {
+        await updateDoc(gameRef(gameCode), {
+          status: "running",
+          currentQuestion: 0,
+          questionStartedAt: Date.now(),
+        });
+      } catch (err) {
+        console.error(err);
+        toast("Не удалось запустить игру");
+      }
+    });
+
+    // ===== Следующий вопрос или завершение =====
+    el.nextBtn.addEventListener("click", async () => {
+      if (!gameCode) return;
+      const questions = gameData?.levels || [];
+      const next = (gameData.currentQuestion ?? -1) + 1;
+      try {
+        if (next >= questions.length) {
+          if (!confirm("Это последний вопрос. Завершить игру?")) return;
+          await updateDoc(gameRef(gameCode), { status: "finished" });
+        } else {
+          await updateDoc(gameRef(gameCode), {
+            currentQuestion: next,
+            questionStartedAt: Date.now(),
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        toast("Не удалось переключить вопрос");
+      }
+    });
+
+    // ===== Завершить игру досрочно =====
+    el.finishBtn.addEventListener("click", async () => {
+      if (!gameCode) return;
+      if (!confirm("Завершить игру досрочно?")) return;
+      try {
+        await updateDoc(gameRef(gameCode), { status: "finished" });
+      } catch (err) {
+        console.error(err);
+        toast("Не удалось завершить");
+      }
+    });
+
+    function renderLevels() {
+      const questions = gameData?.levels || [];
+      const cq = gameData?.currentQuestion ?? -1;
+
+      if (questions.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "Вопросы пока не добавлены";
+        el.levelsList.replaceChildren(li);
+        return;
+      }
+
+      el.levelsList.replaceChildren(...questions.map((q, i) => {
+        const li = document.createElement("li");
+        if (i === cq) li.classList.add("cur");
+        const text = document.createElement("div");
+        text.textContent = `${i + 1}. ${q.text}`;
+        const ans = document.createElement("small");
+        ans.className = "ok";
+        ans.textContent = `✔ ${q.options[q.correct]} · ${q.seconds} сек`;
+        li.append(text, ans);
+        return li;
+      }));
+    }
+
+    // ===== Секундомер =====
+    function startTimer(from) {
+      if (timerId && timerFrom === from) return;
+      stopTimer();
+      timerFrom = from;
+      const tick = () => { el.swTime.textContent = formatTime(Date.now() - from); };
+      tick();
+      timerId = setInterval(tick, 500);
+    }
+
+    function stopTimer() {
+      clearInterval(timerId);
+      timerId = null;
+      timerFrom = null;
+    }
+
+    function formatTime(ms) {
+      const total = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      const p = (n) => String(n).padStart(2, "0");
+      return h > 0 ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
+    }
+
+    // ===== Настройка вопросов =====
+    let rowCounter = 0;
+
+    function addQuestionRow(q = null) {
+      const groupName = `correct-${rowCounter++}`;
+      const row = document.createElement("div");
+      row.className = "qrow";
+
+      const text = document.createElement("input");
+      text.className = "txt";
+      text.placeholder = "Текст вопроса";
+      text.value = q?.text || "";
+
+      const opts = document.createElement("div");
+      opts.className = "opts";
+      const optInputs = [];
+      const radios = [];
+
+      for (let i = 0; i < CONFIG.MAX_OPTIONS; i++) {
+        const line = document.createElement("label");
+        line.className = "opt-line";
+
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = groupName;
+        radio.title = "Правильный ответ";
+        radio.checked = q ? q.correct === i : i === 0;
+
+        const input = document.createElement("input");
+        input.className = "txt";
+        input.style.marginBottom = "0";
+        input.placeholder = `Вариант ${i + 1}`;
+        input.value = q?.options?.[i] || "";
+
+        line.append(radio, input);
+        opts.append(line);
+        optInputs.push(input);
+        radios.push(radio);
+      }
+
+      const bottom = document.createElement("div");
+      bottom.className = "qbottom";
+
+      const secsRow = document.createElement("div");
+      secsRow.className = "secs-row";
+      const secsLabel = document.createElement("span");
+      secsLabel.className = "secs";
+      secsLabel.textContent = "Время, сек:";
+      const secs = document.createElement("input");
+      secs.className = "txt";
+      secs.type = "number";
+      secs.min = "5";
+      secs.max = "120";
+      secs.value = q?.seconds || 20;
+      secsRow.append(secsLabel, secs);
+
+      const del = document.createElement("button");
+      del.className = "del";
+      del.type = "button";
+      del.textContent = "✕";
+      del.title = "Удалить вопрос";
+      del.addEventListener("click", () => row.remove());
+
+      bottom.append(secsRow, del);
+      row.append(text, opts, bottom);
+      row._parts = { text, optInputs, radios, secs };
+      el.questionRows.append(row);
+    }
+
+    function openSettings() {
+      if (!gameCode) return;
+      el.settingsMsg.textContent = "";
+      el.questionRows.replaceChildren();
+      const questions = gameData?.levels || [];
+      if (questions.length === 0) addQuestionRow();
+      questions.forEach((q) => addQuestionRow(q));
+      el.settingsModal.hidden = false;
+    }
+
+    function closeSettings() {
+      el.settingsModal.hidden = true;
+    }
+
+    // Читает и проверяет все строки. Возвращает массив вопросов или null при ошибке.
+    function collectQuestions() {
+      const rows = [...el.questionRows.children];
+      const result = [];
+
+      for (let n = 0; n < rows.length; n++) {
+        const { text, optInputs, radios, secs } = rows[n]._parts;
+        const qText = text.value.trim();
+        const options = optInputs.map((i) => i.value.trim());
+        const checkedIndex = radios.findIndex((r) => r.checked);
+
+        if (!qText) {
+          el.settingsMsg.textContent = `Вопрос ${n + 1}: введи текст`;
+          return null;
+        }
+
+        const filled = options
+          .map((text, idx) => ({ text, idx }))
+          .filter((o) => o.text);
+
+        if (filled.length < 2) {
+          el.settingsMsg.textContent = `Вопрос ${n + 1}: нужно минимум 2 варианта ответа`;
+          return null;
+        }
+
+        if (checkedIndex < 0 || !options[checkedIndex]) {
+          el.settingsMsg.textContent = `Вопрос ${n + 1}: выбери правильный вариант (он должен быть заполнен)`;
+          return null;
+        }
+
+        const correct = filled.findIndex((o) => o.idx === checkedIndex);
+        const seconds = Math.min(120, Math.max(5, parseInt(secs.value, 10) || 20));
+
+        result.push({
+          text: qText,
+          options: filled.map((o) => o.text),
+          correct,
+          seconds,
+        });
+      }
+
+      return result;
+    }
+
+    el.settingsBtn.addEventListener("click", openSettings);
+    el.cancelSettingsBtn.addEventListener("click", closeSettings);
+    el.addQuestionBtn.addEventListener("click", () => addQuestionRow());
+    el.settingsModal.addEventListener("click", (e) => {
+      if (e.target === el.settingsModal) closeSettings();
+    });
+
+    el.saveSettingsBtn.addEventListener("click", async () => {
+      if (!gameCode) return;
+      el.settingsMsg.textContent = "";
+      const questions = collectQuestions();
+      if (!questions) return;
+
+      el.saveSettingsBtn.disabled = true;
+      try {
+        await updateDoc(gameRef(gameCode), { levels: questions });
+        closeSettings();
+        toast("Вопросы сохранены");
+      } catch (err) {
+        console.error(err);
+        el.settingsMsg.textContent = "Не удалось сохранить, попробуй ещё раз";
+      } finally {
+        el.saveSettingsBtn.disabled = false;
+      }
+    });
+
+    // ===== Восстановление игры после перезагрузки =====
+    (async function restore() {
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
+      if (!saved) return;
+      try {
+        const snap = await getDoc(gameRef(saved));
+        if (snap.exists()) openGame(saved);
+        else localStorage.removeItem(CONFIG.STORAGE_KEY);
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+  </script>
+</body>
+</html>

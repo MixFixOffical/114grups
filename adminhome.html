@@ -1583,6 +1583,82 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
     .icon svg{width:17px;height:17px}
     .button-description{display:none}
 }
+
+/* ============ TELEGRAM MODAL ============ */
+.tg-overlay {
+    position: fixed; inset: 0; z-index: 1400;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(15,23,42,.55);
+    opacity: 0; visibility: hidden; transition: .2s;
+    padding: 20px;
+}
+.tg-overlay.show { opacity: 1; visibility: visible; }
+.tg-card {
+    width: 100%; max-width: 440px;
+    background: var(--surface); border-radius: var(--radius-lg);
+    border: 1px solid var(--border); box-shadow: var(--shadow-md);
+    transform: translateY(10px); transition: .2s;
+}
+.tg-overlay.show .tg-card { transform: translateY(0); }
+.tg-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 18px 20px; border-bottom: 1px solid var(--border-soft);
+}
+.tg-icon {
+    width: 40px; height: 40px; border-radius: var(--radius-sm);
+    background: var(--accent-soft); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+}
+.tg-icon svg { width: 20px; height: 20px; }
+.tg-head h3 { font-size: 16px; font-weight: 600; flex: 1; color: var(--text); }
+.tg-close {
+    background: transparent; border: none; font-size: 18px;
+    color: var(--text-light); cursor: pointer;
+}
+.tg-close:hover { color: var(--text); }
+.tg-body { padding: 20px; }
+.tg-step { display: flex; gap: 14px; margin-bottom: 16px; }
+.tg-step-num {
+    width: 24px; height: 24px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 50%; background: var(--surface-2);
+    font-size: 12px; font-weight: 700; color: var(--text-secondary);
+}
+.tg-step-text { font-size: 13.5px; line-height: 1.5; color: var(--text); }
+.tg-btn-main {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    width: 100%; height: 44px; margin-bottom: 12px;
+    border-radius: var(--radius-sm); border: none;
+    background: var(--accent); color: #fff;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    text-decoration: none; transition: background .15s;
+}
+.tg-btn-main:hover { background: var(--accent-dark); }
+.tg-input-wrap {
+    display: flex; gap: 8px; margin-top: 8px;
+}
+.tg-input {
+    flex: 1; height: 44px; padding: 0 14px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    background: var(--surface-2); color: var(--text);
+    font-family: inherit; font-size: 16px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 1px;
+    outline: none;
+}
+.tg-input:focus { border-color: var(--accent); }
+.tg-btn-submit {
+    height: 44px; padding: 0 20px;
+    border-radius: var(--radius-sm); border: none;
+    background: var(--green); color: #fff;
+    font-weight: 600; cursor: pointer;
+}
+.tg-error { color: var(--red); font-size: 12px; margin-top: 8px; display: none; }
+.tg-linked-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 99px;
+    background: var(--green-soft); color: var(--green);
+    font-size: 12px; font-weight: 600;
+}
 </style>
 
 </head>
@@ -1876,6 +1952,15 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
                             <div class="dropdown-name" id="dropdownName">Пользователь</div>
                             <div class="dropdown-role">Администратор</div>
                         </div>
+
+                        <!-- НОВАЯ КНОПКА TELEGRAM -->
+                        <button class="dropdown-item" id="linkTgBtn" onclick="openTelegramModal()">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="m22 2-7 20-4-9-9-4Z"/>
+                                <path d="M22 2 11 13"/>
+                            </svg>
+                            <span id="tgMenuText">Связать Telegram</span>
+                        </button>
 
                         <button class="dropdown-item" onclick="openMessages()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -2379,6 +2464,26 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
             <div class="hotkeys-row"><span class="hotkeys-label">Пользователи</span><span class="hotkeys-key"><kbd>9</kbd></span></div>
             <div class="hotkeys-row"><span class="hotkeys-label">Поиск / команды</span><span class="hotkeys-key"><kbd>Ctrl</kbd><kbd>K</kbd></span></div>
             <div class="hotkeys-row"><span class="hotkeys-label">Закрыть окно</span><span class="hotkeys-key"><kbd>Esc</kbd></span></div>
+        </div>
+    </div>
+</div>
+
+<!-- МОДАЛКА TELEGRAM -->
+<div class="tg-overlay" id="tgOverlay" aria-hidden="true">
+    <div class="tg-card" role="dialog" aria-modal="true">
+        <div class="tg-head">
+            <div class="tg-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="m22 2-7 20-4-9-9-4Z"/>
+                    <path d="M22 2 11 13"/>
+                </svg>
+            </div>
+            <h3>Привязка Telegram</h3>
+            <button class="tg-close" onclick="closeTelegramModal()">✕</button>
+        </div>
+
+        <div class="tg-body" id="tgBody">
+            <!-- Сюда рендерится контент через JS -->
         </div>
     </div>
 </div>
@@ -3683,6 +3788,11 @@ auth.onAuthStateChanged(function(user) {
             }
             document.getElementById("userAvatar").textContent = initials;
 
+            // Обновляем текст кнопки Telegram, если уже привязан
+            if (data.telegram && data.telegram.linked) {
+                document.getElementById("tgMenuText").textContent = "Telegram привязан";
+            }
+
             startRegistrationRequestsListener();
             startMessagesListener();
             loadCollectionCount("students", "statStudents", () => updateAttentionCard());
@@ -3760,6 +3870,195 @@ window.addEventListener("beforeunload", function() {
     clearInterval(warningCountdown);
     stopClock();
 });
+
+
+/* =========================================================
+   TELEGRAM ПРИВЯЗКА
+========================================================= */
+
+const TG_BOT_NAME = "Kuratorjurnalbot"; // Твой бот
+
+let currentTgCode = null;
+
+async function openTelegramModal() {
+    closeUserMenu();
+    const overlay = document.getElementById("tgOverlay");
+    const body = document.getElementById("tgBody");
+    
+    overlay.classList.add("show");
+    overlay.setAttribute("aria-hidden", "false");
+    body.innerHTML = `<div style="text-align:center;color:var(--text-light)">Загрузка...</div>`;
+
+    if (!auth.currentUser) return;
+
+    try {
+        const doc = await db.collection("users").doc(auth.currentUser.uid).get();
+        const userData = doc.data();
+        const tg = userData?.telegram;
+
+        if (tg && tg.linked) {
+            // Уже привязан
+            body.innerHTML = `
+                <div style="text-align:center;margin-bottom:20px">
+                    <div class="tg-linked-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M20 6 9 17l-5-5"/></svg>
+                        Успешно привязан
+                    </div>
+                </div>
+                <p style="font-size:13.5px;text-align:center;color:var(--text-secondary);margin-bottom:20px">
+                    Ваш Telegram: <strong>${tg.username ? '@' + tg.username : 'ID ' + tg.chatId}</strong>
+                </p>
+                <button class="tg-btn-main" style="background:var(--red-soft);color:var(--red)" onclick="unlinkTelegram()">
+                    Отвязать Telegram
+                </button>
+            `;
+            return;
+        }
+
+        // Не привязан
+        const login = userData?.login || 'ваш_логин';
+        
+        body.innerHTML = `
+            <div class="tg-step">
+                <div class="tg-step-num">1</div>
+                <div class="tg-step-text">
+                    Перейдите в нашего бота и нажмите «Старт»
+                    <a href="https://t.me/${TG_BOT_NAME}?start=auth" target="_blank" class="tg-btn-main" style="margin-top:10px">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+                        Открыть бота в Telegram
+                    </a>
+                </div>
+            </div>
+            <div class="tg-step">
+                <div class="tg-step-num">2</div>
+                <div class="tg-step-text">
+                    Отправьте боту команду:<br>
+                    <code style="background:var(--surface-2);padding:2px 6px;border-radius:4px;font-size:13px">/auth ${login}</code>
+                </div>
+            </div>
+            <div class="tg-step">
+                <div class="tg-step-num">3</div>
+                <div class="tg-step-text">
+                    Введите код из 6 символов, который пришлёт бот:
+                    <div class="tg-input-wrap">
+                        <input type="text" id="tgCodeInput" class="tg-input" maxlength="6" placeholder="A7K2P9">
+                        <button class="tg-btn-submit" onclick="submitTgCode()">ОК</button>
+                    </div>
+                    <div class="tg-error" id="tgError"></div>
+                </div>
+            </div>
+        `;
+        
+        // Автоформат ввода в верхний регистр
+        document.getElementById('tgCodeInput').addEventListener('input', function(e) {
+            e.target.value = e.target.value.toUpperCase();
+        });
+
+    } catch (e) {
+        console.error(e);
+        body.innerHTML = `<div style="color:var(--red)">Ошибка загрузки данных</div>`;
+    }
+}
+
+function closeTelegramModal() {
+    document.getElementById("tgOverlay").classList.remove("show");
+    document.getElementById("tgOverlay").setAttribute("aria-hidden", "true");
+}
+
+async function submitTgCode() {
+    const input = document.getElementById("tgCodeInput");
+    const errorEl = document.getElementById("tgError");
+    const code = input.value.trim().toUpperCase();
+    errorEl.style.display = "none";
+
+    if (code.length !== 6) {
+        errorEl.textContent = "Код должен быть 6 символов";
+        errorEl.style.display = "block";
+        return;
+    }
+
+    const btn = document.querySelector(".tg-btn-submit");
+    btn.disabled = true;
+    btn.textContent = "...";
+
+    try {
+        const codeRef = db.collection("telegram_link_codes").doc(code);
+        const snap = await codeRef.get();
+
+        if (!snap.exists) {
+            throw new Error("Код не найден или истёк");
+        }
+
+        const data = snap.data();
+        
+        if (data.used) {
+            throw new Error("Этот код уже был использован");
+        }
+        
+        if (data.expiresAt.toMillis() < Date.now()) {
+            throw new Error("Срок действия кода истёк");
+        }
+        
+        if (data.uid !== auth.currentUser.uid) {
+            throw new Error("Код принадлежит другому аккаунту");
+        }
+
+        // Привязываем через транзакцию
+        await db.runTransaction(async (t) => {
+            // Перепроверяем код в транзакции
+            const freshSnap = await t.get(codeRef);
+            if (freshSnap.data().used) {
+                throw new Error("Код только что был использован");
+            }
+
+            // 1. Помечаем код использованным
+            t.update(codeRef, { used: true });
+
+            // 2. Записываем привязку в профиль
+            t.update(db.collection("users").doc(auth.currentUser.uid), {
+                telegram: {
+                    chatId: data.chatId,
+                    linked: true,
+                    linkedAt: firebase.firestore.FieldValue.serverTimestamp()
+                }
+            });
+        });
+
+        // Успех
+        showToast("Telegram успешно привязан!");
+        document.getElementById("tgMenuText").textContent = "Telegram привязан";
+        
+        // Обновляем окно
+        setTimeout(() => {
+            openTelegramModal();
+        }, 1000);
+
+    } catch (err) {
+        console.warn(err);
+        errorEl.textContent = err.message || "Ошибка проверки кода";
+        errorEl.style.display = "block";
+    } finally {
+        btn.disabled = false;
+        btn.textContent = "ОК";
+    }
+}
+
+async function unlinkTelegram() {
+    if (!confirm("Вы уверены, что хотите отвязать Telegram?")) return;
+
+    try {
+        await db.collection("users").doc(auth.currentUser.uid).update({
+            telegram: firebase.firestore.FieldValue.delete()
+        });
+        
+        showToast("Telegram отвязан");
+        document.getElementById("tgMenuText").textContent = "Связать Telegram";
+        closeTelegramModal();
+    } catch (e) {
+        console.error(e);
+        showToast("Не удалось отвязать Telegram");
+    }
+}
 
 </script>
 

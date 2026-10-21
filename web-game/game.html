@@ -55,6 +55,17 @@
     }
     .time-left { font-size: 34px; font-weight: 900; font-variant-numeric: tabular-nums; margin-bottom: 12px; }
     .q-text { font-size: 20px; font-weight: 800; line-height: 1.35; margin-bottom: 18px; }
+
+    /* Картинка вопроса */
+    .q-image {
+      display: block;
+      max-width: 100%;
+      max-height: 220px;
+      margin: 0 auto 16px;
+      border-radius: 16px;
+      object-fit: cover;
+    }
+
     .options { display: grid; gap: 12px; }
     .opt {
       width: 100%; padding: 16px; border-radius: 18px; border: 3px solid #e3e6ff; background: #fff;
@@ -70,6 +81,20 @@
     .feedback { min-height: 26px; margin-top: 14px; font-weight: 800; font-size: 17px; }
     .feedback.ok { color: #1fa37f; }
     .feedback.bad { color: var(--danger); }
+
+    /* Комментарий к ответу */
+    .comment {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      font-weight: 700;
+      font-size: 15px;
+      line-height: 1.4;
+      text-align: left;
+      animation: pop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    }
+    .comment.ok { background: #e6fff6; border: 2px solid #1fa37f; color: #14694f; }
+    .comment.bad { background: #ffecf0; border: 2px solid var(--danger); color: #9c1530; }
 
     /* Итоги */
     .board { list-style: none; display: flex; flex-direction: column; gap: 10px; text-align: left; margin-top: 16px; }
@@ -112,8 +137,10 @@
       <div class="timer-track"><div class="timer-bar" id="timerBar"></div></div>
       <div class="time-left" id="timeLeft">0</div>
       <div class="q-text" id="qText"></div>
+      <img class="q-image" id="qImage" alt="" hidden>
       <div class="options" id="options"></div>
       <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+      <div class="comment" id="comment" hidden></div>
     </section>
 
     <!-- Итоги -->
@@ -232,6 +259,24 @@
           renderedQ = qi;
           $("qProgress").textContent = `Вопрос ${qi + 1} из ${levels.length}`;
           $("qText").textContent = q.text;
+
+          // Картинка вопроса (если задана)
+          const img = $("qImage");
+          if (q.image) {
+            img.src = `assets/images/${q.image}`;
+            img.alt = "Иллюстрация к вопросу";
+            img.hidden = false;
+          } else {
+            img.hidden = true;
+            img.removeAttribute("src");
+          }
+
+          // Сброс комментария при смене вопроса
+          const cm = $("comment");
+          cm.hidden = true;
+          cm.textContent = "";
+          cm.className = "comment";
+
           $("options").replaceChildren(...q.options.map((text, i) => {
             const b = document.createElement("button");
             b.className = "opt";
@@ -267,17 +312,41 @@
 
         const fb = $("feedback");
         fb.className = "feedback";
+        const cm = $("comment");
+
         if (mine) {
           const ok = mine.option === q.correct;
           fb.classList.add(ok ? "ok" : "bad");
           fb.textContent = ok
             ? "Верно! ✅"
             : `Неверно ❌ Верный ответ: ${q.options[q.correct]}`;
+
+          const text = ok ? (q.commentOk || "") : (q.commentBad || "");
+          if (text) {
+            cm.hidden = false;
+            cm.className = "comment " + (ok ? "ok" : "bad");
+            cm.textContent = text;
+          } else {
+            cm.hidden = true;
+            cm.textContent = "";
+          }
         } else if (timeUp) {
           fb.classList.add("bad");
           fb.textContent = `Время вышло. Верный ответ: ${q.options[q.correct]}`;
+
+          const text = q.commentBad || "";
+          if (text) {
+            cm.hidden = false;
+            cm.className = "comment bad";
+            cm.textContent = text;
+          } else {
+            cm.hidden = true;
+            cm.textContent = "";
+          }
         } else {
           fb.textContent = "Выбери ответ!";
+          cm.hidden = true;
+          cm.textContent = "";
         }
       }
 

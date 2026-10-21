@@ -358,6 +358,58 @@
       toastTimer = setTimeout(() => el.toast.classList.remove("show"), 2500);
     }
 
+    // ===== Набор вопросов по умолчанию =====
+    const DEFAULT_SET_ID = "default-processor";
+    const DEFAULT_SET = {
+      name: "Компьютер: правда или миф",
+      createdAt: 0,
+      updatedAt: 0,
+      levels: [
+        {
+          text: "Если у процессора больше ядер, компьютер всегда работает быстрее. Правда или миф?",
+          options: ["Правда", "Миф"],
+          correct: 1,
+          seconds: 20,
+        },
+        {
+          text: "Компьютер с SSD обычно загружается быстрее, чем компьютер с HDD. Правда или миф?",
+          options: ["Правда", "Миф"],
+          correct: 0,
+          seconds: 20,
+        },
+        {
+          text: "Может ли процессор нормально работать без охлаждения при выполнении сложных задач? Правда или миф?",
+          options: ["Правда", "Миф"],
+          correct: 1,
+          seconds: 20,
+        },
+        {
+          text: "Современный компьютер способен выполнять миллиарды операций за одну секунду. Истина или миф?",
+          options: ["Правда", "Миф"],
+          correct: 0,
+          seconds: 20,
+        },
+        {
+          text: "Если положить смартфон в рис после попадания воды, он гарантированно заработает снова. Правда или миф?",
+          options: ["Правда", "Миф"],
+          correct: 1,
+          seconds: 20,
+        },
+      ],
+    };
+
+    async function ensureDefaultSet() {
+      try {
+        const ref = doc(db, CONFIG.SETS, DEFAULT_SET_ID);
+        const snap = await getDoc(ref);
+        if (snap.exists()) return;
+        await setDoc(ref, DEFAULT_SET);
+      } catch (err) {
+        console.error("Не удалось создать набор по умолчанию", err);
+      }
+    }
+    ensureDefaultSet();
+
     // ===== Наборы вопросов: загрузка =====
     onSnapshot(setsCol(), (snap) => {
       sets = snap.docs
@@ -421,9 +473,12 @@
           actions.append(pick);
         }
         actions.append(
-          mkBtn("✎", "btn ghost small", () => openBuilder(s)),
-          mkBtn("🗑", "del", () => deleteSet(s))
+          mkBtn("✎", "btn ghost small", () => openBuilder(s))
         );
+        // Набор по умолчанию нельзя удалить
+        if (s.id !== DEFAULT_SET_ID) {
+          actions.append(mkBtn("🗑", "del", () => deleteSet(s)));
+        }
 
         li.append(info, actions);
         return li;
@@ -443,6 +498,10 @@
     }
 
     async function deleteSet(s) {
+      if (s.id === DEFAULT_SET_ID) {
+        toast("Набор по умолчанию нельзя удалить");
+        return;
+      }
       if (!confirm(`Удалить набор «${s.name}»?`)) return;
       try {
         await deleteDoc(doc(db, CONFIG.SETS, s.id));

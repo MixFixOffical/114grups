@@ -10,6 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 
 <style>
 /* =========================================================
@@ -191,6 +192,22 @@ button:disabled{opacity:.55;cursor:not-allowed}
     font-size:11px;font-weight:600;
     white-space:nowrap;
 }
+
+/* NEW: жёлтый треугольник "настройте данные" */
+.warn-btn{
+    color:#b45309;
+    border-color:rgba(180,83,9,.35);
+    background:#fffbeb;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    width:36px;height:36px;
+    border-radius:var(--radius-sm);
+    border:1px solid rgba(180,83,9,.35);
+    transition:background .15s ease;
+}
+.warn-btn:hover{background:#fef3c7;color:#92400e;border-color:#b45309}
+.warn-btn.show{display:inline-flex}
 
 .icon-btn{
     display:inline-flex;
@@ -765,6 +782,30 @@ h1{margin:4px 0 6px;font-size:24px;letter-spacing:-.3px;line-height:1.15}
     gap:6px;
 }
 
+/* NEW: блок с шифром и QR */
+.code-block{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+.student-code{
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+    font-size:11.5px;
+    background:var(--card-2);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:2px 7px;
+    color:var(--text-2);
+    letter-spacing:.08em;
+}
+.qr-btn{
+    font-size:11px;
+    padding:3px 8px;
+    min-height:24px;
+    color:var(--accent);
+    border:1px solid var(--accent-line);
+    background:var(--card);
+    border-radius:var(--radius-sm);
+    font-weight:500;
+}
+.qr-btn:hover{background:var(--accent-soft)}
+
 .student-right{
     display:flex;
     align-items:center;
@@ -1096,6 +1137,17 @@ h1{margin:4px 0 6px;font-size:24px;letter-spacing:-.3px;line-height:1.15}
 .theme-opt:hover{border-color:var(--accent-line);background:var(--card-2)}
 .theme-opt.active{border-color:var(--accent-line);background:var(--accent-soft);color:var(--accent)}
 
+/* NEW: QR canvas */
+#qrCanvas{
+    max-width:100%;
+    height:auto;
+    background:#fff;
+    border-radius:8px;
+    display:block;
+    margin:0 auto;
+    border:1px solid var(--line);
+}
+
 /* =========================================================
    LOADING
 ========================================================= */
@@ -1307,6 +1359,18 @@ h1{margin:4px 0 6px;font-size:24px;letter-spacing:-.3px;line-height:1.15}
     <div class="header-right">
         <div id="roleBadge" class="role-badge">Проверка…</div>
 
+        <!-- NEW: жёлтый треугольник "настройте данные" -->
+        <button id="setupWarnBtn" class="warn-btn" title="Настройте данные"
+                aria-label="Настройте данные" onclick="openSetupModal()">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                 stroke-linejoin="round">
+                <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+        </button>
+
         <div class="clock">
             <div class="clock-date" id="currentDate">--</div>
             <div class="clock-time" id="currentTime">--:--:--</div>
@@ -1436,6 +1500,7 @@ h1{margin:4px 0 6px;font-size:24px;letter-spacing:-.3px;line-height:1.15}
                 <option value="name-desc">По ФИО ↓</option>
                 <option value="group">По группе</option>
                 <option value="status">По статусу</option>
+                <option value="code">По шифру</option>
             </select>
 
             <button class="filter-chip" onclick="exportCSV()" title="Экспорт в CSV">CSV</button>
@@ -1447,6 +1512,7 @@ h1{margin:4px 0 6px;font-size:24px;letter-spacing:-.3px;line-height:1.15}
                 <button class="bulk-btn" onclick="bulkAssignToGroup()">В группу</button>
                 <button class="bulk-btn" onclick="bulkRemove()">Убрать из группы</button>
                 <button class="bulk-btn" onclick="bulkSetStatus()">Сменить статус</button>
+                <button class="bulk-btn" onclick="openPromoteModal()">Перевести на курс</button>
                 <button class="bulk-btn" onclick="clearSelection()">Снять</button>
                 <button class="bulk-btn danger" onclick="bulkDelete()">Удалить</button>
             </div>
@@ -1503,6 +1569,35 @@ h1{margin:4px 0 6px;font-size:24px;letter-spacing:-.3px;line-height:1.15}
                 <label>Группа</label>
                 <select id="newStudentGroup" class="select"></select>
             </div>
+
+            <!-- NEW: поля шифра -->
+            <div class="field">
+                <label>Год поступления (2 цифры)</label>
+                <input id="newEnrollYear" class="input" inputmode="numeric" maxlength="2" placeholder="24">
+            </div>
+            <div class="field">
+                <label>Текущий курс</label>
+                <select id="newCurrentCourse" class="select">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Номер группы (1–5)</label>
+                <select id="newGroupNumber" class="select">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Порядковый номер (авто)</label>
+                <input id="newOrderNumber" class="input" readonly placeholder="Автоматически">
+            </div>
         </div>
         <div class="modal-foot">
             <button class="cancel" onclick="closeModal('addStudentModal')">Отмена</button>
@@ -1538,6 +1633,39 @@ h1{margin:4px 0 6px;font-size:24px;letter-spacing:-.3px;line-height:1.15}
                     <option value="Отчислен">Отчислен</option>
                     <option value="Выпустился">Выпустился</option>
                 </select>
+            </div>
+
+            <!-- NEW: поля шифра -->
+            <div class="field">
+                <label>Год поступления (2 цифры)</label>
+                <input id="editEnrollYear" class="input" inputmode="numeric" maxlength="2" placeholder="24">
+            </div>
+            <div class="field">
+                <label>Текущий курс</label>
+                <select id="editCurrentCourse" class="select">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Номер группы (1–5)</label>
+                <select id="editGroupNumber" class="select">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Порядковый номер (01–99)</label>
+                <input id="editOrderNumber" class="input" inputmode="numeric" maxlength="2" placeholder="11">
+            </div>
+            <div class="field">
+                <label>Шифр (генерируется)</label>
+                <input id="editStudentCode" class="input" readonly placeholder="—">
             </div>
         </div>
         <div class="modal-foot">
@@ -1642,6 +1770,97 @@ h1{margin:4px 0 6px;font-size:24px;letter-spacing:-.3px;line-height:1.15}
                 <button class="theme-opt" data-theme-opt="dark" onclick="setTheme('dark')">Тёмная</button>
                 <button class="theme-opt" data-theme-opt="auto" onclick="setTheme('auto')">Авто</button>
             </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- NEW: SETUP CODE MODAL -->
+<div id="setupCodeModal" class="modal" onclick="backdropClose(event,'setupCodeModal')">
+    <div class="modal-card" role="dialog" aria-modal="true">
+        <div class="modal-head">
+            <div class="modal-title">Настройка шифров студентов</div>
+            <button class="close" onclick="closeModal('setupCodeModal')" aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label>Год поступления (2 цифры)</label>
+                <input id="setupEnrollYear" class="input" inputmode="numeric" maxlength="2" placeholder="24">
+            </div>
+            <div class="field">
+                <label>Текущий курс (1–4)</label>
+                <select id="setupCurrentCourse" class="select">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+            </div>
+            <div class="field">
+                <label>Номер группы (1–5)</label>
+                <select id="setupGroupNumber" class="select">
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                </select>
+            </div>
+            <p class="confirm-text" style="font-size:12px;color:var(--muted)">
+                Порядковые номера будут назначены автоматически (01–99) по алфавиту.
+                Шифр = <strong>группа + год + курс + номер + контрольная</strong>.
+            </p>
+        </div>
+        <div class="modal-foot">
+            <button class="cancel" onclick="closeModal('setupCodeModal')">Отмена</button>
+            <button class="small-primary" onclick="applySetupCodes()">Применить ко всем</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- NEW: PROMOTE MODAL -->
+<div id="promoteModal" class="modal" onclick="backdropClose(event,'promoteModal')">
+    <div class="modal-card sm" role="dialog" aria-modal="true">
+        <div class="modal-head">
+            <div class="modal-title">Перевод на курс</div>
+            <button class="close" onclick="closeModal('promoteModal')" aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="field">
+                <label>Перевести на курс</label>
+                <select id="promoteToCourse" class="select">
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                </select>
+            </div>
+            <p class="confirm-text" style="font-size:12px;color:var(--muted)">
+                Будут переведены выбранные студенты. Шифр пересчитается автоматически.
+            </p>
+        </div>
+        <div class="modal-foot">
+            <button class="cancel" onclick="closeModal('promoteModal')">Отмена</button>
+            <button class="small-primary" onclick="promoteSelected()">Перевести</button>
+        </div>
+    </div>
+</div>
+
+
+<!-- NEW: QR MODAL -->
+<div id="qrModal" class="modal" onclick="backdropClose(event,'qrModal')">
+    <div class="modal-card sm" role="dialog" aria-modal="true">
+        <div class="modal-head">
+            <div class="modal-title" id="qrTitle">QR-код</div>
+            <button class="close" onclick="closeModal('qrModal')" aria-label="Закрыть">×</button>
+        </div>
+        <div class="modal-body" style="text-align:center">
+            <canvas id="qrCanvas" width="240" height="240"></canvas>
+            <div id="qrCodeText" class="student-code"
+                 style="margin-top:12px;font-size:16px;display:inline-block;padding:6px 12px"></div>
+        </div>
+        <div class="modal-foot">
+            <button class="cancel" onclick="closeModal('qrModal')">Закрыть</button>
         </div>
     </div>
 </div>
@@ -1772,6 +1991,70 @@ function statusClass(status){
     if(s.startsWith("отчисл")) return "отчислен";
     if(s.startsWith("выпуск")) return "выпустился";
     return "";
+}
+
+
+/* =========================================================
+   NEW: ШИФР СТУДЕНТА
+   Формат: [группа 1][год 2][курс 1][номер 2][контрольная 1] = 7 цифр
+========================================================= */
+function buildStudentCode({ enrollYear, currentCourse, orderNumber, groupNumber }) {
+    const y = String(enrollYear).padStart(2, "0").slice(-2);
+    const c = String(currentCourse);
+    const n = String(orderNumber).padStart(2, "0");
+    const g = String(groupNumber);
+    const base = `${g}${y}${c}${n}`;              // 6 цифр
+    const control = String(
+        base.split("").reduce((s, d) => s + Number(d), 0) % 10
+    );
+    return base + control;                         // 7 цифр
+}
+
+function parseStudentCode(code) {
+    const s = String(code || "").replace(/\D/g, "");
+    if (s.length !== 7) return null;
+    const base = s.slice(0, 6);
+    const control = Number(s[6]);
+    const sum = base.split("").reduce((a, d) => a + Number(d), 0) % 10;
+    if (sum !== control) return null;
+    return {
+        groupNumber:   Number(s[0]),
+        enrollYear:    Number(s.slice(1, 3)),
+        currentCourse: Number(s[3]),
+        orderNumber:   Number(s.slice(4, 6)),
+        code: s
+    };
+}
+
+function nextOrderNumber(groupNumber, enrollYear, currentCourse, excludeId = null) {
+    const same = students.filter(s =>
+        s.id !== excludeId &&
+        Number(s.groupNumber) === Number(groupNumber) &&
+        Number(s.enrollYear) === Number(enrollYear) &&
+        Number(s.currentCourse) === Number(currentCourse)
+    );
+    const used = new Set(same.map(s => Number(s.orderNumber)));
+    for (let i = 1; i <= 99; i++) if (!used.has(i)) return i;
+    return 99;
+}
+
+function groupNumberFromName(name) {
+    const m = String(name || "").match(/^(\d)/);
+    return m ? Number(m[1]) : null;
+}
+
+function isCodeConfigured() {
+    const visible = isAdmin()
+        ? students
+        : students.filter(s => String(s.groupId||"") === String(curatorGroupId));
+    if (!visible.length) return true;
+    return visible.every(s => s.studentCode && parseStudentCode(s.studentCode));
+}
+
+function updateSetupWarning() {
+    const btn = $("setupWarnBtn");
+    if (!btn) return;
+    btn.classList.toggle("show", !isCodeConfigured());
 }
 
 
@@ -1931,6 +2214,7 @@ async function loadData(){
         updateStatusChips();
         fillGroupSelects();
         renderAll();
+        updateSetupWarning();
     }
     catch(error){
         console.error(error);
@@ -2031,6 +2315,7 @@ window.selectGroup = function(id){
     clearSelection();
     fillGroupSelects();
     renderAll();
+    updateSetupWarning();
 };
 
 window.filterFree = function(){
@@ -2092,6 +2377,7 @@ function renderAll(){
     renderStudents();
     renderBulkBar();
     updateMobileTabs();
+    updateSetupWarning();
     $("assignBtn").style.display = selectedGroupId ? "inline-flex" : "none";
 }
 
@@ -2228,7 +2514,10 @@ function getVisibleStudents(){
     }
 
     if(query){
-        array = array.filter(s => nameOf(s).toLowerCase().includes(query));
+        array = array.filter(s =>
+            nameOf(s).toLowerCase().includes(query) ||
+            String(s.studentCode || "").includes(query)
+        );
     }
 
     const cmp = {
@@ -2237,7 +2526,8 @@ function getVisibleStudents(){
         "group":     (a,b) => studentGroupName(a).localeCompare(studentGroupName(b),"ru") ||
                               nameOf(a).localeCompare(nameOf(b),"ru"),
         "status":    (a,b) => String(a.status||"").localeCompare(String(b.status||""),"ru") ||
-                              nameOf(a).localeCompare(nameOf(b),"ru")
+                              nameOf(a).localeCompare(nameOf(b),"ru"),
+        "code":      (a,b) => String(a.studentCode||"zzz").localeCompare(String(b.studentCode||"zzz"))
     }[sortMode] || (() => 0);
 
     return [...array].sort(cmp);
@@ -2301,6 +2591,7 @@ function renderStudentRow(student, query = ""){
     const star = selectedGroupId && student.id === g?.starostaId;
     const checked = selectedIds.has(student.id);
     const sClass = statusClass(student.status || "Учится");
+    const hasCode = !!student.studentCode;
 
     return `
         <div class="student ${checked ? "selected" : ""}" data-id="${student.id}">
@@ -2322,6 +2613,11 @@ function renderStudentRow(student, query = ""){
                     <span>${esc(studentGroupName(student))}</span>
                     ${star ? `<span class="star">Староста</span>` : ""}
                 </div>
+                ${hasCode ? `
+                    <div class="code-block">
+                        <button class="qr-btn" onclick="openQR('${student.id}')" title="Показать QR-код">QR</button>
+                        <span class="student-code">${esc(student.studentCode)}</span>
+                    </div>` : ""}
             </div>
 
             <div class="student-right">
@@ -2430,14 +2726,33 @@ window.bulkAssignToGroup = function(){
 window.pickGroupAndAssign = async function(groupId){
     closeModal("pickGroupModal");
     if(!canManageGroup(groupId)){ toast("Нет доступа","error"); return; }
+
+    const targetGroup = groupById(groupId);
+    const newGroupNumber = groupNumberFromName(targetGroup?.name);
+
     try{
-        await Promise.all([...selectedIds].map(id =>
-            updateDoc(doc(db,"students",id), { groupId, updatedAt: serverTimestamp() })
-        ));
-        students.forEach(s => { if(selectedIds.has(s.id)) s.groupId = groupId; });
+        await Promise.all([...selectedIds].map(async id => {
+            const s = students.find(x => x.id === id);
+            if (!s) return;
+            const patch = { groupId, updatedAt: serverTimestamp() };
+
+            // NEW: если у студента уже есть шифр — пересобираем с новым номером группы
+            if (newGroupNumber && s.studentCode && s.enrollYear && s.orderNumber && s.currentCourse) {
+                patch.groupNumber = newGroupNumber;
+                patch.studentCode = buildStudentCode({
+                    enrollYear: s.enrollYear,
+                    currentCourse: s.currentCourse,
+                    orderNumber: s.orderNumber,
+                    groupNumber: newGroupNumber
+                });
+            }
+            await updateDoc(doc(db,"students",id), patch);
+            Object.assign(s, patch);
+        }));
         const n = selectedIds.size;
         clearSelection();
         renderAll();
+        updateSetupWarning();
         toast(`Переведено в группу: ${n}`);
     }
     catch(e){ toast("Ошибка: " + e.message,"error"); }
@@ -2516,12 +2831,154 @@ window.bulkDelete = function(){
 
 
 /* =========================================================
+   NEW: ПЕРЕВОД НА КУРС
+========================================================= */
+window.openPromoteModal = function(){
+    if(!selectedIds.size){ toast("Выберите студентов","error"); return; }
+    openModal("promoteModal");
+};
+
+window.promoteSelected = async function(){
+    const toCourse = Number($("promoteToCourse").value);
+    if(!toCourse) { toast("Выберите курс","error"); return; }
+
+    // Настройка: менять ли группу при переводе (111 → 211)
+    const PROMOTE_GROUP_TOO = false;   // ← поставь true, если нужно 111→211
+
+    try{
+        const updates = [];
+        for (const id of selectedIds) {
+            const s = students.find(x => x.id === id);
+            if (!s) continue;
+            const patch = { currentCourse: toCourse, updatedAt: serverTimestamp() };
+            if (s.studentCode && s.enrollYear && s.orderNumber && s.groupNumber) {
+                let newGroupNumber = s.groupNumber;
+                if (PROMOTE_GROUP_TOO) {
+                    newGroupNumber = Math.min(5, Number(s.groupNumber) + 1);
+                    patch.groupNumber = newGroupNumber;
+                }
+                patch.studentCode = buildStudentCode({
+                    enrollYear: s.enrollYear,
+                    currentCourse: toCourse,
+                    orderNumber: s.orderNumber,
+                    groupNumber: newGroupNumber
+                });
+            }
+            updates.push({ id, patch });
+            await updateDoc(doc(db,"students", id), patch);
+            Object.assign(s, patch);
+        }
+        closeModal("promoteModal");
+        clearSelection();
+        renderAll();
+        updateSetupWarning();
+        toast(`Переведено на ${toCourse} курс: ${updates.length}`);
+    } catch (e) {
+        toast("Ошибка: " + e.message, "error");
+    }
+};
+
+
+/* =========================================================
+   NEW: QR
+========================================================= */
+window.openQR = function(id){
+    const s = students.find(x => x.id === id);
+    if (!s || !s.studentCode) { toast("Сначала настройте шифр", "error"); return; }
+    $("qrTitle").textContent = nameOf(s);
+    $("qrCodeText").textContent = s.studentCode;
+    openModal("qrModal");
+    if (window.QRCode && QRCode.toCanvas) {
+        QRCode.toCanvas($("qrCanvas"), s.studentCode, { width: 240, margin: 1 }, err => {
+            if (err) toast("Ошибка QR: " + err.message, "error");
+        });
+    } else {
+        toast("Библиотека QR не загружена","error");
+    }
+};
+
+
+/* =========================================================
+   NEW: SETUP CODE MODAL
+========================================================= */
+window.openSetupModal = function(){
+    openModal("setupCodeModal");
+};
+
+window.applySetupCodes = async function(){
+    const enrollYear    = Number($("setupEnrollYear").value);
+    const currentCourse = Number($("setupCurrentCourse").value);
+    const groupNumber   = Number($("setupGroupNumber").value);
+
+    if (!enrollYear || enrollYear < 0 || enrollYear > 99) {
+        toast("Введите год поступления (2 цифры)", "error");
+        return;
+    }
+    if (!currentCourse || !groupNumber) {
+        toast("Заполните курс и номер группы", "error");
+        return;
+    }
+
+    let target = isAdmin()
+        ? students
+        : students.filter(s => String(s.groupId||"") === String(curatorGroupId));
+    if (selectedGroupId) {
+        target = target.filter(s => String(s.groupId||"") === String(selectedGroupId));
+    }
+    if (!target.length) { toast("Нет студентов для настройки", "error"); return; }
+
+    target = [...target].sort((a,b) => nameOf(a).localeCompare(nameOf(b),"ru"));
+
+    const used = new Set();
+    const updates = [];
+    let n = 1;
+    for (const s of target) {
+        while (used.has(n)) n++;
+        if (n > 99) { toast("Больше 99 студентов — не помещается", "error"); return; }
+        used.add(n);
+        const code = buildStudentCode({
+            enrollYear, currentCourse,
+            orderNumber: n, groupNumber
+        });
+        updates.push({ id: s.id, orderNumber: n, studentCode: code });
+        n++;
+    }
+
+    try{
+        await Promise.all(updates.map(u =>
+            updateDoc(doc(db,"students",u.id), {
+                enrollYear, enrollCourse: 1, currentCourse, groupNumber,
+                orderNumber: u.orderNumber,
+                studentCode: u.studentCode,
+                updatedAt: serverTimestamp()
+            })
+        ));
+        students.forEach(s => {
+            const u = updates.find(x => x.id === s.id);
+            if (u) Object.assign(s, {
+                enrollYear, enrollCourse: 1, currentCourse, groupNumber,
+                orderNumber: u.orderNumber, studentCode: u.studentCode
+            });
+        });
+        closeModal("setupCodeModal");
+        renderAll();
+        updateSetupWarning();
+        toast("Шифры назначены");
+    } catch(e) { toast("Ошибка: " + e.message, "error"); }
+};
+
+
+/* =========================================================
    ADD STUDENT
 ========================================================= */
 window.openAddStudent = function(){
     fillGroupSelects();
     $("newStudentName").value = "";
     $("addNameField").classList.remove("invalid");
+    $("newEnrollYear").value = "";
+    $("newCurrentCourse").value = "1";
+    $("newGroupNumber").value = "1";
+    $("newOrderNumber").value = "";
 
     if(isCurator()){
         $("newStudentGroup").value = curatorGroupId;
@@ -2534,6 +2991,23 @@ window.openAddStudent = function(){
     openModal("addStudentModal");
     setTimeout(() => $("newStudentName").focus(), 100);
 };
+
+function updateNewOrderNumber(){
+    const enrollYear    = Number($("newEnrollYear").value) || 0;
+    const currentCourse = Number($("newCurrentCourse").value) || 1;
+    const groupNumber   = Number($("newGroupNumber").value) || 1;
+    if (!enrollYear) { $("newOrderNumber").value = ""; return; }
+    const n = nextOrderNumber(groupNumber, enrollYear, currentCourse);
+    $("newOrderNumber").value = String(n).padStart(2,"0");
+}
+
+["newEnrollYear","newCurrentCourse","newGroupNumber"].forEach(id => {
+    const el = $(id);
+    if (el) {
+        el.addEventListener("input", updateNewOrderNumber);
+        el.addEventListener("change", updateNewOrderNumber);
+    }
+});
 
 window.createStudent = async function(){
     const name = $("newStudentName").value.trim();
@@ -2551,6 +3025,16 @@ window.createStudent = async function(){
         return;
     }
 
+    // NEW: поля шифра
+    const enrollYear    = Number($("newEnrollYear").value) || null;
+    const enrollCourse  = 1;
+    const currentCourse = Number($("newCurrentCourse").value) || 1;
+    const groupNumber   = Number($("newGroupNumber").value) || null;
+    const orderNumber   = Number($("newOrderNumber").value) || null;
+    const studentCode   = (enrollYear && orderNumber && groupNumber)
+        ? buildStudentCode({ enrollYear, currentCourse, orderNumber, groupNumber })
+        : null;
+
     const btn = $("addSubmitBtn");
     btn.disabled = true;
     btn.innerHTML = `<span class="spinner"></span>`;
@@ -2560,18 +3044,21 @@ window.createStudent = async function(){
             name, fullName:name,
             groupId: groupId || null,
             status:"Учится",
+            enrollYear, enrollCourse, currentCourse, groupNumber, orderNumber, studentCode,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp()
         });
         students.push({
             id:ref.id, name, fullName:name,
             groupId: groupId || null,
-            status:"Учится"
+            status:"Учится",
+            enrollYear, enrollCourse, currentCourse, groupNumber, orderNumber, studentCode
         });
         students.sort((a,b) => nameOf(a).localeCompare(nameOf(b),"ru"));
 
         closeModal("addStudentModal");
         renderAll();
+        updateSetupWarning();
         toast("Студент успешно добавлен");
     }
     catch(error){
@@ -2600,6 +3087,12 @@ window.openEditStudent = function(id){
     $("editStudentStatus").value = student.status || "Учится";
     $("editNameField").classList.remove("invalid");
 
+    $("editEnrollYear").value = student.enrollYear ?? "";
+    $("editCurrentCourse").value = String(student.currentCourse ?? 1);
+    $("editGroupNumber").value = String(student.groupNumber ?? 1);
+    $("editOrderNumber").value = student.orderNumber ? String(student.orderNumber).padStart(2,"0") : "";
+    $("editStudentCode").value = student.studentCode || "";
+
     fillGroupSelects();
     const groupSelect = $("editStudentGroup");
     if(isCurator()){
@@ -2611,6 +3104,27 @@ window.openEditStudent = function(id){
     }
     openModal("editStudentModal");
 };
+
+function recomputeEditCode(){
+    const enrollYear    = Number($("editEnrollYear").value) || null;
+    const currentCourse = Number($("editCurrentCourse").value) || 1;
+    const groupNumber   = Number($("editGroupNumber").value) || null;
+    const orderNumber   = Number($("editOrderNumber").value) || null;
+    if (enrollYear && currentCourse && groupNumber && orderNumber) {
+        $("editStudentCode").value = buildStudentCode({
+            enrollYear, currentCourse, orderNumber, groupNumber
+        });
+    } else {
+        $("editStudentCode").value = "";
+    }
+}
+["editEnrollYear","editCurrentCourse","editGroupNumber","editOrderNumber"].forEach(id => {
+    const el = $(id);
+    if (el) {
+        el.addEventListener("input", recomputeEditCode);
+        el.addEventListener("change", recomputeEditCode);
+    }
+});
 
 window.saveStudentEdit = async function(){
     const id = $("editStudentId").value;
@@ -2636,6 +3150,16 @@ window.saveStudentEdit = async function(){
         return;
     }
 
+    // NEW: шифр
+    const enrollYear    = Number($("editEnrollYear").value) || null;
+    const enrollCourse  = student.enrollCourse || 1;
+    const currentCourse = Number($("editCurrentCourse").value) || 1;
+    const groupNumber   = Number($("editGroupNumber").value) || null;
+    const orderNumber   = Number($("editOrderNumber").value) || null;
+    const studentCode   = (enrollYear && groupNumber && orderNumber)
+        ? buildStudentCode({ enrollYear, currentCourse, orderNumber, groupNumber })
+        : null;
+
     const btn = $("editSubmitBtn");
     btn.disabled = true;
     btn.innerHTML = `<span class="spinner"></span>`;
@@ -2645,6 +3169,7 @@ window.saveStudentEdit = async function(){
             name, fullName:name,
             groupId: newGroupId || null,
             status,
+            enrollYear, enrollCourse, currentCourse, groupNumber, orderNumber, studentCode,
             updatedAt: serverTimestamp()
         });
         const oldGroupId = student.groupId;
@@ -2652,6 +3177,12 @@ window.saveStudentEdit = async function(){
         student.fullName = name;
         student.groupId = newGroupId || null;
         student.status = status;
+        student.enrollYear = enrollYear;
+        student.enrollCourse = enrollCourse;
+        student.currentCourse = currentCourse;
+        student.groupNumber = groupNumber;
+        student.orderNumber = orderNumber;
+        student.studentCode = studentCode;
 
         if(oldGroupId && oldGroupId !== newGroupId){
             const oldGroup = groupById(oldGroupId);
@@ -2667,6 +3198,7 @@ window.saveStudentEdit = async function(){
 
         closeModal("editStudentModal");
         renderAll();
+        updateSetupWarning();
         toast("Данные студента сохранены");
     }
     catch(error){
@@ -2781,14 +3313,26 @@ window.assignSelected = async function(){
     if(!canManageGroup(selectedGroupId)){ toast("Нет доступа к группе","error"); return; }
     if(!selectedIds.size){ toast("Выберите хотя бы одного студента","error"); return; }
 
+    const targetGroup = groupById(selectedGroupId);
+    const newGroupNumber = groupNumberFromName(targetGroup?.name);
+
     try{
         await Promise.all([...selectedIds].map(async id => {
-            await updateDoc(doc(db,"students",id), {
-                groupId: selectedGroupId,
-                updatedAt: serverTimestamp()
-            });
+            const s = students.find(x => x.id === id);
+            if (!s) return;
+            const patch = { groupId: selectedGroupId, updatedAt: serverTimestamp() };
+            if (newGroupNumber && s.studentCode && s.enrollYear && s.orderNumber && s.currentCourse) {
+                patch.groupNumber = newGroupNumber;
+                patch.studentCode = buildStudentCode({
+                    enrollYear: s.enrollYear,
+                    currentCourse: s.currentCourse,
+                    orderNumber: s.orderNumber,
+                    groupNumber: newGroupNumber
+                });
+            }
+            await updateDoc(doc(db,"students",id), patch);
+            Object.assign(s, patch);
         }));
-        students.forEach(s => { if(selectedIds.has(s.id)) s.groupId = selectedGroupId; });
         const count = selectedIds.size;
         selectedIds = new Set();
         closeModal("assignModal");
@@ -2847,8 +3391,13 @@ window.exportCSV = function(){
     const arr = getVisibleStudents();
     if(!arr.length){ toast("Нет данных для экспорта","error"); return; }
     const rows = [
-        ["ФИО","Группа","Статус"],
-        ...arr.map(s => [nameOf(s), studentGroupName(s), s.status || "Учится"])
+        ["ФИО","Группа","Статус","Год поступления","Курс","Номер группы","Порядковый","Шифр"],
+        ...arr.map(s => [
+            nameOf(s), studentGroupName(s), s.status || "Учится",
+            s.enrollYear ?? "", s.currentCourse ?? "",
+            s.groupNumber ?? "", s.orderNumber ?? "",
+            s.studentCode || ""
+        ])
     ];
     const csv = rows.map(r =>
         r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(";")

@@ -129,6 +129,7 @@
     }
     .txt:focus { border-color: var(--primary); }
     .txt.small { margin: 0; width: 90px; }
+    select.txt { appearance: none; -webkit-appearance: none; cursor: pointer; }
 
     /* Список наборов */
     .set-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
@@ -159,6 +160,17 @@
     }
     .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
     .msg { min-height: 22px; margin-top: 10px; font-weight: 700; font-size: 15px; color: var(--danger); text-align: center; }
+
+    /* Превью картинки в конструкторе */
+    .qimg-preview {
+      display: block;
+      max-width: 100%;
+      max-height: 140px;
+      border-radius: 12px;
+      border: 2px solid var(--line);
+      margin: 4px 0 10px;
+      object-fit: cover;
+    }
 
     .toast {
       position: fixed; top: max(16px, env(safe-area-inset-top)); left: 50%;
@@ -299,6 +311,18 @@
 
     const CONFIG = { ADMIN_CODE: "2702", GAMES: "games", SETS: "questionSets", STORAGE_KEY: "adminGameCode", MAX_OPTIONS: 4 };
 
+    // ===== Список картинок из assets/images/ =====
+    // Перечислите здесь все файлы из папки assets/images/.
+    // Имена чувствительны к регистру и должны совпадать с реальными файлами.
+    const IMAGE_LIST = [
+      "processor.png",
+      "ssd-vs-hdd.png",
+      "cooler.png",
+      "smartphone-rice.png",
+      "cpu.png",
+      "ram.png"
+    ];
+
     const $ = (id) => document.getElementById(id);
     const el = {
       screenHome: $("screenHome"),
@@ -342,9 +366,9 @@
     let timerId = null;
     let timerFrom = null;
 
-    let sets = [];            // все сохранённые наборы
-    let pickMode = "manage";  // "choose" — выбрать для игры, "manage" — только управление
-    let editingSet = null;    // набор, который редактируем (null — новый)
+    let sets = [];
+    let pickMode = "manage";
+    let editingSet = null;
 
     const gameRef = (code) => doc(db, CONFIG.GAMES, code);
     const setsCol = () => collection(db, CONFIG.SETS);
@@ -370,30 +394,45 @@
           options: ["Правда", "Миф"],
           correct: 1,
           seconds: 20,
+          commentOk: "Верно! Производительность зависит не только от количества ядер, но и от архитектуры, тактовой частоты и оптимизации программы.",
+          commentBad: "На самом деле это миф. Больше ядер ≠ всегда быстрее: важны архитектура, частота, софт и другие компоненты.",
+          image: null,
         },
         {
           text: "Компьютер с SSD обычно загружается быстрее, чем компьютер с HDD. Правда или миф?",
           options: ["Правда", "Миф"],
           correct: 0,
           seconds: 20,
+          commentOk: "Верно! SSD использует флеш-память без движущихся частей и поэтому быстрее читает данные.",
+          commentBad: "Это правда: SSD обычно заметно быстрее HDD при загрузке и запуске программ.",
+          image: null,
         },
         {
           text: "Может ли процессор нормально работать без охлаждения при выполнении сложных задач? Правда или миф?",
           options: ["Правда", "Миф"],
           correct: 1,
           seconds: 20,
+          commentOk: "Верно! Без охлаждения процессор перегревается и снижает частоту (троттлинг) или выключается.",
+          commentBad: "Это миф: без охлаждения при сложных задачах процессор перегреется и не сможет работать нормально.",
+          image: null,
         },
         {
           text: "Современный компьютер способен выполнять миллиарды операций за одну секунду. Истина или миф?",
           options: ["Правда", "Миф"],
           correct: 0,
           seconds: 20,
+          commentOk: "Верно! Современные процессоры выполняют миллиарды, а топовые — триллионы операций в секунду.",
+          commentBad: "Это правда: современные компьютеры действительно выполняют миллиарды операций за секунду.",
+          image: null,
         },
         {
           text: "Если положить смартфон в рис после попадания воды, он гарантированно заработает снова. Правда или миф?",
           options: ["Правда", "Миф"],
           correct: 1,
           seconds: 20,
+          commentOk: "Верно! Рис не удаляет влагу надёжно и не устраняет повреждения. Лучше обратиться в сервис.",
+          commentBad: "Это миф: рис не гарантирует восстановление и может даже навредить (пыль, крошки, коррозия).",
+          image: null,
         },
       ],
     };
@@ -475,7 +514,6 @@
         actions.append(
           mkBtn("✎", "btn ghost small", () => openBuilder(s))
         );
-        // Набор по умолчанию нельзя удалить
         if (s.id !== DEFAULT_SET_ID) {
           actions.append(mkBtn("🗑", "del", () => deleteSet(s)));
         }
@@ -561,6 +599,38 @@
       text.placeholder = "Текст вопроса";
       text.value = q?.text || "";
 
+      // Картинка вопроса
+      const imgLabel = document.createElement("label");
+      imgLabel.className = "field-label";
+      imgLabel.textContent = "Картинка (assets/images)";
+      const imgSelect = document.createElement("select");
+      imgSelect.className = "txt";
+      const noneOpt = document.createElement("option");
+      noneOpt.value = "";
+      noneOpt.textContent = "— без картинки —";
+      imgSelect.append(noneOpt);
+      IMAGE_LIST.forEach((file) => {
+        const o = document.createElement("option");
+        o.value = file;
+        o.textContent = file;
+        if (q?.image === file) o.selected = true;
+        imgSelect.append(o);
+      });
+      const imgPreview = document.createElement("img");
+      imgPreview.className = "qimg-preview";
+      imgPreview.alt = "";
+      imgPreview.hidden = !q?.image;
+      if (q?.image) imgPreview.src = `assets/images/${q.image}`;
+      imgSelect.addEventListener("change", () => {
+        if (imgSelect.value) {
+          imgPreview.src = `assets/images/${imgSelect.value}`;
+          imgPreview.hidden = false;
+        } else {
+          imgPreview.hidden = true;
+          imgPreview.removeAttribute("src");
+        }
+      });
+
       // Варианты ответа
       const opts = document.createElement("div");
       opts.className = "opts";
@@ -587,6 +657,23 @@
         radios.push(radio);
       }
 
+      // Комментарии
+      const commentOkLabel = document.createElement("label");
+      commentOkLabel.className = "field-label";
+      commentOkLabel.textContent = "Комментарий при верном ответе";
+      const commentOk = document.createElement("input");
+      commentOk.className = "txt";
+      commentOk.placeholder = "Например: Верно! SSD быстрее, потому что…";
+      commentOk.value = q?.commentOk || "";
+
+      const commentBadLabel = document.createElement("label");
+      commentBadLabel.className = "field-label";
+      commentBadLabel.textContent = "Комментарий при неверном ответе";
+      const commentBad = document.createElement("input");
+      commentBad.className = "txt";
+      commentBad.placeholder = "Например: На самом деле рис не спасает телефон…";
+      commentBad.value = q?.commentBad || "";
+
       // Время
       const bottom = document.createElement("div");
       bottom.className = "qbottom";
@@ -607,8 +694,15 @@
       hint.textContent = "отметь кружком правильный";
       bottom.append(secsRow, hint);
 
-      row.append(head, text, opts, bottom);
-      row._parts = { text, optInputs, radios, secs };
+      row.append(
+        head, text,
+        imgLabel, imgSelect, imgPreview,
+        opts,
+        commentOkLabel, commentOk,
+        commentBadLabel, commentBad,
+        bottom
+      );
+      row._parts = { text, optInputs, radios, secs, commentOk, commentBad, imgSelect };
       el.qRows.append(row);
       renumber();
     }
@@ -630,7 +724,7 @@
 
       const result = [];
       for (let n = 0; n < rows.length; n++) {
-        const { text, optInputs, radios, secs } = rows[n]._parts;
+        const { text, optInputs, radios, secs, commentOk, commentBad, imgSelect } = rows[n]._parts;
         const qText = text.value.trim();
         const options = optInputs.map((i) => i.value.trim());
         const checkedIndex = radios.findIndex((r) => r.checked);
@@ -655,6 +749,9 @@
           options: filled.map((o) => o.text),
           correct,
           seconds,
+          commentOk: commentOk.value.trim(),
+          commentBad: commentBad.value.trim(),
+          image: imgSelect.value || null,
         });
       }
       return result;

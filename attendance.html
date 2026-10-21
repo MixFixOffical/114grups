@@ -362,6 +362,31 @@ header {
 .refresh-button.spin span { display:inline-block; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ===== кнопка «Уведомить» ===== */
+.notify-button {
+    background: var(--accent-soft);
+    color: var(--accent);
+    border-color: #bfdbfe;
+}
+.notify-button:hover {
+    background: #dbeafe;
+    color: var(--accent-dark);
+    border-color: var(--accent);
+}
+.notify-button.sending {
+    opacity: .7;
+    cursor: wait;
+}
+.notify-button.sending span {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
+.notify-button.sent {
+    background: var(--green-soft);
+    color: var(--green);
+    border-color: rgba(4,120,87,.3);
+}
+
 /* =========================================================
    SEARCH
 ========================================================= */
@@ -945,6 +970,9 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
             <div class="day-badge" id="lessonCountBadge">0 пар</div>
         </div>
         <button class="refresh-button" id="refreshBtn" onclick="reloadData()">🔄 <span>Обновить</span></button>
+        <button class="refresh-button notify-button" id="notifyBtn" onclick="sendNotifications()" title="Отправить уведомления студентам этой группы">
+            📨 <span>Уведомить</span>
+        </button>
     </div>
 
     <div class="search-wrap">
@@ -1067,6 +1095,35 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+
+/* =========================================================
+   NOTIFY (Telegram-бот)
+   ⚠️ Секрет должен совпадать с Cloudflare Secrets → NOTIFY_SECRET
+========================================================= */
+const NOTIFY_URL = "https://broken-river-4c97.vasylkivmaksim.workers.dev/notify";
+const NOTIFY_SECRET = "k7s9f2h4j8d1m5n3q6w0e7r2t5y8u1i4p3o2l1k9j8h7g6f5d4s3a2";
+
+async function notifyStudents(date, groupId) {
+    try {
+        const r = await fetch(NOTIFY_URL, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Notify-Secret": NOTIFY_SECRET
+            },
+            body: JSON.stringify({ date, groupId })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) {
+            console.warn("notify failed:", r.status, d);
+            return { ok: false, error: d?.error || `HTTP ${r.status}` };
+        }
+        return { ok: true, sent: d.sent ?? 0, skipped: d.skipped ?? 0 };
+    } catch (e) {
+        console.warn("notify network error:", e);
+        return { ok: false, error: e.message };
+    }
+}
 
 /* =========================================================
    STATE
@@ -1227,7 +1284,6 @@ async function resolveHomePage(user) {
     } catch (e) { return "home.html"; }
 
     if (role === "admin") {
-        // Администратор в режиме просмотра куратора возвращается на khome
         try {
             const pv = JSON.parse(sessionStorage.getItem("kurator-view-as") || "null");
             if (pv && pv.role === "curator") return "khome.html";
@@ -1396,6 +1452,9 @@ async function saveStudentDay(student, lessons) {
         date: selectedDate, groupId: selectedGroupId,
         lessons, semester: period.semester, attestation: period.attestation
     };
+
+    // 🔔 Авто-уведомление после сохранения (без ожидания)
+    notifyStudents(selectedDate, selectedGroupId).catch(() => {});
 }
 
 /* =========================================================
@@ -1720,8 +1779,7 @@ function parseHM(v) {
     return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 }
 
-/* Текущая пара по времени звонков (только для сегодняшней даты):
-   state: "now" — идёт сейчас, "next" — ближайшая предстоящая, "done" — все закончились */
+/* Текущая пара по времени звонков */
 function getCurrentLessonInfo(dayIndex, count) {
     const none = { lesson: 0, state: "none" };
     if (!count || selectedDate !== formatDate(new Date())) return none;
@@ -1758,7 +1816,6 @@ function render() {
     if (currentLesson > lessonCount) currentLesson = 0;
 
     const nowInfo = getCurrentLessonInfo(dayIndex, lessonCount);
-    // На телефоне пара для отметки выбирается сама: текущая, а если её нет — ближайшая
     if (!currentLesson && window.innerWidth <= 768 && nowInfo.lesson) currentLesson = nowInfo.lesson;
     const nowCol = nowInfo.state === "now" ? nowInfo.lesson : 0;
     renderLessonChips();
@@ -2048,6 +2105,38 @@ async function reloadData() {
     }
 }
 window.reloadData = reloadData;
+
+/* =========================================================
+   SEND NOTIFICATIONS — кнопка «Уведомить»
+========================================================= */
+async function sendNotifications() {
+    if (!selectedDate) { showToast("Сначала выберите дату", "warning"); return; }
+    if (!selectedGroupId) { showToast("Сначала выберите группу", "warning"); return; }
+
+    const btn = $("notifyBtn");
+    btn.classList.add("sending");
+    btn.classList.remove("sent");
+    const originalHtml = btn.innerHTML;
+    btn.innerHTML = `⏳ <span>Отправка...</span>`;
+
+    const res = await notifyStudents(selectedDate, selectedGroupId);
+
+    btn.classList.remove("sending");
+
+    if (res.ok) {
+        btn.classList.add("sent");
+        btn.innerHTML = `✅ <span>Отправлено: ${res.sent}</span>`;
+        showToast(`📨 Отправлено: ${res.sent} · Пропущено: ${res.skipped}`, "success");
+        setTimeout(() => {
+            btn.classList.remove("sent");
+            btn.innerHTML = originalHtml;
+        }, 3500);
+    } else {
+        btn.innerHTML = originalHtml;
+        showToast(`Ошибка уведомлений: ${res.error || "неизвестно"}`, "error");
+    }
+}
+window.sendNotifications = sendNotifications;
 
 /* =========================================================
    CLOCK / TOAST / MISC

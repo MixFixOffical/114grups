@@ -95,6 +95,14 @@
     .qlist small { display: block; color: var(--muted); font-weight: 700; margin-top: 4px; }
     .qlist .ok { color: #1fa37f; }
 
+    /* Таблица результатов */
+    .results { width: 100%; border-collapse: collapse; font-size: 15px; }
+    .results th, .results td { padding: 10px 8px; border-bottom: 2px solid #f0f2ff; text-align: left; }
+    .results th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+    .results td.num { text-align: center; font-weight: 800; }
+    .results td.rank { width: 56px; font-weight: 900; text-align: center; }
+    .results tr.top td { background: #fff8e0; }
+
     /* Секундомер */
     .stopwatch {
       position: fixed; left: 0; right: 0; bottom: 0; z-index: 2;
@@ -238,6 +246,17 @@
         <ol class="qlist" id="levelsList"></ol>
       </section>
 
+      <section class="panel" style="margin-top: 16px">
+        <div class="section-title">Результаты</div>
+        <div class="set-name" id="resultsMeta"></div>
+        <table class="results">
+          <thead>
+            <tr><th>#</th><th>Игрок</th><th class="num">Верно</th><th class="num">Очков</th></tr>
+          </thead>
+          <tbody id="resultsBody"></tbody>
+        </table>
+      </section>
+
       <div style="text-align: center; margin-top: 16px">
         <button class="link-btn" id="newGameBtn">Новая игра</button>
       </div>
@@ -340,6 +359,8 @@
       finishBtn: $("finishBtn"),
       setName: $("setName"),
       levelsList: $("levelsList"),
+      resultsMeta: $("resultsMeta"),
+      resultsBody: $("resultsBody"),
       newGameBtn: $("newGameBtn"),
       swTime: $("swTime"),
       pickModal: $("pickModal"),
@@ -365,6 +386,7 @@
     let unsubPlayers = null;
     let timerId = null;
     let timerFrom = null;
+    let lastPlayersSnap = null;
 
     let sets = [];
     let pickMode = "manage";
@@ -850,6 +872,7 @@
       stopTimer();
       gameCode = null;
       gameData = null;
+      lastPlayersSnap = null;
     }
 
     function resetToHome() {
@@ -873,6 +896,7 @@
     }
 
     function renderPlayers(snap) {
+      lastPlayersSnap = snap;
       const names = snap.docs.map((d) => d.data().name || "Игрок");
       el.playerCount.textContent = snap.size;
 
@@ -881,16 +905,95 @@
         e.className = "empty";
         e.textContent = "Пока никто не присоединился";
         el.players.replaceChildren(e);
+      } else {
+        el.players.replaceChildren(...names.map((n) => {
+          const c = document.createElement("span");
+          c.className = "chip";
+          c.textContent = n;
+          return c;
+        }));
+      }
+
+      renderResults(snap);
+    }
+
+    // ===== Таблица результатов =====
+    function renderResults(snap) {
+      const total = (gameData?.levels || []).length;
+      el.resultsMeta.textContent = gameData?.status === "finished"
+        ? `Игра завершена · вопросов: ${total}`
+        : `Промежуточные результаты · вопросов: ${total}`;
+
+      const rows = snap.docs
+        .map((d) => {
+          const p = d.data();
+          return {
+            name: p.name || "Игрок",
+            score: Number(p.score) || 0,
+            correct: Number(p.correctCount) || 0,
+          };
+        })
+        .sort((a, b) =>
+          b.score - a.score || b.correct - a.correct || a.name.localeCompare(b.name, "ru")
+        );
+
+      if (rows.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 4;
+        td.className = "empty";
+        td.textContent = "Пока нет игроков";
+        tr.append(td);
+        el.resultsBody.replaceChildren(tr);
         return;
       }
 
-      el.players.replaceChildren(...names.map((n) => {
-        const c = document.createElement("span");
-        c.className = "chip";
-        c.textContent = n;
-        return c;
+      const medals = ["🥇", "🥈", "🥉"];
+      let place = 0;
+      let prevKey = null;
+
+      el.resultsBody.replaceChildren(...rows.map((r, i) => {
+        // Одинаковые очки и верные ответы делят место
+        const key = `${r.score}|${r.correct}`;
+        if (key !== prevKey) {
+          place = i + 1;
+          prevKey = key;
+        }
+
+        const tr = document.createElement("tr");
+        if (place === 1) tr.className = "top";
+
+        const rank = document.createElement("td");
+        rank.className = "rank";
+        rank.textContent = place <= 3 ? medals[place - 1] : place;
+
+        const name = document.createElement("td");
+        name.textContent = r.name;
+
+        const correct = document.createElement("td");
+        correct.className = "num";
+        correct.textContent = r.correct;
+
+        const score = document.createElement("td");
+        score.className = "num";
+        score.textContent = r.score;
+
+        tr.append(rank, name, correct, score);
+        return tr;
       }));
     }
+
+    el.startLobbyBtn.addEventListener("click", async () => {
+      if (!gameCode) return;
+      el.startLobbyBtn.disabled = true;
+      try {
+        await updateDoc(gameRef(gameCode), { status: "lobby", startedAt: Date.now() });
+      } catch (err) {
+        console.error(err);
+        toast("Не удалось начать");
+        el.startLobbyBtn.disabled = false;
+      }
+    });
 
     const STATUS_TEXT = {
       waiting: "Ожидание: игра создана",
@@ -928,6 +1031,7 @@
         ? `Набор: ${gameData.levelsName} · ${questions.length} вопр.`
         : "Набор не выбран";
       renderLevels();
+      if (lastPlayersSnap) renderResults(lastPlayersSnap);
     }
 
     // ===== Начать (открыть набор игроков, запустить секундомер) =====

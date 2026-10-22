@@ -109,6 +109,7 @@
       background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
       border-top: 2px solid #fff; padding: 14px 16px max(14px, env(safe-area-inset-bottom));
       text-align: center; box-shadow: 0 -10px 30px rgba(124, 92, 255, 0.15);
+      pointer-events: none;
     }
     .sw-time {
       font-size: 34px; font-weight: 900; font-variant-numeric: tabular-nums;
@@ -185,9 +186,10 @@
       transform: translateX(-50%) translateY(-120px); background: #fff; border-radius: 16px; padding: 12px 20px;
       font-weight: 800; box-shadow: 0 14px 40px rgba(124, 92, 255, 0.25);
       transition: transform 0.35s cubic-bezier(0.2, 1.4, 0.4, 1); z-index: 20;
-      max-width: calc(100% - 32px); text-align: center;
+      max-width: calc(100% - 32px); text-align: center; pointer-events: none;
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.error { color: var(--danger); }
 
     @media (max-width: 360px) { .btn-row { grid-template-columns: 1fr; } .modal-actions { grid-template-columns: 1fr; } }
     @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
@@ -212,9 +214,9 @@
       <h2>Новая игра</h2>
       <p class="label">Создай игру и поделись кодом с игроками</p>
       <div style="height: 20px"></div>
-      <button class="btn big" id="createBtn">✨ Создать игру</button>
+      <button class="btn big" id="createBtn" type="button">✨ Создать игру</button>
       <div class="btn-stack">
-        <button class="btn ghost" id="openSetsBtn">📚 Мои наборы вопросов</button>
+        <button class="btn ghost" id="openSetsBtn" type="button">📚 Мои наборы вопросов</button>
       </div>
     </section>
 
@@ -230,13 +232,13 @@
       <section class="panel" style="margin-top: 16px">
         <div class="status-line" id="statusLine">Ожидание</div>
         <div class="btn-row">
-          <button class="btn alt" id="startLobbyBtn">▶ Начать</button>
-          <button class="btn ghost" id="chooseBtn">📝 Выбрать вопросы</button>
+          <button class="btn alt" id="startLobbyBtn" type="button">▶ Начать</button>
+          <button class="btn ghost" id="chooseBtn" type="button">📝 Выбрать вопросы</button>
         </div>
         <div class="btn-stack">
-          <button class="btn" id="gameStartBtn" hidden>🚀 Старт</button>
-          <button class="btn alt" id="nextBtn" hidden>➡ Следующий вопрос</button>
-          <button class="btn danger" id="finishBtn" hidden>⏹ Завершить игру</button>
+          <button class="btn" id="gameStartBtn" type="button" hidden>🚀 Старт</button>
+          <button class="btn alt" id="nextBtn" type="button" hidden>➡ Следующий вопрос</button>
+          <button class="btn danger" id="finishBtn" type="button" hidden>⏹ Завершить игру</button>
         </div>
       </section>
 
@@ -258,7 +260,7 @@
       </section>
 
       <div style="text-align: center; margin-top: 16px">
-        <button class="link-btn" id="newGameBtn">Новая игра</button>
+        <button class="link-btn" id="newGameBtn" type="button">Новая игра</button>
       </div>
     </div>
 
@@ -275,11 +277,11 @@
     <div class="modal">
       <div class="modal-head">
         <div class="section-title" id="pickTitle">Наборы вопросов</div>
-        <button class="btn small ghost" id="closePickBtn">✕</button>
+        <button class="btn small ghost" id="closePickBtn" type="button">✕</button>
       </div>
       <div class="hint" id="pickHint"></div>
       <ul class="set-list" id="setList"></ul>
-      <button class="btn ghost" id="newSetBtn">+ Создать новый набор</button>
+      <button class="btn ghost" id="newSetBtn" type="button">+ Создать новый набор</button>
     </div>
   </div>
 
@@ -325,12 +327,40 @@
       measurementId: "G-K06CVPVD15"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
     const CONFIG = { ADMIN_CODE: "2702", GAMES: "games", SETS: "questionSets", STORAGE_KEY: "adminGameCode", MAX_OPTIONS: 4 };
 
-    // ===== Список картинок из assets/images/ =====
+    // ===== Уведомления (объявлены раньше всего остального) =====
+    const $ = (id) => document.getElementById(id);
+    let toastTimer = null;
+    function toast(text, isError = false) {
+      const t = $("toast");
+      t.textContent = text;
+      t.classList.toggle("error", isError);
+      t.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => t.classList.remove("show"), 3000);
+    }
+
+    // Ошибки JS показываются прямо на экране, чтобы их было видно без консоли
+    window.addEventListener("error", (e) => {
+      toast("Ошибка скрипта: " + (e.message || "неизвестно"), true);
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      const msg = e.reason?.message || String(e.reason);
+      toast("Ошибка: " + msg, true);
+    });
+
+    // ===== Firebase =====
+    let app, db;
+    try {
+      app = initializeApp(firebaseConfig);
+      db = getFirestore(app);
+    } catch (err) {
+      console.error(err);
+      toast("Не удалось подключить Firebase", true);
+    }
+
+    // ===== Картинки из assets/images/ =====
     // Перечислите здесь все файлы из папки assets/images/.
     // Имена чувствительны к регистру и должны совпадать с реальными файлами.
     const IMAGE_LIST = [
@@ -342,7 +372,6 @@
       "ram.png"
     ];
 
-    const $ = (id) => document.getElementById(id);
     const el = {
       screenHome: $("screenHome"),
       screenGame: $("screenGame"),
@@ -377,7 +406,6 @@
       cancelBuilderBtn: $("cancelBuilderBtn"),
       saveSetBtn: $("saveSetBtn"),
       builderMsg: $("builderMsg"),
-      toast: $("toast"),
     };
 
     let gameCode = null;
@@ -394,15 +422,6 @@
 
     const gameRef = (code) => doc(db, CONFIG.GAMES, code);
     const setsCol = () => collection(db, CONFIG.SETS);
-
-    // ===== Уведомления =====
-    let toastTimer = null;
-    function toast(text) {
-      el.toast.textContent = text;
-      el.toast.classList.add("show");
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => el.toast.classList.remove("show"), 2500);
-    }
 
     // ===== Набор вопросов по умолчанию =====
     const DEFAULT_SET_ID = "default-processor";
@@ -460,6 +479,7 @@
     };
 
     async function ensureDefaultSet() {
+      if (!db) return;
       try {
         const ref = doc(db, CONFIG.SETS, DEFAULT_SET_ID);
         const snap = await getDoc(ref);
@@ -469,15 +489,20 @@
         console.error("Не удалось создать набор по умолчанию", err);
       }
     }
-    ensureDefaultSet();
 
     // ===== Наборы вопросов: загрузка =====
-    onSnapshot(setsCol(), (snap) => {
-      sets = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
-      renderPicker();
-    }, (err) => { console.error(err); toast("Не удалось загрузить наборы"); });
+    function subscribeSets() {
+      if (!db) return;
+      onSnapshot(setsCol(), (snap) => {
+        sets = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+        renderPicker();
+      }, (err) => {
+        console.error(err);
+        toast("Не удалось загрузить наборы: " + err.code, true);
+      });
+    }
 
     // ===== Список наборов =====
     function mkBtn(text, cls, onClick) {
@@ -533,9 +558,7 @@
           pick.disabled = !(s.levels && s.levels.length);
           actions.append(pick);
         }
-        actions.append(
-          mkBtn("✎", "btn ghost small", () => openBuilder(s))
-        );
+        actions.append(mkBtn("✎", "btn ghost small", () => openBuilder(s)));
         if (s.id !== DEFAULT_SET_ID) {
           actions.append(mkBtn("🗑", "del", () => deleteSet(s)));
         }
@@ -553,9 +576,608 @@
         toast(`Набор «${s.name}» выбран`);
       } catch (err) {
         console.error(err);
-        toast("Не удалось выбрать набор");
+        toast("Не удалось выбрать набор: " + err.code, true);
       }
     }
 
     async function deleteSet(s) {
       if (s.id === DEFAULT_SET_ID) {
+        toast("Набор по умолчанию нельзя удалить", true);
+        return;
+      }
+      if (!confirm(`Удалить набор «${s.name}»?`)) return;
+      try {
+        await deleteDoc(doc(db, CONFIG.SETS, s.id));
+        toast("Набор удалён");
+      } catch (err) {
+        console.error(err);
+        toast("Не удалось удалить набор: " + err.code, true);
+      }
+    }
+
+    el.openSetsBtn.addEventListener("click", () => openPicker("manage"));
+    el.chooseBtn.addEventListener("click", () => {
+      if (!gameCode) { toast("Сначала создай игру", true); return; }
+      openPicker("choose");
+    });
+    el.closePickBtn.addEventListener("click", closePicker);
+    el.pickModal.addEventListener("click", (e) => { if (e.target === el.pickModal) closePicker(); });
+    el.newSetBtn.addEventListener("click", () => openBuilder(null));
+
+    // ===== Конструктор набора =====
+    function openBuilder(s) {
+      editingSet = s;
+      el.builderTitle.textContent = s ? "Редактировать набор" : "Новый набор";
+      el.setNameInput.value = s?.name || "";
+      el.qRows.replaceChildren();
+      const list = s?.levels?.length ? s.levels : [null];
+      list.forEach((q) => addQuestionRow(q));
+      el.builderMsg.textContent = "";
+      el.builderModal.hidden = false;
+      el.setNameInput.focus();
+    }
+    function closeBuilder() { el.builderModal.hidden = true; }
+
+    function renumber() {
+      [...el.qRows.children].forEach((row, i) => {
+        row.querySelector(".qnum").textContent = `Вопрос ${i + 1}`;
+      });
+    }
+
+    function addQuestionRow(q = null) {
+      const groupName = `correct-${Math.random().toString(36).slice(2)}`;
+      const row = document.createElement("div");
+      row.className = "qcard";
+
+      // Заголовок
+      const head = document.createElement("div");
+      head.className = "qcard-head";
+      const num = document.createElement("b");
+      num.className = "qnum";
+      const delQ = mkBtn("✕", "del", () => { row.remove(); renumber(); });
+      delQ.title = "Удалить вопрос";
+      head.append(num, delQ);
+
+      // Текст вопроса
+      const text = document.createElement("input");
+      text.className = "txt";
+      text.placeholder = "Текст вопроса";
+      text.value = q?.text || "";
+
+      // Картинка вопроса
+      const imgLabel = document.createElement("label");
+      imgLabel.className = "field-label";
+      imgLabel.textContent = "Картинка (assets/images)";
+      const imgSelect = document.createElement("select");
+      imgSelect.className = "txt";
+      const noneOpt = document.createElement("option");
+      noneOpt.value = "";
+      noneOpt.textContent = "— без картинки —";
+      imgSelect.append(noneOpt);
+      IMAGE_LIST.forEach((file) => {
+        const o = document.createElement("option");
+        o.value = file;
+        o.textContent = file;
+        if (q?.image === file) o.selected = true;
+        imgSelect.append(o);
+      });
+      const imgPreview = document.createElement("img");
+      imgPreview.className = "qimg-preview";
+      imgPreview.alt = "";
+      imgPreview.hidden = !q?.image;
+      if (q?.image) imgPreview.src = `assets/images/${q.image}`;
+      imgSelect.addEventListener("change", () => {
+        if (imgSelect.value) {
+          imgPreview.src = `assets/images/${imgSelect.value}`;
+          imgPreview.hidden = false;
+        } else {
+          imgPreview.hidden = true;
+          imgPreview.removeAttribute("src");
+        }
+      });
+
+      // Варианты ответа
+      const opts = document.createElement("div");
+      opts.className = "opts";
+      const optInputs = [];
+      const radios = [];
+      for (let i = 0; i < CONFIG.MAX_OPTIONS; i++) {
+        const line = document.createElement("label");
+        line.className = "opt-line";
+
+        const radio = document.createElement("input");
+        radio.type = "radio";
+        radio.name = groupName;
+        radio.title = "Правильный ответ";
+        radio.checked = q ? q.correct === i : i === 0;
+
+        const input = document.createElement("input");
+        input.className = "txt";
+        input.placeholder = `Вариант ${i + 1}`;
+        input.value = q?.options?.[i] || "";
+
+        line.append(radio, input);
+        opts.append(line);
+        optInputs.push(input);
+        radios.push(radio);
+      }
+
+      // Комментарии
+      const commentOkLabel = document.createElement("label");
+      commentOkLabel.className = "field-label";
+      commentOkLabel.textContent = "Комментарий при верном ответе";
+      const commentOk = document.createElement("input");
+      commentOk.className = "txt";
+      commentOk.placeholder = "Например: Верно! SSD быстрее, потому что…";
+      commentOk.value = q?.commentOk || "";
+
+      const commentBadLabel = document.createElement("label");
+      commentBadLabel.className = "field-label";
+      commentBadLabel.textContent = "Комментарий при неверном ответе";
+      const commentBad = document.createElement("input");
+      commentBad.className = "txt";
+      commentBad.placeholder = "Например: На самом деле рис не спасает телефон…";
+      commentBad.value = q?.commentBad || "";
+
+      // Время
+      const bottom = document.createElement("div");
+      bottom.className = "qbottom";
+      const secsRow = document.createElement("div");
+      secsRow.className = "secs-row";
+      const secsLabel = document.createElement("span");
+      secsLabel.textContent = "Время, сек:";
+      const secs = document.createElement("input");
+      secs.className = "txt small";
+      secs.type = "number";
+      secs.min = "5";
+      secs.max = "120";
+      secs.value = q?.seconds || 20;
+      secsRow.append(secsLabel, secs);
+      const hint = document.createElement("span");
+      hint.className = "label";
+      hint.style.fontSize = "11px";
+      hint.textContent = "отметь кружком правильный";
+      bottom.append(secsRow, hint);
+
+      row.append(
+        head, text,
+        imgLabel, imgSelect, imgPreview,
+        opts,
+        commentOkLabel, commentOk,
+        commentBadLabel, commentBad,
+        bottom
+      );
+      row._parts = { text, optInputs, radios, secs, commentOk, commentBad, imgSelect };
+      el.qRows.append(row);
+      renumber();
+    }
+
+    el.addQuestionBtn.addEventListener("click", () => {
+      addQuestionRow();
+      const last = el.qRows.lastElementChild;
+      last?.querySelector(".txt")?.focus();
+    });
+    el.cancelBuilderBtn.addEventListener("click", closeBuilder);
+
+    // Читает и проверяет все вопросы. Возвращает массив или null при ошибке.
+    function collectLevels() {
+      const rows = [...el.qRows.children];
+      if (rows.length === 0) {
+        builderErr("Добавь хотя бы один вопрос");
+        return null;
+      }
+
+      const result = [];
+      for (let n = 0; n < rows.length; n++) {
+        const { text, optInputs, radios, secs, commentOk, commentBad, imgSelect } = rows[n]._parts;
+        const qText = text.value.trim();
+        const options = optInputs.map((i) => i.value.trim());
+        const checkedIndex = radios.findIndex((r) => r.checked);
+
+        if (!qText) { builderErr(`Вопрос ${n + 1}: введи текст`); return null; }
+
+        const filled = options
+          .map((t, idx) => ({ text: t, idx }))
+          .filter((o) => o.text);
+
+        if (filled.length < 2) { builderErr(`Вопрос ${n + 1}: нужно минимум 2 варианта ответа`); return null; }
+        if (checkedIndex < 0 || !options[checkedIndex]) {
+          builderErr(`Вопрос ${n + 1}: отметь правильный вариант (он должен быть заполнен)`);
+          return null;
+        }
+
+        const correct = filled.findIndex((o) => o.idx === checkedIndex);
+        const seconds = Math.min(120, Math.max(5, parseInt(secs.value, 10) || 20));
+
+        result.push({
+          text: qText,
+          options: filled.map((o) => o.text),
+          correct,
+          seconds,
+          commentOk: commentOk.value.trim(),
+          commentBad: commentBad.value.trim(),
+          image: imgSelect.value || null,
+        });
+      }
+      return result;
+    }
+
+    function builderErr(text) { el.builderMsg.textContent = text; }
+
+    el.saveSetBtn.addEventListener("click", async () => {
+      el.builderMsg.textContent = "";
+      const name = el.setNameInput.value.trim();
+      if (!name) return builderErr("Введи название набора");
+
+      const levels = collectLevels();
+      if (!levels) return;
+
+      el.saveSetBtn.disabled = true;
+      try {
+        const data = { name, levels, updatedAt: Date.now() };
+        if (editingSet) {
+          await updateDoc(doc(db, CONFIG.SETS, editingSet.id), data);
+        } else {
+          await addDoc(setsCol(), { ...data, createdAt: Date.now() });
+        }
+        closeBuilder();
+        toast("Набор сохранён");
+      } catch (err) {
+        console.error(err);
+        builderErr("Не удалось сохранить: " + (err.code || err.message));
+      } finally {
+        el.saveSetBtn.disabled = false;
+      }
+    });
+
+    // ===== Создание игры =====
+    async function generateUniqueCode() {
+      for (let i = 0; i < 25; i++) {
+        const code = String(Math.floor(1000 + Math.random() * 9000));
+        if (code === CONFIG.ADMIN_CODE) continue;
+        const snap = await getDoc(gameRef(code));
+        if (!snap.exists()) return code;
+      }
+      throw new Error("Не удалось подобрать свободный код");
+    }
+
+    el.createBtn.addEventListener("click", async () => {
+      if (!db) { toast("Firebase не подключён", true); return; }
+      el.createBtn.disabled = true;
+      try {
+        const code = await generateUniqueCode();
+        await setDoc(gameRef(code), {
+          status: "waiting",
+          createdAt: Date.now(),
+          startedAt: null,
+          levels: [],
+          levelsName: null,
+        });
+        localStorage.setItem(CONFIG.STORAGE_KEY, code);
+        openGame(code);
+        toast("Игра создана!");
+      } catch (err) {
+        console.error(err);
+        toast("Ошибка: " + (err.code || err.message) + ". Проверь правила Firestore", true);
+      } finally {
+        el.createBtn.disabled = false;
+      }
+    });
+
+    // ===== Открыть игру =====
+    function openGame(code) {
+      closeGame();
+      gameCode = code;
+      renderCode(code);
+      el.screenHome.hidden = true;
+      el.screenGame.hidden = false;
+
+      unsubGame = onSnapshot(gameRef(code), (snap) => {
+        if (!snap.exists()) {
+          toast("Игра удалена", true);
+          resetToHome();
+          return;
+        }
+        gameData = snap.data();
+        renderGame();
+      }, (err) => {
+        console.error(err);
+        toast("Нет доступа к игре: " + err.code, true);
+      });
+
+      unsubPlayers = onSnapshot(collection(db, CONFIG.GAMES, code, "players"),
+        (snap) => renderPlayers(snap),
+        (err) => console.error(err)
+      );
+    }
+
+    function closeGame() {
+      if (unsubGame) unsubGame();
+      if (unsubPlayers) unsubPlayers();
+      unsubGame = null;
+      unsubPlayers = null;
+      stopTimer();
+      gameCode = null;
+      gameData = null;
+      lastPlayersSnap = null;
+    }
+
+    function resetToHome() {
+      closeGame();
+      localStorage.removeItem(CONFIG.STORAGE_KEY);
+      el.screenGame.hidden = true;
+      el.screenHome.hidden = false;
+      el.swTime.textContent = "00:00";
+    }
+
+    el.newGameBtn.addEventListener("click", resetToHome);
+
+    // ===== Отрисовка =====
+    function renderCode(code) {
+      el.codeTiles.replaceChildren(...code.split("").map((d) => {
+        const t = document.createElement("div");
+        t.className = "tile";
+        t.textContent = d;
+        return t;
+      }));
+    }
+
+    function renderPlayers(snap) {
+      lastPlayersSnap = snap;
+      const names = snap.docs.map((d) => d.data().name || "Игрок");
+      el.playerCount.textContent = snap.size;
+
+      if (names.length === 0) {
+        const e = document.createElement("span");
+        e.className = "empty";
+        e.textContent = "Пока никто не присоединился";
+        el.players.replaceChildren(e);
+      } else {
+        el.players.replaceChildren(...names.map((n) => {
+          const c = document.createElement("span");
+          c.className = "chip";
+          c.textContent = n;
+          return c;
+        }));
+      }
+
+      renderResults(snap);
+    }
+
+    // ===== Таблица результатов =====
+    function renderResults(snap) {
+      const total = (gameData?.levels || []).length;
+      el.resultsMeta.textContent = gameData?.status === "finished"
+        ? `Игра завершена · вопросов: ${total}`
+        : `Промежуточные результаты · вопросов: ${total}`;
+
+      const rows = snap.docs
+        .map((d) => {
+          const p = d.data();
+          return {
+            name: p.name || "Игрок",
+            score: Number(p.score) || 0,
+            correct: Number(p.correctCount) || 0,
+          };
+        })
+        .sort((a, b) =>
+          b.score - a.score || b.correct - a.correct || a.name.localeCompare(b.name, "ru")
+        );
+
+      if (rows.length === 0) {
+        const tr = document.createElement("tr");
+        const td = document.createElement("td");
+        td.colSpan = 4;
+        td.className = "empty";
+        td.textContent = "Пока нет игроков";
+        tr.append(td);
+        el.resultsBody.replaceChildren(tr);
+        return;
+      }
+
+      const medals = ["🥇", "🥈", "🥉"];
+      let place = 0;
+      let prevKey = null;
+
+      el.resultsBody.replaceChildren(...rows.map((r, i) => {
+        // Одинаковые очки и верные ответы делят место
+        const key = `${r.score}|${r.correct}`;
+        if (key !== prevKey) {
+          place = i + 1;
+          prevKey = key;
+        }
+
+        const tr = document.createElement("tr");
+        if (place === 1) tr.className = "top";
+
+        const rank = document.createElement("td");
+        rank.className = "rank";
+        rank.textContent = place <= 3 ? medals[place - 1] : place;
+
+        const name = document.createElement("td");
+        name.textContent = r.name;
+
+        const correct = document.createElement("td");
+        correct.className = "num";
+        correct.textContent = r.correct;
+
+        const score = document.createElement("td");
+        score.className = "num";
+        score.textContent = r.score;
+
+        tr.append(rank, name, correct, score);
+        return tr;
+      }));
+    }
+
+    // ===== Начать (открыть набор игроков, запустить секундомер) =====
+    el.startLobbyBtn.addEventListener("click", async () => {
+      if (!gameCode) return;
+      el.startLobbyBtn.disabled = true;
+      try {
+        await updateDoc(gameRef(gameCode), { status: "lobby", startedAt: Date.now() });
+      } catch (err) {
+        console.error(err);
+        toast("Не удалось начать: " + err.code, true);
+        el.startLobbyBtn.disabled = false;
+      }
+    });
+
+    const STATUS_TEXT = {
+      waiting: "Ожидание: игра создана",
+      lobby: "Набор игроков открыт",
+      running: "Игра идёт",
+      finished: "Игра завершена",
+      cancelled: "Игра отменена",
+    };
+
+    function renderGame() {
+      if (!gameData) return;
+      const status = gameData.status;
+      const questions = gameData.levels || [];
+      const started = gameData.startedAt != null;
+      const cq = gameData.currentQuestion ?? -1;
+      const running = status === "running";
+      const editable = status === "waiting" || status === "lobby";
+
+      el.statusLine.textContent = running && cq >= 0
+        ? `Вопрос ${cq + 1} из ${questions.length}`
+        : (STATUS_TEXT[status] || "");
+
+      el.startLobbyBtn.disabled = started;
+      el.startLobbyBtn.textContent = started ? "✓ Открыта" : "▶ Начать";
+      el.chooseBtn.hidden = !editable;
+      el.gameStartBtn.hidden = status !== "lobby";
+      el.nextBtn.hidden = !running;
+      el.finishBtn.hidden = !running;
+      el.nextBtn.textContent = cq + 1 >= questions.length ? "⏹ Завершить (последний вопрос)" : "➡ Следующий вопрос";
+
+      if (started) startTimer(gameData.startedAt);
+      else { stopTimer(); el.swTime.textContent = "00:00"; }
+
+      el.setName.textContent = gameData.levelsName
+        ? `Набор: ${gameData.levelsName} · ${questions.length} вопр.`
+        : "Набор не выбран";
+      renderLevels();
+      if (lastPlayersSnap) renderResults(lastPlayersSnap);
+    }
+
+    // ===== Старт (первый вопрос) =====
+    el.gameStartBtn.addEventListener("click", async () => {
+      if (!gameCode) return;
+      const questions = gameData?.levels || [];
+      if (questions.length === 0) return toast("Сначала выбери набор вопросов", true);
+      try {
+        await updateDoc(gameRef(gameCode), {
+          status: "running",
+          currentQuestion: 0,
+          questionStartedAt: Date.now(),
+        });
+      } catch (err) {
+        console.error(err);
+        toast("Не удалось запустить игру: " + err.code, true);
+      }
+    });
+
+    // ===== Следующий вопрос или завершение =====
+    el.nextBtn.addEventListener("click", async () => {
+      if (!gameCode) return;
+      const questions = gameData?.levels || [];
+      const next = (gameData.currentQuestion ?? -1) + 1;
+      try {
+        if (next >= questions.length) {
+          if (!confirm("Это последний вопрос. Завершить игру?")) return;
+          await updateDoc(gameRef(gameCode), { status: "finished" });
+        } else {
+          await updateDoc(gameRef(gameCode), {
+            currentQuestion: next,
+            questionStartedAt: Date.now(),
+          });
+        }
+      } catch (err) {
+        console.error(err);
+        toast("Не удалось переключить вопрос: " + err.code, true);
+      }
+    });
+
+    // ===== Завершить игру досрочно =====
+    el.finishBtn.addEventListener("click", async () => {
+      if (!gameCode) return;
+      if (!confirm("Завершить игру досрочно?")) return;
+      try {
+        await updateDoc(gameRef(gameCode), { status: "finished" });
+      } catch (err) {
+        console.error(err);
+        toast("Не удалось завершить: " + err.code, true);
+      }
+    });
+
+    function renderLevels() {
+      const questions = gameData?.levels || [];
+      const cq = gameData?.currentQuestion ?? -1;
+
+      if (questions.length === 0) {
+        const li = document.createElement("li");
+        li.textContent = "Вопросы не выбраны";
+        el.levelsList.replaceChildren(li);
+        return;
+      }
+
+      el.levelsList.replaceChildren(...questions.map((q, i) => {
+        const li = document.createElement("li");
+        if (i === cq) li.classList.add("cur");
+        const text = document.createElement("div");
+        text.textContent = `${i + 1}. ${q.text}`;
+        const ans = document.createElement("small");
+        ans.className = "ok";
+        ans.textContent = `✔ ${q.options[q.correct]} · ${q.seconds} сек`;
+        li.append(text, ans);
+        return li;
+      }));
+    }
+
+    // ===== Секундомер =====
+    function startTimer(from) {
+      if (timerId && timerFrom === from) return;
+      stopTimer();
+      timerFrom = from;
+      const tick = () => { el.swTime.textContent = formatTime(Date.now() - from); };
+      tick();
+      timerId = setInterval(tick, 500);
+    }
+
+    function stopTimer() {
+      clearInterval(timerId);
+      timerId = null;
+      timerFrom = null;
+    }
+
+    function formatTime(ms) {
+      const total = Math.max(0, Math.floor(ms / 1000));
+      const h = Math.floor(total / 3600);
+      const m = Math.floor((total % 3600) / 60);
+      const s = total % 60;
+      const p = (n) => String(n).padStart(2, "0");
+      return h > 0 ? `${h}:${p(m)}:${p(s)}` : `${p(m)}:${p(s)}`;
+    }
+
+    // ===== Запуск =====
+    subscribeSets();
+    ensureDefaultSet();
+
+    // ===== Восстановление игры после перезагрузки =====
+    (async function restore() {
+      if (!db) return;
+      const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
+      if (!saved) return;
+      try {
+        const snap = await getDoc(gameRef(saved));
+        if (snap.exists()) openGame(saved);
+        else localStorage.removeItem(CONFIG.STORAGE_KEY);
+      } catch (err) {
+        console.error(err);
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1062,14 +1062,28 @@
       if (lastPlayersSnap) renderResults(lastPlayersSnap);
     }
 
+    // ===== Перемешивание (Fisher–Yates) =====
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
+    }
+
     // ===== Старт (первый вопрос) =====
     el.gameStartBtn.addEventListener("click", async () => {
       if (!gameCode) return;
       const questions = gameData?.levels || [];
       if (questions.length === 0) return toast("Сначала выбери набор вопросов", true);
+      // Перемешиваем один раз на игру и сохраняем в документ игры:
+      // все студенты получают один и тот же порядок
+      const shuffled = shuffle(questions);
       try {
         await updateDoc(gameRef(gameCode), {
           status: "running",
+          levels: shuffled,
           currentQuestion: 0,
           questionStartedAt: Date.now(),
         });

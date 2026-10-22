@@ -379,6 +379,11 @@
 
       const gameRef = doc(db, GAMES, code);
 
+      // Вопрос в позиции pos. Порядок уже перемешан админкой и одинаков у всех.
+      function questionAt(pos) {
+        return { q: levels[pos], orig: pos };
+      }
+
       onSnapshot(gameRef, (snap) => {
         if (!snap.exists()) { location.replace("index.html"); return; }
         game = snap.data();
@@ -403,7 +408,7 @@
       function render() {
         if (!game) return;
         const st = game.status;
-        const inQuestion = st === "running" && game.currentQuestion >= 0 && levels[game.currentQuestion];
+        const inQuestion = st === "running" && game.currentQuestion >= 0 && levels.length > 0;
 
         $("playerCount").textContent = players.length;
         $("playersList").replaceChildren(...players.map((p) => {
@@ -427,22 +432,23 @@
         if (st === "finished" || st === "cancelled") renderFinish(st);
       }
 
-      function myAnswer(qi) {
-        return answers.find((a) => a.pid === pid && a.qIndex === qi);
+      // Ответ этого игрока на вопрос в позиции pos
+      function myAnswer(pos) {
+        return answers.find((a) => a.pid === pid && a.pos === pos);
       }
 
       function remainingMs() {
-        const q = levels[game.currentQuestion];
+        const { q } = questionAt(game.currentQuestion);
         return q.seconds * 1000 - (Date.now() - game.questionStartedAt);
       }
 
       function renderQuestion() {
-        const qi = game.currentQuestion;
-        const q = levels[qi];
+        const pos = game.currentQuestion;
+        const { q } = questionAt(pos);
 
-        if (renderedQ !== qi) {
-          renderedQ = qi;
-          $("qProgress").textContent = `Вопрос ${qi + 1} из ${levels.length}`;
+        if (renderedQ !== pos) {
+          renderedQ = pos;
+          $("qProgress").textContent = `Вопрос ${pos + 1} из ${levels.length}`;
           $("qText").textContent = q.text;
 
           // Картинка вопроса (если задана)
@@ -477,9 +483,9 @@
       }
 
       function updateQuestionUI() {
-        const qi = game.currentQuestion;
-        const q = levels[qi];
-        const mine = myAnswer(qi);
+        const pos = game.currentQuestion;
+        const { q } = questionAt(pos);
+        const mine = myAnswer(pos);
         const left = remainingMs();
         const timeUp = left <= 0;
         const finished = Boolean(mine) || timeUp;
@@ -553,14 +559,16 @@
 
       // ===== Ответ =====
       async function answer(optionIndex) {
-        const qi = game.currentQuestion;
-        if (myAnswer(qi) || remainingMs() <= 0) return;
+        const pos = game.currentQuestion;
+        if (myAnswer(pos) || remainingMs() <= 0) return;
 
+        const { orig } = questionAt(pos);
         const elapsed = Date.now() - game.questionStartedAt;
         try {
-          await setDoc(doc(db, GAMES, code, "answers", `${pid}_${qi}`), {
+          await setDoc(doc(db, GAMES, code, "answers", `${pid}_${orig}`), {
             pid,
-            qIndex: qi,
+            pos,
+            qIndex: orig,
             option: optionIndex,
             time: elapsed,
           });

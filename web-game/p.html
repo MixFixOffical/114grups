@@ -3,18 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cowboy Quiz — Ожидание игры</title>
+  <title>Cowboy Quiz — Участник</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
-    
+    [hidden] { display: none !important; }
+
     :root {
       --bg: #f3f4f8;
       --header-bg: #3b2aa8;
       --violet: #5f4be8;
+      --violet-light: #ecebfb;
+      --green: #66bb5c;
+      --red: #e5484d;
       --ink: #1d1f3a;
       --muted: #6b6f8f;
-      --card-bg: #ffffff;
       --line: #e4e6f0;
     }
 
@@ -27,148 +30,63 @@
       flex-direction: column;
     }
 
-    /* Шапка */
     header {
-      height: 60px;
-      background: var(--header-bg);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      color: #fff;
+      height: 56px; background: var(--header-bg); display: flex;
+      align-items: center; justify-content: space-between; padding: 0 20px; color: #fff;
     }
-    .logo { font-size: 22px; font-weight: 800; color: #fff; text-decoration: none; }
-    .btn-exit {
-      background: transparent;
-      border: 1px solid #fff;
-      color: #fff;
-      padding: 6px 18px;
-      border-radius: 20px;
-      font-weight: 700;
-      font-size: 13px;
-      cursor: pointer;
-    }
+    .logo { font-size: 20px; font-weight: 800; color: #fff; text-decoration: none; }
+    .btn-exit { background: transparent; border: 1px solid #fff; color: #fff; padding: 5px 16px; border-radius: 20px; font-weight: 700; font-size: 12px; cursor: pointer; }
 
-    /* Верхняя плашка */
-    .top-banner {
-      background: var(--violet);
-      height: 180px;
-      width: 100%;
-    }
+    .top-banner { background: var(--violet); height: 180px; width: 100%; }
 
-    /* Контейнер */
     main {
-      flex: 1;
-      max-width: 1100px;
-      width: 100%;
-      margin: -130px auto 40px;
-      padding: 0 16px;
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 20px;
+      flex: 1; max-width: 1050px; width: 100%; margin: -130px auto 40px;
+      padding: 0 16px; display: grid; grid-template-columns: 1fr 320px; gap: 16px;
     }
 
-    /* Левый блок */
-    .left-col {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .timer-card {
-      background: #4634c0;
-      border-radius: 16px;
-      padding: 32px 20px;
-      color: #fff;
-      text-align: center;
-    }
-    .timer-title {
-      font-size: 14px;
-      font-weight: 600;
-      margin-bottom: 20px;
-      opacity: 0.9;
-    }
-    .timer-grid {
-      display: flex;
-      justify-content: center;
-      gap: 12px;
-    }
-    .timer-box {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 12px;
-      width: 60px;
-      height: 60px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 22px;
-      font-weight: 800;
-    }
-    .timer-label {
-      font-size: 11px;
-      margin-top: 6px;
-      opacity: 0.8;
-    }
-    .timer-unit {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-
-    .notice-bar {
-      background: #ecebfb;
-      color: var(--violet);
-      font-size: 13px;
-      font-weight: 600;
-      padding: 12px;
-      border-radius: 10px;
-      text-align: center;
-    }
-
-    .quiz-info-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 24px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.05);
-    }
-    .quiz-info-card h2 { font-size: 22px; font-weight: 800; }
-
-    /* Правый блок */
-    .right-col {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .status-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.05);
-    }
-    .code-title { font-size: 12px; color: var(--muted); font-weight: 600; }
-    .code-val { font-size: 30px; font-weight: 800; letter-spacing: 1px; margin: 4px 0 16px; }
+    .left-col { display: flex; flex-direction: column; gap: 16px; }
     
-    .connected-count {
-      font-size: 28px;
-      font-weight: 800;
-      color: var(--ink);
-      margin-top: 4px;
-    }
+    /* Экран ожидания старта */
+    .waiting-card { background: #4634c0; border-radius: 16px; padding: 32px 20px; color: #fff; text-align: center; }
+    .timer-title { font-size: 14px; font-weight: 600; margin-bottom: 20px; opacity: 0.9; }
+    .notice-bar { background: #ecebfb; color: var(--violet); font-size: 13px; font-weight: 600; padding: 12px; border-radius: 10px; text-align: center; }
 
-    .info-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 20px;
-      font-size: 12px;
-      line-height: 1.6;
-      color: var(--muted);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    .quiz-info-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
+    .quiz-info-card h2 { font-size: 20px; font-weight: 800; }
+
+    .right-col { display: flex; flex-direction: column; gap: 16px; }
+    .status-card { background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
+    .code-title { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .code-val { font-size: 26px; font-weight: 800; letter-spacing: 1px; margin: 4px 0 16px; }
+    .connected-count { font-size: 26px; font-weight: 800; color: var(--ink); margin-top: 4px; }
+
+    /* Вопросы и варианты (как на Фото 2, 3)[cite: 10, 11] */
+    .quiz-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
+    .q-step { font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+    .q-text { font-size: 20px; font-weight: 800; margin-bottom: 20px; }
+    .options-list { display: flex; flex-direction: column; gap: 12px; }
+    .opt-btn {
+      background: #f8f9fc; border: 1px solid var(--line); border-radius: 12px;
+      padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
+      font-weight: 700; font-size: 14px; cursor: pointer; text-align: left; width: 100%;
     }
-    .info-card h4 { color: var(--ink); font-size: 13px; margin-bottom: 8px; }
-    .info-card ul { padding-left: 16px; margin-top: 6px; }
+    .opt-btn.selected { background: var(--violet) !important; color: #fff !important; border-color: var(--violet) !important; }
+    .opt-left { display: flex; align-items: center; gap: 12px; }
+    .opt-letter { width: 28px; height: 28px; border-radius: 50%; background: #ecebfb; color: var(--violet); display: grid; place-items: center; font-weight: 800; font-size: 13px; }
+    .opt-btn.selected .opt-letter { background: rgba(255,255,255,0.2); color: #fff; }
+
+    .toast-status {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      padding: 10px 24px; border-radius: 8px; font-weight: 700; font-size: 13px; color: #fff; z-index: 200;
+    }
+    .toast-status.purple { background: var(--violet); }
+
+    /* Экран обратного отсчета участника (Фото 4)[cite: 12] */
+    .screen-countdown { position: fixed; inset: 0; background: var(--violet); display: grid; place-items: center; color: #fff; z-index: 300; }
+    .circle-num { width: 140px; height: 140px; border-radius: 50%; border: 6px solid rgba(255,255,255,0.2); border-top-color: var(--green); display: grid; place-items: center; font-size: 60px; font-weight: 800; }
 
     @media (max-width: 768px) {
-      main { grid-template-columns: 1fr; margin-top: -100px; }
+      main { grid-template-columns: 1fr; margin-top: -90px; }
     }
   </style>
 </head>
@@ -181,22 +99,13 @@
 
   <div class="top-banner"></div>
 
-  <main>
+  <!-- ЭКРАН 1: ОЖИДАНИЕ СТАРТА ИГРЫ -->
+  <main id="waitingMain">
     <div class="left-col">
-      <div class="timer-card">
+      <div class="waiting-card">
         <div class="timer-title">Ждём игроков, скоро начнем.</div>
-        <div class="timer-grid">
-          <div class="timer-unit"><div class="timer-box">0</div><div class="timer-label">дней</div></div>
-          <div class="timer-unit"><div class="timer-box">0</div><div class="timer-label">часов</div></div>
-          <div class="timer-unit"><div class="timer-box">0</div><div class="timer-label">минут</div></div>
-          <div class="timer-unit"><div class="timer-box">0</div><div class="timer-label">секунд</div></div>
-        </div>
       </div>
-
-      <div class="notice-bar">
-        Организатор использует бесплатную версию майКвиз
-      </div>
-
+      <div class="notice-bar">Организатор использует бесплатную версию майКвиз</div>
       <div class="quiz-info-card">
         <h2 id="quizTitle">Тестовая викторина</h2>
       </div>
@@ -206,25 +115,53 @@
       <div class="status-card">
         <div class="code-title">Код викторины:</div>
         <div class="code-val" id="codeDisplay">------</div>
-
         <div class="code-title">Подключилось игроков:</div>
         <div class="connected-count" id="playerCount">0</div>
-      </div>
-
-      <div class="info-card">
-        <h4>Как играть:</h4>
-        <ol>
-          <li>Как только игра будет запущена, Вам будет показан вопрос и несколько вариантов ответа.</li>
-          <li>После выбора вариантов ответа необходимо нажать кнопку "Ответить".</li>
-          <li>В конце игры Вам будет показан Лидерборд.</li>
-        </ol>
       </div>
     </div>
   </main>
 
+  <!-- ЭКРАН 2: ОБРАТНЫЙ ОТСЧЕТ (Фото 4)[cite: 12] -->
+  <div class="screen-countdown" id="countdownScreen" hidden>
+    <div class="circle-num" id="countdownVal">4</div>
+  </div>
+
+  <!-- ЭКРАН 3: ИГРОВОЙ ПРОЦЕСС / ВОПРОСЫ (Фото 2, 3)[cite: 10, 11] -->
+  <main id="gameMain" hidden>
+    <div class="quiz-card">
+      <div class="notice-bar" style="margin-bottom: 16px;">Организатор использует бесплатную версию майКвиз</div>
+      <div class="q-step">Вопрос 1 / 1</div>
+      <div class="q-text">12124536</div>
+
+      <div class="options-list">
+        <button class="opt-btn" onclick="selectOption(this)">
+          <div class="opt-left"><div class="opt-letter">A</div> <span>1</span></div>
+        </button>
+        <button class="opt-btn" onclick="selectOption(this)">
+          <div class="opt-left"><div class="opt-letter">B</div> <span>123</span></div>
+        </button>
+        <button class="opt-btn" onclick="selectOption(this)">
+          <div class="opt-left"><div class="opt-letter">C</div> <span>1243</span></div>
+        </button>
+        <button class="opt-btn" onclick="selectOption(this)">
+          <div class="opt-left"><div class="opt-letter">D</div> <span>51435</span></div>
+        </button>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="status-card">
+        <div class="code-title" style="margin-bottom: 8px;">Время на ответ:</div>
+        <div style="font-size: 28px; font-weight: 800; color: var(--violet);" id="gameTimer">15</div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast-status purple" id="statusToast" hidden>Ответ принят!</div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot, collection, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
@@ -238,34 +175,71 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // 1. Получаем код викторины из URL (поддерживает и /p/01094227 и ?code=01094227)
+    // Считываем код из адресной строки (?code=XXXX)
     const urlParams = new URLSearchParams(window.location.search);
-    let gameCode = urlParams.get('code');
+    const gameCode = urlParams.get('code');
 
     if (!gameCode) {
-      const pathParts = window.location.pathname.split('/').filter(Boolean);
-      gameCode = pathParts[pathParts.length - 1];
-    }
-
-    if (gameCode) {
+      alert("Не указан код викторины!");
+      location.href = "index.html";
+    } else {
       document.getElementById("codeDisplay").textContent = gameCode;
 
-      // 2. Подписываемся на статус игры в Firestore
+      // Автоматически регистрируем игрока в комнате как MyTest (или запрашиваем ник)
+      const playerId = "p_" + Math.random().toString(36.substr(2, 6));
+      setDoc(doc(db, "games", gameCode, "players", playerId), {
+        name: "MyTest",
+        joinedAt: Date.now()
+      }).catch(err => console.error(err));
+
+      // Считаем количество игроков в реальном времени
+      onSnapshot(collection(db, "games", gameCode, "players"), (snap) => {
+        document.getElementById("playerCount").textContent = snap.size;
+      });
+
+      // Слушаем статус игры (когда ведущий нажмет "Запустить" в host.html)
       onSnapshot(doc(db, "games", gameCode), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.status === "running") {
-            // Игра началась — редирект на экран вопросов
-            location.href = `/game.html?code=${gameCode}`;
+            startCountdownAndGame();
           }
         }
       });
-
-      // 3. Считаем количество игроков в реальном времени
-      onSnapshot(collection(db, "games", gameCode, "players"), (snap) => {
-        document.getElementById("playerCount").textContent = snap.size;
-      });
     }
+
+    let gameStarted = false;
+    function startCountdownAndGame() {
+      if (gameStarted) return;
+      gameStarted = true;
+
+      document.getElementById("waitingMain").hidden = true;
+      const cdScreen = document.getElementById("countdownScreen");
+      cdScreen.hidden = false;
+
+      let count = 4;
+      const valEl = document.getElementById("countdownVal");
+
+      const cdInterval = setInterval(() => {
+        count--;
+        valEl.textContent = count;
+        if (count <= 0) {
+          clearInterval(cdInterval);
+          cdScreen.hidden = true;
+          document.getElementById("gameMain").hidden = false;
+        }
+      }, 1000);
+    }
+
+    // Выбор варианта ответа игроком (Фото 2)[cite: 10]
+    window.selectOption = function(btn) {
+      document.querySelectorAll(".opt-btn").forEach(b => b.classList.remove("selected"));
+      btn.classList.add("selected");
+
+      const toast = document.getElementById("statusToast");
+      toast.hidden = false;
+      setTimeout(() => { toast.hidden = true; }, 2000);
+    };
   </script>
 </body>
 </html>

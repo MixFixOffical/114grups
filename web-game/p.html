@@ -59,7 +59,7 @@
     .code-val { font-size: 26px; font-weight: 800; letter-spacing: 1px; margin: 4px 0 16px; }
     .connected-count { font-size: 26px; font-weight: 800; color: var(--ink); margin-top: 4px; }
 
-    /* Экран синхронного отсчета 8-1 */
+    /* Экран синхронного отсчета */
     .screen-countdown {
       position: fixed; inset: 0; background: var(--violet);
       display: grid; place-items: center; color: #fff; z-index: 300;
@@ -71,7 +71,7 @@
       display: grid; place-items: center; font-size: 70px; font-weight: 800;
     }
 
-    /* Игровой процесс (Вопросы) */
+    /* Игровой процесс */
     .quiz-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
     .q-step { font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
     .q-text { font-size: 20px; font-weight: 800; margin-bottom: 20px; }
@@ -80,8 +80,12 @@
       background: #f8f9fc; border: 1px solid var(--line); border-radius: 12px;
       padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
       font-weight: 700; font-size: 14px; cursor: pointer; text-align: left; width: 100%;
+      transition: background 0.2s;
     }
+    /* Блокировка и выбор */
     .opt-btn.selected { background: var(--violet) !important; color: #fff !important; border-color: var(--violet) !important; }
+    .opt-btn.disabled { opacity: 0.7; cursor: not-allowed; }
+
     .opt-left { display: flex; align-items: center; gap: 12px; }
     .opt-letter { width: 28px; height: 28px; border-radius: 50%; background: #ecebfb; color: var(--violet); display: grid; place-items: center; font-weight: 800; font-size: 13px; }
     .opt-btn.selected .opt-letter { background: rgba(255,255,255,0.2); color: #fff; }
@@ -128,7 +132,7 @@
     </div>
   </main>
 
-  <!-- ЭКРАН 2: СИНХРОННЫЙ ОТСЧЕТ 8-1 -->
+  <!-- ЭКРАН 2: СИНХРОННЫЙ ОТСЧЕТ -->
   <div class="screen-countdown" id="countdownScreen" hidden>
     <div class="countdown-box">
       <div class="circle-num" id="countdownVal">8</div>
@@ -143,17 +147,17 @@
       <div class="q-step">Вопрос 1 / 1</div>
       <div class="q-text" id="questionText">Загрузка вопроса...</div>
 
-      <div class="options-list">
-        <button class="opt-btn" onclick="selectOption(this)">
+      <div class="options-list" id="optionsList">
+        <button class="opt-btn" onclick="selectOption(this, 0)">
           <div class="opt-left"><div class="opt-letter">A</div> <span id="optA">Вариант 1</span></div>
         </button>
-        <button class="opt-btn" onclick="selectOption(this)">
+        <button class="opt-btn" onclick="selectOption(this, 1)">
           <div class="opt-left"><div class="opt-letter">B</div> <span id="optB">Вариант 2</span></div>
         </button>
-        <button class="opt-btn" onclick="selectOption(this)">
+        <button class="opt-btn" onclick="selectOption(this, 2)">
           <div class="opt-left"><div class="opt-letter">C</div> <span id="optC">Вариант 3</span></div>
         </button>
-        <button class="opt-btn" onclick="selectOption(this)">
+        <button class="opt-btn" onclick="selectOption(this, 3)">
           <div class="opt-left"><div class="opt-letter">D</div> <span id="optD">Вариант 4</span></div>
         </button>
       </div>
@@ -171,7 +175,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot, collection, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
@@ -188,30 +192,51 @@
     const urlParams = new URLSearchParams(window.location.search);
     const gameCode = urlParams.get('code');
 
+    let quizData = null;
+    let hasAnswered = false; // Флаг: ответил ли игрок
+
     if (!gameCode) {
       alert("Не указан код викторины!");
       location.href = "index.html";
     } else {
       document.getElementById("codeDisplay").textContent = gameCode;
 
-      // Считаем количество игроков в реальном времени
+      // Получаем информацию об игре и викторине заранее
+      async function fetchQuizInfo() {
+        try {
+          const gameSnap = await getDoc(doc(db, "games", gameCode));
+          if (gameSnap.exists()) {
+            const quizId = gameSnap.data().quizId;
+            const quizSnap = await getDoc(doc(db, "quizzes", quizId));
+            if (quizSnap.exists()) {
+              quizData = quizSnap.data();
+              document.getElementById("quizTitle").textContent = quizData.title || "Тестовая викторина";
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
+      fetchQuizInfo();
+
+      // Считаем игроков
       onSnapshot(collection(db, "games", gameCode, "players"), (snap) => {
         document.getElementById("playerCount").textContent = snap.size;
       });
 
-      // Слушаем статус игры от хоста
+      // Синхронный запуск отсчета
       onSnapshot(doc(db, "games", gameCode), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
-          if (data.status === "running") {
-            startSyncCountdown();
+          if (data.status === "running" && data.startTime) {
+            startSyncCountdown(data.startTime);
           }
         }
       });
     }
 
     let countdownStarted = false;
-    function startSyncCountdown() {
+    function startSyncCountdown(startTime) {
       if (countdownStarted) return;
       countdownStarted = true;
 
@@ -219,24 +244,51 @@
       const cdScreen = document.getElementById("countdownScreen");
       cdScreen.hidden = false;
 
-      let count = 8; // Отсчет от 8 до 1
       const valEl = document.getElementById("countdownVal");
-      valEl.textContent = count;
 
-      const cdInterval = setInterval(() => {
-        count--;
-        valEl.textContent = count;
-        if (count <= 0) {
-          clearInterval(cdInterval);
+      // Вычисляем точное оставшееся время отсчета (8 секунд) с учетом задержки сети
+      const interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const remaining = 8 - elapsed;
+
+        if (remaining <= 0) {
+          clearInterval(interval);
           cdScreen.hidden = true;
+          loadQuestionContent(); // Загружаем вопросы викторины
           document.getElementById("gameMain").hidden = false;
+        } else {
+          valEl.textContent = remaining;
         }
-      }, 1000);
+      }, 200);
     }
 
-    window.selectOption = function(btn) {
-      document.querySelectorAll(".opt-btn").forEach(b => b.classList.remove("selected"));
+    // Загрузка вопросов из базы
+    function loadQuestionContent() {
+      if (quizData && quizData.questions && quizData.questions.length > 0) {
+        const q = quizData.questions[0]; // Первый вопрос
+        document.getElementById("questionText").textContent = q.text || "Вопрос";
+        if (q.options && q.options.length >= 4) {
+          document.getElementById("optA").textContent = q.options[0];
+          document.getElementById("optB").textContent = q.options[1];
+          document.getElementById("optC").textContent = q.options[2];
+          document.getElementById("optD").textContent = q.options[3];
+        }
+      }
+    }
+
+    // Выбор ответа с полной блокировкой повторного нажатия
+    window.selectOption = function(btn, index) {
+      if (hasAnswered) return; // Если уже ответил — ничего не делаем, нельзя сменить!
+      hasAnswered = true;
+
+      // Подсвечиваем выбранный вариант
       btn.classList.add("selected");
+
+      // Блокируем ВСЕ кнопки вариантов ответа
+      document.querySelectorAll(".opt-btn").forEach(b => {
+        b.classList.add("disabled");
+        b.style.pointerEvents = "none"; // Отключаем клики
+      });
 
       const toast = document.getElementById("statusToast");
       toast.hidden = false;

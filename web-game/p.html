@@ -46,10 +46,9 @@
 
     .left-col { display: flex; flex-direction: column; gap: 16px; }
     
-    /* Экран ожидания старта */
     .waiting-card { background: #4634c0; border-radius: 16px; padding: 32px 20px; color: #fff; text-align: center; }
-    .timer-title { font-size: 14px; font-weight: 600; margin-bottom: 20px; opacity: 0.9; }
-    .notice-bar { background: #ecebfb; color: var(--violet); font-size: 13px; font-weight: 600; padding: 12px; border-radius: 10px; text-align: center; }
+    .timer-title { font-size: 16px; font-weight: 700; margin-bottom: 10px; }
+    .notice-bar { background: var(--violet-light); color: var(--violet); font-size: 13px; font-weight: 600; padding: 12px; border-radius: 10px; text-align: center; }
 
     .quiz-info-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
     .quiz-info-card h2 { font-size: 20px; font-weight: 800; }
@@ -60,7 +59,19 @@
     .code-val { font-size: 26px; font-weight: 800; letter-spacing: 1px; margin: 4px 0 16px; }
     .connected-count { font-size: 26px; font-weight: 800; color: var(--ink); margin-top: 4px; }
 
-    /* Вопросы и варианты (как на Фото 2, 3)[cite: 10, 11] */
+    /* Экран синхронного отсчета 8-1 */
+    .screen-countdown {
+      position: fixed; inset: 0; background: var(--violet);
+      display: grid; place-items: center; color: #fff; z-index: 300;
+    }
+    .countdown-box { text-align: center; }
+    .circle-num {
+      width: 160px; height: 160px; border-radius: 50%; margin: 0 auto;
+      border: 8px solid rgba(255,255,255,0.2); border-top-color: var(--green);
+      display: grid; place-items: center; font-size: 70px; font-weight: 800;
+    }
+
+    /* Игровой процесс (Вопросы) */
     .quiz-card { background: #fff; border-radius: 16px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.06); }
     .q-step { font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
     .q-text { font-size: 20px; font-weight: 800; margin-bottom: 20px; }
@@ -81,10 +92,6 @@
     }
     .toast-status.purple { background: var(--violet); }
 
-    /* Экран обратного отсчета участника (Фото 4)[cite: 12] */
-    .screen-countdown { position: fixed; inset: 0; background: var(--violet); display: grid; place-items: center; color: #fff; z-index: 300; }
-    .circle-num { width: 140px; height: 140px; border-radius: 50%; border: 6px solid rgba(255,255,255,0.2); border-top-color: var(--green); display: grid; place-items: center; font-size: 60px; font-weight: 800; }
-
     @media (max-width: 768px) {
       main { grid-template-columns: 1fr; margin-top: -90px; }
     }
@@ -99,7 +106,7 @@
 
   <div class="top-banner"></div>
 
-  <!-- ЭКРАН 1: ОЖИДАНИЕ СТАРТА ИГРЫ -->
+  <!-- ЭКРАН 1: ОЖИДАНИЕ СТАРТА -->
   <main id="waitingMain">
     <div class="left-col">
       <div class="waiting-card">
@@ -121,30 +128,33 @@
     </div>
   </main>
 
-  <!-- ЭКРАН 2: ОБРАТНЫЙ ОТСЧЕТ (Фото 4)[cite: 12] -->
+  <!-- ЭКРАН 2: СИНХРОННЫЙ ОТСЧЕТ 8-1 -->
   <div class="screen-countdown" id="countdownScreen" hidden>
-    <div class="circle-num" id="countdownVal">4</div>
+    <div class="countdown-box">
+      <div class="circle-num" id="countdownVal">8</div>
+      <div style="margin-top: 16px; font-weight: 700; font-size: 18px;">Старт игры...</div>
+    </div>
   </div>
 
-  <!-- ЭКРАН 3: ИГРОВОЙ ПРОЦЕСС / ВОПРОСЫ (Фото 2, 3)[cite: 10, 11] -->
+  <!-- ЭКРАН 3: ВОПРОСЫ ИГРЫ -->
   <main id="gameMain" hidden>
     <div class="quiz-card">
       <div class="notice-bar" style="margin-bottom: 16px;">Организатор использует бесплатную версию майКвиз</div>
       <div class="q-step">Вопрос 1 / 1</div>
-      <div class="q-text">12124536</div>
+      <div class="q-text" id="questionText">Загрузка вопроса...</div>
 
       <div class="options-list">
         <button class="opt-btn" onclick="selectOption(this)">
-          <div class="opt-left"><div class="opt-letter">A</div> <span>1</span></div>
+          <div class="opt-left"><div class="opt-letter">A</div> <span id="optA">Вариант 1</span></div>
         </button>
         <button class="opt-btn" onclick="selectOption(this)">
-          <div class="opt-left"><div class="opt-letter">B</div> <span>123</span></div>
+          <div class="opt-left"><div class="opt-letter">B</div> <span id="optB">Вариант 2</span></div>
         </button>
         <button class="opt-btn" onclick="selectOption(this)">
-          <div class="opt-left"><div class="opt-letter">C</div> <span>1243</span></div>
+          <div class="opt-left"><div class="opt-letter">C</div> <span id="optC">Вариант 3</span></div>
         </button>
         <button class="opt-btn" onclick="selectOption(this)">
-          <div class="opt-left"><div class="opt-letter">D</div> <span>51435</span></div>
+          <div class="opt-left"><div class="opt-letter">D</div> <span id="optD">Вариант 4</span></div>
         </button>
       </div>
     </div>
@@ -161,7 +171,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, onSnapshot, collection, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, doc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
@@ -175,7 +185,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Считываем код из адресной строки (?code=XXXX)
     const urlParams = new URLSearchParams(window.location.search);
     const gameCode = urlParams.get('code');
 
@@ -185,40 +194,34 @@
     } else {
       document.getElementById("codeDisplay").textContent = gameCode;
 
-      // Автоматически регистрируем игрока в комнате как MyTest (или запрашиваем ник)
-      const playerId = "p_" + Math.random().toString(36.substr(2, 6));
-      setDoc(doc(db, "games", gameCode, "players", playerId), {
-        name: "MyTest",
-        joinedAt: Date.now()
-      }).catch(err => console.error(err));
-
       // Считаем количество игроков в реальном времени
       onSnapshot(collection(db, "games", gameCode, "players"), (snap) => {
         document.getElementById("playerCount").textContent = snap.size;
       });
 
-      // Слушаем статус игры (когда ведущий нажмет "Запустить" в host.html)
+      // Слушаем статус игры от хоста
       onSnapshot(doc(db, "games", gameCode), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
           if (data.status === "running") {
-            startCountdownAndGame();
+            startSyncCountdown();
           }
         }
       });
     }
 
-    let gameStarted = false;
-    function startCountdownAndGame() {
-      if (gameStarted) return;
-      gameStarted = true;
+    let countdownStarted = false;
+    function startSyncCountdown() {
+      if (countdownStarted) return;
+      countdownStarted = true;
 
       document.getElementById("waitingMain").hidden = true;
       const cdScreen = document.getElementById("countdownScreen");
       cdScreen.hidden = false;
 
-      let count = 4;
+      let count = 8; // Отсчет от 8 до 1
       const valEl = document.getElementById("countdownVal");
+      valEl.textContent = count;
 
       const cdInterval = setInterval(() => {
         count--;
@@ -231,7 +234,6 @@
       }, 1000);
     }
 
-    // Выбор варианта ответа игроком (Фото 2)[cite: 10]
     window.selectOption = function(btn) {
       document.querySelectorAll(".opt-btn").forEach(b => b.classList.remove("selected"));
       btn.classList.add("selected");

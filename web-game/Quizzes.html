@@ -157,6 +157,97 @@
     }
     .icon-btn.light { background: #eceef6; color: var(--muted); }
 
+    /* ===== Модальное окно запуска игры ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(29, 31, 58, 0.6);
+      backdrop-filter: blur(4px);
+      display: grid;
+      place-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal-content {
+      background: var(--violet);
+      color: #fff;
+      width: 100%;
+      max-width: 520px;
+      border-radius: 20px;
+      padding: 36px 32px;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+      text-align: center;
+    }
+    .modal-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    .modal-close:hover { opacity: 1; }
+    .modal-content h2 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .modal-content p {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #dedaff;
+      margin-bottom: 24px;
+      padding: 0 10px;
+    }
+    .modal-option-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      text-decoration: none;
+      color: #fff;
+      text-align: left;
+      transition: background 0.2s;
+    }
+    .modal-option-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .modal-option-icon {
+      width: 38px;
+      height: 38px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      flex: 0 0 38px;
+    }
+    .modal-option-text {
+      flex: 1;
+    }
+    .modal-option-text strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .modal-option-text small {
+      font-size: 12px;
+      color: #dedaff;
+    }
+    .modal-arrow {
+      font-size: 18px;
+      color: #dedaff;
+    }
+
     /* ===== Пустое состояние ===== */
     .empty { text-align: center; margin-top: 80px; }
     .empty-icon {
@@ -302,6 +393,33 @@
     <div class="msg" id="msg"></div>
   </main>
 
+  <!-- Модальное окно запуска игры -->
+  <div class="modal-overlay" id="quizModal" hidden>
+    <div class="modal-content">
+      <button class="modal-close" id="closeModal" type="button">✕</button>
+      <h2>Запуск игры</h2>
+      <p>В тарифе "FREE" ограничено количество запусков игры. Тестовый режим создан, чтобы отладить игру и убедиться в том, что она настроена корректно.</p>
+      
+      <a class="modal-option-btn" id="linkTest" href="#">
+        <span class="modal-option-icon">⚙</span>
+        <div class="modal-option-text">
+          <strong>Протестировать игру</strong>
+          <small>До 5 игроков</small>
+        </div>
+        <span class="modal-arrow">›</span>
+      </a>
+
+      <a class="modal-option-btn" id="linkPlay" href="#">
+        <span class="modal-option-icon">▶</span>
+        <div class="modal-option-text">
+          <strong>Играть</strong>
+          <small>24 из 25 запусков до 01.11.2026</small>
+        </div>
+        <span class="modal-arrow">›</span>
+      </a>
+    </div>
+  </div>
+
   <footer>
     <span>© 2026 WAVEACCESS</span>
     <a href="privacy.html">Политика конфиденциальности</a>
@@ -332,9 +450,33 @@
 
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-    const pad = (n) => String(n).padStart(2, "0");
 
     let quizzes = [];
+
+    // ===== Модальное окно =====
+    const modal = $("quizModal");
+    const closeModal = $("closeModal");
+    const linkTest = $("linkTest");
+    const linkPlay = $("linkPlay");
+
+    function openModal(quizId) {
+      const encodedId = encodeURIComponent(quizId);
+      linkTest.href = `host.html?id=${encodedId}&test=true`;
+      linkPlay.href = `host.html?id=${encodedId}`;
+      modal.hidden = false;
+    }
+
+    function closeModalWindow() {
+      modal.hidden = true;
+    }
+
+    closeModal.addEventListener("click", closeModalWindow);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModalWindow();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeModalWindow();
+    });
 
     // ===== Слайдер =====
     const slides = $("slides");
@@ -398,11 +540,18 @@
             <div class="time">🕒 ${esc(w.time)}</div>
             <div class="code">${esc(x.id.slice(0, 8).toUpperCase())}</div>
             <div class="qtitle">${esc(x.title || "Без названия")}</div>
-            <a class="btn-run" href="host.html?id=${encodeURIComponent(x.id)}">▷ Запустить экран ожидания</a>
+            <button class="btn-run" data-quiz-id="${esc(x.id)}" type="button">▷ Запустить экран ожидания</button>
             <a class="icon-btn" href="create-quiz.html?id=${encodeURIComponent(x.id)}" title="Редактировать">✎</a>
             <span class="icon-btn light" title="Ещё">⋮</span>
           </div>`;
       }).join("");
+
+      // Привязываем клики на кнопки запуска
+      document.querySelectorAll(".btn-run").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          openModal(btn.dataset.quizId);
+        });
+      });
     }
 
     $("search").addEventListener("input", (e) => render(e.target.value));

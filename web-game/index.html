@@ -286,6 +286,28 @@
       white-space: nowrap;
     }
 
+    /* ===== Тост ===== */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 32px;
+      transform: translateX(-50%) translateY(20px);
+      background: #ffc540;
+      color: #1d1f3a;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 14px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .25);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s, transform .25s;
+      z-index: 20;
+      max-width: calc(100% - 32px);
+      text-align: center;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
     @media (max-width: 600px) {
       header { padding: 0 16px; }
       .header-right { gap: 8px; }
@@ -353,6 +375,9 @@
     </div>
   </aside>
 
+  <!-- Тост -->
+  <div class="toast" id="toast" role="alert" aria-live="assertive"></div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, doc, getDoc, getDocs, setDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -384,10 +409,22 @@
     const message = $("message");
 
     let pendingCode = null;
+    let currentUser = null;
+
+    // ===== Тост =====
+    const toastEl = $("toast");
+    let toastTimer = null;
+    function showToast(text) {
+      toastEl.textContent = text;
+      toastEl.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => toastEl.classList.remove("show"), 3000);
+    }
 
     // ===== Кнопка входа / выхода =====
     const authButtons = document.querySelectorAll(".auth-btn");
     onAuthStateChanged(auth, (user) => {
+      currentUser = user;
       authButtons.forEach((btn) => {
         if (user) {
           btn.textContent = "Выйти";
@@ -413,8 +450,13 @@
     $("menuClose").addEventListener("click", () => toggleMenu(false));
     overlay.addEventListener("click", () => toggleMenu(false));
 
-    // ===== Переход в "Мои Викторины" =====
+    // ===== Переход в "Мои Викторины" — только для авторизованных =====
     $("myQuizzesBtn").addEventListener("click", () => {
+      if (!currentUser) {
+        toggleMenu(false);
+        showToast("Войди в аккаунт, чтобы увидеть свои викторины");
+        return;
+      }
       toggleMenu(false);
       location.href = "Quizzes.html";
     });

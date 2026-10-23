@@ -7,6 +7,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;700;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
 
     body {
       font-family: "Montserrat", system-ui, sans-serif;
@@ -64,19 +65,6 @@
       text-align: center;
     }
     .btn-pill:hover { opacity: .9; }
-
-    .btn-outline {
-      background: transparent;
-      border: 1px solid #fff;
-      color: #fff;
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 15px;
-      padding: 10px 40px;
-      border-radius: 30px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
 
     .burger {
       width: 30px;
@@ -144,7 +132,7 @@
     .field {
       position: relative;
       z-index: 1;
-      width: 200px;
+      width: 220px;
       height: 48px;
       border: none;
       border-radius: 6px;
@@ -187,6 +175,20 @@
     }
     .message.error { color: #ffc540; }
     .message.success { color: #9ef0c4; }
+
+    /* Экран ожидания игры для участника */
+    .waiting-screen {
+      position: relative;
+      z-index: 2;
+      background: #3b2aa8;
+      padding: 30px;
+      border-radius: 16px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .waiting-screen h2 { font-size: 22px; margin-bottom: 15px; }
+    .waiting-screen p { font-size: 14px; opacity: 0.9; margin-bottom: 10px; }
 
     .legal {
       position: absolute;
@@ -338,17 +340,26 @@
 
     <h1 id="title">Введите код для участия в игре</h1>
 
+    <!-- Шаг 1: Ввод кода -->
     <form id="codeForm" novalidate>
       <input class="field" id="codeInput" type="text" inputmode="numeric" maxlength="4" placeholder="квиз код" autocomplete="one-time-code">
       <br>
       <button class="btn-green" id="submitBtn" type="submit">Подключиться</button>
     </form>
 
+    <!-- Шаг 2: Ввод никнейма -->
     <form id="nameForm" novalidate hidden>
       <input class="field" id="nameInput" type="text" maxlength="20" placeholder="Твой никнейм" autocomplete="nickname">
       <br>
       <button class="btn-green" id="nameBtn" type="submit">Вступить в игру</button>
     </form>
+
+    <!-- Экран ожидания (показывается после вступления в игру вместо ошибки отсутствия game.html) -->
+    <div class="waiting-screen" id="waitingScreen" hidden>
+      <h2>Ждём игроков, скоро начнем.</h2>
+      <p>Код викторины: <b id="waitCodeDisplay">----</b></p>
+      <p>Подключилось игроков: <b id="waitPlayerCount">0</b></p>
+    </div>
 
     <p class="message" id="message" role="status" aria-live="polite"></p>
 
@@ -380,7 +391,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getFirestore, doc, getDoc, getDocs, setDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, getDocs, setDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
     import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
@@ -411,7 +422,30 @@
     let pendingCode = null;
     let currentUser = null;
 
-    // ===== Тост =====
+    // Автоматически считываем код из URL (если зашли по ссылке из QR-кода index.html?code=XXXX)
+    window.addEventListener("DOMContentLoaded", async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlCode = urlParams.get("code");
+      if (urlCode) {
+        codeInput.value = urlCode;
+        // Проверяем существование игры автоматически
+        try {
+          const snap = await getDoc(doc(db, CONFIG.GAMES, urlCode));
+          if (snap.exists() && snap.data().status === "waiting") {
+            pendingCode = urlCode;
+            codeForm.hidden = true;
+            nameForm.hidden = false;
+            $("title").textContent = "Как тебя зовут?";
+            nameInput.focus();
+          }
+        } catch (err) {
+          console.error(err);
+        }
+      } else {
+        codeInput.focus();
+      }
+    });
+
     const toastEl = $("toast");
     let toastTimer = null;
     function showToast(text) {
@@ -421,7 +455,6 @@
       toastTimer = setTimeout(() => toastEl.classList.remove("show"), 3000);
     }
 
-    // ===== Кнопка входа / выхода =====
     const authButtons = document.querySelectorAll(".auth-btn");
     onAuthStateChanged(auth, (user) => {
       currentUser = user;
@@ -439,7 +472,6 @@
       });
     });
 
-    // ===== Боковое меню =====
     const menu = $("menu");
     const overlay = $("overlay");
     const toggleMenu = (open) => {
@@ -450,7 +482,6 @@
     $("menuClose").addEventListener("click", () => toggleMenu(false));
     overlay.addEventListener("click", () => toggleMenu(false));
 
-    // ===== Переход в "Мои Викторины" — только для авторизованных =====
     $("myQuizzesBtn").addEventListener("click", () => {
       if (!currentUser) {
         toggleMenu(false);
@@ -474,7 +505,7 @@
       btn.textContent = isLoading ? "Проверяем…" : text;
     }
 
-    // ===== Шаг 1: код игры =====
+    // Шаг 1: проверка кода
     codeForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       clearMessage();
@@ -506,7 +537,7 @@
       }
     });
 
-    // ===== Шаг 2: никнейм =====
+    // Шаг 2: отправка никнейма и вход в режим ожидания
     nameForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       clearMessage();
@@ -515,27 +546,42 @@
 
       setLoading(nameBtn, true, "Вступить в игру");
       try {
-        const players = await getDocs(collection(db, CONFIG.GAMES, pendingCode, "players"));
+        const playersRef = collection(db, CONFIG.GAMES, pendingCode, "players");
+        const players = await getDocs(playersRef);
         const taken = players.docs.some((d) => (d.data().name || "").toLowerCase() === name.toLowerCase());
         if (taken) return showMessage("Такой никнейм уже занят", "error");
 
         const pid = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
-        await setDoc(doc(db, CONFIG.GAMES, pendingCode, "players", pid), {
+        await setDoc(doc(playersRef, pid), {
           name,
           joinedAt: Date.now(),
         });
 
-        sessionStorage.setItem("player", JSON.stringify({ code: pendingCode, pid, name }));
-        showMessage("Ты в игре! Поехали!", "success");
-        setTimeout(() => { location.href = "game.html"; }, 1000);
+        // Скрываем форму никнейма и показываем экран ожидания прямо здесь
+        nameForm.hidden = true;
+        $("title").hidden = true;
+        $("waitingScreen").hidden = false;
+        $("waitCodeDisplay").textContent = pendingCode;
+
+        // Следим за количеством игроков в реальном времени
+        onSnapshot(playersRef, (snap) => {
+          $("waitPlayerCount").textContent = snap.size;
+        });
+
+        // Следим за стартом игры от ведущего (когда статус станет running)
+        onSnapshot(doc(db, CONFIG.GAMES, pendingCode), (gameSnap) => {
+          if (gameSnap.exists() && gameSnap.data().status === "running") {
+            alert("Игра началась!");
+            // Здесь можно перенаправить на экран с вопросами, когда он будет готов
+          }
+        });
+
       } catch (err) {
         console.error(err);
         showMessage("Не удалось войти, попробуй ещё раз", "error");
         setLoading(nameBtn, false, "Вступить в игру");
       }
     });
-
-    codeInput.focus();
   </script>
 </body>
 </html>

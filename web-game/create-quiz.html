@@ -1,1 +1,650 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cowboy Quiz — Создание викторины</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    :root {
+      --header: #3b2aa8;
+      --violet: #5f4be8;
+      --violet-dark: #4a36c9;
+      --green: #66bb5c;
+      --green-hover: #5aab4f;
+      --bg: #5f4be8;
+      --ink: #1d1f3a;
+      --muted: #8a8fa8;
+      --line: #dfe2ef;
+      --panel-bg: #f4f5f9;
+    }
+
+    html, body { min-height: 100%; }
+
+    body {
+      font-family: "Montserrat", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== Шапка ===== */
+    header {
+      height: 64px;
+      background: var(--header);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .logo { font-size: 26px; font-weight: 800; color: #fff; text-decoration: none; }
+    .nav { display: flex; gap: 40px; font-size: 14px; font-weight: 600; }
+    .nav a {
+      color: #cfc8ff;
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 0;
+    }
+    .nav a:hover { color: #fff; }
+    .nav a.active { color: #fff; font-weight: 700; border-bottom: 2px solid #fff; }
+    .header-right { display: flex; align-items: center; gap: 14px; font-size: 14px; font-weight: 700; }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #d9d4ff; color: var(--header);
+      display: grid; place-items: center; font-size: 16px;
+    }
+
+    /* ===== Основная карточка ===== */
+    main {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px 40px;
+    }
+    .wrap {
+      width: 100%;
+      max-width: 900px;
+      background: #fff;
+      border-radius: 14px;
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      overflow: hidden;
+      min-height: 560px;
+      box-shadow: 0 20px 50px rgba(20, 10, 80, .25);
+    }
+
+    /* ===== Левая колонка ===== */
+    .side {
+      background: var(--panel-bg);
+      display: flex;
+      flex-direction: column;
+    }
+    .side-tabs { display: flex; }
+    .side-tab {
+      flex: 1;
+      border: none;
+      padding: 18px 12px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: .02em;
+      cursor: pointer;
+      background: var(--violet);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .side-tab.secondary { background: var(--header); color: #d5cfff; }
+    .side-tab.secondary:hover { color: #fff; }
+
+    .steps { padding: 14px 12px; display: flex; flex-direction: column; gap: 6px; }
+    .step {
+      display: flex;
+      gap: 14px;
+      padding: 14px 14px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      text-align: left;
+      font-family: inherit;
+      color: var(--ink);
+    }
+    .step:hover { background: rgba(95, 75, 232, .06); }
+    .step.active { background: var(--violet); color: #fff; }
+    .step-num {
+      flex: 0 0 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid #c5c9dd;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--muted);
+      background: #fff;
+    }
+    .step.active .step-num { border-color: #fff; background: rgba(255,255,255,.2); color: #fff; }
+    .step-title { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+    .step-desc { font-size: 12px; line-height: 1.4; color: var(--muted); }
+    .step.active .step-desc { color: #e4dfff; }
+
+    /* ===== Правая колонка ===== */
+    .content {
+      padding: 26px 28px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .field { margin-bottom: 22px; }
+    .field > label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    .field > label .req { color: #e5484d; }
+    .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+    .input-wrap {
+      position: relative;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .input-wrap input {
+      width: 100%;
+      border: none;
+      outline: none;
+      padding: 14px 60px 14px 16px;
+      font-family: inherit;
+      font-size: 15px;
+      color: var(--ink);
+      background: transparent;
+    }
+    .input-wrap:focus-within { border-color: var(--violet); }
+    .counter {
+      position: absolute;
+      right: 14px;
+      bottom: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    /* Редактор описания */
+    .editor {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .editor:focus-within { border-color: var(--violet); }
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .toolbar button {
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 2px 4px;
+    }
+    .toolbar button:hover { color: var(--ink); }
+    .toolbar .counter { position: static; margin-left: auto; }
+    .editor textarea {
+      width: 100%;
+      height: 180px;
+      border: none;
+      outline: none;
+      resize: vertical;
+      padding: 14px 16px;
+      font-family: inherit;
+      font-size: 15px;
+      color: var(--ink);
+    }
+
+    /* Загрузка обложки */
+    .cover {
+      width: 260px;
+      height: 146px;
+      border: 1px dashed #c5c9dd;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--muted);
+      position: relative;
+      background: #fafbff;
+    }
+    .cover-icon {
+      width: 40px; height: 32px;
+      border: 2px solid #c5c9dd;
+      border-radius: 4px;
+      position: relative;
+    }
+    .cover-icon::after {
+      content: "";
+      position: absolute;
+      left: 10px; top: 8px;
+      width: 16px; height: 12px;
+      border-radius: 2px;
+      border: 2px solid #c5c9dd;
+    }
+    .cover .upload-btn {
+      background: #fff;
+      border: none;
+      border-radius: 20px;
+      padding: 7px 22px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--violet);
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    }
+    .cover .ratio {
+      position: absolute;
+      right: 10px;
+      bottom: 8px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+
+    /* Выпадающий список */
+    .select {
+      position: relative;
+      width: 260px;
+    }
+    .select select {
+      width: 100%;
+      appearance: none;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 40px 12px 16px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--ink);
+      background: #fff;
+      outline: none;
+      cursor: pointer;
+    }
+    .select::after {
+      content: "⌄";
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-60%);
+      color: var(--ink);
+      pointer-events: none;
+      font-size: 14px;
+    }
+
+    /* ===== Нижняя панель ===== */
+    .bottom {
+      border-top: 1px solid var(--line);
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      background: #fff;
+    }
+    .bottom-right { display: flex; gap: 12px; flex-wrap: wrap; }
+    .btn {
+      border: none;
+      border-radius: 24px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 11px 26px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+      text-decoration: none;
+    }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .btn-outline {
+      background: #fff;
+      color: var(--violet);
+      border: 1px solid var(--violet);
+    }
+    .btn-outline:hover { background: #f1efff; }
+    .btn-green { background: var(--green); color: #fff; }
+    .btn-green:hover { background: var(--green-hover); }
+    .btn-violet { background: var(--violet); color: #fff; }
+    .btn-violet:hover { background: var(--violet-dark); }
+    .btn-ghost {
+      background: #d6d1fb;
+      color: #fff;
+    }
+
+    .btn-fullscreen {
+      border: 1px solid var(--violet);
+      background: #fff;
+      color: var(--violet);
+    }
+
+    /* Подсказка сохранения */
+    .saved-msg {
+      font-size: 12px;
+      color: #2e9e5b;
+      font-weight: 700;
+      min-height: 16px;
+    }
+
+    /* ===== Подвал ===== */
+    footer {
+      background: var(--header);
+      color: #fff;
+      min-height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 32px;
+      font-size: 14px;
+      font-weight: 700;
+      padding: 12px 24px;
+    }
+    footer a { color: #fff; text-decoration: underline; }
+
+    /* ===== Плавающая вкладка помощи ===== */
+    .help-tab {
+      position: fixed;
+      right: 0;
+      bottom: 60px;
+      width: 30px;
+      height: 200px;
+      background: linear-gradient(180deg, #f7a21b, #ff4d2e);
+      border-radius: 14px 0 0 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: -2px 4px 10px rgba(0, 0, 0, .2);
+    }
+    .help-tab span {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      color: #fff;
+      font-weight: 700;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 760px) {
+      header { padding: 0 16px; }
+      .nav { display: none; }
+      main { padding: 16px 12px 24px; }
+      .wrap { grid-template-columns: 1fr; }
+      .side-tabs { display: none; }
+      .steps { flex-direction: row; overflow-x: auto; }
+      .step { min-width: 200px; }
+      .content { padding: 20px 16px; }
+      .cover, .select { width: 100%; }
+      .help-tab { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="index.html">майКвиз</a>
+    <nav class="nav">
+      <a href="game.html">🎮 Играть</a>
+      <a href="prices.html">💲 Цены</a>
+      <a href="my-quizzes.html" class="active">🧩 Мои Викторины</a>
+      <a href="catalog.html">🏪 Каталог викторин</a>
+      <a href="help.html">❔ Помощь</a>
+    </nav>
+    <div class="header-right">
+      <span>RU ▾</span>
+      <div class="avatar" aria-hidden="true">👤</div>
+      <span>▾</span>
+    </div>
+  </header>
+
+  <main>
+    <div class="wrap">
+
+      <!-- Левая колонка -->
+      <aside class="side">
+        <div class="side-tabs">
+          <button class="side-tab" type="button">✎ НАСТРОЙКИ</button>
+          <button class="side-tab secondary" type="button" id="tabQuestions">ВОПРОСЫ</button>
+        </div>
+
+        <div class="steps" id="steps">
+          <button class="step active" type="button" data-step="0">
+            <span class="step-num">✎</span>
+            <span>
+              <div class="step-title">ЧТО</div>
+              <div class="step-desc">Добавьте название, описание и обложку вашей викторины</div>
+            </span>
+          </button>
+          <button class="step" type="button" data-step="1">
+            <span class="step-num">2</span>
+            <span>
+              <div class="step-title">КОГДА</div>
+              <div class="step-desc">Установите дату и время или воспользуйтесь автозапуском</div>
+            </span>
+          </button>
+          <button class="step" type="button" data-step="2">
+            <span class="step-num">3</span>
+            <span>
+              <div class="step-title">ДЛЯ КОГО</div>
+              <div class="step-desc">Решите, кто может играть и собирать данные</div>
+            </span>
+          </button>
+          <button class="step" type="button" data-step="3">
+            <span class="step-num">4</span>
+            <span>
+              <div class="step-title">КАК</div>
+              <div class="step-desc">Призы, акции, брендинг, стриминг</div>
+            </span>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Правая колонка -->
+      <section class="content">
+
+        <!-- Шаг 1: ЧТО -->
+        <div class="panel active" data-panel="0">
+          <div class="field">
+            <label for="title">Название викторины <span class="req">*</span></label>
+            <div class="input-wrap">
+              <input id="title" type="text" maxlength="150" placeholder="">
+              <span class="counter"><span id="titleCount">0</span>/150</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="desc">Описание викторины</label>
+            <div class="editor">
+              <div class="toolbar">
+                <button type="button" title="Жирный"><b>B</b></button>
+                <button type="button" title="Курсив"><i>I</i></button>
+                <button type="button" title="Подчёркнутый"><u>U</u></button>
+                <button type="button" title="Зачёркнутый"><s>S</s></button>
+                <button type="button" title="Ссылка">🔗</button>
+                <button type="button" title="Очистить формат">Tx</button>
+                <span class="counter"><span id="descCount">0</span>/800</span>
+              </div>
+              <textarea id="desc" maxlength="800"></textarea>
+            </div>
+          </div>
+
+          <div class="field">
+            <label>Обложка викторины</label>
+            <div class="cover">
+              <div class="cover-icon" aria-hidden="true"></div>
+              <div>Перенесите медиа сюда или<br>нажмите для загрузки</div>
+              <button class="upload-btn" type="button" id="uploadBtn">Загрузить</button>
+              <input type="file" id="coverFile" accept="image/*" hidden>
+              <span class="ratio">16:9</span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="theme">Стиль оформления игры ⓘ</label>
+            <div class="hint" style="margin-top:0; margin-bottom:8px;">Выберите тему из списка или создайте новую</div>
+            <div class="select">
+              <select id="theme">
+                <option>Стандартная тема</option>
+                <option>Тёмная тема</option>
+                <option>Светлая тема</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Шаг 2: КОГДА -->
+        <div class="panel" data-panel="1">
+          <div class="field">
+            <label for="startDate">Дата и время начала</label>
+            <div class="input-wrap">
+              <input id="startDate" type="datetime-local">
+            </div>
+            <p class="hint">Или включите автозапуск, и викторина запустится сама.</p>
+          </div>
+        </div>
+
+        <!-- Шаг 3: ДЛЯ КОГО -->
+        <div class="panel" data-panel="2">
+          <div class="field">
+            <label for="audience">Кто может играть</label>
+            <div class="select">
+              <select id="audience">
+                <option>Все</option>
+                <option>Только по ссылке</option>
+                <option>Только приглашённые</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Шаг 4: КАК -->
+        <div class="panel" data-panel="3">
+          <div class="field">
+            <label for="prize">Призы и акции</label>
+            <div class="input-wrap">
+              <input id="prize" type="text" maxlength="150" placeholder="Например, сертификат на 500 рублей">
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </main>
+
+  <!-- Нижняя панель -->
+  <div class="bottom-wrap" style="max-width:900px;width:calc(100% - 32px);margin:-40px auto 24px;position:relative;z-index:3;">
+    <div class="bottom" style="border-radius:0 0 14px 14px;">
+      <button class="btn btn-fullscreen" type="button" id="fullscreen">⛶ Полноэкранный режим</button>
+      <div class="bottom-right">
+        <button class="btn btn-outline" type="button" id="closeBtn">Закрыть</button>
+        <button class="btn btn-green" type="button" id="saveBtn">Сохранить</button>
+        <button class="btn btn-ghost" type="button" id="prevBtn">← Назад</button>
+        <button class="btn btn-violet" type="button" id="nextBtn">Далее →</button>
+      </div>
+    </div>
+    <div class="saved-msg" id="savedMsg" style="text-align:center;margin-top:6px;"></div>
+  </div>
+
+  <footer>
+    <span>© 2026 WAVEACCESS</span>
+    <a href="privacy.html">Политика конфиденциальности</a>
+    <a href="terms.html">Пользовательское соглашение</a>
+    <a href="consent.html">Согласие на обработку ПДн</a>
+  </footer>
+
+  <div class="help-tab" aria-hidden="true"><span>Ответим на все вопросы</span></div>
+
+  <script>
+    const steps = [...document.querySelectorAll(".step")];
+    const panels = [...document.querySelectorAll(".panel")];
+    const prevBtn = document.getElementById("prevBtn");
+    const nextBtn = document.getElementById("nextBtn");
+    let current = 0;
+
+    function showStep(n) {
+      current = Math.max(0, Math.min(n, steps.length - 1));
+      steps.forEach((s, i) => s.classList.toggle("active", i === current));
+      panels.forEach((p, i) => p.classList.toggle("active", i === current));
+      prevBtn.disabled = current === 0;
+      nextBtn.textContent = current === steps.length - 1 ? "Готово" : "Далее →";
+    }
+
+    steps.forEach((s, i) => s.addEventListener("click", () => showStep(i)));
+    prevBtn.addEventListener("click", () => showStep(current - 1));
+    nextBtn.addEventListener("click", () => {
+      if (current === steps.length - 1) {
+        document.getElementById("savedMsg").textContent = "Настройки готовы";
+        return;
+      }
+      showStep(current + 1);
+    });
+    showStep(0);
+
+    // Счётчики символов
+    const title = document.getElementById("title");
+    const desc = document.getElementById("desc");
+    title.addEventListener("input", () => {
+      document.getElementById("titleCount").textContent = title.value.length;
+    });
+    desc.addEventListener("input", () => {
+      document.getElementById("descCount").textContent = desc.value.length;
+    });
+
+    // Загрузка обложки
+    const coverFile = document.getElementById("coverFile");
+    document.getElementById("uploadBtn").addEventListener("click", () => coverFile.click());
+
+    // Кнопки внизу
+    document.getElementById("closeBtn").addEventListener("click", () => {
+      location.href = "my-quizzes.html";
+    });
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      document.getElementById("savedMsg").textContent = "Черновик сохранён";
+    });
+    document.getElementById("fullscreen").addEventListener("click", () => {
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    });
+    document.getElementById("tabQuestions").addEventListener("click", () => {
+      alert("Раздел «Вопросы» пока не готов");
+    });
+  </script>
+</body>
+</html>

@@ -47,18 +47,7 @@
       transform: rotate(-45deg);
     }
     .header-right { display: flex; align-items: center; gap: 16px; }
-    .btn-outline {
-      background: transparent;
-      border: 1px solid #fff;
-      color: #fff;
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 15px;
-      padding: 10px 40px;
-      border-radius: 30px;
-      cursor: pointer;
-      white-space: nowrap;
-    }
+
     .btn-pill {
       background: #66bb5c;
       border: none;
@@ -70,13 +59,23 @@
       border-radius: 30px;
       cursor: pointer;
       white-space: nowrap;
-    }
-    .btn-pill:hover, .btn-outline:hover { opacity: .9; }
-
-    a.btn-pill, a.btn-outline {
+      text-decoration: none;
       display: inline-block;
       text-align: center;
-      text-decoration: none;
+    }
+    .btn-pill:hover { opacity: .9; }
+
+    .btn-outline {
+      background: transparent;
+      border: 1px solid #fff;
+      color: #fff;
+      font-family: inherit;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 10px 40px;
+      border-radius: 30px;
+      cursor: pointer;
+      white-space: nowrap;
     }
 
     .burger {
@@ -189,7 +188,6 @@
     .message.error { color: #ffc540; }
     .message.success { color: #9ef0c4; }
 
-    /* ===== Строка под основным блоком ===== */
     .legal {
       position: absolute;
       bottom: 20px;
@@ -241,9 +239,8 @@
       margin-bottom: 20px;
     }
     .menu-list { list-style: none; display: flex; flex-direction: column; gap: 30px; margin-top: 10px; }
-    .menu-list a, .menu-list button {
+    .menu-list button {
       color: #fff;
-      text-decoration: none;
       font-family: inherit;
       font-weight: 700;
       font-size: 17px;
@@ -261,14 +258,8 @@
     .menu-bottom {
       margin-top: auto;
       display: flex;
-      gap: 16px;
     }
-    .menu-bottom .btn-outline,
-    .menu-bottom .btn-pill {
-      flex: 1;
-      padding: 12px 0;
-      font-size: 15px;
-    }
+    .menu-bottom .btn-pill { flex: 1; padding: 12px 0; font-size: 15px; }
 
     /* ===== Плавающая вкладка помощи ===== */
     .help-tab {
@@ -298,9 +289,7 @@
     @media (max-width: 600px) {
       header { padding: 0 16px; }
       .header-right { gap: 8px; }
-      .btn-outline, .btn-pill { padding: 8px 16px; font-size: 13px; }
-      .btn-outline.hide-sm { display: none; }
-      .yellow { width: 360px; height: 240px; }
+      .btn-pill { padding: 8px 16px; font-size: 13px; }
       .main-logo { font-size: 34px; }
       h1 { font-size: 17px; }
       .legal { font-size: 12px; }
@@ -313,8 +302,7 @@
   <header>
     <div class="logo">Cowboy Quiz</div>
     <div class="header-right">
-      <button class="btn-outline" type="button">Попробовать сейчас</button>
-      <a class="btn-pill" href="login.html">Войти</a>
+      <button class="btn-pill auth-btn" type="button">Войти</button>
       <button class="burger" id="burger" type="button" aria-label="Меню">
         <span></span><span></span><span></span>
       </button>
@@ -361,14 +349,14 @@
       <li><button type="button"><span class="menu-icon">🌐</span>Русский ▾</button></li>
     </ul>
     <div class="menu-bottom">
-      <button class="btn-outline" type="button">Попробовать</button>
-      <a class="btn-pill" href="login.html">Войти</a>
+      <button class="btn-pill auth-btn" type="button">Войти</button>
     </div>
   </aside>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, doc, getDoc, getDocs, setDoc, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
@@ -382,6 +370,7 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
 
     const CONFIG = { CODE_LENGTH: 4, ADMIN_CODE: "2702", ADMIN_PAGE: "adminhome.html", GAMES: "games" };
 
@@ -395,6 +384,23 @@
     const message = $("message");
 
     let pendingCode = null;
+
+    // ===== Кнопка входа / выхода =====
+    const authButtons = document.querySelectorAll(".auth-btn");
+    onAuthStateChanged(auth, (user) => {
+      authButtons.forEach((btn) => {
+        if (user) {
+          btn.textContent = "Выйти";
+          btn.onclick = async () => {
+            await signOut(auth);
+            location.reload();
+          };
+        } else {
+          btn.textContent = "Войти";
+          btn.onclick = () => { location.href = "login.html"; };
+        }
+      });
+    });
 
     // ===== Боковое меню =====
     const menu = $("menu");

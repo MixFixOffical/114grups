@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cowboy Quiz — Мои викторины</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --header: #3b2aa8;
+      --violet: #5f4be8;
+      --violet-dark: #4a36c9;
+      --green: #66bb5c;
+      --green-hover: #5aab4f;
+      --yellow: #ffc540;
+      --bg: #f3f4f8;
+      --ink: #1d1f3a;
+      --muted: #6b6f8f;
+      --line: #e4e6f0;
+    }
+
+    html, body { min-height: 100%; }
+
+    body {
+      font-family: "Montserrat", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== Шапка ===== */
+    header {
+      height: 32px;
+      background: var(--header);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .logo { font-size: 14px; font-weight: 800; color: #fff; text-decoration: none; }
+    .nav { display: flex; gap: 22px; font-size: 10px; font-weight: 600; }
+    .nav a { color: #cfc8ff; text-decoration: none; display: flex; align-items: center; gap: 4px; }
+    .nav a:hover { color: #fff; }
+    .nav a.active { color: #fff; font-weight: 700; border-bottom: 2px solid #fff; padding-bottom: 2px; }
+    .header-right { display: flex; align-items: center; gap: 10px; font-size: 10px; font-weight: 700; }
+    .avatar {
+      width: 16px; height: 16px; border-radius: 50%;
+      background: #d9d4ff; color: var(--header);
+      display: grid; place-items: center; font-size: 9px;
+    }
+
+    /* ===== Основная часть ===== */
+    main {
+      flex: 1;
+      width: 100%;
+      max-width: 460px;
+      margin: 0 auto;
+      padding: 30px 0 40px;
+    }
+    h1 { font-size: 13px; font-weight: 800; margin-bottom: 4px; }
+    .subtitle { font-size: 7px; color: #e0573a; margin-bottom: 18px; }
+
+    .notice {
+      background: #ecebfb;
+      border-radius: 6px;
+      padding: 10px 14px;
+      font-size: 6px;
+      line-height: 1.6;
+      color: var(--ink);
+      display: flex;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .notice b { color: #3b2aa8; }
+    .notice a { color: #5f4be8; }
+    .notice-icon { color: #3b2aa8; font-size: 9px; }
+
+    .actions { display: flex; gap: 8px; margin-bottom: 14px; }
+    .btn {
+      border: none;
+      border-radius: 14px;
+      font-family: inherit;
+      font-size: 7px;
+      font-weight: 700;
+      color: #fff;
+      padding: 7px 14px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      white-space: nowrap;
+    }
+    .btn-green { background: var(--green); }
+    .btn-green:hover { background: var(--green-hover); }
+    .btn-ai { background: var(--violet); }
+    .btn-ai:hover { background: var(--violet-dark); }
+    .btn-ai .badge-ai {
+      background: #fff; color: var(--violet);
+      border-radius: 6px; padding: 1px 4px; font-size: 6px;
+    }
+
+    /* ===== Карусель ===== */
+    .carousel { position: relative; margin-bottom: 18px; }
+    .slides {
+      display: flex;
+      gap: 8px;
+      overflow: hidden;
+      scroll-behavior: smooth;
+      padding: 0 16px;
+    }
+    .slide { flex: 0 0 96px; }
+    .slide-img {
+      height: 54px;
+      border-radius: 4px;
+      padding: 6px;
+      color: #fff;
+      font-size: 6px;
+      font-weight: 800;
+      line-height: 1.2;
+      display: flex;
+      align-items: flex-end;
+      text-transform: uppercase;
+    }
+    .s-a { background: linear-gradient(135deg, #ff7a3d, #ff3d7f); }
+    .s-b { background: linear-gradient(135deg, #5f4be8, #3b2aa8); }
+    .s-c { background: linear-gradient(135deg, #7a5cff, #2f1f9a); }
+    .s-d { background: linear-gradient(135deg, #4b3ad1, #8a6cff); }
+    .slide p { font-size: 5px; color: var(--muted); margin-top: 5px; line-height: 1.4; }
+
+    .arrow {
+      position: absolute;
+      top: 24px;
+      width: 14px; height: 14px;
+      border: 1px solid var(--line);
+      border-radius: 50%;
+      background: #fff;
+      color: var(--muted);
+      font-size: 8px;
+      display: grid; place-items: center;
+      cursor: pointer;
+      z-index: 2;
+    }
+    .arrow-left { left: -20px; }
+    .arrow-right { right: -20px; }
+
+    /* ===== Фильтры и поиск ===== */
+    .filters {
+      background: var(--violet);
+      border-radius: 6px 6px 0 0;
+      padding: 0 0 0 0;
+    }
+    .tabs-row {
+      display: flex;
+      align-items: stretch;
+      gap: 6px;
+      padding: 6px 6px 0;
+      font-size: 6px;
+      font-weight: 700;
+    }
+    .tab {
+      background: #fff;
+      border: none;
+      border-radius: 4px 4px 0 0;
+      padding: 4px 10px;
+      font-family: inherit;
+      font-size: 6px;
+      font-weight: 700;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .tab.active { background: var(--violet); color: #fff; }
+    .promo {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      background: #fff;
+      border-radius: 4px 4px 0 0;
+      overflow: hidden;
+      font-size: 6px;
+      color: var(--ink);
+    }
+    .promo span { padding: 4px 8px; }
+    .promo .free { color: var(--green); font-weight: 700; }
+    .promo .upgrade {
+      background: var(--green); color: #fff; font-weight: 700;
+      align-self: stretch; display: grid; place-items: center; cursor: pointer;
+    }
+
+    .search {
+      padding: 6px 8px 8px;
+      background: var(--violet);
+      border-radius: 0 0 6px 6px;
+    }
+    .search-box {
+      background: #fff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+      font-size: 7px;
+    }
+    .search-box input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-family: inherit;
+      font-size: 7px;
+      color: var(--ink);
+      background: transparent;
+    }
+    .search-box input::placeholder { color: #a7abc9; }
+    .search-box span { color: var(--muted); font-size: 8px; }
+
+    /* ===== Пустое состояние ===== */
+    .empty {
+      text-align: center;
+      margin-top: 36px;
+    }
+    .empty-icon {
+      width: 40px; height: 40px;
+      margin: 0 auto 12px;
+      border: 2px dashed #c5c9dd;
+      border-radius: 6px;
+      position: relative;
+    }
+    .empty-icon::after {
+      content: "";
+      position: absolute;
+      left: 9px; top: 10px;
+      width: 18px; height: 16px;
+      border-top: 2px solid #c5c9dd;
+      border-bottom: 2px solid #c5c9dd;
+    }
+    .empty h2 { font-size: 8px; font-weight: 700; margin-bottom: 6px; }
+    .empty p { font-size: 6px; color: var(--muted); line-height: 1.5; }
+    .empty p a { color: var(--green); }
+    .empty .btn { margin-top: 10px; }
+
+    /* ===== Подвал ===== */
+    footer {
+      background: var(--header);
+      color: #fff;
+      height: 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      font-size: 6px;
+      font-weight: 700;
+      padding: 0 16px;
+    }
+    footer a { color: #fff; text-decoration: underline; }
+
+    /* ===== Плавающая вкладка помощи ===== */
+    .help-tab {
+      position: fixed;
+      right: 0;
+      bottom: 30px;
+      width: 12px;
+      height: 84px;
+      background: linear-gradient(180deg, #f7a21b, #ff4d2e);
+      border-radius: 6px 0 0 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: -2px 4px 8px rgba(0, 0, 0, .2);
+    }
+    .help-tab span {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      color: #fff;
+      font-weight: 700;
+      font-size: 6px;
+      white-space: nowrap;
+    }
+
+    @media (max-width: 600px) {
+      .nav { display: none; }
+      main { padding: 20px 12px 30px; max-width: 100%; }
+      .arrow { display: none; }
+      .slide { flex: 0 0 120px; }
+      .promo { display: none; }
+      .help-tab { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="index.html">майКвиз</a>
+    <nav class="nav">
+      <a href="game.html">🎮 Играть</a>
+      <a href="prices.html">💲 Цены</a>
+      <a href="my-quizzes.html" class="active">🧩 Мои Викторины</a>
+      <a href="catalog.html">🏪 Каталог викторин</a>
+      <a href="help.html">❔ Помощь</a>
+    </nav>
+    <div class="header-right">
+      <span>RU ▾</span>
+      <div class="avatar" aria-hidden="true">👤</div>
+      <span>▾</span>
+    </div>
+  </header>
+
+  <main>
+    <h1 id="count">Мои викторины (0)</h1>
+    <p class="subtitle">Выберите викторину для редактирования, просмотра и управления.</p>
+
+    <div class="notice">
+      <span class="notice-icon">⚠</span>
+      <div>
+        Техническое обслуживание запланировано на <b>09.11.2026 с 20:00 до 21:00</b> по вашему часовому поясу.<br>
+        Пожалуйста, не планируйте игры на это время, не запускайте игры в это время.<br>
+        Надеемся, что закончим обновления раньше и будем дальше радовать вас квизами.
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-green" type="button">＋ Создать викторину</button>
+      <button class="btn btn-ai" type="button">✦ Создать с помощью ИИ <span class="badge-ai">AI</span></button>
+    </div>
+
+    <div class="carousel">
+      <button class="arrow arrow-left" id="prev" type="button" aria-label="Назад">‹</button>
+      <div class="slides" id="slides">
+        <div class="slide">
+          <div class="slide-img s-a">Открыта запись на новогодние ивенты</div>
+          <p>Скоро на сайте можно забронировать дату и время — остаться мы всякий на сайте!</p>
+        </div>
+        <div class="slide">
+          <div class="slide-img s-b">МояИгра создана в майКвиз</div>
+          <p>Новый проект, в формате знаменитого ТВ-шоу: кот в мешке, вопрос-лукушки и недоформаты. Вам то-но понравится!</p>
+        </div>
+        <div class="slide">
+          <div class="slide-img s-c">Стань тем, кто меняет будущее!</div>
+          <p>Делись идеями развития сервиса и поддержкой друг друга. Лучшие — рекоградам, а авторам — награды :)</p>
+        </div>
+        <div class="slide">
+          <div class="slide-img s-d">Создадим вам уникальные ИТ-решения</div>
+          <p>майКвиз — проект компании WaveAccess. Проектируем, внедряем и поддерживаем софт, который приносит прогнозируемый результат.</p>
+        </div>
+      </div>
+      <button class="arrow arrow-right" id="next" type="button" aria-label="Вперёд">›</button>
+    </div>
+
+    <div class="filters">
+      <div class="tabs-row">
+        <button class="tab active" type="button">👥 мультиплеер</button>
+        <button class="tab" type="button">👤 одиночный ⓘ</button>
+        <button class="tab" type="button">👥 командный ⓘ</button>
+        <div class="promo">
+          <span class="free">БЕСПЛАТНЫЙ до 35 игроков</span>
+          <span>25/25 запусков до 01.11</span>
+          <span class="upgrade">Улучшить</span>
+        </div>
+      </div>
+      <div class="search">
+        <label class="search-box">
+          <input type="search" id="search" placeholder="Введите поисковой запрос">
+          <span>🔍</span>
+        </label>
+      </div>
+    </div>
+
+    <section class="empty" id="empty">
+      <div class="empty-icon" aria-hidden="true"></div>
+      <h2>Создай свою первую викторину</h2>
+      <p>Или возьми готовую викторину в нашем<br><a href="catalog.html">Сообществе</a> наверху</p>
+      <button class="btn btn-green" type="button">＋ Создать викторину</button>
+    </section>
+  </main>
+
+  <footer>
+    <span>© 2026 WAVEACCESS</span>
+    <a href="privacy.html">Политика конфиденциальности</a>
+    <a href="terms.html">Пользовательское соглашение</a>
+    <a href="consent.html">Согласие на обработку ПДн</a>
+  </footer>
+
+  <div class="help-tab" aria-hidden="true"><span>Ответим на все вопросы</span></div>
+
+  <script>
+    // Карусель
+    const slides = document.getElementById("slides");
+    const step = () => {
+      const slide = slides.querySelector(".slide");
+      return slide ? slide.offsetWidth + 8 : 100;
+    };
+    document.getElementById("prev").addEventListener("click", () => {
+      slides.scrollBy({ left: -step(), behavior: "smooth" });
+    });
+    document.getElementById("next").addEventListener("click", () => {
+      slides.scrollBy({ left: step(), behavior: "smooth" });
+    });
+
+    // Вкладки режима игры
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+      });
+    });
+
+    // Поиск по викторинам (пока список пуст)
+    document.getElementById("search").addEventListener("input", (e) => {
+      console.log("Поиск:", e.target.value);
+    });
+  </script>
+</body>
+</html>

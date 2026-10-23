@@ -275,6 +275,13 @@
       background: #8577f8; color: #fff; text-decoration: none; padding: 14px 16px;
       border-radius: 12px; font-weight: 700; display: flex; justify-content: space-between; text-align: left;
     }
+    .menu-link {
+      background: #8577f8; color: #fff; text-decoration: none; padding: 14px 16px;
+      border-radius: 12px; font-weight: 700; font-family: inherit; font-size: 15px;
+      display: flex; justify-content: space-between; align-items: center;
+      text-align: left; border: none; cursor: pointer; width: 100%;
+    }
+    .menu-link small { opacity: .8; font-weight: 600; }
     .modal-btn {
       background: var(--green); color: #fff; border: none; border-radius: 24px;
       padding: 12px 40px; font-family: inherit; font-weight: 700; font-size: 15px; cursor: pointer;
@@ -577,10 +584,10 @@
       <h2>Ваша викторина готова!</h2>
       <p>Вы можете просмотреть или играть в викторину.<br>Выберите действие ниже:</p>
       <div class="menu-links">
-        <a id="rdyView" href="preview.html"><span>👁 Просмотр</span><span>›</span></a>
-        <a id="rdyTest" href="game.html"><span>⚙ Протестировать игру <small style="opacity:.8">До 5 участников</small></span><span>›</span></a>
-        <a id="rdyPlay" href="host.html"><span>▶ Играть <small style="opacity:.8">25 из 25 запусков</small></span><span>›</span></a>
-        <a href="my-quizzes.html"><span>🧩 Мои Викторины</span><span>›</span></a>
+        <button class="menu-link" id="rdyView" type="button"><span>👁 Просмотр</span><span>›</span></button>
+        <a class="menu-link" id="rdyTest" href="test-quiz.html"><span>⚙ Протестировать игру <small>До 5 участников</small></span><span>›</span></a>
+        <a class="menu-link" id="rdyPlay" href="start-quiz.html"><span>▶ Играть <small>25 из 25 запусков</small></span><span>›</span></a>
+        <a class="menu-link" href="Quizzes.html"><span>🧩 Мои Викторины</span><span>›</span></a>
       </div>
       <button class="modal-btn" type="button" data-close="readyModal">Назад</button>
     </div>
@@ -685,7 +692,6 @@
     buildRows($("audienceRows"), AUDIENCE_ROWS);
     buildRows($("howRows"), HOW_ROWS);
 
-    document.querySelectorAll("[data-premium]").forEach(() => {});
     ["audienceRows", "howRows"].forEach((id) => {
       $(id).addEventListener("click", (e) => {
         if (e.target.closest(".gem")) showMsg("Эта функция доступна на платном тарифе", "error");
@@ -1041,9 +1047,13 @@
 
     function showReady() {
       const id = state.id;
-      $("rdyView").href = `preview.html?id=${id}`;
-      $("rdyTest").href = `game.html?test=${id}`;
-      $("rdyPlay").href = `host.html?id=${id}`;
+      $("rdyTest").href = `test-quiz.html?id=${id}`;
+      $("rdyPlay").href = `start-quiz.html?id=${id}`;
+      $("rdyView").onclick = () => {
+        $("readyModal").hidden = true;
+        setView("questions");
+        openPreview();
+      };
       $("readyModal").hidden = false;
     }
 
@@ -1064,9 +1074,9 @@
       try {
         if (!state.id) {
           state.id = doc(collection(db, "quizzes")).id;
-          history.replaceState(null, "", `?id=${state.id}`);
         }
         await setDoc(doc(db, "quizzes", state.id), buildPayload(), { merge: true });
+        history.replaceState(null, "", `?id=${state.id}`);
         showMsg("Викторина сохранена", "success");
         showReady();
       } catch (e) {

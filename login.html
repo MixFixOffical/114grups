@@ -1,0 +1,3058 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e3a8a">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<title>KURATOR — Вход</title>
+
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+
+<style>
+/* =========================================================
+   TOKENS
+========================================================= */
+:root{
+    --blue-600:#1d4ed8; --blue-700:#1e3a8a;
+    --ink-900:#0f172a; --ink-800:#1e293b; --ink-700:#334155;
+    --ink-600:#475569; --ink-500:#64748b; --ink-400:#94a3b8;
+    --ink-300:#cbd5e1; --ink-200:#e2e8f0; --ink-100:#f1f5f9;
+    --ink-50:#f8fafc;
+
+    --green-600:#047857; --green-50:#ecfdf5; --green-200:#a7f3d0;
+    --red-600:#b91c1c;  --red-50:#fef2f2;   --red-200:#fecaca;
+    --amber-600:#b45309; --amber-50:#fffbeb; --amber-200:#fde68a;
+
+    --radius-sm:8px; --radius-md:10px; --radius-lg:14px;
+    --shadow-card:0 1px 2px rgba(15,23,42,.06), 0 12px 32px -12px rgba(15,23,42,.18);
+    --ease:cubic-bezier(.4,0,.2,1);
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:100%;min-height:100%}
+
+body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Inter",Roboto,Arial,sans-serif;
+    color:var(--ink-800);
+    -webkit-font-smoothing:antialiased;
+    text-rendering:optimizeLegibility;
+    background:#eef2f7;
+    overflow-x:hidden;
+    min-height:100svh;
+    -webkit-tap-highlight-color:transparent;
+}
+
+/* =========================================================
+   LAYOUT
+========================================================= */
+.page{
+    position:relative;z-index:2;
+    width:100%;min-height:100svh;
+    display:flex;align-items:center;justify-content:center;
+    padding:24px 16px calc(24px + env(safe-area-inset-bottom,0px));
+    padding-top:calc(24px + env(safe-area-inset-top,0px));
+}
+
+/* =========================================================
+   CARD
+========================================================= */
+.card{
+    position:relative;
+    width:100%;
+    max-width:420px;
+    padding:32px 28px 24px;
+    border-radius:var(--radius-lg);
+    background:#ffffff;
+    border:1px solid var(--ink-200);
+    box-shadow:var(--shadow-card);
+    overflow:hidden;
+    transition:box-shadow .3s var(--ease), border-color .3s var(--ease);
+}
+.card[data-state="success"]{border-color:var(--green-200)}
+.card[data-state="warning"]{border-color:var(--amber-200)}
+.card[data-state="error"]{border-color:var(--red-200)}
+
+/* =========================================================
+   LOGO
+========================================================= */
+.logo-wrap{
+    width:56px;height:56px;
+    margin:0 auto 16px;
+    display:flex;align-items:center;justify-content:center;
+}
+.logo{
+    width:52px;height:52px;
+    display:flex;align-items:center;justify-content:center;
+    border-radius:12px;
+    background:var(--blue-700);
+    color:#fff;font-size:20px;font-weight:700;
+    letter-spacing:.5px;
+    box-shadow:0 1px 0 rgba(255,255,255,.15) inset;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+.head{text-align:center;margin-bottom:22px}
+.title{
+    font-size:22px;line-height:1.25;font-weight:700;letter-spacing:-.3px;
+    color:var(--ink-900);
+    transition:opacity .25s var(--ease);
+}
+.subtitle{
+    margin-top:6px;color:var(--ink-500);
+    font-size:13px;line-height:1.5;
+    transition:opacity .25s var(--ease);
+}
+
+/* =========================================================
+   TABS
+========================================================= */
+.tabs{
+    position:relative;display:grid;grid-template-columns:1fr 1fr;
+    height:42px;margin-bottom:20px;padding:3px;
+    border-radius:var(--radius-md);
+    background:var(--ink-100);
+    border:1px solid var(--ink-200);
+}
+.tab-ind{
+    position:absolute;top:3px;left:3px;
+    width:calc(50% - 3px);height:calc(100% - 6px);
+    border-radius:7px;
+    background:#fff;
+    border:1px solid var(--ink-200);
+    box-shadow:0 1px 2px rgba(15,23,42,.05);
+    transition:transform .25s var(--ease);
+}
+.card[data-mode="login"] .tab-ind{transform:translateX(0)}
+.card[data-mode="register"] .tab-ind{transform:translateX(100%)}
+.tab{
+    position:relative;z-index:2;
+    border:0;background:transparent;color:var(--ink-500);
+    font-family:inherit;font-size:13px;font-weight:600;
+    cursor:pointer;transition:color .2s var(--ease);
+}
+.card[data-mode="login"] .tab.t-login,
+.card[data-mode="register"] .tab.t-reg{color:var(--ink-900)}
+
+/* =========================================================
+   FORMS VIEWPORT
+========================================================= */
+.viewport{
+    position:relative;width:100%;overflow:hidden;
+    transition:height .3s var(--ease);
+}
+.panel{
+    position:absolute;top:0;left:0;width:100%;
+    opacity:0;pointer-events:none;
+    transition:opacity .25s var(--ease);
+}
+.panel.login-panel,
+.panel.register-panel{transform:none}
+.card[data-mode="login"] .login-panel,
+.card[data-mode="register"] .register-panel{
+    position:relative;
+    opacity:1;pointer-events:auto;
+}
+
+/* SETUP STEP */
+.setup-panel{display:none}
+.card[data-step="setup"] .tabs{display:none}
+.card[data-step="setup"] .login-panel,
+.card[data-step="setup"] .register-panel{display:none}
+.card[data-step="setup"] .setup-panel{
+    display:block;position:relative;
+    opacity:1;pointer-events:auto;
+}
+
+/* PIN STEP */
+.pin-panel{display:none}
+.card[data-step="pin"] .tabs{display:none}
+.card[data-step="pin"] .login-panel,
+.card[data-step="pin"] .register-panel,
+.card[data-step="pin"] .setup-panel{display:none}
+.card[data-step="pin"] .pin-panel{
+    display:block;position:relative;
+    opacity:1;pointer-events:auto;
+}
+
+/* =========================================================
+   FIELDS
+========================================================= */
+.field{
+    position:relative;margin-bottom:12px;
+    opacity:0;transition:opacity .25s var(--ease);
+}
+.card[data-mode="login"] .login-panel .field,
+.card[data-mode="login"] .login-panel .opts,
+.card[data-mode="login"] .login-panel .submit,
+.card[data-mode="register"] .field,
+.card[data-mode="register"] .opts,
+.card[data-mode="register"] .submit,
+.card[data-step="setup"] .setup-panel .field,
+.card[data-step="setup"] .setup-panel .submit,
+.card[data-step="pin"] .pin-panel .field,
+.card[data-step="pin"] .pin-panel .submit{opacity:1}
+
+.input-wrap{position:relative}
+input{
+    width:100%;height:48px;
+    padding:0 44px 0 14px;
+    border:1px solid var(--ink-200);
+    border-radius:var(--radius-md);
+    outline:none;
+    background:#fff;
+    color:var(--ink-900);
+    font-family:inherit;font-size:15px;font-weight:500;
+    transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+    -webkit-appearance:none;appearance:none;
+}
+input::placeholder{color:var(--ink-400);font-weight:400}
+input:hover{border-color:var(--ink-300)}
+input:focus{
+    border-color:var(--blue-600);
+    box-shadow:0 0 0 3px rgba(29,78,216,.12);
+}
+input[type="password"]{letter-spacing:.3px}
+input[data-numeric]{letter-spacing:2px}
+
+/* === Чекбоксы сохраняют нативный вид === */
+input[type="checkbox"]{
+    -webkit-appearance:checkbox;
+    appearance:auto;
+    width:16px;
+    height:16px;
+    padding:0;
+    margin:0;
+    border:none;
+    border-radius:4px;
+    box-shadow:none;
+    background:initial;
+    cursor:pointer;
+    accent-color:var(--blue-600);
+    flex-shrink:0;
+    vertical-align:middle;
+}
+input[type="checkbox"]:hover{border-color:transparent}
+input[type="checkbox"]:focus{
+    box-shadow:0 0 0 3px rgba(29,78,216,.18);
+    border-color:transparent;
+}
+
+.field.err input{
+    border-color:var(--red-600);
+    box-shadow:0 0 0 3px rgba(185,28,28,.12);
+}
+
+.input-icon{
+    position:absolute;right:14px;top:50%;width:17px;height:17px;
+    transform:translateY(-50%);color:var(--ink-400);
+    pointer-events:none;
+    transition:color .2s var(--ease);
+}
+.input-wrap:focus-within .input-icon{color:var(--blue-600)}
+
+.caps{
+    position:absolute;right:44px;top:50%;transform:translateY(-50%);
+    padding:3px 7px;border-radius:5px;
+    background:var(--amber-50);border:1px solid var(--amber-200);
+    color:var(--amber-600);font-size:10px;font-weight:700;
+    opacity:0;pointer-events:none;
+    transition:opacity .2s var(--ease);
+}
+.caps.on{opacity:1}
+
+.pwd-toggle{
+    position:absolute;right:8px;top:50%;transform:translateY(-50%);
+    width:34px;height:34px;border:0;background:transparent;
+    color:var(--ink-400);border-radius:7px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .2s var(--ease), color .2s var(--ease);
+}
+.pwd-toggle svg{width:17px;height:17px}
+.pwd-toggle .eye-off{opacity:0;transition:.2s}
+.pwd-toggle.on .eye-on{opacity:0}
+.pwd-toggle.on .eye-off{opacity:1}
+.pwd-toggle:hover{color:var(--ink-700);background:var(--ink-100)}
+
+/* =========================================================
+   OPTS
+========================================================= */
+.opts{
+    display:flex;align-items:center;justify-content:space-between;
+    margin:4px 2px 16px;
+    opacity:1;
+    position:relative;
+    z-index:2;
+}
+.remember{
+    display:flex;align-items:center;gap:8px;
+    color:var(--ink-600);font-size:12.5px;font-weight:500;
+    cursor:pointer;user-select:none;
+    padding:4px 0;
+    position:relative;
+    z-index:3;
+}
+.remember input[type="checkbox"]{
+    width:16px;height:16px;
+    padding:0;margin:0;
+    accent-color:var(--blue-600);
+    cursor:pointer;
+    flex-shrink:0;
+    -webkit-appearance:checkbox;
+    appearance:auto;
+}
+.forgot{
+    border:0;background:transparent;color:var(--blue-600);
+    font-family:inherit;font-size:12.5px;font-weight:600;
+    cursor:pointer;padding:4px 6px;border-radius:6px;
+    transition:background .2s var(--ease);
+}
+.forgot:hover{background:var(--ink-100)}
+
+/* =========================================================
+   SUBMIT
+========================================================= */
+.submit{
+    position:relative;width:100%;height:48px;
+    border:0;border-radius:var(--radius-md);
+    color:#fff;font-family:inherit;font-size:14.5px;font-weight:600;
+    cursor:pointer;overflow:hidden;
+    background:var(--blue-700);
+    transition:background .2s var(--ease), opacity .2s var(--ease);
+    opacity:0;
+}
+.submit:hover{background:var(--blue-600)}
+.submit:active{background:#1e40af}
+.submit:disabled{opacity:.6;cursor:not-allowed}
+.submit.loading::after{
+    content:"";position:absolute;right:18px;top:50%;width:14px;height:14px;
+    margin-top:-7px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+    animation:spin .8s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* =========================================================
+   PIN PANEL
+========================================================= */
+.pin-panel .pin-head{
+    text-align:center;margin-bottom:18px;
+}
+.pin-panel .pin-avatar{
+    width:56px;height:56px;margin:0 auto 12px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--blue-700);color:#fff;
+    font-size:20px;font-weight:700;
+    letter-spacing:-.5px;
+}
+.pin-panel .pin-greet{
+    font-size:15px;font-weight:700;color:var(--ink-900);
+    margin-bottom:4px;
+}
+.pin-panel .pin-hint{
+    font-size:12.5px;color:var(--ink-500);line-height:1.5;
+}
+
+.pin-dots{
+    display:flex;justify-content:center;gap:12px;
+    margin:20px 0 16px;
+}
+.pin-dot{
+    width:14px;height:14px;border-radius:50%;
+    border:2px solid var(--ink-300);
+    background:transparent;
+    transition:background .15s var(--ease), border-color .15s var(--ease), transform .15s var(--ease);
+}
+.pin-dot.on{
+    background:var(--blue-700);
+    border-color:var(--blue-700);
+    transform:scale(1.05);
+}
+.pin-dots.err .pin-dot{
+    border-color:var(--red-600);
+    background:transparent;
+    animation:pinShake .4s var(--ease);
+}
+@keyframes pinShake{
+    0%,100%{transform:translateX(0)}
+    25%{transform:translateX(-6px)}
+    75%{transform:translateX(6px)}
+}
+
+.pin-keypad{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-bottom:8px;
+}
+.pin-key{
+    height:56px;
+    border:1px solid var(--ink-200);
+    border-radius:var(--radius-md);
+    background:#fff;
+    color:var(--ink-900);
+    font-family:inherit;font-size:22px;font-weight:600;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .12s var(--ease), border-color .12s var(--ease), transform .12s var(--ease);
+    user-select:none;
+    -webkit-user-select:none;
+}
+.pin-key:hover{background:var(--ink-50);border-color:var(--ink-300)}
+.pin-key:active{background:var(--ink-100);transform:scale(.96)}
+.pin-key[data-action="del"]{color:var(--red-600)}
+.pin-key[data-action="clear"]{font-size:14px;color:var(--ink-500);font-weight:600}
+.pin-key svg{width:22px;height:22px}
+
+.pin-actions{
+    display:flex;flex-direction:column;gap:8px;
+    margin-top:10px;
+}
+.pin-link{
+    border:0;background:transparent;
+    color:var(--blue-600);font-family:inherit;
+    font-size:12.5px;font-weight:600;
+    cursor:pointer;padding:8px;border-radius:6px;
+    transition:background .2s var(--ease);
+}
+.pin-link:hover{background:var(--ink-100)}
+.pin-link.danger{color:var(--red-600)}
+.pin-link.danger:hover{background:var(--red-50)}
+
+/* =========================================================
+   ROLE SELECT
+========================================================= */
+.roles{display:flex;flex-direction:column;gap:10px}
+.roles.hide{display:none}
+.roles-title{
+    font-size:15px;font-weight:700;
+    text-align:center;color:var(--ink-900);line-height:1.35;
+}
+.roles-sub{
+    font-size:12px;color:var(--ink-500);text-align:center;
+    margin-bottom:6px;line-height:1.5;
+}
+.role{
+    display:flex;align-items:center;gap:12px;
+    padding:13px 15px;border-radius:var(--radius-md);
+    border:1px solid var(--ink-200);
+    background:#fff;
+    cursor:pointer;user-select:none;
+    transition:border-color .2s var(--ease), background .2s var(--ease);
+}
+.role:hover{border-color:var(--ink-300);background:var(--ink-50)}
+.role:active{background:var(--ink-100)}
+.role-icon{
+    flex-shrink:0;width:40px;height:40px;border-radius:var(--radius-md);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--blue-700);background:var(--ink-100);
+    border:1px solid var(--ink-200);
+}
+.role-icon svg{width:19px;height:19px}
+.role[data-role="curator"] .role-icon{color:var(--blue-700)}
+.role[data-role="starosta"] .role-icon{color:#6d28d9}
+.role[data-role="parent"]  .role-icon{color:var(--green-600)}
+.role-info{flex:1;min-width:0}
+.role-name{font-size:13.5px;font-weight:600;color:var(--ink-900)}
+.role-desc{margin-top:2px;font-size:11.5px;color:var(--ink-500);line-height:1.4}
+.role-arrow{flex-shrink:0;width:16px;height:16px;color:var(--ink-300)}
+.role.picked{
+    border-color:var(--green-600);
+    background:var(--green-50);
+}
+.role.picked .role-icon{
+    color:var(--green-600);
+    background:#fff;border-color:var(--green-200);
+}
+.role.picked .role-arrow{color:var(--green-600)}
+
+/* =========================================================
+   REGISTER FORM
+========================================================= */
+.reg-form{transition:opacity .25s var(--ease)}
+.reg-form.hide{display:none}
+
+.back-btn{
+    display:inline-flex;align-items:center;gap:5px;
+    margin-bottom:10px;padding:5px 9px 5px 5px;
+    border:0;background:transparent;color:var(--ink-500);
+    font-family:inherit;font-size:11.5px;font-weight:600;
+    cursor:pointer;border-radius:6px;
+    transition:color .2s var(--ease), background .2s var(--ease);
+}
+.back-btn:hover{color:var(--blue-600);background:var(--ink-100)}
+.back-btn svg{width:13px;height:13px}
+
+.setup-cancel{
+    display:flex;margin:10px auto 0;
+    opacity:1;
+}
+
+.role-badge{
+    display:flex;align-items:center;gap:7px;
+    margin-bottom:12px;padding:7px 11px;
+    border-radius:var(--radius-sm);
+    background:var(--ink-50);
+    border:1px solid var(--ink-200);color:var(--ink-700);
+    font-size:12px;font-weight:600;
+}
+.role-badge svg{width:14px;height:14px;color:var(--green-600)}
+
+.strength{
+    margin-top:-4px;margin-bottom:12px;
+    opacity:0;max-height:0;overflow:hidden;
+    transition:opacity .25s var(--ease), max-height .25s var(--ease);
+}
+.card[data-mode="register"] .strength{opacity:1;max-height:44px}
+.strength-track{
+    width:100%;height:4px;overflow:hidden;border-radius:4px;
+    background:var(--ink-100);
+}
+.strength-bar{
+    width:0;height:100%;border-radius:inherit;
+    background:var(--ink-300);
+    transition:width .3s var(--ease), background .2s var(--ease);
+}
+.strength-text{margin-top:5px;font-size:11px;font-weight:500;color:var(--ink-500)}
+
+/* =========================================================
+   LOGIN HINT
+========================================================= */
+.setup-hint{
+    font-size:12px;color:var(--ink-500);line-height:1.5;
+    text-align:center;margin:0 4px 14px;
+}
+
+/* =========================================================
+   MESSAGE
+========================================================= */
+.message{
+    position:relative;margin-top:12px;padding:0 14px;
+    border-radius:var(--radius-md);font-size:12.5px;font-weight:500;
+    overflow:hidden;opacity:0;max-height:0;
+    transition:opacity .25s var(--ease), max-height .25s var(--ease), padding .25s var(--ease);
+}
+.message.show{
+    opacity:1;max-height:180px;
+    padding:11px 13px 11px 38px;
+}
+.message.show::before{
+    content:"";position:absolute;left:11px;top:50%;
+    width:18px;height:18px;transform:translateY(-50%);
+    border-radius:50%;background-repeat:no-repeat;
+    background-position:center;background-size:10px 10px;
+}
+.message.error{color:var(--red-600);background:var(--red-50);border:1px solid var(--red-200)}
+.message.error.show::before{
+    background-color:var(--red-600);
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'><path d='M12 8v5M12 16.5v.01'/></svg>");
+}
+.message.success{color:var(--green-600);background:var(--green-50);border:1px solid var(--green-200)}
+.message.success.show::before{
+    background-color:var(--green-600);
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'><path d='m5 12 5 5L20 7'/></svg>");
+}
+.message.warning{color:var(--amber-600);background:var(--amber-50);border:1px solid var(--amber-200)}
+.message.warning.show::before{
+    background-color:var(--amber-600);
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'><path d='M12 8v5M12 16.5v.01'/></svg>");
+}
+
+/* =========================================================
+   FOOTER
+========================================================= */
+.foot{
+    margin-top:18px;padding-top:14px;
+    text-align:center;color:var(--ink-400);
+    font-size:11px;letter-spacing:.2px;
+    border-top:1px solid var(--ink-100);
+}
+.foot strong{color:var(--ink-600);font-weight:600;letter-spacing:.4px}
+
+/* =========================================================
+   STATUS SCREEN
+========================================================= */
+.status{
+    position:absolute;inset:0;padding:40px 28px 24px;
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;
+    text-align:center;background:#fff;
+    opacity:0;visibility:hidden;
+    transition:opacity .25s var(--ease), visibility .25s var(--ease);
+    pointer-events:none;z-index:10;
+    border-radius:inherit;
+}
+.card[data-state="loading"] .status,
+.card[data-state="success"] .status,
+.card[data-state="error"] .status,
+.card[data-state="warning"] .status{
+    opacity:1;visibility:visible;pointer-events:auto;
+}
+.card[data-state="loading"] .viewport,
+.card[data-state="loading"] .tabs,
+.card[data-state="loading"] .head,
+.card[data-state="loading"] .logo-wrap,
+.card[data-state="loading"] .foot,
+.card[data-state="success"] .viewport,
+.card[data-state="success"] .tabs,
+.card[data-state="success"] .head,
+.card[data-state="success"] .logo-wrap,
+.card[data-state="success"] .foot,
+.card[data-state="error"] .viewport,
+.card[data-state="error"] .tabs,
+.card[data-state="error"] .head,
+.card[data-state="error"] .logo-wrap,
+.card[data-state="error"] .foot,
+.card[data-state="warning"] .viewport,
+.card[data-state="warning"] .tabs,
+.card[data-state="warning"] .head,
+.card[data-state="warning"] .logo-wrap,
+.card[data-state="warning"] .foot{
+    opacity:0;pointer-events:none;
+}
+
+.status-icon{position:relative;width:88px;height:88px;margin-bottom:22px;
+    display:flex;align-items:center;justify-content:center}
+
+.spinner{
+    position:absolute;inset:0;border-radius:50%;
+    border:3px solid var(--ink-100);
+    border-top-color:var(--blue-700);
+    animation:spin 1.6s linear infinite;
+    opacity:0;
+    transition:opacity .2s var(--ease);
+}
+.card[data-state="loading"] .spinner{opacity:1}
+.spinner-logo{
+    position:absolute;width:34px;height:34px;border-radius:var(--radius-md);
+    background:var(--blue-700);
+    color:#fff;font-size:14px;font-weight:700;
+    display:flex;align-items:center;justify-content:center;
+    opacity:0;transition:opacity .2s var(--ease);
+}
+.card[data-state="loading"] .spinner-logo{opacity:1}
+
+.status-svg{
+    position:absolute;inset:0;width:88px;height:88px;
+    opacity:0;transition:opacity .3s var(--ease);
+}
+.card[data-state="success"] .status-svg.s,
+.card[data-state="error"] .status-svg.e,
+.card[data-state="warning"] .status-svg.w{opacity:1}
+.status-svg circle{fill:none;stroke-width:2.5;stroke-linecap:round;
+    stroke-dasharray:280;stroke-dashoffset:280;
+    transition:stroke-dashoffset 1s var(--ease)}
+.status-svg.s circle{stroke:var(--green-600)}
+.status-svg.e circle{stroke:var(--red-600)}
+.status-svg.w circle{stroke:var(--amber-600)}
+.card[data-state="success"] .status-svg.s circle,
+.card[data-state="error"] .status-svg.e circle,
+.card[data-state="warning"] .status-svg.w circle{stroke-dashoffset:0}
+.status-svg path,.status-svg line{
+    fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;
+    stroke-dasharray:100;stroke-dashoffset:100;
+    transition:stroke-dashoffset .8s var(--ease) .5s;
+}
+.status-svg.s path{stroke:var(--green-600)}
+.status-svg.e path,.status-svg.e line{stroke:var(--red-600)}
+.status-svg.w line{stroke:var(--amber-600)}
+.status-svg.w .dot{stroke:none;fill:var(--amber-600);opacity:0;
+    transition:opacity .4s var(--ease) 1s}
+.card[data-state="success"] .status-svg.s path,
+.card[data-state="error"] .status-svg.e path,
+.card[data-state="error"] .status-svg.e line,
+.card[data-state="warning"] .status-svg.w line{stroke-dashoffset:0}
+.card[data-state="warning"] .status-svg.w .dot{opacity:1}
+
+.status-title{
+    font-size:19px;font-weight:700;letter-spacing:-.2px;
+    color:var(--ink-900);margin-bottom:6px;
+}
+.status-sub{
+    font-size:12.5px;line-height:1.55;color:var(--ink-500);
+    max-width:300px;
+}
+
+.status-dots{
+    display:flex;gap:6px;margin-top:18px;
+    opacity:0;transition:opacity .2s var(--ease);
+}
+.card[data-state="loading"] .status-dots{opacity:1}
+.status-dots span{
+    width:6px;height:6px;border-radius:50%;
+    background:var(--ink-300);
+    animation:dotPulse 1.6s ease-in-out infinite;
+}
+.status-dots span:nth-child(2){animation-delay:.25s}
+.status-dots span:nth-child(3){animation-delay:.5s}
+@keyframes dotPulse{
+    0%,100%{opacity:.4}
+    50%{opacity:1}
+}
+
+/* =========================================================
+   WAITING CARD
+========================================================= */
+.waiting{
+    display:flex;flex-direction:column;gap:10px;width:100%;
+    margin-top:18px;
+    opacity:0;transition:opacity .25s var(--ease);
+}
+.card[data-state="warning"] .waiting{opacity:1}
+
+.waiting-timer{
+    padding:14px;
+    background:var(--ink-50);
+    border-radius:var(--radius-md);
+    border:1px solid var(--ink-200);
+    text-align:center;
+}
+.waiting-timer-label{font-size:10.5px;color:var(--ink-500);
+    font-weight:700;letter-spacing:.5px;text-transform:uppercase;
+    margin-bottom:6px;
+}
+.waiting-timer-value{
+    font-size:22px;font-weight:700;
+    color:var(--ink-900);
+    font-variant-numeric:tabular-nums;
+    letter-spacing:-.3px;
+}
+.waiting-timer-hint{font-size:11px;color:var(--ink-500);margin-top:4px}
+
+.check-btn{
+    position:relative;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    height:46px;padding:0 20px;
+    border:0;border-radius:var(--radius-md);
+    background:var(--ink-800);
+    color:#fff;font-family:inherit;
+    font-size:13.5px;font-weight:600;
+    cursor:pointer;overflow:hidden;
+    transition:background .2s var(--ease);
+}
+.check-btn:hover:not(:disabled){background:var(--ink-900)}
+.check-btn:disabled{opacity:.55;cursor:not-allowed}
+.check-btn svg{width:16px;height:16px;flex:none}
+.check-btn.loading::after{
+    content:"";position:absolute;right:16px;top:50%;width:14px;height:14px;
+    margin-top:-7px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.4);border-top-color:#fff;
+    animation:spin .8s linear infinite;
+}
+
+.retry-btn{
+    padding:11px 20px;margin-top:14px;
+    border:1px solid var(--ink-200);border-radius:var(--radius-md);
+    background:#fff;color:var(--ink-700);
+    font-family:inherit;font-size:12.5px;font-weight:600;
+    cursor:pointer;
+    opacity:0;pointer-events:none;
+    transition:opacity .25s var(--ease), background .2s var(--ease);
+}
+.card[data-state="error"] .retry-btn{
+    opacity:1;pointer-events:auto;
+}
+.retry-btn:hover{background:var(--ink-100)}
+
+/* =========================================================
+   PAGE LOADER
+========================================================= */
+.page-loader{
+    position:fixed;inset:0;z-index:9999;
+    display:flex;align-items:center;justify-content:center;
+    background:#eef2f7;
+    transition:opacity .4s var(--ease), visibility .4s var(--ease);
+}
+.page-loader.hide{opacity:0;visibility:hidden}
+.loader-content{display:flex;flex-direction:column;align-items:center;gap:14px}
+.loader-ring{position:relative;width:44px;height:44px;
+    display:flex;align-items:center;justify-content:center}
+.loader-ring::before{
+    content:"";position:absolute;inset:0;border-radius:50%;
+    border:2px solid var(--ink-200);
+    border-top-color:var(--blue-700);
+    animation:spin 1.2s linear infinite;
+}
+.loader-logo{
+    width:30px;height:30px;border-radius:var(--radius-sm);
+    display:flex;align-items:center;justify-content:center;
+    background:var(--blue-700);
+    color:#fff;font-size:12px;font-weight:700;
+    z-index:1;
+}
+.loader-text{color:var(--ink-500);font-size:12px;font-weight:500;letter-spacing:.2px}
+
+/* =========================================================
+   TOAST
+========================================================= */
+.toasts{
+    position:fixed;top:calc(20px + env(safe-area-inset-top,0px));
+    left:50%;transform:translateX(-50%);
+    z-index:9000;display:flex;flex-direction:column;gap:8px;
+    pointer-events:none;max-width:90vw;
+}
+.toast{
+    padding:11px 16px;border-radius:var(--radius-md);
+    font-size:12.5px;font-weight:500;
+    background:var(--ink-900);color:#fff;
+    box-shadow:0 8px 24px rgba(15,23,42,.25);
+    animation:toastIn .25s var(--ease) forwards;
+    pointer-events:auto;white-space:nowrap;
+}
+.toast.hide{animation:toastOut .2s var(--ease) forwards}
+@keyframes toastIn{
+    from{opacity:0;transform:translateY(-8px)}
+    to{opacity:1;transform:none}
+}
+@keyframes toastOut{
+    to{opacity:0;transform:translateY(-8px)}
+}
+
+/* =========================================================
+   AGREEMENT MODAL
+========================================================= */
+.agree-overlay{
+    position:fixed;inset:0;z-index:10000;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px 14px calc(20px + env(safe-area-inset-bottom,0px));
+    background:rgba(15,23,42,.5);
+    opacity:0;visibility:hidden;
+    transition:opacity .25s var(--ease), visibility .25s var(--ease);
+}
+.agree-overlay.on{opacity:1;visibility:visible}
+
+.agree-card{
+    position:relative;width:100%;max-width:460px;
+    max-height:calc(100svh - 40px);
+    display:flex;flex-direction:column;
+    padding:24px 22px 20px;
+    border-radius:var(--radius-lg);
+    background:#fff;
+    border:1px solid var(--ink-200);
+    box-shadow:0 20px 50px -12px rgba(15,23,42,.35);
+    overflow:hidden;
+    transform:translateY(12px);
+    transition:transform .3s var(--ease);
+}
+.agree-overlay.on .agree-card{transform:none}
+
+.agree-seal-top{
+    width:110px;height:110px;
+    margin:0 auto 12px;flex:none;
+    object-fit:contain;
+    pointer-events:none;user-select:none;
+    -webkit-user-drag:none;
+}
+
+.agree-title{
+    font-size:18px;font-weight:700;letter-spacing:-.2px;
+    text-align:center;color:var(--ink-900);
+    line-height:1.3;margin-bottom:8px;
+}
+.agree-lead{
+    font-size:12.5px;line-height:1.55;color:var(--ink-500);
+    text-align:center;margin-bottom:14px;
+}
+.agree-lead b{color:var(--ink-700)}
+
+.agree-scroll{
+    flex:1 1 auto;min-height:120px;
+    overflow-y:auto;overscroll-behavior:contain;
+    padding:14px 16px;
+    border-radius:var(--radius-md);
+    background:var(--ink-50);
+    border:1px solid var(--ink-200);
+    font-size:12.5px;line-height:1.6;color:var(--ink-700);
+    scrollbar-width:thin;scrollbar-color:var(--ink-300) transparent;
+}
+.agree-scroll:focus{outline:2px solid var(--blue-600);outline-offset:2px}
+.agree-scroll::-webkit-scrollbar{width:8px}
+.agree-scroll::-webkit-scrollbar-thumb{
+    background:var(--ink-300);border-radius:8px;border:2px solid transparent;
+    background-clip:content-box;
+}
+.agree-scroll h3{
+    font-size:13px;font-weight:700;color:var(--ink-900);
+    margin:14px 0 6px;letter-spacing:-.1px;
+}
+.agree-scroll h3:first-child{margin-top:0}
+.agree-scroll p{margin-bottom:8px}
+.agree-scroll ul{margin:0 0 8px 18px;padding:0}
+.agree-scroll li{margin-bottom:4px}
+.agree-scroll b{color:var(--ink-900)}
+
+.agree-date{
+    margin-top:14px!important;
+    color:var(--ink-500);
+    font-size:11.5px;
+}
+.agree-sign{
+    color:var(--ink-700);
+    font-size:12px;
+    letter-spacing:.5px;
+    margin-top:8px;
+}
+
+.agree-btn{
+    position:relative;flex:none;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;height:48px;margin-top:14px;
+    border:0;border-radius:var(--radius-md);
+    color:#fff;font-family:inherit;font-size:14px;font-weight:600;
+    cursor:pointer;overflow:hidden;
+    background:var(--blue-700);
+    transition:background .2s var(--ease), opacity .2s var(--ease);
+}
+.agree-btn svg{width:18px;height:18px;flex:none}
+.agree-btn:not(:disabled):hover{background:var(--blue-600)}
+.agree-btn:not(:disabled):active{background:#1e40af}
+.agree-btn:disabled{
+    opacity:.6;cursor:not-allowed;
+    background:var(--ink-400);
+}
+
+/* =========================================================
+   PIN SETUP MODAL
+========================================================= */
+.pin-setup-overlay{
+    position:fixed;inset:0;z-index:10000;
+    display:flex;align-items:center;justify-content:center;
+    padding:20px 14px calc(20px + env(safe-area-inset-bottom,0px));
+    background:rgba(15,23,42,.5);
+    opacity:0;visibility:hidden;
+    transition:opacity .25s var(--ease), visibility .25s var(--ease);
+}
+.pin-setup-overlay.on{opacity:1;visibility:visible}
+
+.pin-setup-card{
+    width:100%;max-width:400px;
+    padding:26px 22px 20px;
+    border-radius:var(--radius-lg);
+    background:#fff;
+    border:1px solid var(--ink-200);
+    box-shadow:0 20px 50px -12px rgba(15,23,42,.35);
+    transform:translateY(12px);
+    transition:transform .3s var(--ease);
+}
+.pin-setup-overlay.on .pin-setup-card{transform:none}
+
+.pin-setup-title{
+    font-size:17px;font-weight:700;color:var(--ink-900);
+    text-align:center;margin-bottom:6px;
+}
+.pin-setup-sub{
+    font-size:12.5px;color:var(--ink-500);
+    text-align:center;line-height:1.5;margin-bottom:18px;
+}
+
+.pin-setup-dots{
+    display:flex;justify-content:center;gap:14px;
+    margin:8px 0 18px;
+}
+.pin-setup-dots .pin-dot{
+    width:16px;height:16px;
+}
+.pin-setup-dots.err .pin-dot{
+    border-color:var(--red-600);
+    animation:pinShake .4s var(--ease);
+}
+
+.pin-setup-keypad{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    margin-bottom:8px;
+}
+.pin-setup-key{
+    height:54px;
+    border:1px solid var(--ink-200);
+    border-radius:var(--radius-md);
+    background:#fff;
+    color:var(--ink-900);
+    font-family:inherit;font-size:22px;font-weight:600;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .12s var(--ease), border-color .12s var(--ease), transform .12s var(--ease);
+}
+.pin-setup-key:hover{background:var(--ink-50);border-color:var(--ink-300)}
+.pin-setup-key:active{background:var(--ink-100);transform:scale(.96)}
+.pin-setup-key[data-action="del"]{color:var(--red-600)}
+.pin-setup-key[data-action="clear"]{font-size:14px;color:var(--ink-500);font-weight:600}
+.pin-setup-key svg{width:22px;height:22px}
+
+.pin-setup-actions{
+    display:flex;flex-direction:column;gap:6px;
+    margin-top:10px;
+}
+.pin-setup-skip{
+    padding:11px;
+    border:0;background:transparent;
+    color:var(--ink-500);font-family:inherit;
+    font-size:12.5px;font-weight:600;
+    cursor:pointer;border-radius:6px;
+    transition:background .2s var(--ease), color .2s var(--ease);
+}
+.pin-setup-skip:hover{background:var(--ink-100);color:var(--ink-700)}
+
+.pin-setup-err{
+    margin-top:10px;
+    padding:9px 12px;
+    border-radius:var(--radius-sm);
+    background:var(--red-50);
+    border:1px solid var(--red-200);
+    color:var(--red-600);
+    font-size:12px;font-weight:500;
+    text-align:center;
+    opacity:0;max-height:0;
+    overflow:hidden;
+    transition:opacity .2s var(--ease), max-height .2s var(--ease), padding .2s var(--ease);
+}
+.pin-setup-err.on{
+    opacity:1;max-height:80px;padding:9px 12px;
+}
+
+/* =========================================================
+   RESPONSIVE
+========================================================= */
+@media (max-width:480px){
+    .page{padding:16px 12px calc(16px + env(safe-area-inset-bottom,0px))}
+    .card{padding:26px 20px 20px;border-radius:var(--radius-md);max-width:100%}
+    .title{font-size:20px}
+    .logo{width:48px;height:48px;font-size:18px;border-radius:10px}
+    input{height:50px;font-size:16px}
+    .submit,.check-btn{height:50px;font-size:15px}
+    .status-icon{width:80px;height:80px}
+    .status-svg{width:80px;height:80px}
+    .status-title{font-size:17px}
+    .status-sub{font-size:12px}
+
+    .agree-card{padding:20px 16px 16px;border-radius:var(--radius-md);max-height:calc(100svh - 24px)}
+    .agree-title{font-size:16px}
+    .agree-lead{font-size:12px}
+    .agree-scroll{font-size:12px;padding:12px}
+    .agree-btn{height:50px;font-size:14.5px}
+    .agree-seal-top{width:92px;height:92px}
+
+    .pin-key,.pin-setup-key{height:52px;font-size:20px}
+}
+@media (max-width:360px){
+    .card{padding:22px 16px 18px}
+    .title{font-size:18px}
+    .agree-seal-top{width:80px;height:80px}
+    .pin-dot{width:12px;height:12px}
+    .pin-key,.pin-setup-key{height:48px;font-size:18px}
+}
+@media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+        animation-duration:.001ms !important;
+        animation-iteration-count:1 !important;
+        transition-duration:.001ms !important;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<!-- =========================================================
+     AGREEMENT MODAL
+========================================================= -->
+<div class="agree-overlay" id="agreeOverlay" aria-hidden="true">
+    <div class="agree-card" role="dialog" aria-modal="true" aria-labelledby="agreeTitle">
+
+        <img class="agree-seal-top"
+             src="seal.png"
+             alt="Печать KURATOR"
+             draggable="false">
+
+        <h2 class="agree-title" id="agreeTitle">Уведомление об использовании системы</h2>
+        <p class="agree-lead">
+            Добро пожаловать в <b>Kurator</b> — систему для ведения учебного журнала,
+            учёта посещаемости и взаимодействия участников учебного процесса.
+            Перед началом использования ознакомьтесь с уведомлением.
+        </p>
+
+        <div class="agree-scroll" id="agreeScroll" tabindex="0">
+            <h3>Обработка информации</h3>
+            <p>
+                Регистрируясь в системе и используя свою учётную запись, вы соглашаетесь
+                на обработку информации, необходимой для работы <b>Kurator</b>.
+            </p>
+            <p>
+                В зависимости от вашей роли система может обрабатывать ФИО, данные
+                учётной записи, сведения о группе, посещаемости и другую информацию,
+                необходимую для предоставления функций системы.
+            </p>
+            <p>Полученная информация используется для:</p>
+            <ul>
+                <li>работы учётной записи;</li>
+                <li>ведения учебного журнала и посещаемости;</li>
+                <li>управления группами и пользователями;</li>
+                <li>предоставления доступа к функциям в соответствии с вашей ролью.</li>
+            </ul>
+
+            <h3>Правила использования</h3>
+            <p>
+                Пользователь обязан использовать систему только по её назначению,
+                сохранять конфиденциальность своей учётной записи и не получать
+                несанкционированный доступ к данным других пользователей.
+            </p>
+            <p>Запрещается:</p>
+            <ul>
+                <li>использовать чужую учётную запись без разрешения;</li>
+                <li>изменять или удалять чужие данные без соответствующих прав;</li>
+                <li>пытаться получить доступ к функциям, недоступным вашей роли;</li>
+                <li>намеренно нарушать работу системы;</li>
+                <li>передавать свои данные для входа другим лицам;</li>
+                <li>использовать систему для размещения или распространения запрещённой информации.</li>
+            </ul>
+
+            <h3>Ответственность за нарушение правил</h3>
+            <p>
+                При нарушении настоящих правил администрация <b>Kurator</b> вправе
+                ограничить доступ пользователя к системе или удалить его учётную запись.
+            </p>
+            <p>
+                При серьёзных или повторных нарушениях доступ к системе может быть
+                прекращён без возможности восстановления учётной записи.
+            </p>
+
+            <h3>Согласие</h3>
+            <p>
+                Продолжая использование системы и выполняя вход, вы подтверждаете,
+                что ознакомились с настоящим уведомлением, понимаете его содержание
+                и соглашаетесь соблюдать установленные правила.
+            </p>
+
+            <p class="agree-date"><b>Дата последнего обновления: 07.10.2026</b></p>
+            <p class="agree-sign"><b>Kurator</b></p>
+        </div>
+
+        <button type="button" class="agree-btn" id="agreeBtn" disabled>
+            <span class="agree-btn-label">Прокрутите вниз, чтобы продолжить</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                 stroke-linecap="round" stroke-linejoin="round">
+                <path d="m5 12 5 5L20 7"/>
+            </svg>
+        </button>
+    </div>
+</div>
+
+<!-- =========================================================
+     PIN SETUP MODAL
+========================================================= -->
+<div class="pin-setup-overlay" id="pinSetupOverlay" aria-hidden="true">
+    <div class="pin-setup-card" role="dialog" aria-modal="true" aria-labelledby="pinSetupTitle">
+        <h2 class="pin-setup-title" id="pinSetupTitle">Установите PIN-код</h2>
+        <p class="pin-setup-sub">
+            PIN нужен только для быстрого входа.<br>
+            Он запросит 4 цифры при следующем открытии сайта.
+        </p>
+
+        <div class="pin-setup-dots" id="pinSetupDots">
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+            <div class="pin-dot"></div>
+        </div>
+
+        <div class="pin-setup-keypad" id="pinSetupKeypad">
+            <button type="button" class="pin-setup-key" data-digit="1">1</button>
+            <button type="button" class="pin-setup-key" data-digit="2">2</button>
+            <button type="button" class="pin-setup-key" data-digit="3">3</button>
+            <button type="button" class="pin-setup-key" data-digit="4">4</button>
+            <button type="button" class="pin-setup-key" data-digit="5">5</button>
+            <button type="button" class="pin-setup-key" data-digit="6">6</button>
+            <button type="button" class="pin-setup-key" data-digit="7">7</button>
+            <button type="button" class="pin-setup-key" data-digit="8">8</button>
+            <button type="button" class="pin-setup-key" data-digit="9">9</button>
+            <button type="button" class="pin-setup-key" data-action="clear">C</button>
+            <button type="button" class="pin-setup-key" data-digit="0">0</button>
+            <button type="button" class="pin-setup-key" data-action="del">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 5H8L3 12l5 7h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/>
+                    <path d="m17 9-6 6M11 9l6 6"/>
+                </svg>
+            </button>
+        </div>
+
+        <div class="pin-setup-err" id="pinSetupErr"></div>
+
+        <div class="pin-setup-actions">
+            <button type="button" class="pin-setup-skip" id="pinSetupSkip">
+                Пропустить — входить по паролю
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- PAGE LOADER -->
+<div class="page-loader" id="pageLoader">
+    <div class="loader-content">
+        <div class="loader-ring"><div class="loader-logo">K</div></div>
+        <div class="loader-text">Загрузка системы…</div>
+    </div>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<main class="page">
+    <section class="card" id="card" data-mode="login" data-step="" data-state="">
+
+        <!-- LOGO -->
+        <div class="logo-wrap">
+            <div class="logo">K</div>
+        </div>
+
+        <!-- HEAD -->
+        <div class="head">
+            <h1 class="title" id="title">Вход в систему</h1>
+            <p class="subtitle" id="subtitle">Введите логин или почту и пароль</p>
+        </div>
+
+        <!-- TABS -->
+        <div class="tabs">
+            <div class="tab-ind"></div>
+            <button class="tab t-login" id="tabLogin" type="button">Вход</button>
+            <button class="tab t-reg" id="tabReg" type="button">Регистрация</button>
+        </div>
+
+        <!-- VIEWPORT -->
+        <div class="viewport" id="viewport">
+
+            <!-- LOGIN -->
+            <div class="panel login-panel" id="loginPanel">
+                <form id="loginForm" novalidate>
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="text" id="loginId" placeholder="Логин или электронная почта"
+                                   autocomplete="username" inputmode="text" required maxlength="254">
+                            <div class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <circle cx="12" cy="8" r="3.2"/>
+                                    <path d="M5 20c.8-3.4 3.2-5 7-5s6.2 1.6 7 5"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="password" id="loginPassword" placeholder="Пароль"
+                                   autocomplete="current-password" required maxlength="128">
+                            <div class="caps" id="loginCaps">CAPS</div>
+                            <button type="button" class="pwd-toggle" data-target="loginPassword" aria-label="Показать пароль">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <g class="eye-on">
+                                        <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/>
+                                        <circle cx="12" cy="12" r="2.5"/>
+                                    </g>
+                                    <g class="eye-off">
+                                        <path d="M3 3l18 18"/>
+                                        <path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/>
+                                        <path d="M6.7 6.7C3.6 8.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.4-1.1"/>
+                                    </g>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="opts">
+                        <label class="remember">
+                            <input type="checkbox" id="rememberMe">
+                            <span>Запомнить меня</span>
+                        </label>
+                        <button type="button" class="forgot" id="forgotBtn">Забыли пароль?</button>
+                    </div>
+
+                    <button type="submit" class="submit" id="loginBtn">Войти в систему</button>
+                </form>
+            </div>
+
+            <!-- SETUP LOGIN -->
+            <div class="panel setup-panel" id="setupPanel">
+                <form id="setupForm" novalidate>
+                    <p class="setup-hint">
+                        Придумайте логин из 6–8 цифр и повторите пароль.
+                        Логин понадобится для следующих входов.
+                    </p>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="text" id="setupLogin" placeholder="Логин (6–8 цифр)"
+                                   inputmode="numeric" autocomplete="off" required maxlength="8" data-numeric>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="password" id="setupPwdRepeat" placeholder="Повторите пароль"
+                                   autocomplete="current-password" required maxlength="128">
+                            <button type="button" class="pwd-toggle" data-target="setupPwdRepeat" aria-label="Показать пароль">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <g class="eye-on"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></g>
+                                    <g class="eye-off"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/><path d="M6.7 6.7C3.6 8.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.4-1.1"/></g>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit" id="setupBtn">Сохранить логин</button>
+                    <button type="button" class="back-btn setup-cancel" id="setupCancel">Отмена</button>
+                </form>
+            </div>
+
+            <!-- PIN PANEL -->
+            <div class="panel pin-panel" id="pinPanel">
+                <div class="pin-head">
+                    <div class="pin-avatar" id="pinAvatar">K</div>
+                    <div class="pin-greet" id="pinGreet">С возвращением!</div>
+                    <div class="pin-hint" id="pinHint">Введите PIN для входа</div>
+                </div>
+
+                <div class="pin-dots" id="pinDots">
+                    <div class="pin-dot"></div>
+                    <div class="pin-dot"></div>
+                    <div class="pin-dot"></div>
+                    <div class="pin-dot"></div>
+                </div>
+
+                <div class="pin-keypad" id="pinKeypad">
+                    <button type="button" class="pin-key" data-digit="1">1</button>
+                    <button type="button" class="pin-key" data-digit="2">2</button>
+                    <button type="button" class="pin-key" data-digit="3">3</button>
+                    <button type="button" class="pin-key" data-digit="4">4</button>
+                    <button type="button" class="pin-key" data-digit="5">5</button>
+                    <button type="button" class="pin-key" data-digit="6">6</button>
+                    <button type="button" class="pin-key" data-digit="7">7</button>
+                    <button type="button" class="pin-key" data-digit="8">8</button>
+                    <button type="button" class="pin-key" data-digit="9">9</button>
+                    <button type="button" class="pin-key" data-action="clear">C</button>
+                    <button type="button" class="pin-key" data-digit="0">0</button>
+                    <button type="button" class="pin-key" data-action="del">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 5H8L3 12l5 7h13a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"/>
+                            <path d="m17 9-6 6M11 9l6 6"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="pin-actions">
+                    <button type="button" class="pin-link" id="pinUsePassword">
+                        Войти по паролю
+                    </button>
+                    <button type="button" class="pin-link danger" id="pinForgot">
+                        Забыли PIN?
+                    </button>
+                </div>
+            </div>
+
+            <!-- REGISTER -->
+            <div class="panel register-panel" id="registerPanel">
+
+                <div class="roles" id="roles">
+                    <div class="roles-title">Выберите роль</div>
+                    <div class="roles-sub">Это определит набор доступных функций системы</div>
+
+                    <div class="role" data-role="curator" tabindex="0" role="button">
+                        <div class="role-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 7l8-4 8 4-8 4-8-4Z"/>
+                                <path d="M4 7v6c0 1.5 3.6 3 8 3s8-1.5 8-3V7"/>
+                            </svg>
+                        </div>
+                        <div class="role-info">
+                            <div class="role-name">Куратор</div>
+                            <div class="role-desc">Управление группами и отчётами</div>
+                        </div>
+                        <svg class="role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+                    </div>
+
+                    <div class="role" data-role="starosta" tabindex="0" role="button">
+                        <div class="role-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="8" r="3.2"/>
+                                <path d="M5 20c.8-3.4 3.2-5 7-5s6.2 1.6 7 5"/>
+                                <path d="M17 5.5 18 7l2 .3-1.5 1.5.4 2-1.9-1-1.9 1 .4-2L14 7.3 16 7l1-1.5Z"/>
+                            </svg>
+                        </div>
+                        <div class="role-info">
+                            <div class="role-name">Староста</div>
+                            <div class="role-desc">Помощь куратору и ведение группы</div>
+                        </div>
+                        <svg class="role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+                    </div>
+
+                    <div class="role" data-role="parent" tabindex="0" role="button">
+                        <div class="role-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="8" cy="9" r="2.6"/>
+                                <circle cx="16" cy="9" r="2.6"/>
+                                <path d="M3 19c.6-2.6 2.5-4 5-4s4.4 1.4 5 4"/>
+                                <path d="M11 19c.6-2.6 2.5-4 5-4s4.4 1.4 5 4"/>
+                            </svg>
+                        </div>
+                        <div class="role-info">
+                            <div class="role-name">Родитель</div>
+                            <div class="role-desc">Просмотр успеваемости ребёнка</div>
+                        </div>
+                        <svg class="role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+                    </div>
+                </div>
+
+                <form id="regForm" class="reg-form hide" novalidate>
+                    <button type="button" class="back-btn" id="backToRoles">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>
+                        Изменить роль
+                    </button>
+
+                    <div class="role-badge">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
+                        Роль: <span id="roleBadgeText">—</span>
+                    </div>
+
+                    <input type="hidden" id="regRole" value="">
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="text" id="regName" placeholder="Ваше ФИО" autocomplete="name" required maxlength="120">
+                            <div class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <circle cx="12" cy="8" r="3.2"/>
+                                    <path d="M5 20c.8-3.4 3.2-5 7-5s6.2 1.6 7 5"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="email" id="regEmail" placeholder="Электронная почта" autocomplete="email" inputmode="email" required maxlength="254">
+                            <div class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <rect x="3" y="5" width="18" height="14" rx="3"/>
+                                    <path d="m4 7 8 6 8-6"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="text" id="regLogin" placeholder="Логин (6–8 цифр)"
+                                   inputmode="numeric" autocomplete="off" required maxlength="8" data-numeric>
+                            <div class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="password" id="regPassword" placeholder="Пароль" autocomplete="new-password" required maxlength="128">
+                            <div class="caps" id="regCaps">CAPS</div>
+                            <button type="button" class="pwd-toggle" data-target="regPassword" aria-label="Показать пароль">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <g class="eye-on"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></g>
+                                    <g class="eye-off"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/><path d="M6.7 6.7C3.6 8.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.4-1.1"/></g>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="strength">
+                        <div class="strength-track"><div class="strength-bar" id="strengthBar"></div></div>
+                        <div class="strength-text" id="strengthText">Введите пароль</div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="password" id="regConfirm" placeholder="Повторите пароль" autocomplete="new-password" required maxlength="128">
+                            <button type="button" class="pwd-toggle" data-target="regConfirm" aria-label="Показать пароль">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <g class="eye-on"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></g>
+                                    <g class="eye-off"><path d="M3 3l18 18"/><path d="M10.6 10.6A3 3 0 0 0 13.4 13.4"/><path d="M6.7 6.7C3.6 8.5 2 12 2 12s3.5 6 10 6c1.7 0 3.2-.4 4.4-1.1"/></g>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <div class="input-wrap">
+                            <input type="text" id="regGroup" placeholder="Группа, например 114" autocomplete="off" required maxlength="30">
+                            <div class="input-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                    <path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit" id="regBtn">Создать аккаунт</button>
+                </form>
+            </div>
+
+        </div>
+
+        <!-- MESSAGE -->
+        <div class="message" id="message"></div>
+
+        <!-- FOOTER -->
+        <div class="foot">Система управления <strong>KURATOR</strong></div>
+
+        <!-- STATUS SCREEN -->
+        <div class="status" id="status">
+            <div class="status-icon">
+                <div class="spinner"></div>
+                <div class="spinner-logo">K</div>
+
+                <svg class="status-svg s" viewBox="0 0 96 96" fill="none">
+                    <circle cx="48" cy="48" r="44"/>
+                    <path d="M30 50 L43 63 L66 38"/>
+                </svg>
+
+                <svg class="status-svg e" viewBox="0 0 96 96" fill="none">
+                    <circle cx="48" cy="48" r="44"/>
+                    <line x1="34" y1="34" x2="62" y2="62"/>
+                    <line x1="62" y1="34" x2="34" y2="62"/>
+                </svg>
+
+                <svg class="status-svg w" viewBox="0 0 96 96" fill="none">
+                    <circle cx="48" cy="48" r="44"/>
+                    <line x1="48" y1="28" x2="48" y2="54"/>
+                    <circle class="dot" cx="48" cy="68" r="3.2"/>
+                </svg>
+            </div>
+
+            <div class="status-title" id="statusTitle">Проверяем данные…</div>
+            <div class="status-sub" id="statusSub">Подождите пару секунд</div>
+
+            <div class="status-dots"><span></span><span></span><span></span></div>
+
+            <div class="waiting" id="waiting">
+                <div class="waiting-timer">
+                    <div class="waiting-timer-label">Авто-проверка через</div>
+                    <div class="waiting-timer-value" id="timerValue">15</div>
+                    <div class="waiting-timer-hint">секунд</div>
+                </div>
+                <button type="button" class="check-btn" id="checkBtn">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 11a8.1 8.1 0 0 0-15.5-3M4 5v3h3"/>
+                        <path d="M4 13a8.1 8.1 0 0 0 15.5 3M20 19v-3h-3"/>
+                    </svg>
+                    Проверить статус
+                </button>
+            </div>
+
+            <button type="button" class="retry-btn" id="retryBtn">Попробовать снова</button>
+        </div>
+
+    </section>
+</main>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+import {
+    getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+    sendPasswordResetEmail, signOut, setPersistence,
+    browserLocalPersistence, browserSessionPersistence, onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+import {
+    getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp,
+    collection, query, where
+} from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+/* =========================================
+   FIREBASE
+========================================= */
+const firebaseConfig = {
+    apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+    authDomain: "othets-1aa03.firebaseapp.com",
+    projectId: "othets-1aa03",
+    storageBucket: "othets-1aa03.firebasestorage.app",
+    messagingSenderId: "528392191591",
+    appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+    measurementId: "G-F50WVZRXZJ"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+/* =========================================
+   EMAILJS
+========================================= */
+const EMAILJS_SERVICE_ID  = "service_50x4f98";
+const EMAILJS_TEMPLATE_ID = "template_spjjzec";
+const EMAILJS_PUBLIC_KEY  = "5IMT9M0W-oaN4tnz8";
+const ADMIN_EMAIL         = "vasylkivmaksim@gmail.com";
+
+if (typeof emailjs !== "undefined") {
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+}
+
+async function sendAdminEmail(senderEmail, senderName, subject, message) {
+    if (typeof emailjs === "undefined") return;
+    try {
+        await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+            to_email: ADMIN_EMAIL,
+            to_name: "Администратор",
+            name: senderName || "Новый пользователь",
+            email: senderEmail || ADMIN_EMAIL,
+            subject: subject || "Новая заявка на регистрацию",
+            message: message || ""
+        });
+        console.log("✅ Письмо админу отправлено");
+    } catch (e) {
+        console.error("❌ Email error:", e);
+    }
+}
+
+/* =========================================
+   CONSTS
+========================================= */
+const IS_DEV = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+const log = (...a) => IS_DEV && console.log(...a);
+const logErr = (...a) => console.error(...a.map(x =>
+    (x && x.code) ? { code:x.code, message:x.message } : x));
+
+const ALLOWED_ROLES = new Set(["curator","starosta","parent"]);
+const ALLOWED_PAGES = new Set(["adminhome","phome","khome","home"]);
+const ROLE_LABELS = { curator:"Куратор", starosta:"Староста", parent:"Родитель" };
+
+const REDIRECT_DELAY = 2200;
+const CHECK_INTERVAL = 15;
+const LOCK_KEY = "kurator_lock";
+const MAX_ATTEMPTS = 5;
+const LOCK_MS = 60_000;
+
+/* === АВТОВХОД === */
+const LAST_ID_KEY        = "kurator_last_login_id";
+const REMEMBER_FLAG_KEY  = "kurator_remember_flag";
+
+/* === PIN === */
+const PIN_HASH_KEY       = "kurator_pin_hash_v1";
+const PIN_SALT_KEY       = "kurator_pin_salt_v1";
+const PIN_NAME_KEY       = "kurator_pin_name_v1";
+const PIN_ATTEMPTS_KEY   = "kurator_pin_attempts_v1";
+const PIN_LENGTH         = 4;
+const PIN_MAX_ATTEMPTS   = 5;
+const AUTH_TIMEOUT_MS    = 3000;
+
+/* =========================================
+   ELEMENTS
+========================================= */
+const $ = id => document.getElementById(id);
+const card = $("card");
+const viewport = $("viewport");
+const messageEl = $("message");
+const statusTitle = $("statusTitle");
+const statusSub = $("statusSub");
+const pageLoader = $("pageLoader");
+const toasts = $("toasts");
+
+/* =========================================
+   ЗАЩИТА
+========================================= */
+const sanitize = s => typeof s === "string"
+    ? s.replace(/[<>]/g,"").replace(/[\u0000-\u001F\u007F]/g,"").trim().slice(0,200)
+    : "";
+
+const isValidEmail = e => typeof e === "string" && e.length <= 254
+    && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+
+const LOGIN_RE = /^\d{6,8}$/;
+const isValidLogin = l => typeof l === "string" && LOGIN_RE.test(l);
+
+function validatePassword(pwd){
+    if (typeof pwd !== "string") return { ok:false, reason:"Некорректный пароль." };
+    if (pwd.length < 8) return { ok:false, reason:"Пароль — минимум 8 символов." };
+    if (pwd.length > 128) return { ok:false, reason:"Пароль слишком длинный." };
+    if (!/[A-Za-zА-Яа-я]/.test(pwd)) return { ok:false, reason:"Пароль должен содержать букву." };
+    if (!/[0-9]/.test(pwd)) return { ok:false, reason:"Пароль должен содержать цифру." };
+    return { ok:true };
+}
+
+function safeRedirect(page){
+    const clean = String(page || "").replace(/[^a-z0-9]/gi,"").toLowerCase();
+    if (!ALLOWED_PAGES.has(clean)) return "home";
+    return clean;
+}
+
+/* =========================================
+   ПОИСК ПО ЛОГИНУ
+========================================= */
+async function findUserByLogin(login){
+    const snap = await getDocs(query(collection(db, "users"), where("login", "==", login)));
+    return snap.empty ? null : snap.docs[0];
+}
+
+/* =========================================
+   RATE LIMITING
+========================================= */
+function getAttempts(){
+    try { return JSON.parse(localStorage.getItem(LOCK_KEY)) || { c:0, u:0 }; }
+    catch { return { c:0, u:0 }; }
+}
+function setAttempts(d){ try { localStorage.setItem(LOCK_KEY, JSON.stringify(d)); } catch {} }
+function isLocked(){ return Date.now() < getAttempts().u; }
+function lockSeconds(){ return Math.max(0, Math.ceil((getAttempts().u - Date.now())/1000)); }
+function failAttempt(){
+    const d = getAttempts();
+    d.c += 1;
+    if (d.c >= MAX_ATTEMPTS){ d.u = Date.now() + LOCK_MS; d.c = 0; }
+    setAttempts(d);
+}
+function resetAttempts(){ try { localStorage.removeItem(LOCK_KEY); } catch {} }
+
+/* =========================================
+   TOAST
+========================================= */
+function toast(text, ms = 2600){
+    const el = document.createElement("div");
+    el.className = "toast";
+    el.textContent = sanitize(text) || text;
+    toasts.appendChild(el);
+    setTimeout(() => {
+        el.classList.add("hide");
+        setTimeout(() => el.remove(), 300);
+    }, ms);
+}
+
+/* =========================================
+   FIREBASE ERRORS
+========================================= */
+function fbError(err){
+    switch (err.code){
+        case "auth/invalid-email":           return "Введите корректную почту.";
+        case "auth/user-not-found":
+        case "auth/wrong-password":
+        case "auth/invalid-credential":
+        case "auth/invalid-login-credentials": return "Неверный логин/почта или пароль.";
+        case "auth/email-already-in-use":    return "Не удалось создать аккаунт с указанными данными.";
+        case "auth/weak-password":           return "Пароль слишком простой.";
+        case "auth/network-request-failed":  return "Ошибка сети. Проверьте подключение.";
+        case "auth/too-many-requests":       return "Слишком много попыток. Попробуйте позже.";
+        default:                             return "Произошла ошибка. Попробуйте ещё раз.";
+    }
+}
+
+/* =========================================
+   MESSAGE
+========================================= */
+function showMsg(text, type = "error"){
+    messageEl.textContent = text;
+    messageEl.className = `message show ${type}`;
+}
+function clearMsg(){
+    messageEl.textContent = "";
+    messageEl.className = "message";
+}
+function shakeField(input){
+    const f = input.closest(".field");
+    if (!f) return;
+    f.classList.add("err");
+    setTimeout(() => f.classList.remove("err"), 500);
+}
+
+/* =========================================
+   CAPS LOCK
+========================================= */
+function bindCaps(inputId, warnId){
+    const i = $(inputId), w = $(warnId);
+    if (!i || !w) return;
+    const upd = e => w.classList.toggle("on", !!(e.getModifierState && e.getModifierState("CapsLock")));
+    i.addEventListener("keydown", upd);
+    i.addEventListener("keyup", upd);
+    i.addEventListener("blur", () => w.classList.remove("on"));
+}
+bindCaps("loginPassword","loginCaps");
+bindCaps("regPassword","regCaps");
+
+/* =========================================
+   NUMERIC FIELDS
+========================================= */
+document.querySelectorAll("input[data-numeric]").forEach(i => {
+    i.addEventListener("input", () => { i.value = i.value.replace(/\D/g, "").slice(0, 8); });
+});
+
+/* =========================================
+   PASSWORD TOGGLE
+========================================= */
+document.querySelectorAll(".pwd-toggle").forEach(btn => {
+    btn.addEventListener("click", () => {
+        const i = $(btn.dataset.target);
+        if (!i) return;
+        i.type = i.type === "password" ? "text" : "password";
+        btn.classList.toggle("on", i.type === "text");
+    });
+});
+
+/* =========================================
+   STATUS SCREENS
+========================================= */
+function showLoading(title = "Проверяем данные…", sub = "Подождите пару секунд"){
+    card.dataset.state = "loading";
+    statusTitle.textContent = title;
+    statusSub.textContent = sub;
+    clearMsg();
+    stopWaitingTimer();
+}
+function showSuccess(title = "Вход выполнен", sub = "Открываем систему…"){
+    card.dataset.state = "success";
+    statusTitle.textContent = title;
+    statusSub.textContent = sub;
+}
+function showError(title = "Не удалось войти", sub = "Проверьте логин и пароль"){
+    card.dataset.state = "error";
+    statusTitle.textContent = title;
+    statusSub.textContent = sub;
+    stopWaitingTimer();
+}
+
+/* === ЭКРАН ОЖИДАНИЯ === */
+let waitingTimer = null;
+let waitingInterval = null;
+let currentUserId = null;
+
+function showWaiting(title = "Ожидает подтверждения", sub = "Дождитесь одобрения администратора"){
+    card.dataset.state = "warning";
+    statusTitle.textContent = title;
+    statusSub.textContent = sub;
+    startWaitingTimer();
+}
+function startWaitingTimer(){
+    stopWaitingTimer();
+    let remaining = CHECK_INTERVAL;
+    $("timerValue").textContent = remaining;
+    waitingInterval = setInterval(() => {
+        remaining -= 1;
+        if (remaining <= 0){
+            remaining = CHECK_INTERVAL;
+            checkApproval(true);
+        }
+        $("timerValue").textContent = remaining;
+    }, 1000);
+}
+function stopWaitingTimer(){
+    clearInterval(waitingInterval);
+    clearTimeout(waitingTimer);
+    waitingInterval = null;
+    waitingTimer = null;
+}
+
+/* =========================================
+   CHECK APPROVAL
+========================================= */
+async function checkApproval(silent = false){
+    const btn = $("checkBtn");
+
+    if (!currentUserId){
+        if (!silent) toast("Сессия истекла. Войдите заново.");
+        resetStatus();
+        return;
+    }
+
+    btn.disabled = true;
+    btn.classList.add("loading");
+    if (!silent) log("Проверка статуса регистрации…");
+
+    try {
+        const snap = await getDoc(doc(db, "users", currentUserId));
+
+        if (!snap.exists()){
+            showError("Аккаунт удалён", "Обратитесь к администратору.");
+            stopWaitingTimer();
+            return;
+        }
+
+        const data = snap.data();
+        const reg = data.reg;
+
+        if (reg === 1){
+            const role = data.role;
+            const name = sanitize(String(data.name || "").split(" ")[0]) || "пользователь";
+            showSuccess(`Здравствуйте, ${name}`, "Открываем систему…");
+            stopWaitingTimer();
+
+            const page = safeRedirect(
+                role === "admin" ? "adminhome" :
+                role === "parent" ? "phome" :
+                role === "curator" ? "khome" :
+                "home"
+            );
+            setTimeout(() => { window.location.href = page; }, REDIRECT_DELAY);
+            return;
+        }
+
+        if (reg === 2){
+            try {
+                await deleteDoc(doc(db, "users", currentUserId));
+            } catch (e) { logErr(e); }
+            showError("В регистрации отказано", "Данные аккаунта будут удалены.");
+            stopWaitingTimer();
+            await signOut(auth);
+            return;
+        }
+
+        if (!silent){
+            toast("Ещё не одобрено. Подождите немного");
+            statusSub.textContent = "Администратор ещё не рассмотрел ваш запрос";
+        }
+    } catch (e){
+        logErr(e);
+        if (!silent) toast("Ошибка проверки. Попробуйте снова.", 3000);
+    } finally {
+        btn.disabled = false;
+        btn.classList.remove("loading");
+    }
+}
+$("checkBtn").addEventListener("click", () => checkApproval(false));
+
+/* =========================================
+   RESET STATUS
+========================================= */
+function resetStatus(){
+    stopWaitingTimer();
+    card.dataset.state = "";
+    setTimeout(() => setViewportHeight(getActivePanel().scrollHeight), 60);
+}
+$("retryBtn").addEventListener("click", () => {
+    resetStatus();
+    if (card.dataset.step === "setup"){
+        $("setupLogin").focus();
+        return;
+    }
+    if (card.dataset.step === "pin") return;
+    if (mode === "login"){
+        $("loginPassword").value = "";
+        $("loginId").focus();
+    } else {
+        showRoles();
+    }
+});
+
+/* =========================================
+   VIEWPORT HEIGHT
+========================================= */
+let mode = "login";
+let switching = false;
+
+function getActivePanel(){
+    if (card.dataset.step === "setup") return $("setupPanel");
+    if (card.dataset.step === "pin")   return $("pinPanel");
+    return mode === "login" ? $("loginPanel") : $("registerPanel");
+}
+function setViewportHeight(h){ viewport.style.height = h + "px"; }
+function refreshHeight(){ setViewportHeight(getActivePanel().scrollHeight); }
+
+/* =========================================
+   MODE SWITCH
+========================================= */
+const TITLES = {
+    login: { t:"Вход в систему", s:"Введите логин или почту и пароль" },
+    register: { t:"Регистрация", s:"Создайте учётную запись в системе KURATOR" }
+};
+
+async function switchMode(next){
+    if (next === mode || switching || card.dataset.state) return;
+    if (card.dataset.step) return;
+    switching = true;
+    clearMsg();
+
+    const cur = getActivePanel();
+    const nxt = next === "login" ? $("loginPanel") : $("registerPanel");
+
+    setViewportHeight(cur.scrollHeight);
+    mode = next;
+    card.dataset.mode = next;
+
+    if (next === "register") showRoles();
+
+    const titleEl = $("title"), subEl = $("subtitle");
+    titleEl.style.opacity = "0";
+    subEl.style.opacity = "0";
+
+    setTimeout(() => {
+        titleEl.textContent = TITLES[next].t;
+        subEl.textContent = TITLES[next].s;
+        titleEl.style.opacity = "1";
+        subEl.style.opacity = "1";
+    }, 200);
+
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        setViewportHeight(nxt.scrollHeight);
+    }));
+
+    setTimeout(() => switching = false, 500);
+}
+$("tabLogin").addEventListener("click", () => switchMode("login"));
+$("tabReg").addEventListener("click", () => switchMode("register"));
+
+/* =========================================
+   ROLE STAGE
+========================================= */
+let roleChosen = false;
+
+function showRoles(){
+    roleChosen = false;
+    $("regRole").value = "";
+    $("roleBadgeText").textContent = "—";
+    $("roles").classList.remove("hide");
+    $("regForm").classList.add("hide");
+    document.querySelectorAll(".role").forEach(r => r.classList.remove("picked"));
+    setTimeout(() => { if (mode === "register") refreshHeight(); }, 60);
+}
+
+function showRegForm(){
+    $("roles").classList.add("hide");
+    $("regForm").classList.remove("hide");
+    setTimeout(() => {
+        if (mode === "register") refreshHeight();
+        $("regName").focus({ preventScroll:true });
+    }, 60);
+}
+
+$("backToRoles").addEventListener("click", () => { clearMsg(); showRoles(); });
+
+function pickRole(el){
+    if (roleChosen) return;
+    const role = el.dataset.role;
+    if (!ALLOWED_ROLES.has(role)) return;
+
+    roleChosen = true;
+    $("regRole").value = role;
+    $("roleBadgeText").textContent = ROLE_LABELS[role] || role;
+    el.classList.add("picked");
+    toast(`Выбрана роль: ${ROLE_LABELS[role]}`);
+    setTimeout(showRegForm, 300);
+}
+
+document.querySelectorAll(".role").forEach(el => {
+    el.addEventListener("click", () => pickRole(el));
+    el.addEventListener("keydown", e => {
+        if (e.key === "Enter" || e.key === " "){
+            e.preventDefault();
+            pickRole(el);
+        }
+    });
+});
+
+/* =========================================
+   ФЛАГИ
+========================================= */
+let loginFlow = false;      // идёт процесс входа/восстановления
+let pinMode = false;        // пользователь на PIN-панели — блокируем редиректы
+let pinSetupOpen = false;   // открыта модалка установки PIN — блокируем редирект
+let pendingRedirect = null; // отложенный редирект после PIN-setup
+let setupUser = null;
+let setupPwd = "";
+
+/* =========================================
+   МАРШРУТИЗАЦИЯ ПО СТАТУСУ
+========================================= */
+async function routeByStatus(user, data){
+    // Пока пользователь на PIN-панели — не редиректим
+    if (pinMode) return;
+
+    const reg = data.reg;
+
+    if (reg === 0){
+        currentUserId = user.uid;
+
+        sendAdminEmail(
+            data.email || "",
+            data.name || "",
+            "Пользователь всё ещё ждёт подтверждения",
+            `Пользователь ${data.name || ""} (${data.email || ""}) повторно вошёл в систему, но его заявка всё ещё не одобрена.\n\n` +
+            `Роль: ${ROLE_LABELS[data.role] || data.role}\n` +
+            `Группа: ${data.group || "—"}\n` +
+            `UID: ${user.uid}`
+        );
+
+        await signOut(auth);
+        loginFlow = false;
+        showWaiting(
+            "Ожидает подтверждения",
+            "Ваш запрос отправлен. Дождитесь одобрения администратора."
+        );
+        return;
+    }
+
+    if (reg === 2){
+        showError("В регистрации отказано", "Данные аккаунта будут удалены.");
+        try {
+            await deleteDoc(doc(db, "users", user.uid));
+            await user.delete();
+        } catch (e){ logErr(e); }
+        loginFlow = false;
+        return;
+    }
+
+    // reg === 1 — одобрен
+    const name = sanitize(String(data.name || "").split(" ")[0]) || "пользователь";
+    showSuccess(`Здравствуйте, ${name}`, "Открываем систему…");
+
+    const page = safeRedirect(
+        data.role === "admin" ? "adminhome" :
+        data.role === "parent" ? "phome" :
+        data.role === "curator" ? "khome" :
+        "home"
+    );
+
+    // Функция редиректа (с двойной защитой)
+    const doRedirect = () => {
+        if (pinMode || pinSetupOpen) return;
+        window.location.href = page;
+    };
+
+    // Если открыта модалка PIN — откладываем редирект до её закрытия
+    if (pinSetupOpen){
+        pendingRedirect = doRedirect;
+        return;
+    }
+
+    setTimeout(doRedirect, REDIRECT_DELAY);
+}
+
+/* =========================================
+   SETUP STEP
+========================================= */
+function showSetup(user, pwd){
+    setupUser = user;
+    setupPwd = pwd;
+    card.dataset.state = "";
+    card.dataset.step = "setup";
+    $("title").textContent = "Придумайте логин";
+    $("subtitle").textContent = "Логин из 6–8 цифр — для следующих входов";
+    $("setupLogin").value = "";
+    $("setupPwdRepeat").value = "";
+    clearMsg();
+    setTimeout(() => {
+        refreshHeight();
+        $("setupLogin").focus({ preventScroll:true });
+    }, 60);
+}
+
+function leaveSetup(){
+    setupUser = null;
+    setupPwd = "";
+    card.dataset.step = "";
+    $("title").textContent = TITLES[mode].t;
+    $("subtitle").textContent = TITLES[mode].s;
+    $("loginPassword").value = "";
+    $("setupPwdRepeat").value = "";
+    refreshHeight();
+}
+
+$("setupCancel").addEventListener("click", async () => {
+    clearMsg();
+    try { await signOut(auth); } catch (e){ logErr(e); }
+    leaveSetup();
+    loginFlow = false;
+});
+
+$("setupForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearMsg();
+
+    if (!setupUser) return;
+
+    const login = $("setupLogin").value.trim();
+    const rep = $("setupPwdRepeat").value;
+
+    if (!isValidLogin(login)){
+        showMsg("Логин — ровно 6–8 цифр.");
+        shakeField($("setupLogin"));
+        return;
+    }
+    if (rep !== setupPwd){
+        showMsg("Пароль не совпадает с тем, что вы ввели при входе.");
+        shakeField($("setupPwdRepeat"));
+        return;
+    }
+
+    try {
+        const taken = await findUserByLogin(login);
+        if (taken && taken.id !== setupUser.uid){
+            showMsg("Этот логин уже занят. Придумайте другой.");
+            shakeField($("setupLogin"));
+            return;
+        }
+    } catch (err){
+        logErr(err);
+        showMsg("Не удалось проверить логин. Попробуйте позже.");
+        return;
+    }
+
+    showLoading("Сохраняем логин…", "Это займёт пару секунд");
+    await sleep(400);
+
+    try {
+        const user = setupUser;
+        await setDoc(doc(db, "users", user.uid), { login }, { merge:true });
+        const snap = await getDoc(doc(db, "users", user.uid));
+        setupUser = null;
+        setupPwd = "";
+        card.dataset.step = "";
+        await routeByStatus(user, snap.data());
+    } catch (err){
+        logErr(err);
+        showError("Не удалось сохранить логин", "Попробуйте ещё раз.");
+    }
+});
+
+/* =========================================
+   PIN — утилиты
+========================================= */
+async function sha256Hex(str){
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2,"0"))
+        .join("");
+}
+function randomSalt(){
+    const arr = new Uint8Array(16);
+    crypto.getRandomValues(arr);
+    return Array.from(arr).map(b => b.toString(16).padStart(2,"0")).join("");
+}
+async function hashPin(pin, salt){
+    return sha256Hex(`${salt}::${pin}::kurator`);
+}
+function savePin(hash, salt, displayName){
+    localStorage.setItem(PIN_HASH_KEY, hash);
+    localStorage.setItem(PIN_SALT_KEY, salt);
+    localStorage.setItem(PIN_NAME_KEY, displayName || "");
+    localStorage.removeItem(PIN_ATTEMPTS_KEY);
+}
+function hasPin(){
+    return !!localStorage.getItem(PIN_HASH_KEY) && !!localStorage.getItem(PIN_SALT_KEY);
+}
+function clearPin(){
+    localStorage.removeItem(PIN_HASH_KEY);
+    localStorage.removeItem(PIN_SALT_KEY);
+    localStorage.removeItem(PIN_NAME_KEY);
+    localStorage.removeItem(PIN_ATTEMPTS_KEY);
+}
+function getPinAttempts(){
+    try { return parseInt(localStorage.getItem(PIN_ATTEMPTS_KEY) || "0", 10) || 0; }
+    catch { return 0; }
+}
+function incPinAttempts(){
+    const n = getPinAttempts() + 1;
+    localStorage.setItem(PIN_ATTEMPTS_KEY, String(n));
+    return n;
+}
+function resetPinAttempts(){
+    localStorage.removeItem(PIN_ATTEMPTS_KEY);
+}
+
+/* =========================================
+   PIN PANEL (автовход)
+========================================= */
+let pinBuffer = "";
+let pinBusy = false;
+
+function openPinPanel(user, data){
+    const name = sanitize(String(data.name || "").split(" ")[0]) || "пользователь";
+    $("pinAvatar").textContent = (name[0] || "K").toUpperCase();
+    $("pinGreet").textContent = `С возвращением, ${name}!`;
+    $("pinHint").textContent = `Введите ${PIN_LENGTH}-значный PIN`;
+
+    pinBuffer = "";
+    updatePinDots();
+
+    card.dataset.state = "";
+    card.dataset.step = "pin";
+    card.dataset.mode = "login";
+
+    setTimeout(() => refreshHeight(), 60);
+}
+
+function closePinPanel(){
+    card.dataset.step = "";
+    pinBuffer = "";
+    refreshHeight();
+}
+
+function updatePinDots(){
+    const dots = $("pinDots").children;
+    for (let i = 0; i < dots.length; i++){
+        dots[i].classList.toggle("on", i < pinBuffer.length);
+    }
+}
+
+function flashPinError(){
+    const dots = $("pinDots");
+    dots.classList.add("err");
+    setTimeout(() => dots.classList.remove("err"), 500);
+}
+
+async function tryPinLogin(){
+    if (pinBusy) return;
+    pinBusy = true;
+
+    const stored = localStorage.getItem(PIN_HASH_KEY);
+    const salt   = localStorage.getItem(PIN_SALT_KEY);
+    const attempt = await hashPin(pinBuffer, salt);
+
+    if (attempt === stored){
+        resetPinAttempts();
+        pinBuffer = "";
+        updatePinDots();
+
+        try {
+            const user = auth.currentUser;
+            if (!user){
+                toast("Сессия истекла. Войдите по паролю.");
+                clearPin();
+                closePinPanel();
+                loginFlow = false;
+                pinMode = false;
+                pinBusy = false;
+                return;
+            }
+            const snap = await getDoc(doc(db, "users", user.uid));
+            if (!snap.exists()){
+                toast("Профиль не найден");
+                clearPin();
+                closePinPanel();
+                await signOut(auth);
+                loginFlow = false;
+                pinMode = false;
+                pinBusy = false;
+                return;
+            }
+
+            // Снимаем защиту — теперь можно редиректить
+            pinMode = false;
+            loginFlow = false;
+            closePinPanel();
+
+            await routeByStatus(user, snap.data());
+
+        } catch (e){
+            logErr(e);
+            toast("Ошибка. Войдите по паролю.");
+            clearPin();
+            closePinPanel();
+            loginFlow = false;
+            pinMode = false;
+        } finally {
+            pinBusy = false;
+        }
+        return;
+    }
+
+    const n = incPinAttempts();
+    flashPinError();
+    pinBuffer = "";
+    updatePinDots();
+
+    if (n >= PIN_MAX_ATTEMPTS){
+        clearPin();
+        toast("Слишком много попыток. Войдите по паролю.", 3500);
+        closePinPanel();
+        loginFlow = false;
+        pinMode = false;
+        pinBusy = false;
+        return;
+    }
+
+    toast(`Неверный PIN. Осталось попыток: ${PIN_MAX_ATTEMPTS - n}`, 2600);
+    pinBusy = false;
+}
+
+function pinInputDigit(d){
+    if (pinBusy) return;
+    if (pinBuffer.length >= PIN_LENGTH) return;
+    pinBuffer += d;
+    updatePinDots();
+    if (pinBuffer.length === PIN_LENGTH){
+        setTimeout(tryPinLogin, 120);
+    }
+}
+
+$("pinKeypad").addEventListener("click", e => {
+    const btn = e.target.closest(".pin-key");
+    if (!btn) return;
+    const digit = btn.dataset.digit;
+    const action = btn.dataset.action;
+    if (digit) pinInputDigit(digit);
+    else if (action === "del"){
+        if (pinBusy) return;
+        pinBuffer = pinBuffer.slice(0, -1);
+        updatePinDots();
+    }
+    else if (action === "clear"){
+        if (pinBusy) return;
+        pinBuffer = "";
+        updatePinDots();
+    }
+});
+
+document.addEventListener("keydown", e => {
+    if (card.dataset.step !== "pin") return;
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    if (/^\d$/.test(e.key)) pinInputDigit(e.key);
+    else if (e.key === "Backspace"){
+        if (pinBusy) return;
+        pinBuffer = pinBuffer.slice(0, -1);
+        updatePinDots();
+    }
+    else if (e.key === "Escape"){
+        if (pinBusy) return;
+        pinBuffer = "";
+        updatePinDots();
+    }
+});
+
+$("pinUsePassword").addEventListener("click", async () => {
+    closePinPanel();
+    pinMode = false;
+    loginFlow = false;
+    try { await signOut(auth); } catch {}
+    $("loginPassword").value = "";
+    setTimeout(() => $("loginPassword").focus({ preventScroll:true }), 100);
+});
+
+$("pinForgot").addEventListener("click", async () => {
+    if (!confirm("Забыли PIN?\n\nPIN будет удалён. В следующий раз потребуется вход по паролю.\n\nПродолжить?")) return;
+    clearPin();
+    closePinPanel();
+    pinMode = false;
+    loginFlow = false;
+    try { await signOut(auth); } catch {}
+    toast("PIN сброшен. Войдите по паролю.");
+    setTimeout(() => $("loginId").focus({ preventScroll:true }), 100);
+});
+
+/* =========================================
+   PIN SETUP MODAL
+========================================= */
+let pinSetupBuffer = "";
+let pinSetupBusy = false;
+
+function openPinSetup(){
+    pinSetupOpen = true;   // ← блокируем редирект, пока открыта модалка
+    pinSetupBuffer = "";
+    updatePinSetupDots();
+    $("pinSetupErr").classList.remove("on");
+    $("pinSetupOverlay").classList.add("on");
+    $("pinSetupOverlay").setAttribute("aria-hidden", "false");
+}
+
+function closePinSetup(){
+    pinSetupBuffer = "";
+    $("pinSetupOverlay").classList.remove("on");
+    $("pinSetupOverlay").setAttribute("aria-hidden", "true");
+}
+
+function updatePinSetupDots(){
+    const dots = $("pinSetupDots").children;
+    for (let i = 0; i < dots.length; i++){
+        dots[i].classList.toggle("on", i < pinSetupBuffer.length);
+    }
+}
+
+function flashPinSetupError(text){
+    const err = $("pinSetupErr");
+    err.textContent = text;
+    err.classList.add("on");
+    const dots = $("pinSetupDots");
+    dots.classList.add("err");
+    setTimeout(() => dots.classList.remove("err"), 500);
+    setTimeout(() => err.classList.remove("on"), 2500);
+}
+
+/* Разрешить отложенный редирект после закрытия модалки */
+function resumeRedirectIfPending(){
+    pinSetupOpen = false;
+    if (typeof pendingRedirect === "function"){
+        const fn = pendingRedirect;
+        pendingRedirect = null;
+        setTimeout(fn, 400);   // даём пользователю увидеть тост
+    }
+}
+
+$("pinSetupKeypad").addEventListener("click", e => {
+    const btn = e.target.closest(".pin-setup-key");
+    if (!btn) return;
+    if (pinSetupBusy) return;
+    const digit = btn.dataset.digit;
+    const action = btn.dataset.action;
+    if (digit){
+        if (pinSetupBuffer.length >= PIN_LENGTH) return;
+        pinSetupBuffer += digit;
+        updatePinSetupDots();
+        if (pinSetupBuffer.length === PIN_LENGTH){
+            setTimeout(savePinFromSetup, 120);
+        }
+    } else if (action === "del"){
+        pinSetupBuffer = pinSetupBuffer.slice(0, -1);
+        updatePinSetupDots();
+    } else if (action === "clear"){
+        pinSetupBuffer = "";
+        updatePinSetupDots();
+    }
+});
+
+async function savePinFromSetup(){
+    if (pinSetupBusy) return;
+    pinSetupBusy = true;
+
+    if (/^(\d)\1+$/.test(pinSetupBuffer) ||
+        pinSetupBuffer === "1234" || pinSetupBuffer === "4321" ||
+        pinSetupBuffer === "0123"){
+        flashPinSetupError("Слишком простой PIN. Придумайте другой.");
+        pinSetupBuffer = "";
+        updatePinSetupDots();
+        pinSetupBusy = false;
+        return;
+    }
+
+    const salt = randomSalt();
+    const hash = await hashPin(pinSetupBuffer, salt);
+
+    let displayName = "";
+    try {
+        const user = auth.currentUser;
+        if (user){
+            const snap = await getDoc(doc(db, "users", user.uid));
+            if (snap.exists()){
+                displayName = sanitize(String(snap.data().name || "").split(" ")[0]) || "";
+            }
+        }
+    } catch {}
+
+    savePin(hash, salt, displayName);
+    closePinSetup();
+    toast("PIN установлен ✓");
+    pinSetupBusy = false;
+
+    // Разрешаем отложенный редирект (если он был)
+    resumeRedirectIfPending();
+}
+
+document.addEventListener("keydown", e => {
+    if (!$("pinSetupOverlay").classList.contains("on")) return;
+    if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) return;
+    if (/^\d$/.test(e.key)){
+        if (pinSetupBuffer.length >= PIN_LENGTH) return;
+        pinSetupBuffer += e.key;
+        updatePinSetupDots();
+        if (pinSetupBuffer.length === PIN_LENGTH){
+            setTimeout(savePinFromSetup, 120);
+        }
+    } else if (e.key === "Backspace"){
+        pinSetupBuffer = pinSetupBuffer.slice(0, -1);
+        updatePinSetupDots();
+    } else if (e.key === "Escape"){
+        closePinSetup();
+        resumeRedirectIfPending();
+    }
+});
+
+$("pinSetupSkip").addEventListener("click", () => {
+    closePinSetup();
+    try {
+        localStorage.removeItem(LAST_ID_KEY);
+        localStorage.setItem(REMEMBER_FLAG_KEY, "0");
+        $("rememberMe").checked = false;
+    } catch {}
+    resumeRedirectIfPending();   // ← продолжаем редирект
+});
+
+/* =========================================
+   LOGIN
+========================================= */
+$("loginForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearMsg();
+
+    if (isLocked()){
+        showError("Слишком много попыток", `Попробуйте через ${lockSeconds()} сек.`);
+        return;
+    }
+
+    const idRaw = $("loginId").value.trim();
+    const pwd = $("loginPassword").value;
+    const remember = $("rememberMe").checked;
+    const isEmail = idRaw.includes("@");
+
+    if (isEmail){
+        if (!isValidEmail(idRaw)){
+            showMsg("Введите корректную почту.");
+            shakeField($("loginId"));
+            return;
+        }
+    } else if (!isValidLogin(idRaw)){
+        showMsg("Введите логин (6–8 цифр) или почту.");
+        shakeField($("loginId"));
+        return;
+    }
+    if (!pwd || pwd.length > 128){
+        showMsg("Введите пароль.");
+        shakeField($("loginPassword"));
+        return;
+    }
+
+    showLoading("Проверяем данные…", "Подождите пару секунд");
+    await sleep(600);
+
+    loginFlow = true;
+    pinMode = false;
+    pinSetupOpen = false;
+    pendingRedirect = null;
+
+    try {
+        await setPersistence(auth, remember ? browserLocalPersistence : browserSessionPersistence);
+
+        let email = idRaw;
+        if (!isEmail){
+            const found = await findUserByLogin(idRaw);
+            if (!found || !found.data().email){
+                throw { code:"auth/invalid-login-credentials" };
+            }
+            email = found.data().email;
+        }
+
+        const cred = await signInWithEmailAndPassword(auth, email, pwd);
+        resetAttempts();
+
+        try {
+            if (remember){
+                localStorage.setItem(LAST_ID_KEY, idRaw);
+                localStorage.setItem(REMEMBER_FLAG_KEY, "1");
+            } else {
+                localStorage.removeItem(LAST_ID_KEY);
+                localStorage.setItem(REMEMBER_FLAG_KEY, "0");
+            }
+        } catch (err){ logErr(err); }
+
+        const user = cred.user;
+        const snap = await getDoc(doc(db, "users", user.uid));
+
+        if (!snap.exists()){
+            loginFlow = false;
+            await signOut(auth);
+            showError("Профиль не найден", "Обратитесь к администратору.");
+            return;
+        }
+
+        const data = snap.data();
+
+        if (data.reg === 1 && !data.login){
+            showSetup(user, pwd);
+            return;
+        }
+
+        const needPinSetup = remember && !hasPin() && data.reg === 1;
+
+        if (needPinSetup){
+            // Сначала открываем модалку PIN — это выставит pinSetupOpen = true
+            openPinSetup();
+            // Затем вызываем routeByStatus — увидит pinSetupOpen и ОТЛОЖИТ редирект
+            await routeByStatus(user, data);
+        } else {
+            // Обычный редирект через REDIRECT_DELAY
+            await routeByStatus(user, data);
+        }
+    } catch (err){
+        logErr(err);
+        loginFlow = false;
+        failAttempt();
+        await sleep(500);
+        showError("Не удалось войти", fbError(err));
+    }
+});
+
+/* =========================================
+   REGISTER
+========================================= */
+let regInProgress = false;
+
+$("regForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    clearMsg();
+
+    const role = $("regRole").value;
+    const name = $("regName").value.trim();
+    const email = $("regEmail").value.trim();
+    const login = $("regLogin").value.trim();
+    const pwd = $("regPassword").value;
+    const confirm = $("regConfirm").value;
+    const group = $("regGroup").value.trim();
+
+    if (!role || !ALLOWED_ROLES.has(role)){
+        showMsg("Сначала выберите роль.");
+        showRoles();
+        return;
+    }
+    if (!name || name.length < 2 || name.length > 120){
+        showMsg("Введите корректное ФИО.");
+        shakeField($("regName"));
+        return;
+    }
+    if (!email || !isValidEmail(email)){
+        showMsg("Введите корректную почту.");
+        shakeField($("regEmail"));
+        return;
+    }
+    if (!isValidLogin(login)){
+        showMsg("Логин — ровно 6–8 цифр.");
+        shakeField($("regLogin"));
+        return;
+    }
+    const pCheck = validatePassword(pwd);
+    if (!pCheck.ok){
+        showMsg(pCheck.reason);
+        shakeField($("regPassword"));
+        return;
+    }
+    if (pwd !== confirm){
+        showMsg("Пароли не совпадают.");
+        shakeField($("regConfirm"));
+        return;
+    }
+    if (!group || group.length > 30){
+        showMsg("Введите корректную группу.");
+        shakeField($("regGroup"));
+        return;
+    }
+
+    try {
+        const taken = await findUserByLogin(login);
+        if (taken){
+            showMsg("Этот логин уже занят. Придумайте другой.");
+            shakeField($("regLogin"));
+            return;
+        }
+    } catch (err){
+        logErr(err);
+        showMsg("Не удалось проверить логин. Попробуйте позже.");
+        return;
+    }
+
+    showLoading("Создаём аккаунт…", "Это займёт пару секунд");
+    await sleep(600);
+
+    regInProgress = true;
+    try {
+        const result = await createUserWithEmailAndPassword(auth, email, pwd);
+        const user = result.user;
+
+        await setDoc(doc(db, "users", user.uid), {
+            uid: user.uid,
+            name: sanitize(name),
+            email: sanitize(email),
+            group: sanitize(group),
+            login,
+            role,
+            reg: 0,
+            createdAt: serverTimestamp()
+        });
+
+        sendAdminEmail(
+            email,
+            sanitize(name),
+            "Новая заявка на регистрацию — " + (ROLE_LABELS[role] || role),
+            `Новый пользователь ожидает подтверждения:\n\n` +
+            `ФИО: ${sanitize(name)}\n` +
+            `Email: ${sanitize(email)}\n` +
+            `Группа: ${sanitize(group)}\n` +
+            `Роль: ${ROLE_LABELS[role] || role}\n` +
+            `UID: ${user.uid}`
+        );
+
+        $("regForm").reset();
+        $("strengthBar").style.width = "0%";
+        $("strengthText").textContent = "Введите пароль";
+
+        currentUserId = user.uid;
+
+        await signOut(auth);
+
+        showWaiting(
+            "Запрос отправлен",
+            "Дождитесь одобрения администратора"
+        );
+        toast("Запрос отправлен");
+    } catch (err){
+        logErr(err);
+        await sleep(500);
+        showError("Не удалось создать аккаунт", fbError(err));
+    } finally {
+        regInProgress = false;
+    }
+});
+
+/* =========================================
+   FORGOT PASSWORD
+========================================= */
+$("forgotBtn").addEventListener("click", async () => {
+    const email = $("loginId").value.trim();
+    if (!email.includes("@") || !isValidEmail(email)){
+        showMsg("Для восстановления пароля введите почту.");
+        shakeField($("loginId"));
+        $("loginId").focus();
+        return;
+    }
+    try {
+        await sendPasswordResetEmail(auth, email);
+        showMsg("Если аккаунт существует, письмо отправлено.", "success");
+        toast("Письмо отправлено");
+    } catch (err){
+        logErr(err);
+        showMsg("Если аккаунт существует, письмо отправлено.", "success");
+    }
+});
+
+/* =========================================
+   PASSWORD STRENGTH
+========================================= */
+$("regPassword").addEventListener("input", e => {
+    const pwd = e.target.value;
+    let score = 0;
+    if (pwd.length >= 8) score++;
+    if (pwd.length >= 12) score++;
+    if (/[A-Z]/.test(pwd)) score++;
+    if (/[0-9]/.test(pwd)) score++;
+    if (/[^A-Za-z0-9]/.test(pwd)) score++;
+    const bar = $("strengthBar");
+    const txt = $("strengthText");
+    bar.style.width = Math.min(score * 20, 100) + "%";
+
+    if (!pwd){ txt.textContent = "Введите пароль"; bar.style.background = "#cbd5e1"; return; }
+    if (score <= 1){ txt.textContent = "Слабый пароль"; bar.style.background = "#b91c1c"; }
+    else if (score <= 3){ txt.textContent = "Средний пароль"; bar.style.background = "#b45309"; }
+    else { txt.textContent = "Надёжный пароль"; bar.style.background = "#047857"; }
+});
+
+/* =========================================
+   AUTH STATE — автовход + PIN
+========================================= */
+let authCheckInProgress = false;
+let authResolved = false;
+let forceShowTimer = null;
+
+async function handleAuthenticatedUser(user){
+    if (authCheckInProgress) return;
+    authCheckInProgress = true;
+
+    try {
+        const wasRemember = localStorage.getItem(REMEMBER_FLAG_KEY) === "1";
+        const hasPinSaved = hasPin();
+
+        let data = null;
+        try {
+            const snap = await getDoc(doc(db, "users", user.uid));
+            if (snap.exists()) data = snap.data();
+        } catch (e){
+            logErr(e);
+        }
+
+        if (!data){
+            await signOut(auth);
+            loginFlow = false;
+            showError("Профиль не найден", "Обратитесь к администратору.");
+            return;
+        }
+
+        // === Сценарий 1: «Запомнить» + PIN → показываем PIN-панель ===
+        if (wasRemember && hasPinSaved && data.reg === 1){
+            pinMode = true;
+            loginFlow = true;
+            openPinPanel(user, data);
+            return;
+        }
+
+        // === Сценарий 2: обычный автовход ===
+        showLoading("Восстанавливаем сессию…", "Проверяем ваши данные");
+        loginFlow = true;
+        await routeByStatus(user, data);
+
+    } catch (err){
+        logErr(err);
+        try { await signOut(auth); } catch {}
+        loginFlow = false;
+        pinMode = false;
+        showError("Ошибка проверки", "Войдите заново.");
+    } finally {
+        authCheckInProgress = false;
+        authResolved = true;
+    }
+}
+
+onAuthStateChanged(auth, async user => {
+    if (regInProgress) return;
+
+    if (!user){
+        loginFlow = false;
+        pinMode = false;
+        authResolved = true;
+        return;
+    }
+
+    if (authCheckInProgress){
+        authResolved = true;
+        return;
+    }
+
+    if (loginFlow && !pinMode){
+        authResolved = true;
+        return;
+    }
+
+    await handleAuthenticatedUser(user);
+});
+
+/* =========================================
+   HELPERS
+========================================= */
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+/* =========================================
+   AGREEMENT
+========================================= */
+const AGREEMENT_KEY = "kurator_agreement_accepted_v1";
+
+(function initAgreement(){
+    const overlay = document.getElementById("agreeOverlay");
+    const btn     = document.getElementById("agreeBtn");
+    const scroll  = document.getElementById("agreeScroll");
+    const label   = btn.querySelector(".agree-btn-label");
+    if (!overlay || !btn || !scroll) return;
+
+    let accepted = false;
+    try { accepted = localStorage.getItem(AGREEMENT_KEY) === "1"; } catch {}
+    if (accepted) { overlay.remove(); return; }
+
+    overlay.classList.add("on");
+    overlay.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+
+    const preventBgScroll = e => {
+        if (!overlay.contains(e.target)) e.preventDefault();
+    };
+    document.addEventListener("wheel", preventBgScroll, { passive:false });
+    document.addEventListener("touchmove", preventBgScroll, { passive:false });
+
+    function updateBtnState(){
+        const atBottom = scroll.scrollTop + scroll.clientHeight >= scroll.scrollHeight - 8;
+        if (atBottom && btn.disabled){
+            btn.disabled = false;
+            label.textContent = "Я ознакомлен(а) и согласен(на)";
+        }
+    }
+    scroll.addEventListener("scroll", updateBtnState, { passive:true });
+    requestAnimationFrame(updateBtnState);
+
+    function accept(){
+        try { localStorage.setItem(AGREEMENT_KEY, "1"); } catch {}
+        overlay.classList.remove("on");
+        overlay.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+        document.removeEventListener("wheel", preventBgScroll);
+        document.removeEventListener("touchmove", preventBgScroll);
+        setTimeout(() => overlay.remove(), 400);
+
+        const id = document.getElementById("loginId");
+        if (id) setTimeout(() => id.focus(), 300);
+    }
+    btn.addEventListener("click", accept);
+
+    document.addEventListener("keydown", e => {
+        if (e.key === "Escape" && !btn.disabled) accept();
+    });
+})();
+
+/* =========================================
+   INIT
+========================================= */
+window.addEventListener("load", () => {
+    requestAnimationFrame(() => {
+        refreshHeight();
+        waitForAuthReady();
+    });
+});
+
+window.addEventListener("resize", () => {
+    if (card.dataset.state) return;
+    refreshHeight();
+});
+
+function restoreLastLogin(){
+    try {
+        const lastId      = localStorage.getItem(LAST_ID_KEY);
+        const wasRemember = localStorage.getItem(REMEMBER_FLAG_KEY) === "1";
+
+        if (lastId && wasRemember){
+            $("loginId").value = lastId;
+            $("rememberMe").checked = true;
+        }
+    } catch (e){
+        logErr(e);
+    }
+}
+
+function waitForAuthReady(){
+    if (authResolved){
+        onAuthResolved();
+        return;
+    }
+
+    forceShowTimer = setTimeout(() => {
+        if (!authResolved){
+            authResolved = true;
+            onAuthResolved();
+        }
+    }, AUTH_TIMEOUT_MS);
+
+    const poll = setInterval(() => {
+        if (authResolved){
+            clearInterval(poll);
+            clearTimeout(forceShowTimer);
+            onAuthResolved();
+        }
+    }, 80);
+}
+
+function onAuthResolved(){
+    hideLoaderWhenIdle();
+
+    if (!auth.currentUser && !pinMode){
+        restoreLastLogin();
+        setTimeout(focusFirstField, 150);
+    }
+}
+
+function hideLoaderWhenIdle(){
+    setTimeout(() => {
+        pageLoader.classList.add("hide");
+    }, 200);
+}
+
+function focusFirstField(){
+    if (mode !== "login") return;
+    if (card.dataset.step) return;
+    if (card.dataset.state) return;
+
+    const id = $("loginId");
+    if (!id) return;
+    if (id.value) return;
+    if (document.activeElement === id) return;
+
+    id.focus({ preventScroll:true });
+}
+
+</script>
+
+</body>
+</html>

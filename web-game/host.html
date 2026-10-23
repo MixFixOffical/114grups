@@ -81,7 +81,7 @@
     .copy-btn { background: none; border: none; cursor: pointer; font-size: 14px; }
     .test-badge { background: #e1f5fe; color: #0288d1; font-weight: 800; font-size: 12px; padding: 6px; border-radius: 6px; letter-spacing: 0.05em; margin-bottom: 20px; }
 
-    /* Модальное окно подтверждения (Фото 1)[cite: 5] */
+    /* Модальное окно подтверждения */
     .modal-overlay { position: fixed; inset: 0; background: rgba(29, 31, 58, 0.6); backdrop-filter: blur(4px); display: grid; place-items: center; z-index: 100; padding: 20px; }
     .modal-content { background: var(--violet); color: #fff; width: 100%; max-width: 480px; border-radius: 20px; padding: 36px 32px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.25); position: relative; }
     .modal-close { position: absolute; top: 18px; right: 18px; background: transparent; border: none; color: #fff; font-size: 20px; cursor: pointer; }
@@ -91,7 +91,7 @@
     .btn-modal-cancel { background: transparent; border: 2px solid #fff; color: #fff; border-radius: 24px; padding: 12px 32px; font-weight: 700; font-size: 15px; cursor: pointer; }
     .btn-modal-confirm { background: var(--green); border: none; color: #fff; border-radius: 24px; padding: 12px 32px; font-weight: 700; font-size: 15px; cursor: pointer; }
 
-    /* Экран обратного отсчета 8-1 */
+    /* Экран синхронного отсчета 8-1 */
     .countdown-screen { position: fixed; inset: 0; background: #5f4be8; z-index: 150; display: grid; place-items: center; color: #fff; }
     .countdown-val { font-size: 90px; font-weight: 800; }
 
@@ -156,7 +156,7 @@
     </div>
   </main>
 
-  <!-- МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ (Фото 1)[cite: 5] -->
+  <!-- МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ -->
   <div class="modal-overlay" id="confirmModal" hidden>
     <div class="modal-content">
       <button class="modal-close" id="closeModalBtn">✕</button>
@@ -185,12 +185,12 @@
   <div class="gameplay-container" id="gameplayView" hidden>
     <div class="question-card">
       <div style="color: var(--muted); font-size: 13px; font-weight: 700; margin-bottom: 8px;">Вопрос 1 / 1</div>
-      <div class="question-title" id="activeQuestionTitle">12124536</div>
+      <div class="question-title" id="activeQuestionTitle">Загрузка вопроса...</div>
       
-      <div class="answer-option"><span>A</span> <div>1</div></div>
-      <div class="answer-option"><span>B</span> <div>123</div></div>
-      <div class="answer-option"><span>C</span> <div>1243</div></div>
-      <div class="answer-option"><span>D</span> <div>51435</div></div>
+      <div class="answer-option"><span>A</span> <div id="hostOptA">Вариант 1</div></div>
+      <div class="answer-option"><span>B</span> <div id="hostOptB">Вариант 2</div></div>
+      <div class="answer-option"><span>C</span> <div id="hostOptC">Вариант 3</div></div>
+      <div class="answer-option"><span>D</span> <div id="hostOptD">Вариант 4</div></div>
     </div>
 
     <div class="right-col">
@@ -235,6 +235,7 @@
     
     const gameCode = Math.floor(1000 + Math.random() * 9000).toString();
     let currentPlayersCount = 0;
+    let quizData = null;
 
     async function initHost() {
       if (!quizId) {
@@ -243,13 +244,25 @@
         return;
       }
 
-      let title = "Тестовая викторина";
       try {
         const qSnap = await getDoc(doc(db, "quizzes", quizId));
-        if (qSnap.exists()) title = qSnap.data().title || title;
+        if (qSnap.exists()) {
+          quizData = qSnap.data();
+          document.getElementById("quizTitle").textContent = quizData.title || "Тестовая викторина";
+          
+          if (quizData.questions && quizData.questions.length > 0) {
+            const q = quizData.questions[0];
+            document.getElementById("activeQuestionTitle").textContent = q.text || "Вопрос";
+            if (q.options && q.options.length >= 4) {
+              document.getElementById("hostOptA").textContent = q.options[0];
+              document.getElementById("hostOptB").textContent = q.options[1];
+              document.getElementById("hostOptC").textContent = q.options[2];
+              document.getElementById("hostOptD").textContent = q.options[3];
+            }
+          }
+        }
       } catch (e) { console.error(e); }
 
-      document.getElementById("quizTitle").textContent = title;
       document.getElementById("gameCodeDisplay").textContent = gameCode;
 
       const joinUrl = `https://kurator-jurnal.pages.dev/web-game/index.html?code=${gameCode}`;
@@ -293,22 +306,28 @@
       const countdownView = document.getElementById("countdownView");
       countdownView.hidden = false;
 
-      let count = 8; // Синхронный отсчет с 8 до 1
+      const startTime = Date.now(); // Точное время старта для синхронизации с игроком
+
+      // Записываем в базу статус running и startTime
+      await updateDoc(doc(db, "games", gameCode), { 
+        status: "running",
+        startTime: startTime
+      });
+
       const countEl = document.getElementById("countdownNumber");
-      countEl.textContent = count;
       
-      const timer = setInterval(async () => {
-        count--;
-        countEl.textContent = count;
-        if (count <= 0) {
+      const timer = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        const remaining = 8 - elapsed;
+
+        if (remaining <= 0) {
           clearInterval(timer);
           countdownView.hidden = true;
-          
-          await updateDoc(doc(db, "games", gameCode), { status: "running" });
-          
           document.getElementById("gameplayView").hidden = false;
+        } else {
+          countEl.textContent = remaining;
         }
-      }, 1000);
+      }, 200);
     });
 
     document.getElementById("cancelBtn").addEventListener("click", async () => {

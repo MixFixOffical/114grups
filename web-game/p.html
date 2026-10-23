@@ -80,19 +80,24 @@
       background: #f8f9fc; border: 1px solid var(--line); border-radius: 12px;
       padding: 14px 18px; display: flex; align-items: center; justify-content: space-between;
       font-weight: 700; font-size: 14px; cursor: pointer; text-align: left; width: 100%;
-      transition: background 0.2s;
+      transition: background 0.2s, color 0.2s;
     }
-    .opt-btn.selected { background: var(--violet) !important; color: #fff !important; border-color: var(--violet) !important; }
-    .opt-btn.disabled { opacity: 0.7; cursor: not-allowed; }
+    
+    /* Стили проверки ответа */
+    .opt-btn.correct { background: var(--green) !important; color: #fff !important; border-color: var(--green) !important; }
+    .opt-btn.wrong { background: var(--red) !important; color: #fff !important; border-color: var(--red) !important; }
+    .opt-btn.disabled { opacity: 0.8; cursor: not-allowed; }
 
     .opt-left { display: flex; align-items: center; gap: 12px; }
     .opt-letter { width: 28px; height: 28px; border-radius: 50%; background: #ecebfb; color: var(--violet); display: grid; place-items: center; font-weight: 800; font-size: 13px; }
-    .opt-btn.selected .opt-letter { background: rgba(255,255,255,0.2); color: #fff; }
+    .opt-btn.correct .opt-letter, .opt-btn.wrong .opt-letter { background: rgba(255,255,255,0.2); color: #fff; }
 
     .toast-status {
       position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-      padding: 10px 24px; border-radius: 8px; font-weight: 700; font-size: 13px; color: #fff; z-index: 200;
+      padding: 12px 28px; border-radius: 10px; font-weight: 700; font-size: 14px; color: #fff; z-index: 200; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
+    .toast-status.success { background: var(--green); }
+    .toast-status.error { background: var(--red); }
     .toast-status.purple { background: var(--violet); }
 
     @media (max-width: 768px) {
@@ -147,16 +152,16 @@
       <div class="q-text" id="questionText">Загрузка вопроса...</div>
 
       <div class="options-list" id="optionsList">
-        <button class="opt-btn" onclick="selectOption(this, 0)">
+        <button class="opt-btn" id="btn-0" onclick="selectOption(0)">
           <div class="opt-left"><div class="opt-letter">A</div> <span id="optA">Вариант 1</span></div>
         </button>
-        <button class="opt-btn" onclick="selectOption(this, 1)">
+        <button class="opt-btn" id="btn-1" onclick="selectOption(1)">
           <div class="opt-left"><div class="opt-letter">B</div> <span id="optB">Вариант 2</span></div>
         </button>
-        <button class="opt-btn" onclick="selectOption(this, 2)">
+        <button class="opt-btn" id="btn-2" onclick="selectOption(2)">
           <div class="opt-left"><div class="opt-letter">C</div> <span id="optC">Вариант 3</span></div>
         </button>
-        <button class="opt-btn" onclick="selectOption(this, 3)">
+        <button class="opt-btn" id="btn-3" onclick="selectOption(3)">
           <div class="opt-left"><div class="opt-letter">D</div> <span id="optD">Вариант 4</span></div>
         </button>
       </div>
@@ -170,7 +175,7 @@
     </div>
   </main>
 
-  <div class="toast-status purple" id="statusToast" hidden>Ответ принят!</div>
+  <div class="toast-status" id="statusToast" hidden>Ответ принят!</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -192,6 +197,7 @@
     const gameCode = urlParams.get('code');
 
     let quizData = null;
+    let currentQuestion = null;
     let hasAnswered = false;
     let countdownInterval = null;
     let gameTimerInterval = null;
@@ -223,7 +229,6 @@
         document.getElementById("playerCount").textContent = snap.size;
       });
 
-      // Надежное отслеживание статуса игры
       onSnapshot(doc(db, "games", gameCode), (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
@@ -234,7 +239,6 @@
       });
     }
 
-    // Надежный отсчет по секундам (ровно 8 секунд)
     function startReliableCountdown() {
       document.getElementById("waitingMain").hidden = true;
       const cdScreen = document.getElementById("countdownScreen");
@@ -253,26 +257,24 @@
           cdScreen.hidden = true;
           loadQuestionContent();
           document.getElementById("gameMain").hidden = false;
-          startQuestionTimer(); // Запуск таймера ответа
+          startQuestionTimer();
         }
       }, 1000);
     }
 
-    // Загрузка вопросов
     function loadQuestionContent() {
       if (quizData && quizData.questions && quizData.questions.length > 0) {
-        const q = quizData.questions[0];
-        document.getElementById("questionText").textContent = q.text || "Вопрос";
-        if (q.options && q.options.length >= 4) {
-          document.getElementById("optA").textContent = q.options[0];
-          document.getElementById("optB").textContent = q.options[1];
-          document.getElementById("optC").textContent = q.options[2];
-          document.getElementById("optD").textContent = q.options[3];
+        currentQuestion = quizData.questions[0]; // Берем первый вопрос
+        document.getElementById("questionText").textContent = currentQuestion.text || "Вопрос";
+        if (currentQuestion.options && currentQuestion.options.length >= 4) {
+          document.getElementById("optA").textContent = currentQuestion.options[0];
+          document.getElementById("optB").textContent = currentQuestion.options[1];
+          document.getElementById("optC").textContent = currentQuestion.options[2];
+          document.getElementById("optD").textContent = currentQuestion.options[3];
         }
       }
     }
 
-    // Запуск таймера для ответа на вопрос (например, 15 секунд)
     function startQuestionTimer() {
       let timeLeft = 15;
       const timerEl = document.getElementById("gameTimer");
@@ -284,30 +286,60 @@
           timerEl.textContent = timeLeft;
         } else {
           clearInterval(gameTimerInterval);
-          lockAnswers("Время вышло!");
+          if (!hasAnswered) {
+            lockAnswers(-1, "Время вышло!");
+          }
         }
       }, 1000);
     }
 
-    // Выбор ответа с блокировкой повторного нажатия
-    window.selectOption = function(btn, index) {
+    // Проверка правильности ответа при клике
+    window.selectOption = function(selectedIndex) {
       if (hasAnswered) return;
       hasAnswered = true;
+      clearInterval(gameTimerInterval);
 
-      btn.classList.add("selected");
-      lockAnswers("Ответ принят!");
+      // Получаем индекс правильного ответа (в твоей базе должен быть сохранен как correct или correctAnswer, по умолчанию возьмем 0, если не указан)
+      const correctIndex = (currentQuestion && typeof currentQuestion.correct === 'number') 
+                           ? currentQuestion.correct 
+                           : (currentQuestion && typeof currentQuestion.correctAnswer === 'number') 
+                             ? currentQuestion.correctAnswer 
+                             : 0; 
+
+      const isCorrect = (selectedIndex === correctIndex);
+
+      // Подсвечиваем выбранную кнопку и правильную
+      const selectedBtn = document.getElementById(`btn-${selectedIndex}`);
+      const correctBtn = document.getElementById(`btn-${correctIndex}`);
+
+      if (isCorrect) {
+        selectedBtn.classList.add("correct");
+        showToast("Верно! Отличная работа!", "success");
+      } else {
+        selectedBtn.classList.add("wrong");
+        if (correctBtn) correctBtn.classList.add("correct"); // Подсвечиваем правильный ответ зеленым
+        showToast("Неверно!", "error");
+      }
+
+      lockAnswers(selectedIndex);
     };
 
-    function lockAnswers(msgText) {
+    function lockAnswers(selectedIndex, customText) {
       document.querySelectorAll(".opt-btn").forEach(b => {
         b.classList.add("disabled");
         b.style.pointerEvents = "none";
       });
 
+      if (customText) {
+        showToast(customText, "error");
+      }
+    }
+
+    function showToast(text, type) {
       const toast = document.getElementById("statusToast");
-      toast.textContent = msgText;
+      toast.textContent = text;
+      toast.className = "toast-status " + type;
       toast.hidden = false;
-      setTimeout(() => { toast.hidden = true; }, 2000);
     }
   </script>
 </body>

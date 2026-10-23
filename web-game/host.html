@@ -236,6 +236,7 @@
     const gameCode = Math.floor(1000 + Math.random() * 9000).toString();
     let currentPlayersCount = 0;
     let quizData = null;
+    let hostTimerInterval = null;
 
     async function initHost() {
       if (!quizId) {
@@ -299,6 +300,7 @@
     document.getElementById("closeModalBtn").addEventListener("click", () => modal.hidden = true);
     document.getElementById("modalCancelBtn").addEventListener("click", () => modal.hidden = true);
 
+    // Нажатие «Запустить» на хосте
     document.getElementById("modalConfirmBtn").addEventListener("click", async () => {
       modal.hidden = true;
       document.getElementById("waitingView").hidden = true;
@@ -306,29 +308,43 @@
       const countdownView = document.getElementById("countdownView");
       countdownView.hidden = false;
 
-      const startTime = Date.now(); // Точное время старта для синхронизации с игроком
-
-      // Записываем в базу статус running и startTime
+      // Меняем статус в базе на running, чтобы участник тоже запустил отсчет
       await updateDoc(doc(db, "games", gameCode), { 
-        status: "running",
-        startTime: startTime
+        status: "running"
       });
 
+      let count = 8;
       const countEl = document.getElementById("countdownNumber");
+      countEl.textContent = count;
       
       const timer = setInterval(() => {
-        const elapsed = Math.floor((Date.now() - startTime) / 1000);
-        const remaining = 8 - elapsed;
-
-        if (remaining <= 0) {
+        count--;
+        if (count > 0) {
+          countEl.textContent = count;
+        } else {
           clearInterval(timer);
           countdownView.hidden = true;
           document.getElementById("gameplayView").hidden = false;
-        } else {
-          countEl.textContent = remaining;
+          startHostQuestionTimer(); // Запуск таймера ответа для хоста
         }
-      }, 200);
+      }, 1000);
     });
+
+    // Таймер ответа на вопрос у хоста (например, 15 секунд)
+    function startHostQuestionTimer() {
+      let timeLeft = 15;
+      const timerEl = document.getElementById("questionTimer");
+      timerEl.textContent = timeLeft;
+
+      hostTimerInterval = setInterval(() => {
+        timeLeft--;
+        if (timeLeft >= 0) {
+          timerEl.textContent = timeLeft;
+        } else {
+          clearInterval(hostTimerInterval);
+        }
+      }, 1000);
+    }
 
     document.getElementById("cancelBtn").addEventListener("click", async () => {
       if (confirm("Завершить сессию игры?")) {

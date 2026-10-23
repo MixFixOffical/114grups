@@ -1,0 +1,55 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Игры: читать может любой (главная, игра, админка).
+    // Создание и изменение — только с ожидаемыми полями и значениями.
+    match /games/{code} {
+      allow read: if true;
+
+      allow create: if code.matches('^[0-9]{4}$')
+        && request.resource.data.keys().hasOnly(['status', 'createdAt', 'startedAt', 'levels'])
+        && request.resource.data.status == 'waiting'
+        && request.resource.data.startedAt == null
+        && request.resource.data.levels is list;
+
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'startedAt', 'levels', 'currentQuestion', 'questionStartedAt'])
+        && request.resource.data.status in ['waiting', 'lobby', 'running', 'finished', 'cancelled']
+        && request.resource.data.levels is list;
+
+      allow delete: if false;
+
+      // Игроки: добавить себя с именем. Менять и удалять нельзя.
+      match /players/{playerId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['name', 'joinedAt'])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() >= 1
+          && request.resource.data.name.size() <= 20
+          && request.resource.data.joinedAt is number;
+        allow update, delete: if false;
+      }
+
+      // Ответы: один ответ на игрока на вопрос, только во время текущего вопроса.
+      match /answers/{answerId} {
+        allow read: if true;
+        allow create: if request.resource.data.keys().hasOnly(['pid', 'qIndex', 'option', 'time'])
+          && request.resource.data.pid is string
+          && request.resource.data.qIndex is int
+          && request.resource.data.option is int
+          && request.resource.data.time is number
+          && request.resource.data.time >= 0
+          && get(/databases/$(database)/documents/games/$(code)).data.status == 'running'
+          && get(/databases/$(database)/documents/games/$(code)).data.currentQuestion == request.resource.data.qIndex
+          && answerId == request.resource.data.pid + '_' + string(request.resource.data.qIndex);
+        allow update, delete: if false;
+      }
+    }
+
+    // Всё остальное закрыто.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Игра</title>
+  <style>
+    :root {
+      --purple: #7c5cff;
+      --purple-d: #5b3de0;
+      --pink: #ff6fb1;
+      --pink-d: #e0508f;
+      --yellow: #ffc83d;
+      --yellow-d: #e6a300;
+      --mint: #3ed6b0;
+      --mint-d: #1fa37f;
+      --red: #ff4d6d;
+      --red-d: #d7304f;
+      --ink: #1d1f3a;
+      --muted: #5d6190;
+      --white: #ffffff;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    body {
+      font-family: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--ink);
+      min-height: 100vh;
+      min-height: 100dvh;
+      padding: max(16px, env(safe-area-inset-top)) 16px max(28px, env(safe-area-inset-bottom));
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 15% 10%, #b9a6ff 0, transparent 40%),
+        radial-gradient(circle at 90% 30%, #ffc1de 0, transparent 38%),
+        radial-gradient(circle at 50% 100%, #9ff0dc 0, transparent 45%),
+        linear-gradient(170deg, #efe9ff, #fff1f8 60%, #fff8e6);
+      background-attachment: fixed;
+    }
+
+    /* Плавающие объёмные фигуры на фоне */
+    .bg-shapes { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .blob {
+      position: absolute; border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #fff 0, rgba(255,255,255,0) 35%), var(--c);
+      box-shadow: inset -12px -16px 30px rgba(0,0,0,0.12), 0 14px 30px rgba(60,40,140,0.18);
+      opacity: 0.85;
+      animation: drift 14s ease-in-out infinite;
+    }
+    .b1 { --c: var(--purple); width: 180px; height: 180px; top: -50px; left: -50px; }
+    .b2 { --c: var(--pink); width: 140px; height: 140px; bottom: 8%; right: -40px; animation-delay: -5s; }
+    .b3 { --c: var(--yellow); width: 70px; height: 70px; top: 40%; right: 8%; animation-delay: -9s; }
+    .b4 { --c: var(--mint); width: 56px; height: 56px; bottom: 30%; left: 6%; animation-delay: -3s; }
+    @keyframes drift {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(14px, -22px) scale(1.06); }
+    }
+
+    .wrap {
+      position: relative; z-index: 1;
+      max-width: 540px; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 18px;
+    }
+
+    /* Верхняя панель */
+    .topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .title {
+      font-size: 20px; font-weight: 900;
+      background: #fff; border-radius: 18px; padding: 8px 14px;
+      box-shadow: 0 5px 0 #d9d1ff, 0 12px 24px rgba(91,61,224,0.18);
+    }
+    .title span { color: var(--purple); letter-spacing: 0.08em; }
+    .badge {
+      font-weight: 900; font-size: 15px; color: #fff;
+      background: linear-gradient(180deg, var(--pink), var(--pink-d));
+      border-radius: 18px; padding: 9px 16px;
+      box-shadow: 0 5px 0 #b83a74, 0 12px 20px rgba(224,80,143,0.3);
+      max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* Объёмная панель */
+    .panel {
+      position: relative;
+      background: linear-gradient(180deg, #ffffff, #f6f3ff);
+      border: 4px solid #fff;
+      border-radius: 32px;
+      padding: 26px 22px;
+      text-align: center;
+      box-shadow:
+        0 10px 0 #cfc5ff,
+        0 26px 50px rgba(91,61,224,0.25),
+        inset 0 2px 0 #fff;
+      animation: pop 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    }
+    @keyframes pop {
+      from { transform: scale(0.85) translateY(10px); opacity: 0; }
+      to { transform: none; opacity: 1; }
+    }
+
+    .label {
+      color: var(--muted); font-weight: 800; font-size: 13px;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .big-emoji {
+      font-size: 72px; display: inline-block; line-height: 1;
+      filter: drop-shadow(0 8px 0 rgba(91,61,224,0.25));
+      animation: bounce 1.6s ease-in-out infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+    h2 { font-size: 28px; font-weight: 900; margin: 10px 0 6px; }
+
+    /* Ожидание */
+    .players { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 16px; }
+    .chip {
+      background: #fff; border-radius: 999px; padding: 8px 16px;
+      font-weight: 800; font-size: 15px;
+      box-shadow: 0 4px 0 #e0dbff, 0 8px 14px rgba(91,61,224,0.12);
+      animation: pop 0.4s both;
+    }
+    .chip.me { background: linear-gradient(180deg, var(--purple), var(--purple-d)); color: #fff; box-shadow: 0 4px 0 #3f22b8; }
+    .count-pill {
+      display: inline-block; margin-top: 16px;
+      background: linear-gradient(180deg, var(--yellow), var(--yellow-d));
+      color: var(--ink); font-weight: 900; font-size: 15px;
+      border-radius: 999px; padding: 8px 18px;
+      box-shadow: 0 4px 0 #b77f00, 0 8px 16px rgba(230,163,0,0.3);
+    }
+
+    /* Прогресс вопроса */
+    .progress {
+      display: inline-block; font-weight: 900; font-size: 15px; color: #fff;
+      background: linear-gradient(180deg, var(--purple), var(--purple-d));
+      border-radius: 999px; padding: 7px 16px; margin-bottom: 14px;
+      box-shadow: 0 4px 0 #3f22b8;
+    }
+
+    /* Таймер: объёмная шкала */
+    .timer-track {
+      height: 20px; background: #e4defc; border-radius: 999px;
+      overflow: hidden; padding: 3px;
+      box-shadow: inset 0 3px 6px rgba(91,61,224,0.2), 0 2px 0 #fff;
+      margin-bottom: 14px;
+    }
+    .timer-bar {
+      height: 100%; width: 100%; border-radius: 999px;
+      transform-origin: left center;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0) 60%),
+        linear-gradient(90deg, var(--mint), var(--yellow), var(--red));
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+      transition: transform 0.2s linear;
+    }
+
+    /* Секунды как монетка */
+    .time-left {
+      width: 92px; height: 92px; margin: 0 auto 16px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; font-weight: 900; font-variant-numeric: tabular-nums; color: #fff;
+      background: radial-gradient(circle at 35% 30%, #fff 0, rgba(255,255,255,0) 22%), linear-gradient(180deg, var(--pink), var(--pink-d));
+      box-shadow: 0 6px 0 #b83a74, 0 16px 26px rgba(224,80,143,0.35);
+      transition: background 0.3s;
+    }
+    .time-left.warn {
+      background: radial-gradient(circle at 35% 30%, #fff 0, rgba(255,255,255,0) 22%), linear-gradient(180deg, var(--red), var(--red-d));
+      box-shadow: 0 6px 0 #a3203a, 0 16px 26px rgba(255,77,109,0.4);
+      animation: shake 0.4s infinite;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-3px); }
+      75% { transform: translateX(3px); }
+    }
+
+    .q-text {
+      font-size: 22px; font-weight: 900; line-height: 1.3;
+      margin-bottom: 16px; padding: 0 4px;
+    }
+
+    .q-image {
+      display: block; max-width: 100%; max-height: 220px;
+      margin: 0 auto 18px; border-radius: 22px;
+      border: 4px solid #fff;
+      box-shadow: 0 8px 0 #cfc5ff, 0 14px 24px rgba(91,61,224,0.2);
+      object-fit: cover;
+    }
+
+    /* Варианты ответа как объёмные кнопки */
+    .options { display: grid; gap: 14px; }
+    .opt {
+      position: relative; width: 100%;
+      padding: 18px 18px; border: 0; border-radius: 22px;
+      font-family: inherit; font-size: 19px; font-weight: 900; color: #fff; text-align: left;
+      cursor: pointer; user-select: none;
+      background: linear-gradient(180deg, var(--c1, #8e77ff), var(--c2, #6a4cff));
+      box-shadow: 0 7px 0 var(--c3, #4b2fd0), 0 14px 22px rgba(60,40,140,0.2);
+      transition: transform 0.08s, box-shadow 0.08s, filter 0.2s;
+    }
+    .opt::before {
+      content: ""; position: absolute; left: 14px; right: 14px; top: 6px; height: 40%;
+      border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,0.45), rgba(255,255,255,0));
+      pointer-events: none;
+    }
+    .opt:nth-child(1) { --c1: #7fd8ff; --c2: #3aa8f0; --c3: #1d7cc4; }
+    .opt:nth-child(2) { --c1: #ffb36b; --c2: #ff8a3d; --c3: #c95d1a; }
+    .opt:nth-child(3) { --c1: #6fe6b8; --c2: #2fc79a; --c3: #1a8f6c; }
+    .opt:nth-child(4) { --c1: #ff9ac9; --c2: #ff62a8; --c3: #c93d7f; }
+
+    .opt:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-2px); }
+    .opt:active:not(:disabled) {
+      transform: translateY(7px);
+      box-shadow: 0 0 0 var(--c3), 0 4px 8px rgba(60,40,140,0.15);
+    }
+    .opt:disabled { cursor: default; }
+    .opt.correct {
+      --c1: #8bf5c9; --c2: #1fc58f; --c3: #0f8a62;
+      animation: pulse 0.6s ease-in-out 2;
+    }
+    .opt.wrong {
+      --c1: #ffa0b0; --c2: #ff4d6d; --c3: #b52142;
+      opacity: 0.9;
+    }
+    .opt:disabled:not(.correct):not(.wrong) { opacity: 0.55; filter: saturate(0.6); }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.03); }
+    }
+
+    /* Обратная связь */
+    .feedback {
+      min-height: 30px; margin-top: 18px;
+      font-weight: 900; font-size: 19px;
+      display: inline-block; padding: 6px 16px; border-radius: 999px;
+    }
+    .feedback:empty { display: none; }
+    .feedback.ok { color: #fff; background: linear-gradient(180deg, var(--mint), var(--mint-d)); box-shadow: 0 4px 0 #13735a; }
+    .feedback.bad { color: #fff; background: linear-gradient(180deg, var(--red), var(--red-d)); box-shadow: 0 4px 0 #a3203a; }
+
+    .comment {
+      margin-top: 16px; padding: 16px 18px; border-radius: 22px;
+      font-weight: 800; font-size: 16px; line-height: 1.4; text-align: left;
+      animation: pop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+    }
+    .comment.ok { background: #e4fff5; border: 3px solid #fff; color: #0f6a4d; box-shadow: 0 6px 0 #9fe6cb; }
+    .comment.bad { background: #ffe9ee; border: 3px solid #fff; color: #9c1530; box-shadow: 0 6px 0 #ffb8c6; }
+
+    /* Итоги */
+    .trophy { font-size: 84px; display: inline-block; line-height: 1; filter: drop-shadow(0 8px 0 rgba(230,163,0,0.4)); animation: bounce 1.6s ease-in-out infinite; }
+    .my-result {
+      display: inline-block; margin-top: 14px;
+      font-weight: 900; font-size: 16px; color: #fff;
+      background: linear-gradient(180deg, var(--purple), var(--purple-d));
+      border-radius: 999px; padding: 10px 18px;
+      box-shadow: 0 4px 0 #3f22b8;
+    }
+    .board { list-style: none; display: flex; flex-direction: column; gap: 12px; text-align: left; margin-top: 18px; }
+    .board li {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      background: #fff; border-radius: 22px; padding: 14px 18px;
+      font-weight: 900; font-size: 16px;
+      box-shadow: 0 5px 0 #e3dcff, 0 10px 18px rgba(91,61,224,0.12);
+    }
+    .board li:nth-child(1) { background: linear-gradient(180deg, #fff6cf, #ffe38a); box-shadow: 0 5px 0 #e6b52e, 0 10px 18px rgba(230,163,0,0.3); }
+    .board li:nth-child(2) { background: linear-gradient(180deg, #f2f4ff, #d9deef); box-shadow: 0 5px 0 #aab3d1, 0 10px 18px rgba(91,97,144,0.2); }
+    .board li:nth-child(3) { background: linear-gradient(180deg, #ffeedd, #f7c9a0); box-shadow: 0 5px 0 #d69b68, 0 10px 18px rgba(201,93,26,0.2); }
+    .board li.me { outline: 4px solid var(--purple); outline-offset: 2px; }
+    .board .pts {
+      color: #fff; font-weight: 900; font-size: 15px;
+      background: linear-gradient(180deg, var(--pink), var(--pink-d));
+      border-radius: 999px; padding: 6px 12px; white-space: nowrap;
+      box-shadow: 0 3px 0 #b83a74;
+    }
+    .empty { color: var(--muted); font-weight: 800; }
+
+    .conn {
+      font-size: 14px; font-weight: 800; color: #fff; text-align: center;
+      min-height: 0;
+    }
+    .conn:not(:empty) {
+      background: linear-gradient(180deg, var(--red), var(--red-d));
+      border-radius: 999px; padding: 8px 14px;
+      box-shadow: 0 4px 0 #a3203a;
+    }
+
+    @media (max-width: 380px) {
+      .q-text { font-size: 19px; }
+      .opt { font-size: 17px; padding: 16px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-shapes" aria-hidden="true">
+    <span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="blob b4"></span>
+  </div>
+
+  <div class="wrap">
+    <header class="topbar">
+      <div class="title">🎮 Код <span id="gameCode">----</span></div>
+      <div class="badge" id="myName">Игрок</div>
+    </header>
+
+    <!-- Ожидание -->
+    <section class="panel" id="waitingPanel" hidden>
+      <div class="big-emoji" aria-hidden="true">⏳</div>
+      <h2>Ждём старта!</h2>
+      <p class="label">Ведущий скоро запустит игру</p>
+      <div class="count-pill">👥 Игроков: <span id="playerCount">0</span></div>
+      <div class="players" id="playersList"></div>
+    </section>
+
+    <!-- Вопрос -->
+    <section class="panel" id="questionPanel" hidden>
+      <div class="progress" id="qProgress"></div>
+      <div class="timer-track"><div class="timer-bar" id="timerBar"></div></div>
+      <div class="time-left" id="timeLeft">0</div>
+      <div class="q-text" id="qText"></div>
+      <img class="q-image" id="qImage" alt="" hidden>
+      <div class="options" id="options"></div>
+      <div class="feedback" id="feedback" role="status" aria-live="polite"></div>
+      <div class="comment" id="comment" hidden></div>
+    </section>
+
+    <!-- Итоги -->
+    <section class="panel" id="finishPanel" hidden>
+      <div class="trophy" aria-hidden="true">🏆</div>
+      <h2 id="finishTitle">Игра завершена!</h2>
+      <p class="my-result" id="myResult"></p>
+      <ol class="board" id="board"></ol>
+    </section>
+
+    <div class="conn" id="conn"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
+      authDomain: "sokrat-7c938.firebaseapp.com",
+      projectId: "sokrat-7c938",
+      storageBucket: "sokrat-7c938.firebasestorage.app",
+      messagingSenderId: "19858604945",
+      appId: "1:19858604945:web:244b77bbe5afb849481030",
+      measurementId: "G-K06CVPVD15"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const GAMES = "games";
+
+    const $ = (id) => document.getElementById(id);
+    const session = JSON.parse(sessionStorage.getItem("player") || "null");
+
+    if (!session) {
+      location.replace("index.html");
+    } else {
+      init(session);
+    }
+
+    function init({ code, pid, name }) {
+      $("gameCode").textContent = code;
+      $("myName").textContent = name;
+
+      let game = null;
+      let levels = [];
+      let answers = [];
+      let players = [];
+      let renderedQ = -2;
+      let tickId = null;
+
+      const gameRef = doc(db, GAMES, code);
+
+      // Вопрос в позиции pos. Порядок уже перемешан админкой и одинаков у всех.
+      function questionAt(pos) {
+        return { q: levels[pos], orig: pos };
+      }
+
+      onSnapshot(gameRef, (snap) => {
+        if (!snap.exists()) { location.replace("index.html"); return; }
+        game = snap.data();
+        levels = game.levels || [];
+        $("conn").textContent = "";
+        render();
+      }, (err) => { console.error(err); $("conn").textContent = "Соединение потеряно, переподключаемся…"; });
+
+      onSnapshot(collection(db, GAMES, code, "answers"), (snap) => {
+        answers = snap.docs.map((d) => d.data());
+        render();
+      }, (err) => console.error(err));
+
+      onSnapshot(collection(db, GAMES, code, "players"), (snap) => {
+        players = snap.docs.map((d) => ({ id: d.id, name: d.data().name || "Игрок" }));
+        render();
+      }, (err) => console.error(err));
+
+      // ===== Отрисовка =====
+      function show(el, on) { el.hidden = !on; }
+
+      function render() {
+        if (!game) return;
+        const st = game.status;
+        const inQuestion = st === "running" && game.currentQuestion >= 0 && levels.length > 0;
+
+        $("playerCount").textContent = players.length;
+        $("playersList").replaceChildren(...players.map((p) => {
+          const c = document.createElement("span");
+          c.className = "chip" + (p.id === pid ? " me" : "");
+          c.textContent = p.name;
+          return c;
+        }));
+
+        show($("waitingPanel"), !inQuestion && (st === "waiting" || st === "lobby" || st === "running"));
+        show($("questionPanel"), Boolean(inQuestion));
+        show($("finishPanel"), st === "finished" || st === "cancelled");
+
+        if (inQuestion) {
+          renderQuestion();
+        } else {
+          stopTick();
+          renderedQ = -2;
+        }
+
+        if (st === "finished" || st === "cancelled") renderFinish(st);
+      }
+
+      // Ответ этого игрока на вопрос в позиции pos
+      function myAnswer(pos) {
+        return answers.find((a) => a.pid === pid && a.pos === pos);
+      }
+
+      function remainingMs() {
+        const { q } = questionAt(game.currentQuestion);
+        return q.seconds * 1000 - (Date.now() - game.questionStartedAt);
+      }
+
+      function renderQuestion() {
+        const pos = game.currentQuestion;
+        const { q } = questionAt(pos);
+
+        if (renderedQ !== pos) {
+          renderedQ = pos;
+          $("qProgress").textContent = `Вопрос ${pos + 1} из ${levels.length}`;
+          $("qText").textContent = q.text;
+
+          // Картинка вопроса (если задана)
+          const img = $("qImage");
+          if (q.image) {
+            img.src = `assets/images/${q.image}`;
+            img.alt = "Иллюстрация к вопросу";
+            img.hidden = false;
+          } else {
+            img.hidden = true;
+            img.removeAttribute("src");
+          }
+
+          // Сброс комментария при смене вопроса
+          const cm = $("comment");
+          cm.hidden = true;
+          cm.textContent = "";
+          cm.className = "comment";
+
+          $("options").replaceChildren(...q.options.map((text, i) => {
+            const b = document.createElement("button");
+            b.className = "opt";
+            b.type = "button";
+            b.textContent = text;
+            b.addEventListener("click", () => answer(i));
+            return b;
+          }));
+        }
+
+        startTick();
+        updateQuestionUI();
+      }
+
+      function updateQuestionUI() {
+        const pos = game.currentQuestion;
+        const { q } = questionAt(pos);
+        const mine = myAnswer(pos);
+        const left = remainingMs();
+        const timeUp = left <= 0;
+        const finished = Boolean(mine) || timeUp;
+
+        const left2 = Math.max(0, left);
+        const secsLeft = Math.ceil(left2 / 1000);
+        const timeEl = $("timeLeft");
+        timeEl.textContent = secsLeft;
+        timeEl.classList.toggle("warn", !finished && secsLeft <= 5);
+        $("timerBar").style.transform = `scaleX(${left2 / (q.seconds * 1000)})`;
+
+        const buttons = [...$("options").children];
+        buttons.forEach((b, i) => {
+          b.disabled = finished;
+          b.classList.toggle("correct", finished && i === q.correct);
+          b.classList.toggle("wrong", Boolean(mine) && mine.option === i && i !== q.correct);
+        });
+
+        const fb = $("feedback");
+        fb.className = "feedback";
+        const cm = $("comment");
+
+        if (mine) {
+          const ok = mine.option === q.correct;
+          fb.classList.add(ok ? "ok" : "bad");
+          fb.textContent = ok
+            ? "Верно! ✅"
+            : `Неверно ❌ Верный ответ: ${q.options[q.correct]}`;
+
+          const text = ok ? (q.commentOk || "") : (q.commentBad || "");
+          if (text) {
+            cm.hidden = false;
+            cm.className = "comment " + (ok ? "ok" : "bad");
+            cm.textContent = text;
+          } else {
+            cm.hidden = true;
+            cm.textContent = "";
+          }
+        } else if (timeUp) {
+          fb.classList.add("bad");
+          fb.textContent = `Время вышло. Верный ответ: ${q.options[q.correct]}`;
+
+          const text = q.commentBad || "";
+          if (text) {
+            cm.hidden = false;
+            cm.className = "comment bad";
+            cm.textContent = text;
+          } else {
+            cm.hidden = true;
+            cm.textContent = "";
+          }
+        } else {
+          fb.textContent = "Выбери ответ!";
+          cm.hidden = true;
+          cm.textContent = "";
+        }
+      }
+
+      function startTick() {
+        if (tickId) return;
+        tickId = setInterval(() => {
+          if (!game || game.status !== "running") return stopTick();
+          updateQuestionUI();
+        }, 200);
+      }
+
+      function stopTick() {
+        clearInterval(tickId);
+        tickId = null;
+      }
+
+      // ===== Ответ =====
+      async function answer(optionIndex) {
+        const pos = game.currentQuestion;
+        if (myAnswer(pos) || remainingMs() <= 0) return;
+
+        const { orig } = questionAt(pos);
+        const elapsed = Date.now() - game.questionStartedAt;
+        try {
+          await setDoc(doc(db, GAMES, code, "answers", `${pid}_${orig}`), {
+            pid,
+            pos,
+            qIndex: orig,
+            option: optionIndex,
+            time: elapsed,
+          });
+        } catch (err) {
+          console.error(err);
+          $("feedback").className = "feedback bad";
+          $("feedback").textContent = "Не удалось отправить ответ, попробуй ещё раз";
+        }
+      }
+
+      // ===== Итоги =====
+      function scoreOf(playerId) {
+        let total = 0;
+        let correct = 0;
+        levels.forEach((q, i) => {
+          const a = answers.find((x) => x.pid === playerId && x.qIndex === i);
+          if (a && a.option === q.correct) {
+            correct++;
+            const speed = Math.max(0, 1 - a.time / (q.seconds * 1000));
+            total += 100 + Math.round(50 * speed);
+          }
+        });
+        return { total, correct };
+      }
+
+      function renderFinish(st) {
+        $("finishTitle").textContent = st === "cancelled" ? "Игра отменена" : "Игра завершена!";
+
+        const rows = players
+          .map((p) => ({ ...p, ...scoreOf(p.id) }))
+          .sort((a, b) => b.total - a.total || b.correct - a.correct);
+
+        const place = rows.findIndex((r) => r.id === pid) + 1;
+        const mine = rows.find((r) => r.id === pid);
+        $("myResult").textContent = mine
+          ? `🏅 Место: ${place} · очки: ${mine.total} · верных: ${mine.correct} из ${levels.length}`
+          : "";
+
+        const board = $("board");
+        if (rows.length === 0) {
+          const li = document.createElement("li");
+          li.className = "empty";
+          li.textContent = "Пока нет результатов";
+          board.replaceChildren(li);
+          return;
+        }
+
+        board.replaceChildren(...rows.map((r, i) => {
+          const li = document.createElement("li");
+          if (r.id === pid) li.classList.add("me");
+          const left = document.createElement("span");
+          const medal = ["🥇", "🥈", "🥉"][i] || `${i + 1}.`;
+          left.textContent = `${medal} ${r.name}`;
+          const right = document.createElement("span");
+          right.className = "pts";
+          right.textContent = `${r.total} очк.`;
+          li.append(left, right);
+          return li;
+        }));
+      }
+    }
+  </script>
+</body>
+</html>

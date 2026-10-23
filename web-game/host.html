@@ -3,9 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cowboy Quiz — Экран ожидания</title>
+  <title>Cowboy Quiz — Управление игрой</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Генератор QR-кода -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   
   <style>
@@ -49,21 +48,20 @@
     .nav { display: flex; gap: 32px; font-size: 13px; font-weight: 600; }
     .nav a { color: #cfc8ff; text-decoration: none; display: flex; align-items: center; gap: 6px; }
     .nav a:hover { color: #fff; }
-    .header-right { display: flex; align-items: center; gap: 14px; font-size: 13px; font-weight: 700; }
-    .avatar {
-      width: 28px; height: 28px; border-radius: 50%;
-      background: #d9d4ff; color: var(--header-bg);
-      display: grid; place-items: center; font-size: 14px;
+    .header-right { display: flex; align-items: center; gap: 14px; }
+    .btn-exit {
+      background: transparent; border: 1px solid #fff; color: #fff;
+      padding: 6px 18px; border-radius: 20px; font-weight: 700; font-size: 13px; cursor: pointer;
     }
 
-    /* ===== Фиолетовый фоновый баннер ===== */
+    /* ===== Баннер ===== */
     .top-banner {
       background: linear-gradient(135deg, #5f4be8 0%, #3b2aa8 100%);
       height: 220px;
       width: 100%;
     }
 
-    /* ===== Основной контейнер ===== */
+    /* ===== Основной контейнер (Ожидание) ===== */
     main {
       flex: 1;
       max-width: 1200px;
@@ -76,12 +74,7 @@
       align-items: start;
     }
 
-    /* ===== Левая карточка (Управление) ===== */
-    .left-col {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
+    .left-col { display: flex; flex-direction: column; gap: 20px; }
     .quiz-card {
       background: var(--card-bg);
       border-radius: 16px;
@@ -89,178 +82,127 @@
       box-shadow: 0 10px 30px rgba(0,0,0,0.06);
     }
     .badge-notice {
-      background: #ecebfb;
-      color: #5f4be8;
-      font-size: 13px;
-      font-weight: 600;
-      padding: 10px 16px;
-      border-radius: 8px;
-      text-align: center;
-      margin-bottom: 24px;
+      background: #ecebfb; color: #5f4be8; font-size: 13px; font-weight: 600;
+      padding: 10px 16px; border-radius: 8px; text-align: center; margin-bottom: 24px;
     }
-    .quiz-title {
-      font-size: 26px;
-      font-weight: 800;
-      margin-bottom: 28px;
-    }
-    .controls {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
+    .quiz-title { font-size: 26px; font-weight: 800; margin-bottom: 28px; }
+    .controls { display: flex; gap: 16px; flex-wrap: wrap; }
     .btn {
-      border: none;
-      border-radius: 24px;
-      padding: 14px 28px;
-      font-family: inherit;
-      font-size: 15px;
-      font-weight: 700;
-      cursor: pointer;
-      color: #fff;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-      transition: background 0.2s;
+      border: none; border-radius: 24px; padding: 14px 28px; font-family: inherit;
+      font-size: 15px; font-weight: 700; cursor: pointer; color: #fff;
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
     }
     .btn-start { background: var(--green); }
     .btn-start:hover { background: var(--green-hover); }
     .btn-cancel { background: var(--red); }
     .btn-cancel:hover { background: var(--red-hover); }
 
-    /* ===== Список игроков ===== */
+    /* Список игроков */
     .players-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 24px 32px;
+      background: var(--card-bg); border-radius: 16px; padding: 24px 32px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.06);
     }
-    .players-header {
-      font-size: 18px;
-      font-weight: 700;
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .players-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+    .players-header { font-size: 18px; font-weight: 700; margin-bottom: 16px; display: flex; justify-content: space-between; }
+    .players-grid { display: flex; flex-wrap: wrap; gap: 10px; }
     .player-tag {
-      background: #f0edff;
-      color: var(--violet);
-      font-weight: 700;
-      font-size: 14px;
-      padding: 8px 16px;
-      border-radius: 20px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
+      background: #f0edff; color: var(--violet); font-weight: 700; font-size: 14px;
+      padding: 8px 16px; border-radius: 20px; display: flex; align-items: center; gap: 6px;
     }
 
-    /* ===== Правая панель (QR и Подключение) ===== */
-    .right-col {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+    /* Правая колонка */
+    .right-col { display: flex; flex-direction: column; gap: 16px; }
     .qr-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
+      background: var(--card-bg); border-radius: 16px; padding: 24px; text-align: center;
       box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-    }
-    .btn-fullscreen {
-      background: #f4f4fa;
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 8px 18px;
-      font-size: 12px;
-      font-weight: 700;
-      color: var(--ink);
-      cursor: pointer;
-      margin-bottom: 18px;
     }
     .code-label { font-size: 12px; color: var(--muted); font-weight: 600; }
     .game-code { font-size: 32px; font-weight: 800; letter-spacing: 2px; margin-bottom: 16px; }
-    
-    .qr-box {
-      width: 180px;
-      height: 180px;
-      margin: 0 auto 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+    .qr-box { width: 180px; height: 180px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center; }
     .qr-box img { max-width: 100%; height: auto; }
-
     .link-box {
-      background: #f8f9fc;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 8px 12px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 16px;
+      background: #f8f9fc; border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 12px; display: flex; align-items: center; justify-content: space-between;
+      font-size: 12px; color: var(--muted); margin-bottom: 16px;
     }
     .copy-btn { background: none; border: none; cursor: pointer; font-size: 14px; }
-
     .test-badge {
-      background: #e1f5fe;
-      color: #0288d1;
-      font-weight: 800;
-      font-size: 12px;
-      padding: 6px;
-      border-radius: 6px;
-      letter-spacing: 0.05em;
-      margin-bottom: 20px;
+      background: #e1f5fe; color: #0288d1; font-weight: 800; font-size: 12px;
+      padding: 6px; border-radius: 6px; letter-spacing: 0.05em; margin-bottom: 20px;
     }
 
-    /* Счетчики статуса */
-    .stats-row {
-      display: flex;
-      justify-content: space-around;
-      padding-top: 10px;
-      border-top: 1px solid var(--line);
+    /* ===== Модальное окно подтверждения запуска (Фото 1) ===== */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(29, 31, 58, 0.6);
+      backdrop-filter: blur(4px); display: grid; place-items: center; z-index: 100; padding: 20px;
     }
-    .stat-item { text-align: center; }
-    .stat-circle {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      border: 2px solid var(--line);
-      display: grid;
-      place-items: center;
-      margin: 0 auto 6px;
-      font-weight: 700;
-      font-size: 14px;
+    .modal-content {
+      background: var(--violet); color: #fff; width: 100%; max-width: 480px;
+      border-radius: 20px; padding: 36px 32px; text-align: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25); position: relative;
     }
-    .stat-circle.active { border-color: var(--green); color: var(--green); }
-    .stat-circle.limit { border-color: #ff9800; color: #ff9800; }
-    .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .modal-close {
+      position: absolute; top: 18px; right: 18px; background: transparent;
+      border: none; color: #fff; font-size: 20px; cursor: pointer;
+    }
+    .modal-content h2 { font-size: 24px; font-weight: 800; margin-bottom: 18px; }
+    .players-badge-box {
+      background: rgba(255,255,255,0.15); border-radius: 12px; padding: 12px;
+      font-weight: 700; font-size: 14px; margin-bottom: 24px; display: inline-flex; align-items: center; gap: 8px;
+    }
+    .modal-actions { display: flex; gap: 12px; justify-content: center; }
+    .btn-modal-cancel {
+      background: transparent; border: 2px solid #fff; color: #fff; border-radius: 24px;
+      padding: 12px 32px; font-weight: 700; font-size: 15px; cursor: pointer;
+    }
+    .btn-modal-confirm {
+      background: var(--green); border: none; color: #fff; border-radius: 24px;
+      padding: 12px 32px; font-weight: 700; font-size: 15px; cursor: pointer;
+    }
 
-    /* Инструкция */
-    .info-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 20px 24px;
-      font-size: 12px;
-      line-height: 1.6;
-      color: var(--muted);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    /* ===== Экран обратного отсчета (Фото 3) ===== */
+    .countdown-screen {
+      position: fixed; inset: 0; background: #5f4be8; z-index: 150;
+      display: grid; place-items: center; color: #fff;
     }
-    .info-card h4 { color: var(--ink); font-size: 13px; margin-bottom: 8px; }
-    .info-card ul { padding-left: 16px; margin-bottom: 10px; }
+    .countdown-circle {
+      width: 220px; height: 220px; border-radius: 50%;
+      border: 8px solid rgba(255,255,255,0.2); border-top-color: var(--green);
+      display: grid; place-items: center; font-size: 80px; font-weight: 800;
+      animation: spin 1s linear infinite;
+    }
+    .countdown-val { font-size: 90px; font-weight: 800; }
 
-    @media (max-width: 850px) {
-      main { grid-template-columns: 1fr; margin-top: -120px; }
-      .nav { display: none; }
+    /* ===== Экран активной игры ведущего (Фото 4, 5) ===== */
+    .gameplay-container {
+      display: grid; grid-template-columns: 1fr 340px; gap: 24px; max-width: 1200px; width: 100%; margin: -160px auto 40px; padding: 0 24px;
+    }
+    .question-card {
+      background: #fff; border-radius: 16px; padding: 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+    .question-title { font-size: 22px; font-weight: 800; margin-bottom: 20px; }
+    .answer-option {
+      background: #f8f9fc; border: 1px solid var(--line); border-radius: 12px;
+      padding: 16px 20px; margin-bottom: 12px; font-weight: 700; font-size: 15px; display: flex; gap: 12px;
+    }
+    .answer-option span { color: var(--muted); }
+
+    .host-actions-panel {
+      background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      display: flex; gap: 10px; margin-bottom: 16px; justify-content: center;
+    }
+    .btn-action {
+      border: none; border-radius: 20px; padding: 10px 16px; font-weight: 700; font-size: 13px; cursor: pointer; color: #fff;
+    }
+    .btn-stop { background: var(--red); }
+    .btn-pause { background: #ff9800; }
+    .btn-next { background: var(--violet); }
+
+    .timer-box-card {
+      background: #fff; border-radius: 16px; padding: 24px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+    .timer-circle {
+      width: 90px; height: 90px; border-radius: 50%; border: 6px solid #e4e6f0; border-top-color: var(--green);
+      display: grid; place-items: center; font-size: 24px; font-weight: 800; margin: 0 auto 16px;
     }
   </style>
 </head>
@@ -268,28 +210,21 @@
 
   <header>
     <a class="logo" href="index.html">майКвиз</a>
-    <nav class="nav">
-      <a href="game.html">🎮 Играть</a>
-      <a href="Quizzes.html">🧩 Мои Викторины</a>
-      <a href="catalog.html">🏪 Каталог викторин</a>
-      <a href="help.html">❔ Помощь</a>
-    </nav>
     <div class="header-right">
-      <span>RU ▾</span>
-      <div class="avatar">👤</div>
+      <button class="btn-exit" onclick="location.href='Quizzes.html'">Выйти</button>
     </div>
   </header>
 
   <div class="top-banner"></div>
 
-  <main>
-    <!-- Левая колонка -->
+  <!-- РЕЖИМ ОЖИДАНИЯ -->
+  <main id="waitingView">
     <div class="left-col">
       <div class="quiz-card">
-        <div class="badge-notice" id="modeNotice">Вы используете тестовую версию майКвиз (лимит 5 игроков)</div>
-        <h1 class="quiz-title" id="quizTitle">Загрузка викторины...</h1>
+        <div class="badge-notice">Вы используете бесплатную версию майКвиз</div>
+        <h1 class="quiz-title" id="quizTitle">Загрузка...</h1>
         <div class="controls">
-          <button class="btn btn-start" id="startBtn" type="button">Запустить игру</button>
+          <button class="btn btn-start" id="openModalBtn" type="button">Запустить игру</button>
           <button class="btn btn-cancel" id="cancelBtn" type="button">Завершить игру</button>
         </div>
       </div>
@@ -305,52 +240,80 @@
       </div>
     </div>
 
-    <!-- Правая колонка -->
     <div class="right-col">
       <div class="qr-card">
-        <button class="btn-fullscreen" type="button">Открыть QR-код на весь экран</button>
         <div class="code-label">Код викторины:</div>
         <div class="game-code" id="gameCodeDisplay">----</div>
-
         <div class="qr-box" id="qrcode"></div>
-
         <div class="link-box">
           <span id="gameLinkDisplay">https://...</span>
-          <button class="copy-btn" id="copyBtn" title="Скопировать ссылку">📋</button>
+          <button class="copy-btn" id="copyBtn">📋</button>
         </div>
-
-        <div class="test-badge" id="modeBadge">ТЕСТОВЫЙ РЕЖИМ</div>
-
-        <div class="stats-row">
-          <div class="stat-item">
-            <div class="stat-circle active" id="statConnected">0</div>
-            <div class="stat-label">Активные<br>пользователи</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-circle limit" id="statLimit">5</div>
-            <div class="stat-label">Лимит</div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-circle" id="statTotal">0</div>
-            <div class="stat-label">Все<br>пользователи</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="info-card">
-        <h4>Как играть:</h4>
-        <ul>
-          <li>После запуска на экране появится вопрос с вариантами ответа.</li>
-          <li>Первые 3 игрока с правильным ответом получают доп. баллы!</li>
-        </ul>
+        <div class="test-badge">ТЕСТОВЫЙ РЕЖИМ</div>
       </div>
     </div>
   </main>
 
+  <!-- МОДАЛЬНОЕ ОКНО ПОДТВЕРЖДЕНИЯ (Фото 1) -->
+  <div class="modal-overlay" id="confirmModal" hidden>
+    <div class="modal-content">
+      <button class="modal-close" id="closeModalBtn">✕</button>
+      <h2>Вы уверены, что хотите запустить игру?</h2>
+      <div>
+        <div class="players-badge-box">
+          👥 Игроков подключено: <span id="modalPlayerCount">0</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-modal-cancel" id="modalCancelBtn">Отмена</button>
+        <button class="btn-modal-confirm" id="modalConfirmBtn">Запустить</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН ОБРАТНОГО ОТСЧЕТА (Фото 3) -->
+  <div class="countdown-screen" id="countdownView" hidden>
+    <div style="text-align: center;">
+      <div class="countdown-val" id="countdownNumber">4</div>
+      <div style="margin-top: 10px; font-weight: 600;">Игра скоро начнётся...</div>
+    </div>
+  </div>
+
+  <!-- ЭКРАН АКТИВНОЙ ИГРЫ (Фото 4, 5) -->
+  <div class="gameplay-container" id="gameplayView" hidden>
+    <div class="question-card">
+      <div style="color: var(--muted); font-size: 13px; font-weight: 700; margin-bottom: 8px;">Вопрос 1 / 1</div>
+      <div class="question-title" id="activeQuestionTitle">Загрузка вопроса...</div>
+      
+      <div class="answer-option"><span>A</span> <div id="optA">Вариант 1</div></div>
+      <div class="answer-option"><span>B</span> <div id="optB">Вариант 2</div></div>
+      <div class="answer-option"><span>C</span> <div id="optC">Вариант 3</div></div>
+      <div class="answer-option"><span>D</span> <div id="optD">Вариант 4</div></div>
+    </div>
+
+    <div class="right-col">
+      <div class="host-actions-panel">
+        <button class="btn-action btn-stop" id="stopGameBtn">Стоп</button>
+        <button class="btn-action btn-pause">Пауза</button>
+        <button class="btn-action btn-next">Далее</button>
+      </div>
+
+      <div class="timer-box-card">
+        <div class="code-label" style="margin-bottom: 12px;">Время на ответ:</div>
+        <div class="timer-circle" id="questionTimer">15</div>
+        <div class="test-badge">ТЕСТОВЫЙ РЕЖИМ</div>
+      </div>
+
+      <div class="quiz-card" style="padding: 20px;">
+        <div class="code-label" style="margin-bottom: 8px;">Получено ответов: <span id="answeredCount">0</span></div>
+        <div id="answeredPlayersList" style="display: flex; flex-direction: column; gap: 6px; margin-top: 10px;"></div>
+      </div>
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
     import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-    import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
@@ -358,124 +321,138 @@
       projectId: "sokrat-7c938",
       storageBucket: "sokrat-7c938.firebasestorage.app",
       messagingSenderId: "19858604945",
-      appId: "1:19858604945:web:244b77bbe5afb849481030",
-      measurementId: "G-K06CVPVD15"
+      appId: "1:19858604945:web:244b77bbe5afb849481030"
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
-    const auth = getAuth(app);
 
-    const $ = (id) => document.getElementById(id);
-
-    // Получаем параметры из URL (?id=...&test=true)
     const urlParams = new URLSearchParams(window.location.search);
     const quizId = urlParams.get("id");
-    const isTestMode = urlParams.get("test") === "true";
-    const PLAYER_LIMIT = 5; // Ограничение в 5 человек
+    const PLAYER_LIMIT = 5;
+    let gameCode = Math.floor(1000 + Math.random() * 9000).toString();
+    let currentPlayersCount = 0;
 
-    let gameCode = "";
-
-    // Генерация случайного 4-значного кода
-    function generateGameCode() {
-      return Math.floor(1000 + Math.random() * 9000).toString();
-    }
-
-    // Инициализация игры
     async function initHost() {
       if (!quizId) {
-        alert("Не указан ID викторины!");
+        alert("ID викторины не найден!");
         location.href = "Quizzes.html";
         return;
       }
 
-      // Загружаем данные викторины
       let title = "Тестовая викторина";
       try {
         const qSnap = await getDoc(doc(db, "quizzes", quizId));
         if (qSnap.exists()) title = qSnap.data().title || title;
-      } catch (e) {
-        console.error(e);
-      }
-      $("quizTitle").textContent = title;
+      } catch (e) { console.error(e); }
 
-      // Генерируем 4-значный код игры
-      gameCode = generateGameCode();
-      $("gameCodeDisplay").textContent = gameCode;
+      document.getElementById("quizTitle").textContent = title;
+      document.getElementById("gameCodeDisplay").textContent = gameCode;
 
-      // Формируем ссылку на подключение
       const joinUrl = `${window.location.origin}/index.html?code=${gameCode}`;
-      $("gameLinkDisplay").textContent = joinUrl;
+      document.getElementById("gameLinkDisplay").textContent = joinUrl;
 
-      // Отрисовка QR-кода
-      new QRCode($("qrcode"), {
-        text: joinUrl,
-        width: 180,
-        height: 180,
-        colorDark : "#1d1f3a",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
+      new QRCode(document.getElementById("qrcode"), {
+        text: joinUrl, width: 180, height: 180, colorDark: "#1d1f3a", colorLight: "#ffffff"
       });
 
-      // Создаем игру в Firestore (Коллекция "games")
       await setDoc(doc(db, "games", gameCode), {
         quizId: quizId,
-        status: "waiting", // waiting | running | finished
-        isTest: isTestMode,
-        limit: PLAYER_LIMIT,
+        status: "waiting",
         createdAt: Date.now()
       });
 
-      // Слушаем подключение игроков в реальном времени
-      listenPlayers();
-    }
-
-    // Прослушивание списка подключенных игроков
-    function listenPlayers() {
-      const playersRef = collection(db, "games", gameCode, "players");
-      onSnapshot(playersRef, (snapshot) => {
+      // Слушаем игроков
+      onSnapshot(collection(db, "games", gameCode, "players"), (snapshot) => {
         const players = [];
         snapshot.forEach((doc) => players.push(doc.data()));
+        currentPlayersCount = players.length;
 
-        const count = players.length;
-        $("playerCountLabel").textContent = `${count} / ${PLAYER_LIMIT}`;
-        $("statConnected").textContent = count;
-        $("statTotal").textContent = count;
+        document.getElementById("playerCountLabel").textContent = `${currentPlayersCount} / ${PLAYER_LIMIT}`;
+        document.getElementById("modalPlayerCount").textContent = currentPlayersCount;
 
-        if (count === 0) {
-          $("playersList").innerHTML = `<span style="color: var(--muted); font-size: 14px;">Ожидание игроков...</span>`;
+        if (currentPlayersCount === 0) {
+          document.getElementById("playersList").innerHTML = `<span style="color: var(--muted); font-size: 14px;">Ожидание игроков...</span>`;
         } else {
-          $("playersList").innerHTML = players.map(p => 
-            `<div class="player-tag">👤 ${p.name}</div>`
-          ).join("");
+          document.getElementById("playersList").innerHTML = players.map(p => `<div class="player-tag">👤 ${p.name}</div>`).join("");
         }
       });
     }
 
-    // Кнопка запуска игры
-    $("startBtn").addEventListener("click", async () => {
-      await updateDoc(doc(db, "games", gameCode), { status: "running" });
-      alert("Игра запущена!");
-      // Переход на экран игры ведущего
-      location.href = `game.html?host=true&code=${gameCode}`;
+    // Управление модальным окном (Фото 1)
+    const modal = document.getElementById("confirmModal");
+    document.getElementById("openModalBtn").addEventListener("click", () => modal.hidden = false);
+    document.getElementById("closeModalBtn").addEventListener("click", () => modal.hidden = true);
+    document.getElementById("modalCancelBtn").addEventListener("click", () => modal.hidden = true);
+
+    // Подтверждение запуска игры -> Показываем отсчет 4, 3, 2, 1 (Фото 3)
+    document.getElementById("modalConfirmBtn").addEventListener("click", async () => {
+      modal.hidden = true;
+      document.getElementById("waitingView").hidden = true;
+      
+      const countdownView = document.getElementById("countdownView");
+      countdownView.hidden = false;
+
+      let count = 4;
+      const countEl = document.getElementById("countdownNumber");
+      
+      const timer = setInterval(async () => {
+        count--;
+        countEl.textContent = count;
+        if (count <= 0) {
+          clearInterval(timer);
+          countdownView.hidden = true;
+          
+          // Меняем статус в базе на running, чтобы игроки тоже перешли
+          await updateDoc(doc(db, "games", gameCode), { status: "running" });
+          
+          // Открываем экран активной игры ведущего (Фото 4, 5)
+          startGameplayInterface(quizId);
+        }
+      }, 1000);
     });
 
-    // Кнопка отмены
-    $("cancelBtn").addEventListener("click", async () => {
+    // Запуск интерфейса ведущего с вопросами
+    async function GameplayInterface(qId) {
+      document.getElementById("gameplayView").hidden = false;
+      
+      // Загружаем вопросы викторины из Firestore (если есть)
+      document.getElementById("activeQuestionTitle").textContent = "Пример вопроса викторины?";
+      document.getElementById("optA").textContent = "Первый вариант";
+      document.getElementById("optB").textContent = "Второй вариант";
+      document.getElementById("optC").textContent = "Третий вариант";
+      document.getElementById("optD").textContent = "Четвертый вариант";
+
+      // Таймер обратного отсчета на ответ
+      let timeLeft = 15;
+      const timerEl = document.getElementById("questionTimer");
+      const interval = setInterval(() => {
+        timeLeft--;
+        timerEl.textContent = timeLeft;
+        if (timeLeft <= 0) clearInterval(interval);
+      }, 1000);
+    }
+
+    function startGameplayInterface(qId) {
+      GameplayInterface(qId);
+    }
+
+    document.getElementById("cancelBtn").addEventListener("click", async () => {
       if (confirm("Завершить сессию игры?")) {
         await updateDoc(doc(db, "games", gameCode), { status: "cancelled" });
         location.href = "Quizzes.html";
       }
     });
 
-    // Копирование ссылки
-    $("copyBtn").addEventListener("click", () => {
-      const link = $("gameLinkDisplay").textContent;
-      navigator.clipboard.writeText(link);
+    document.getElementById("stopGameBtn").addEventListener("click", () => {
+      location.href = "Quizzes.html";
+    });
+
+    document.getElementById("copyBtn").addEventListener("click", () => {
+      navigator.clipboard.writeText(document.getElementById("gameLinkDisplay").textContent);
       alert("Ссылка скопирована!");
     });
 
-    // Запуск при загрузке
     initHost();
   </script>
 </body>

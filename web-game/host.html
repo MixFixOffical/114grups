@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Экран организатора — Изи квиз</title>
+  <title>Игра — Изи квиз</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
@@ -24,7 +24,9 @@
       font-family: "Manrope", system-ui, sans-serif;
       color: var(--white);
       background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple) 50%, #9b3fe8 100%);
-      min-height: 100vh; overflow-x: hidden; position: relative;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
     }
 
     .bg-shapes { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
@@ -39,12 +41,24 @@
       66% { transform: translate(-30px, 25px) scale(0.95); }
     }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pop { 0% { opacity: 0; transform: scale(1.8); } 40% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(1); } }
     @keyframes pulse {
       0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 63, 0.7); }
       50% { box-shadow: 0 0 0 14px rgba(255, 210, 63, 0); }
     }
 
-    header { position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px clamp(20px, 5vw, 60px); }
+    .demo-bar {
+      position: sticky; top: 0; z-index: 20;
+      background: var(--yellow); color: var(--purple-dark); font-weight: 800;
+      padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; flex-wrap: wrap;
+    }
+    .demo-end {
+      font-family: inherit; font-weight: 800; font-size: 14px; color: var(--white);
+      background: #e0473a; border: none; border-radius: 999px; padding: 10px 18px; cursor: pointer;
+    }
+
+    header { position: relative; z-index: 10; display: flex; align-items: center; padding: 20px clamp(20px, 5vw, 60px); }
     .logo {
       display: flex; align-items: center; gap: 10px;
       font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 22px;
@@ -55,147 +69,56 @@
       background: linear-gradient(135deg, var(--yellow), var(--orange));
       display: grid; place-items: center; color: var(--purple-dark); font-size: 22px; transform: rotate(-6deg);
     }
-    .btn-outline {
-      font-family: inherit; font-weight: 700; font-size: 15px; color: var(--white);
-      background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.5);
-      border-radius: 999px; padding: 10px 20px; text-decoration: none; backdrop-filter: blur(6px);
-    }
-    .btn-outline:hover { background: rgba(255, 255, 255, 0.22); }
 
-    main { position: relative; z-index: 5; max-width: 1040px; margin: 0 auto; padding: 16px 20px 80px; }
+    main { position: relative; z-index: 5; max-width: 680px; margin: 0 auto; padding: 10px 20px 60px; }
 
-    .card {
+    .screen {
       background: rgba(255, 255, 255, 0.12);
       border: 1px solid rgba(255, 255, 255, 0.25);
       backdrop-filter: blur(12px);
       border-radius: 24px; padding: 32px; text-align: center;
       animation: fadeUp 0.5s ease both;
     }
-    .card h1 { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: clamp(24px, 4vw, 34px); margin-bottom: 6px; }
-    .quiz-title { color: var(--text-light); font-size: 17px; margin-bottom: 22px; }
-    .qr-card { margin-bottom: 20px; }
-    .qr-card.qr-side { margin-bottom: 18px; padding: 18px; }
-    .qr-side .section-title { font-size: 14px; }
-    .qr-side .qr-wrap { padding: 10px; margin: 0 0 10px; }
-    .qr-side #qrBox { min-width: 0; min-height: 0; }
-    .qr-side .qr-url { font-size: 13px; }
-    .qr-wrap { display: inline-block; background: var(--white); padding: 16px; border-radius: 20px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25); margin: 6px 0 16px; }
-    #qrBox { min-width: 220px; min-height: 220px; }
-    #qrBox img, #qrBox canvas { display: block; margin: 0 auto; }
-    .qr-url { display: block; margin-top: 6px; font-weight: 700; word-break: break-all; color: var(--white); font-size: 15px; }
+    .screen h1 { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: clamp(24px, 4vw, 32px); line-height: 1.15; margin-bottom: 8px; }
+    .lead { color: var(--text-light); font-size: 16px; line-height: 1.5; margin-bottom: 22px; }
+    .quiz-title { color: var(--yellow); font-weight: 800; font-size: 18px; margin-bottom: 6px; }
+    #joinNote { color: var(--yellow); font-weight: 700; margin-bottom: 16px; }
 
-    .code-big {
-      display: inline-block; font-family: "Unbounded", sans-serif; font-weight: 900;
-      font-size: clamp(34px, 7vw, 56px); letter-spacing: 8px;
-      background: var(--white); color: var(--purple-dark);
-      padding: 18px 30px; border-radius: 20px; margin-bottom: 14px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+    input {
+      font-family: inherit; font-size: 18px; color: var(--purple-dark);
+      background: var(--white); border: 3px solid transparent; border-radius: 14px;
+      padding: 14px 16px; outline: none; width: 100%; transition: border-color 0.2s ease;
     }
+    input:focus { border-color: var(--yellow); }
+    input::placeholder { color: #9a8bc4; }
 
-    .status {
-      display: inline-block; font-weight: 800; font-size: 14px; padding: 8px 18px;
-      border-radius: 999px; margin: 6px 0 22px; background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-    .status.waiting::before { content: "● "; color: var(--yellow); }
-    .status.running { background: var(--green); border-color: var(--green); }
-    .status.running::before { content: "● "; }
-    .status.finished::before { content: "■ "; }
-
-    .section-title { font-weight: 800; font-size: 16px; margin: 0 0 12px; }
-
-    .players { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; min-height: 44px; margin-bottom: 26px; }
-    .player { background: var(--white); color: var(--purple-dark); font-weight: 700; padding: 10px 16px; border-radius: 999px; animation: fadeUp 0.4s ease both; }
-    .players-empty { color: var(--text-light); font-size: 15px; padding-top: 8px; }
-
-    .row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+    .field { margin-bottom: 14px; text-align: left; }
 
     .btn-primary {
       font-family: inherit; font-weight: 800; font-size: 17px; color: var(--purple-dark);
       background: linear-gradient(135deg, var(--yellow), var(--orange));
       border: none; border-radius: 16px; padding: 16px 30px; cursor: pointer;
-      box-shadow: 0 10px 30px rgba(255, 122, 26, 0.45); animation: pulse 2s ease-in-out infinite;
-      transition: transform 0.2s ease;
+      box-shadow: 0 10px 30px rgba(255, 122, 26, 0.45); transition: transform 0.2s ease, opacity 0.2s ease;
     }
     .btn-primary:hover { transform: translateY(-2px); }
-    .btn-primary:disabled { opacity: 0.6; cursor: wait; animation: none; transform: none; }
-    .btn-ghost {
-      font-family: inherit; font-weight: 700; font-size: 16px; color: var(--white);
-      background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.5);
-      border-radius: 16px; padding: 14px 22px; cursor: pointer;
-    }
-    .btn-ghost:hover { background: rgba(255, 255, 255, 0.22); }
-    .btn-danger {
+    .btn-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
+    .btn-primary.small { padding: 14px 20px; font-size: 16px; }
+    .btn-ghost-p {
       font-family: inherit; font-weight: 800; font-size: 16px; color: var(--white);
-      background: #e0473a; border: none; border-radius: 16px; padding: 15px 26px;
-      cursor: pointer; box-shadow: 0 8px 22px rgba(224, 71, 58, 0.4);
+      background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.6);
+      border-radius: 16px; padding: 14px 24px; cursor: pointer; margin-top: 10px;
+      transition: background 0.2s ease;
+    }
+    .btn-ghost-p:hover:not(:disabled) { background: rgba(255, 255, 255, 0.22); }
+    .btn-ghost-p:disabled { opacity: 0.6; cursor: wait; }
+
+    .error { color: #ffe0a3; font-weight: 700; font-size: 15px; min-height: 20px; margin-top: 12px; line-height: 1.45; }
+
+    .waiting-dot {
+      width: 22px; height: 22px; border-radius: 50%; background: var(--yellow);
+      margin: 18px auto 0; animation: pulse 1.8s ease-in-out infinite;
     }
 
-    .hint { color: var(--text-light); font-size: 15px; line-height: 1.5; margin-top: 12px; }
-
-    /* ---------- Режим игры ---------- */
-    .run-grid { display: grid; grid-template-columns: 1fr 280px; gap: 20px; text-align: left; }
-    .q-progress { font-weight: 800; font-size: 14px; color: var(--text-light); margin-bottom: 12px; }
-    .timer-track { height: 12px; background: rgba(255, 255, 255, 0.2); border-radius: 999px; overflow: hidden; margin-bottom: 8px; }
-    .timer-bar { height: 100%; width: 100%; background: linear-gradient(90deg, var(--yellow), var(--orange)); border-radius: 999px; }
-    .timer-label { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 26px; margin-bottom: 16px; }
-    .q-text {
-      background: var(--white); color: var(--purple-dark); border-radius: 20px;
-      padding: 22px 20px; margin-bottom: 14px; font-weight: 800; font-size: clamp(18px, 2.4vw, 22px); line-height: 1.35;
-      box-shadow: 0 12px 30px rgba(20, 0, 60, 0.25);
-    }
-    .q-img-host {
-      display: block; max-width: 100%; max-height: 260px; object-fit: contain;
-      margin: 0 0 14px; border-radius: 16px; background: #fff;
-    }
-    .opt-list { display: grid; gap: 10px; }
-    .opt-item {
-      background: rgba(255, 255, 255, 0.14); border-radius: 14px; padding: 12px 14px;
-      font-weight: 700; display: flex; gap: 10px; align-items: center;
-    }
-    .opt-item.right { background: #e9f8ee; color: var(--purple-dark); }
-    .lt {
-      width: 28px; height: 28px; border-radius: 9px; flex-shrink: 0;
-      background: linear-gradient(135deg, var(--yellow), var(--orange));
-      display: grid; place-items: center; font-weight: 900; color: var(--purple-dark);
-    }
-    .side .stat {
-      background: rgba(255, 255, 255, 0.14); border-radius: 18px; padding: 18px; text-align: center; margin-bottom: 18px;
-    }
-    .stat-num { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 44px; color: var(--yellow); }
-    .lb-row {
-      display: flex; gap: 10px; align-items: center;
-      background: rgba(255, 255, 255, 0.14); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px;
-    }
-    .lb-rank { font-family: "Unbounded", sans-serif; font-weight: 900; width: 28px; }
-    .lb-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .lb-score { font-weight: 900; color: var(--yellow); }
-
-    /* ---------- Код и плакат с QR ---------- */
-    .code-row { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
-    .code-row .code-big { margin-bottom: 14px; }
-    .modal {
-      position: fixed; inset: 0; z-index: 50; background: rgba(20, 0, 60, 0.65);
-      display: grid; place-items: center; padding: 16px; overflow: auto;
-    }
-    .modal-card { background: #fff; border-radius: 20px; padding: 14px; width: 100%; max-width: 920px; }
-    #posterCanvas { display: block; width: 100%; height: auto; border-radius: 12px; }
-    .modal-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
-    .btn-dark {
-      font-family: inherit; font-weight: 800; font-size: 15px; color: #fff;
-      background: var(--purple); border: none; border-radius: 14px; padding: 12px 20px; cursor: pointer;
-    }
-    .btn-dark:hover { background: var(--purple-dark); }
-    .btn-dark.btn-light { background: #e9e6f5; color: var(--purple-dark); }
-
-    .toast {
-      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(120px);
-      background: var(--yellow); color: var(--purple-dark); font-weight: 700;
-      padding: 14px 22px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-      transition: transform 0.35s ease; z-index: 60; max-width: calc(100% - 40px);
-    }
-    .toast.show { transform: translateX(-50%) translateY(0); }
-
-    .count-wrap { display: grid; place-items: center; min-height: 320px; }
     .count-num {
       font-family: "Unbounded", sans-serif; font-weight: 900;
       font-size: clamp(90px, 22vw, 160px); line-height: 1; color: var(--yellow);
@@ -203,39 +126,78 @@
     }
     .count-num.pop { animation: pop 0.9s ease both; }
     .count-num.start { font-size: clamp(56px, 14vw, 96px); color: var(--white); }
-    @keyframes pop { 0% { opacity: 0; transform: scale(1.8); } 40% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(1); } }
 
-    .error { color: #ffe0a3; font-weight: 700; font-size: 15px; line-height: 1.5; margin-top: 10px; }
+    .q-progress { font-weight: 800; font-size: 14px; color: var(--text-light); margin-bottom: 14px; }
+    .timer-track { height: 12px; background: rgba(255, 255, 255, 0.2); border-radius: 999px; overflow: hidden; margin-bottom: 8px; }
+    .timer-bar { height: 100%; width: 100%; background: linear-gradient(90deg, var(--yellow), var(--orange)); border-radius: 999px; }
+    .timer-label { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 28px; margin-bottom: 18px; }
 
-    /* ---------- Перездачи и оценки ---------- */
-    .retake-card { margin-top: 20px; text-align: left; }
-    .rq-row {
-      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-      background: rgba(255, 255, 255, 0.14); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px;
-    }
-    .rq-name { flex: 1; min-width: 150px; font-weight: 700; }
-    .btn-ok {
-      font-family: inherit; font-weight: 800; font-size: 14px; color: var(--purple-dark);
-      background: var(--green); border: none; border-radius: 12px; padding: 10px 16px; cursor: pointer;
-    }
-    .btn-no {
-      font-family: inherit; font-weight: 700; font-size: 14px; color: var(--white);
-      background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 12px; padding: 8px 14px; cursor: pointer;
-    }
-    .lb-grade {
-      font-weight: 800; font-size: 13px; background: var(--yellow); color: var(--purple-dark);
-      border-radius: 999px; padding: 4px 10px; white-space: nowrap;
+    .q-text {
+      background: var(--white); color: var(--purple-dark);
+      border-radius: 20px; padding: 24px 20px; margin-bottom: 20px;
+      font-weight: 800; font-size: clamp(19px, 3vw, 24px); line-height: 1.35;
+      box-shadow: 0 12px 30px rgba(20, 0, 60, 0.25);
     }
 
-    @media (max-width: 800px) {
-      .run-grid { grid-template-columns: 1fr; }
+    .q-img {
+      display: block; max-width: 100%; max-height: 300px; object-fit: contain;
+      margin: 0 auto 16px; border-radius: 16px; background: #fff;
     }
+    .q-img[hidden] { display: none !important; }
+    .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .opt {
+      font-family: inherit; font-weight: 700; font-size: 16px; text-align: left;
+      color: var(--purple-dark); background: var(--white);
+      border: 3px solid transparent; border-radius: 16px; padding: 16px;
+      cursor: pointer; display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 6px 18px rgba(20, 0, 60, 0.2);
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+    .opt:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--yellow); }
+    .opt:disabled { cursor: default; opacity: 0.7; }
+    .opt.chosen { border-color: var(--purple); opacity: 1; }
+    .opt.correct { border-color: var(--green); background: #e9f8ee; opacity: 1; }
+    .opt.wrong { border-color: #e0473a; background: #ffe9e6; opacity: 1; }
+    .opt-letter {
+      width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--yellow), var(--orange));
+      display: grid; place-items: center; font-weight: 900; color: var(--purple-dark);
+    }
+
+    .open-row { display: flex; gap: 10px; }
+    .open-row input:disabled { opacity: 0.6; }
+    .open-row .btn-primary { white-space: nowrap; }
+
+    .q-status { margin-top: 18px; font-weight: 800; font-size: 17px; color: var(--yellow); min-height: 24px; }
+    .rating-line { margin-top: 14px; font-weight: 700; font-size: 15px; color: var(--text-light); }
+    .rating-badge {
+      display: inline-block; background: var(--yellow); color: var(--purple-dark);
+      font-weight: 800; font-size: 15px; padding: 8px 16px; border-radius: 999px; margin-bottom: 14px;
+    }
+    .rating-badge:empty { display: none; }
+    .next-wrap { margin-top: 16px; }
+
+    .done-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+    .done-actions .btn-primary, .done-actions .btn-ghost-p { margin-top: 0; }
+    .retake-msg { margin-top: 10px; color: #ffe0a3; font-weight: 700; font-size: 15px; min-height: 20px; line-height: 1.45; }
+
+    .lb { text-align: left; margin-top: 14px; }
+    .lb-row {
+      display: flex; gap: 10px; align-items: center;
+      background: rgba(255, 255, 255, 0.14); border-radius: 12px;
+      padding: 10px 14px; margin-bottom: 8px;
+    }
+    .lb-rank { font-family: "Unbounded", sans-serif; font-weight: 900; width: 28px; }
+    .lb-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .lb-score { font-weight: 900; color: var(--yellow); }
+
     @media (max-width: 560px) {
-      .card { padding: 22px; }
-      .btn-primary, .btn-danger, .btn-ghost { width: 100%; }
+      .screen { padding: 22px; }
+      .answers { grid-template-columns: 1fr; }
+      .btn-primary, .btn-ghost-p { width: 100%; }
+      .open-row { flex-direction: column; }
       .logo { font-size: 17px; }
       .logo-mark { width: 34px; height: 34px; font-size: 18px; }
-      .btn-outline { padding: 9px 14px; font-size: 13px; }
     }
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation: none !important; transition: none !important; }
@@ -250,49 +212,75 @@
     <div class="shape s3"></div>
   </div>
 
+  <div class="demo-bar" id="demoBar" hidden>
+    <span>Демо-режим: так видит тест участник. Ответы никуда не сохраняются.</span>
+    <button class="demo-end" id="demoEnd">Завершить демо тест</button>
+  </div>
+
   <header>
     <a href="index.html" class="logo"><span class="logo-mark">?</span>Изи квиз</a>
-    <a href="cabinet.html" class="btn-outline">Личный кабинет</a>
   </header>
 
   <main>
-    <section class="card qr-card" id="qrCard">
-      <div class="section-title">Игроки сканируют QR-код</div>
-      <div class="qr-wrap"><div id="qrBox"></div></div>
+    <section class="screen" id="joinScreen" hidden>
+      <h1>Войти в игру</h1>
+      <div class="quiz-title" id="quizTitleJoin"></div>
+      <p class="lead" id="joinNote" hidden></p>
+      <p class="lead">Придумайте никнейм, под которым вас увидит организатор.</p>
+      <div class="field"><input type="text" id="nickInput" maxlength="20" placeholder="Например, Мах123" autocomplete="off" /></div>
+      <button class="btn-primary" id="joinBtn">Войти</button>
+      <div><button class="btn-ghost-p" id="joinRetake" hidden>Запросить перездачу</button></div>
+      <div class="error" id="joinError"></div>
     </section>
 
-    <section class="card" id="content">
-      <h1>Экран организатора</h1>
-      <p class="hint">Загружаем…</p>
+    <section class="screen" id="lobbyScreen" hidden>
+      <h1>Вы в игре!</h1>
+      <div class="quiz-title" id="quizTitleLobby"></div>
+      <p class="lead" id="lobbyText">Ждём, когда организатор начнёт тест.</p>
+      <div class="waiting-dot" aria-hidden="true"></div>
     </section>
 
-    <section class="card retake-card" id="retakeCard" hidden>
-      <div class="section-title">Запросы на перездачу</div>
-      <div id="retakeList"></div>
+    <section class="screen" id="countdownScreen" hidden>
+      <div class="count-num" id="countNum">5</div>
+    </section>
+
+    <section class="screen" id="questionScreen" hidden>
+      <div class="q-progress" id="qProgress"></div>
+      <div class="rating-badge" id="ratingLine"></div>
+      <div class="timer-track"><div class="timer-bar" id="timerBar"></div></div>
+      <div class="timer-label" id="timerLabel"></div>
+      <img class="q-img" id="qImg" alt="" hidden />
+      <div class="q-text" id="qText"></div>
+      <div id="qAnswers"></div>
+      <div class="q-status" id="qStatus"></div>
+      <div class="next-wrap" id="nextWrap"></div>
+    </section>
+
+    <section class="screen" id="doneScreen" hidden>
+      <h1>Тест завершён!</h1>
+      <p class="lead" id="doneText">Спасибо за участие.</p>
+      <div class="rating-badge" id="doneGrade"></div>
+      <p class="rating-line" id="doneRating"></p>
+      <div class="done-actions">
+        <button class="btn-primary small" id="doneCert" hidden>Скачать сертификат</button>
+        <button class="btn-ghost-p" id="doneRetake" hidden>Запросить перездачу</button>
+      </div>
+      <p class="retake-msg" id="retakeMsg"></p>
+      <div id="doneBoard" class="lb"></div>
+    </section>
+
+    <section class="screen" id="errorScreen" hidden>
+      <h1>Не получилось</h1>
+      <p class="lead" id="errorText"></p>
+      <a class="btn-primary" href="index.html" style="text-decoration:none;display:inline-block">На главную</a>
     </section>
   </main>
 
-  <div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-  <!-- Плакат с QR -->
-  <div class="modal" id="posterModal" hidden>
-    <div class="modal-card">
-      <canvas id="posterCanvas"></canvas>
-      <div class="modal-actions">
-        <button class="btn-dark" id="posterPng">Скачать PNG</button>
-        <button class="btn-dark" id="posterPdf">Скачать PDF</button>
-        <button class="btn-dark btn-light" id="posterClose">Закрыть</button>
-      </div>
-    </div>
-  </div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-  import { gradeFor } from "./cert.js";
+  import { getFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, collection, query, where, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { makeCertNumber, downloadCertificate, gradeFor, maxScoreOf } from "./cert.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
@@ -306,55 +294,59 @@
 
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const auth = getAuth(app);
 
   const $ = (id) => document.getElementById(id);
-  const code = new URLSearchParams(location.search).get('code');
+  const params = new URLSearchParams(location.search);
+  const code = params.get('code');
+  const DEMO = params.get('demo') === '1';
+  const playerKey = (r) => `izi_player_${code}_${r}`;
   const LETTERS = ['А', 'Б', 'В', 'Г', 'Д', 'Е'];
 
-  let user = null;
   let quiz = null;
-  let game = null;
-  let players = [];
-  let currentRound = null;
-
+  let order = [];
+  let round = 1;
+  let playerId = null;
+  let playerName = '';
+  let attempt = 1;
+  let exitCount = 0;       // выходов со страницы подряд (сбрасывается, когда участник снова ответил)
+  let ended = false;       // попытка завершена из-за двух выходов подряд
+  let blockedAttempt = 0;
+  let blockedGrade = null;
+  let myGrade = null;
+  // Перездача доступна только при оценках 2 и 1 (без СКР — всегда)
+  const retakeAllowed = (g) => g == null || Number(g) <= 2;
+  let certPromise = null;  // сертификат выдаётся один раз на попытку
+  let certData = null;
+  let gameStatus = 'waiting';
+  let latestPos = -1;
+  let questionStartedMs = 0;
+  let started = false;
+  let countdownDone = false;
+  let gameOver = false;
   let unsubGame = null;
-  let unsubPlayers = null;
-  let driverPos = null;
-  let driverTimer = null;
-  let hostEndAt = 0;
-  let hostTotalMs = 1;
-  let tickTimer = null;
-  let pollTimer = null;
-  let firstSnapshot = true;
-  let countdownToken = null;
-  let countdownActive = false;
-  let unsubRetakes = null;
+  let unsubRetake = null;
+  let timerId = null;
+  let shownPos = -1;
+  let curPos = -1;
+  let curQ = null;
+  let answered = false;
+  let demoScore = 0;
 
-  // Дата из Timestamp для показа человеку
+  function show(id) {
+    ['joinScreen', 'lobbyScreen', 'countdownScreen', 'questionScreen', 'doneScreen', 'errorScreen']
+      .forEach((s) => { $(s).hidden = s !== id; });
+  }
+
   const fmt = (ts) => ts.toDate().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  let toastTimer;
-  function showToast(text) {
-    const t = $('toast');
-    t.textContent = text;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  function fail(text) {
+    $('errorText').textContent = text;
+    show('errorScreen');
   }
-
-  function showError(text) {
-    $('content').innerHTML = `
-      <h1>Не получилось</h1>
-      <p class="error">${esc(text)}</p>
-      <div style="margin-top:24px"><a class="btn-outline" href="cabinet.html">В личный кабинет</a></div>`;
-  }
-
-  const joinUrl = () => new URL('index.html?code=' + encodeURIComponent(code), location.href).href;
 
   function shuffle(a) {
     const r = [...a];
@@ -370,78 +362,261 @@
     return q.shuffleQuestions ? shuffle(idx) : idx;
   }
 
-  /* ---------- Старт ---------- */
-  onAuthStateChanged(auth, (u) => {
-    if (!u) {
-      window.location.replace('index.html');
-      return;
-    }
-    user = u;
-    init();
-  });
+  // Ключ человека: один никнейм = один участник в пределах запуска квиза
+  const personKey = (name) => 'n_' + name.trim().toLowerCase().replace(/[\/\s]+/g, '_');
+  const playerRef = () => doc(db, 'games', code, 'rounds', String(round), 'players', playerId);
+  const todayStr = () => new Date().toLocaleDateString('ru-RU');
 
+  function setLobbyText() {
+    $('lobbyText').textContent = `Вы в игре как «${playerName}». Ждём старт.`;
+  }
+
+  // Данные сертификата -> то, что рисует cert.js
+  function toDraw(c) {
+    return {
+      name: c.nickname, quiz: c.quizTitle, attempt: c.attempt, score: c.score, maxScore: c.maxScore,
+      grade: c.grade ?? null, place: c.place, total: c.total, date: c.date, certNo: c.certNo, quizCode: c.quizCode
+    };
+  }
+
+  /* ---------- Старт ---------- */
   async function init() {
-    if (!code) return showError('Не указан код квиза.');
+    if (!code) return fail('Не указан код квиза.');
+
     try {
       const qs = await getDoc(doc(db, 'quizzes', code));
-      if (!qs.exists() || qs.data().ownerUid !== user.uid) {
-        return showError('Квиз не найден или у вас нет прав на его запуск.');
-      }
-      quiz = { timeLimit: 20, questions: [], ...qs.data() };
+      if (!qs.exists()) return fail('Квиз с таким кодом не найден.');
+      quiz = { questions: [], ...qs.data() };
       quiz.timeLimit = quiz.timeLimit || 20;
+      $('quizTitleJoin').textContent = quiz.title;
+      $('quizTitleLobby').textContent = quiz.title;
+
+      // Расписание: вход открыт только в заданное время (демо не ограничиваем)
+      if (!DEMO) {
+        const now = Date.now();
+        if (quiz.startsAt && now < quiz.startsAt.toMillis()) return fail(`Квиз откроется ${fmt(quiz.startsAt)}.`);
+        if (quiz.endsAt && now > quiz.endsAt.toMillis()) return fail('Срок проведения этого квиза уже истёк.');
+      }
+
+      if (DEMO) {
+        $('demoBar').hidden = false;
+        $('demoEnd').addEventListener('click', () => {
+          clearInterval(timerId);
+          window.location.href = 'cabinet.html';
+        });
+        order = makeOrder(quiz);
+        startCountdown(() => demoRun(0));
+        return;
+      }
 
       const gs = await getDoc(doc(db, 'games', code));
-      if (!gs.exists()) return showError('Экран ожидания ещё не создан. Запустите его из личного кабинета.');
-      if (gs.data().hostUid !== user.uid) return showError('Эту игру ведёт другой пользователь.');
+      if (!gs.exists()) return fail('Организатор ещё не открыл экран ожидания. Попробуйте чуть позже.');
 
-      unsubGame = onSnapshot(doc(db, 'games', code), (snap) => {
-        if (snap.exists()) onGame(snap.data());
-      });
-      renderQr();
-      watchRetakes();
+      round = gs.data().round || 1;
+      playerName = sessionStorage.getItem('izi_nickname') || '';
+      playerId = sessionStorage.getItem(playerKey(round));
+
+      // Восстанавливаем состояние участника после перезагрузки страницы
+      if (playerId) {
+        const ps = await getDoc(playerRef());
+        if (ps.exists()) {
+          const p = ps.data();
+          attempt = p.attempt || 1;
+          exitCount = p.exits || 0;
+          ended = !!p.ended;
+        } else {
+          playerId = null;
+        }
+      }
+
+      watchGame();
+      if (playerName) watchRetake(playerName);
+
+      if (playerId && ended) {
+        finish();
+      } else if (playerId) {
+        setLobbyText();
+        show('lobbyScreen');
+      } else {
+        $('nickInput').value = playerName;
+        show('joinScreen');
+      }
     } catch (err) {
       console.error(err);
-      showError('Не удалось загрузить игру. Проверьте интернет и обновите страницу.');
+      fail('Не удалось загрузить квиз. Проверьте интернет и обновите страницу.');
     }
   }
 
-  function onGame(g) {
-    game = g;
-    const r = g.round || 1;
-    if (r !== currentRound) {
-      currentRound = r;
-      watchPlayers(r);
-    }
+  /* ---------- Вход ---------- */
+  $('joinBtn').addEventListener('click', async () => {
+    const name = $('nickInput').value.trim();
+    const error = $('joinError');
+    if (name.length < 2) { error.textContent = 'Никнейм минимум 2 символа'; return; }
+    if (name.length > 20) { error.textContent = 'Никнейм максимум 20 символов'; return; }
 
-    // При первом открытии страницы отсчёт не повторяем (например, после перезагрузки)
-    if (firstSnapshot) {
-      firstSnapshot = false;
-      countdownToken = g.startToken ?? null;
-    }
+    const btn = $('joinBtn');
+    btn.disabled = true;
+    error.textContent = '';
+    $('joinRetake').hidden = true;
+    $('joinNote').hidden = true;
 
-    // Новый старт игры: сначала отсчёт 5-4-3-2-1-Старт, как у игроков
-    if (g.status === 'running' && g.startToken != null && g.startToken !== countdownToken) {
-      countdownToken = g.startToken;
-      clearDriver();
-      countdownActive = true;
-      runHostCountdown(() => {
-        countdownActive = false;
-        driver(game);
-        render();
-      });
+    try {
+      const key = personKey(name);
+      const base = collection(db, 'games', code, 'rounds', String(round), 'players');
+      const same = (await getDocs(query(base, where('key', '==', key)))).docs.map((d) => d.data());
+      const maxAttempt = same.reduce((m, p) => Math.max(m, p.attempt || 1), 0);
+      const anyEnded = same.some((p) => p.ended);
+      const last = same.reduce((a, p) => ((p.attempt || 1) > (a ? a.attempt || 1 : 0) ? p : a), null);
+
+      // Второй выход подряд — перездачи нет совсем. Иначе — только с разрешения организатора
+      let approved = false;
+      const reqRef = doc(db, 'games', code, 'retakeRequests', key);
+      if (same.length && !anyEnded) {
+        const rs = await getDoc(reqRef);
+        const r = rs.exists() ? rs.data() : null;
+        approved = !!r && r.status === 'approved' && r.round === round && r.allowedAttempt === maxAttempt + 1;
+      }
+
+      if (same.length && !approved && (quiz.gradeMode || anyEnded)) {
+        blockedAttempt = maxAttempt;
+        blockedGrade = last?.grade ?? null;
+        const canAsk = !anyEnded && retakeAllowed(blockedGrade);
+        error.textContent = anyEnded
+          ? 'Этот никнейм уже проходил тест и был завершён из-за двух выходов со страницы. Повторно пройти его нельзя.'
+          : !canAsk
+            ? 'Повторно пройти тест можно только при оценках 2 или 1.'
+            : 'Этот никнейм уже проходил тест. Повторно пройти можно только с разрешения организатора.';
+        $('joinRetake').hidden = !canAsk;
+        return;
+      }
+
+      const newAttempt = same.length ? maxAttempt + 1 : 1;
+      const ref = await addDoc(base, { name, key, attempt: newAttempt, ended: false, exits: 0, joinedAt: serverTimestamp() });
+      if (approved) await updateDoc(reqRef, { status: 'used' });
+      beginAttempt(ref.id, name, newAttempt);
+    } catch (err) {
+      console.error(err);
+      error.textContent = 'Не удалось войти в игру. Попробуйте ещё раз';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  $('nickInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBtn').click(); });
+
+  $('joinRetake').addEventListener('click', async () => {
+    const name = $('nickInput').value.trim();
+    if (name.length < 2) { $('joinError').textContent = 'Введите никнейм, под которым вы проходили тест'; return; }
+    try {
+      await requestRetake(name, blockedAttempt, blockedGrade);
+      $('joinRetake').hidden = true;
+      $('joinError').textContent = 'Запрос отправлен. Когда организатор разрешит, нажмите «Войти» ещё раз.';
+      watchRetake(name);
+    } catch (err) {
+      console.error(err);
+      $('joinError').textContent = 'Не удалось отправить запрос. Попробуйте ещё раз';
+    }
+  });
+
+  function beginAttempt(id, name, att) {
+    playerId = id;
+    playerName = name;
+    attempt = att;
+    exitCount = 0;
+    ended = false;
+    gameOver = false;
+    answered = false;
+    shownPos = -1;
+    certData = null;
+    certPromise = null;
+    sessionStorage.setItem(playerKey(round), id);
+    sessionStorage.setItem('izi_nickname', name);
+    watchRetake(name);
+    setLobbyText();
+    show('lobbyScreen');
+    if (gameStatus === 'finished') { finish(); return; }
+    if (started) applyLatest();
+    else maybeStartGame();
+  }
+
+  /* ---------- Состояние игры от организатора ---------- */
+  function watchGame() {
+    if (unsubGame) return;
+    unsubGame = onSnapshot(doc(db, 'games', code), (snap) => {
+      if (!snap.exists()) return;
+      const g = snap.data();
+      const r = g.round || 1;
+
+      if (r !== round) {
+        round = r;
+        resetForNewRound();
+      }
+
+      gameStatus = g.status;
+      if (g.status === 'finished') {
+        finish('Организатор завершил тест.');
+        return;
+      }
+      if (g.status === 'running') {
+        order = g.order || order;
+        latestPos = g.current ?? -1;
+        // Время вопроса считаем от момента, когда организатор его показал
+        questionStartedMs = g.questionStartedAt?.toMillis?.() ?? Date.now();
+        if (started) applyLatest();
+        else maybeStartGame();
+      }
+    });
+  }
+
+  function maybeStartGame() {
+    if (gameStatus !== 'running' || !playerId || ended || gameOver || started) return;
+    started = true;
+    startCountdown(() => { countdownDone = true; applyLatest(); });
+  }
+
+  function applyLatest() {
+    if (!countdownDone || gameOver || ended || latestPos < 0) return;
+    if (quiz.endsAt && Date.now() > quiz.endsAt.toMillis()) {
+      finish('Срок проведения квиза истёк.');
       return;
     }
-
-    if (countdownActive) return;
-    driver(g);
-    render();
+    if (latestPos >= order.length) {
+      finish('Вопросы закончились. Ждём итоги от организатора.');
+      return;
+    }
+    if (latestPos !== shownPos) showQuestionAt(latestPos, questionStartedMs);
   }
 
-  function runHostCountdown(cb) {
-    placeQr(false);
-    stopPoll();
-    $('content').innerHTML = '<div class="count-wrap"><div class="count-num" id="hCount"></div></div>';
-    const el = $('hCount');
+  function resetForNewRound() {
+    clearInterval(timerId);
+    started = false;
+    countdownDone = false;
+    gameOver = false;
+    answered = false;
+    shownPos = -1;
+    latestPos = -1;
+    ended = false;
+    exitCount = 0;
+    attempt = 1;
+    certData = null;
+    certPromise = null;
+    playerId = sessionStorage.getItem(playerKey(round));
+    if (playerId) {
+      setLobbyText();
+      show('lobbyScreen');
+    } else {
+      $('nickInput').value = playerName;
+      $('joinError').textContent = '';
+      $('joinRetake').hidden = true;
+      $('joinNote').hidden = true;
+      show('joinScreen');
+    }
+  }
+
+  /* ---------- Обратный отсчёт ---------- */
+  function startCountdown(cb) {
+    show('countdownScreen');
+    const el = $('countNum');
     const seq = ['5', '4', '3', '2', '1', 'Старт!'];
     let i = 0;
 
@@ -465,164 +640,212 @@
     }, 1000);
   }
 
-  function watchPlayers(r) {
-    if (unsubPlayers) unsubPlayers();
-    players = [];
-    unsubPlayers = onSnapshot(collection(db, 'games', code, 'rounds', String(r), 'players'), (snap) => {
-      players = snap.docs.map((d) => d.data());
-      render();
-    });
-  }
+  /* ---------- Вопросы ---------- */
+  function showQuestionAt(pos, startedMs) {
+    shownPos = pos;
+    curPos = pos;
+    curQ = quiz.questions[order[pos]];
+    answered = false;
 
-  /* ---------- QR ---------- */
-  // QR всегда виден: над экраном ожидания или в боковой колонке во время игры
-  function placeQr(inSide) {
-    const card = $('qrCard');
-    card.hidden = false;
-    if (inSide && $('qrSlot')) {
-      $('qrSlot').appendChild(card);
-      card.classList.add('qr-side');
-    } else {
-      $('content').before(card);
-      card.classList.remove('qr-side');
+    show('questionScreen');
+    $('qProgress').textContent = `Вопрос ${pos + 1} из ${order.length} · баллов: ${curQ.points ?? 1}`;
+    $('qText').textContent = curQ.text;
+    const img = $('qImg');
+    img.removeAttribute('src');
+    img.hidden = true;
+    if (curQ.image && curQ.image.id) {
+      const imgPos = pos;
+      loadImageData(curQ.image.id).then((src) => {
+        if (src && shownPos === imgPos) {
+          img.src = src;
+          img.hidden = false;
+        }
+      });
     }
-  }
+    $('qStatus').textContent = '';
+    $('nextWrap').innerHTML = '';
 
-  function renderQr() {
-    const box = $('qrBox');
+    const box = $('qAnswers');
     box.innerHTML = '';
-    if (typeof QRCode === 'undefined') {
-      box.innerHTML = '<p class="hint">QR не загрузился. Передайте игрокам код вручную.</p>';
+
+    if (curQ.type === 'choice') {
+      const grid = document.createElement('div');
+      grid.className = 'answers';
+      curQ.options.forEach((opt, j) => {
+        const b = document.createElement('button');
+        b.className = 'opt';
+        b.dataset.idx = j;
+        const letter = document.createElement('span');
+        letter.className = 'opt-letter';
+        letter.textContent = LETTERS[j] || String(j + 1);
+        b.append(letter, document.createTextNode(opt));
+        b.addEventListener('click', () => {
+          b.classList.add('chosen');
+          submitAnswer(j);
+        });
+        grid.appendChild(b);
+      });
+      box.appendChild(grid);
+    } else {
+      const row = document.createElement('div');
+      row.className = 'open-row';
+      row.innerHTML = `
+        <input type="text" id="openInput" maxlength="120" placeholder="Ваш ответ" autocomplete="off" />
+        <button class="btn-primary small" id="openSend">Ответить</button>`;
+      box.appendChild(row);
+      const input = $('openInput');
+      const send = () => {
+        const value = input.value.trim();
+        if (value) submitAnswer(value);
+      };
+      $('openSend').addEventListener('click', send);
+      input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+      setTimeout(() => input.focus(), 50);
+    }
+
+    // Время идёт от старта вопроса у организатора, даже если участник ушёл со страницы
+    const limit = curQ.timeLimit || quiz.timeLimit;
+    startTimer(limit, (startedMs || Date.now()) + limit * 1000, () => endQuestion('Время вышло', undefined, true));
+    refreshRating();
+  }
+
+  function startTimer(seconds, endAt, onEnd) {
+    clearInterval(timerId);
+    const total = seconds * 1000;
+    const bar = $('timerBar');
+    const label = $('timerLabel');
+
+    const tick = () => {
+      const left = Math.max(0, endAt - Date.now());
+      bar.style.width = (left / total * 100) + '%';
+      label.textContent = Math.ceil(left / 1000);
+      if (left <= 0) {
+        clearInterval(timerId);
+        onEnd();
+      }
+    };
+    tick();
+    timerId = setInterval(tick, 100);
+  }
+
+  function isCorrect(q, value) {
+    if (q.type === 'choice') return value === q.correct;
+    const v = String(value).trim().toLowerCase();
+    return q.answers.some((a) => a.trim().toLowerCase() === v);
+  }
+
+  function correctText(q) {
+    return q.type === 'choice' ? q.options[q.correct] : q.answers[0];
+  }
+
+  // После ответа варианты блокируются, но таймер продолжает идти до конца вопроса
+  function lockAnswers(text) {
+    answered = true;
+    document.querySelectorAll('#qAnswers button, #qAnswers input').forEach((el) => { el.disabled = true; });
+    $('qStatus').textContent = text;
+  }
+
+  // Показ правильного ответа — только если организатор включил эту настройку
+  function reveal(value, timedOut) {
+    if (!quiz.showAnswers) return;
+
+    if (curQ.type === 'choice') {
+      document.querySelectorAll('#qAnswers .opt').forEach((b) => {
+        const idx = +b.dataset.idx;
+        if (idx === curQ.correct) b.classList.add('correct');
+        else if (idx === value) b.classList.add('wrong');
+      });
+    }
+
+    let msg;
+    if (timedOut) msg = `Время вышло. Правильный ответ: ${correctText(curQ)}`;
+    else if (isCorrect(curQ, value)) msg = 'Верно! ✓';
+    else msg = `Неверно. Правильный ответ: ${correctText(curQ)}`;
+    $('qStatus').textContent = msg;
+  }
+
+  function endQuestion(statusText, value, timedOut) {
+    if (answered) return;
+    lockAnswers(statusText);
+    reveal(value, timedOut);
+    onQuestionEnded();
+  }
+
+  // В демо-режиме переход к следующему вопросу делает сам «участник» (локально)
+  function onQuestionEnded() {
+    if (!DEMO) return;
+    if (quiz.manualMode) {
+      $('nextWrap').innerHTML = '<button class="btn-primary small" id="demoNext">Следующий вопрос</button>';
+      $('demoNext').addEventListener('click', () => demoRun(curPos + 1));
+    } else {
+      setTimeout(() => demoRun(curPos + 1), quiz.showAnswers ? 3500 : 2000);
+    }
+  }
+
+  async function submitAnswer(value) {
+    if (answered || ended || gameOver) return;
+    const ok = isCorrect(curQ, value);
+    const pts = ok ? (curQ.points ?? 1) : 0;
+    endQuestion('Ответ принят ✓', value, false);
+
+    if (DEMO) {
+      demoScore += pts;
+      refreshRating();
       return;
     }
-    new QRCode(box, {
-      text: joinUrl(),
-      width: 220,
-      height: 220,
-      colorDark: '#3b0f8c',
-      colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
-  }
 
-  function scheduleHtml() {
-    const parts = [];
-    if (quiz.startsAt) parts.push(`открытие: ${fmt(quiz.startsAt)}`);
-    if (quiz.endsAt) parts.push(`закрытие: ${fmt(quiz.endsAt)}`);
-    return parts.length ? `<p class="hint">Расписание: ${parts.join(' · ')}</p>` : '';
-  }
-
-  /* ---------- Отрисовка ---------- */
-  function render() {
-    if (!game || countdownActive) return;
-    if (game.status === 'running') renderRunning();
-    else renderWaitingOrFinished();
-  }
-
-  function renderWaitingOrFinished() {
-    stopPoll();
-    const fin = game.status === 'finished';
-    const playersHtml = players.length
-      ? players.map((p) => `<span class="player">${esc(p.name)}</span>`).join('')
-      : '<span class="players-empty">Пока никто не подключился. Передайте игрокам код.</span>';
-
-    $('content').innerHTML = `
-      <h1>${fin ? 'Тест завершён' : 'Экран ожидания'}</h1>
-      <div class="quiz-title">${esc(quiz.title)}</div>
-      ${scheduleHtml()}
-      <div class="code-row"><div class="code-big">${esc(code)}</div><button class="btn-ghost" id="qrPosterBtn">QR</button></div>
-      <p class="qr-url">Или откройте ссылку: ${esc(joinUrl())}</p>
-      <div><span class="status ${fin ? 'finished' : 'waiting'}">${fin ? 'Игра завершена' : 'Ждём игроков'}</span></div>
-      <div class="section-title">Игроки (${players.length})</div>
-      <div class="players">${playersHtml}</div>
-      <div class="row">
-        ${fin
-          ? '<button class="btn-primary" id="restartBtn">Запустить заново</button>'
-          : '<button class="btn-primary" id="startBtn">Начать тест</button>'}
-        <button class="btn-ghost" id="demoBtn">Демо просмотр</button>
-      </div>
-      ${fin ? '<div class="section-title" style="margin-top:26px">Итоги</div><div id="lb"></div>' : ''}`;
-
-    attach();
-    placeQr(false);
-    if (fin) {
-      // Итоги: показываем всех подключившихся игроков и обновляем, пока не начали заново
-      stopPoll();
-      loadBoard('lb');
-      pollTimer = setInterval(() => loadBoard('lb'), 4000);
+    try {
+      await setDoc(doc(db, 'games', code, 'rounds', String(round), 'answers', `${curPos}_${playerId}`), {
+        q: curPos,
+        player: playerId,
+        answer: value,
+        correct: ok,
+        points: pts,
+        answeredAt: serverTimestamp()
+      });
+      // Участник снова в игре: счётчик выходов подряд сбрасываем
+      if (exitCount > 0) {
+        exitCount = 0;
+        updateDoc(playerRef(), { exits: 0 }).catch((e) => console.error(e));
+      }
+    } catch (err) {
+      console.error(err);
+      $('qStatus').textContent = 'Ответ не сохранился. Проверьте интернет';
     }
+    refreshRating();
   }
 
-  function renderRunning() {
-    const pos = game.current ?? -1;
-    const order = game.order || [];
-    const total = order.length;
-
-    if (pos < 0 || pos >= total) {
-      $('content').innerHTML = `
-        <h1>Вопросы закончились</h1>
-        <p class="hint">Все вопросы пройдены. Можно завершить тест.</p>
-        <div class="row"><button class="btn-danger" id="finishBtn">Завершить тест</button><button class="btn-ghost" id="demoBtn">Демо просмотр</button></div>
-        <div class="section-title" style="margin-top:26px">Рейтинг</div>
-        <div id="lb"></div>`;
-      attach();
-      placeQr(false);
-      stopPoll();
-      loadBoard('lb');
-      pollTimer = setInterval(() => loadBoard('lb'), 4000);
-      return;
+  /* ---------- Выход со страницы ---------- */
+  // Время не останавливается: вопрос идёт дальше. Второй выход подряд завершает тест для участника
+  document.addEventListener('visibilitychange', () => {
+    if (DEMO || !playerId || ended) return;
+    if (document.visibilityState === 'hidden') {
+      if (!countdownDone || gameOver) return;
+      exitCount += 1;
+      if (exitCount >= 2) {
+        endAttempt();
+        return;
+      }
+      updateDoc(playerRef(), { exits: exitCount }).catch((e) => console.error(e));
+    } else if (exitCount === 1 && !answered && !gameOver && shownPos >= 0) {
+      $('qStatus').textContent = 'Вы покинули страницу. Ещё один выход подряд — и тест для вас завершится.';
     }
+  });
 
-    const q = quiz.questions[order[pos]];
-    const optsHtml = q.type === 'choice'
-      ? `<div class="opt-list">${q.options.map((o, j) => `
-          <div class="opt-item"><span class="lt">${LETTERS[j] || j + 1}</span>${esc(o)}</div>`).join('')}</div>`
-      : '<div class="hint">Ответ вводят игроки.</div>';
-
-    $('content').innerHTML = `
-      <div class="run-grid">
-        <div>
-          <div class="q-progress">Вопрос ${pos + 1} из ${total} · баллов: ${q.points ?? 1}</div>
-          <div class="timer-track"><div class="timer-bar" id="hBar"></div></div>
-          <div class="timer-label" id="hLabel"></div>
-          ${q.image && q.image.id ? `<img class="q-img-host" data-image-id="${esc(q.image.id)}" alt="" hidden />` : ''}
-          <div class="q-text">${esc(q.text)}</div>
-          ${optsHtml}
-          <p class="hint">Вы ведущий, поэтому не отвечаете. Чтобы пройти тест как участник, откройте «Демо просмотр».</p>
-          <div class="row">
-            ${quiz.manualMode ? '<button class="btn-primary" id="nextBtn">Следующий вопрос</button>' : ''}
-            <button class="btn-ghost" id="demoBtn">Демо просмотр</button>
-            <button class="btn-danger" id="finishBtn">Завершить тест</button>
-          </div>
-        </div>
-        <aside class="side">
-          <div id="qrSlot"></div>
-          <div class="stat">
-            <div class="stat-num" id="answeredNum">0</div>
-            <div>ответили из <span id="totalNum">${players.length}</span></div>
-          </div>
-          <div class="section-title">Рейтинг</div>
-          <div id="lb"></div>
-        </aside>
-      </div>`;
-
-    attach();
-    placeQr(true);
-    hydrateImages();
-    startPoll(pos);
+  async function endAttempt() {
+    ended = true;
+    clearInterval(timerId);
+    try {
+      await updateDoc(playerRef(), { ended: true, exits: exitCount, endedAt: serverTimestamp() });
+    } catch (err) {
+      console.error(err);
+    }
+    finish();
   }
 
-  function attach() {
-    $('startBtn')?.addEventListener('click', startGame);
-    $('restartBtn')?.addEventListener('click', restartGame);
-    $('nextBtn')?.addEventListener('click', () => advance(game.current));
-    $('finishBtn')?.addEventListener('click', finishGame);
-    $('demoBtn')?.addEventListener('click', openDemo);
-  }
-
-  /* ---------- Опрос ответов и рейтинга ---------- */
+  /* ---------- Рейтинг ---------- */
   async function loadScores() {
-    const base = ['games', code, 'rounds', String(currentRound)];
+    const base = ['games', code, 'rounds', String(round)];
     const [answersSnap, playersSnap] = await Promise.all([
       getDocs(collection(db, ...base, 'answers')),
       getDocs(collection(db, ...base, 'players'))
@@ -637,23 +860,32 @@
       .sort((a, b) => b.score - a.score);
   }
 
-  async function loadBoard(id) {
-    const el = $(id);
-    if (!el) return;
+  async function refreshRating() {
+    if (DEMO) {
+      $('ratingLine').textContent = `Ваши баллы: ${demoScore}`;
+      return;
+    }
+    if (!playerId) return;
     try {
       const list = await loadScores();
-      if (!$(id)) return;
-      el.innerHTML = list.length
-        ? list.map((p, i) => `
-            <div class="lb-row">
-              <span class="lb-rank">${i + 1}</span>
-              <span class="lb-name">${esc(p.name)}${p.ended ? ' · вышел' : ''}</span>
-              <span class="lb-score">${p.score}</span>${quiz.gradeMode ? `<span class="lb-grade">оценка ${gradeFor(p.score, quiz.grades)}</span>` : ''}
-            </div>`).join('')
-        : '<div class="players-empty">Пока нет игроков</div>';
+      const i = list.findIndex((p) => p.id === playerId);
+      $('ratingLine').textContent = i >= 0
+        ? `Ваши баллы: ${list[i].score} · место ${i + 1} из ${list.length}`
+        : '';
     } catch (err) {
       console.error(err);
     }
+  }
+
+  function renderBoard(el, list) {
+    el.innerHTML = list.length
+      ? list.map((p, i) => `
+          <div class="lb-row">
+            <span class="lb-rank">${i + 1}</span>
+            <span class="lb-name">${esc(p.name)}${p.id === playerId ? ' (вы)' : ''}${p.ended ? ' · вышел' : ''}</span>
+            <span class="lb-score">${p.score}</span>
+          </div>`).join('')
+      : '';
   }
 
   /* ---------- Фото вопросов (из коллекции quizImages) ---------- */
@@ -666,414 +898,179 @@
     return data;
   }
 
-  function hydrateImages() {
-    document.querySelectorAll('img[data-image-id]').forEach((img) => {
-      loadImageData(img.dataset.imageId).then((src) => {
-        if (src) {
-          img.src = src;
-          img.hidden = false;
+  /* ---------- Сертификат ---------- */
+  // Номер уникальный: если такой уже есть, берём другой
+  async function saveCertificate(fields) {
+    for (let i = 0; i < 5; i++) {
+      const certNo = makeCertNumber();
+      const ref = doc(db, 'certificates', certNo);
+      const snap = await getDoc(ref);
+      if (snap.exists()) continue;
+      await setDoc(ref, { ...fields, certNo, createdAt: serverTimestamp() });
+      return certNo;
+    }
+    throw new Error('Не удалось создать номер сертификата. Попробуйте позже');
+  }
+
+  // Сертификат выдаётся один раз на попытку; при перезагрузке берём уже выданный
+  function issueCertificate(score, place, total) {
+    if (!certPromise) {
+      certPromise = (async () => {
+        const ps = await getDoc(playerRef());
+        if (ps.exists() && ps.data().certNo) {
+          const cs = await getDoc(doc(db, 'certificates', ps.data().certNo));
+          if (cs.exists()) return toDraw(cs.data());
         }
-      });
+        const fields = {
+          quizCode: code,
+          quizTitle: quiz.title,
+          ownerUid: quiz.ownerUid || null,
+          nickname: playerName,
+          personKey: personKey(playerName),
+          attempt,
+          score,
+          maxScore: maxScoreOf(quiz),
+          grade: quiz.gradeMode ? gradeFor(score, quiz.grades) : null,
+          gradeMode: !!quiz.gradeMode,
+          place,
+          total,
+          date: todayStr()
+        };
+        const certNo = await saveCertificate(fields);
+        await updateDoc(playerRef(), { certNo, grade: fields.grade });
+        return toDraw({ ...fields, certNo });
+      })();
+      certPromise.catch(() => { certPromise = null; });
+    }
+    return certPromise;
+  }
+
+  $('doneCert').addEventListener('click', async () => {
+    if (!certData) return;
+    try {
+      await downloadCertificate(certData);
+    } catch (err) {
+      console.error(err);
+      $('retakeMsg').textContent = err.message || 'Не удалось скачать сертификат';
+    }
+  });
+
+  /* ---------- Перездача ---------- */
+  function requestRetake(name, att, grade) {
+    return setDoc(doc(db, 'games', code, 'retakeRequests', personKey(name)), {
+      name: name.trim(),
+      key: personKey(name),
+      attempt: att,
+      grade: grade ?? null,
+      round,
+      status: 'pending',
+      requestedAt: serverTimestamp()
     });
   }
 
-  function startPoll(pos) {
-    stopPoll();
-    const tick = async () => {
-      try {
-        const answers = await getDocs(query(
-          collection(db, 'games', code, 'rounds', String(currentRound), 'answers'),
-          where('q', '==', pos)
-        ));
-        if ($('answeredNum')) $('answeredNum').textContent = answers.size;
-        if ($('totalNum')) $('totalNum').textContent = players.length;
-        await loadBoard('lb');
-      } catch (err) {
-        console.error(err);
+  // Следим за решением организатора по своему запросу
+  function watchRetake(name) {
+    if (DEMO || !name) return;
+    if (unsubRetake) unsubRetake();
+    unsubRetake = onSnapshot(doc(db, 'games', code, 'retakeRequests', personKey(name)), (snap) => {
+      if (!snap.exists()) return;
+      const r = snap.data();
+      if (r.status === 'approved' && r.round === round && (ended || !playerId)) {
+        showApprovedJoin(name);
       }
-    };
-    tick();
-    pollTimer = setInterval(tick, 2000);
+    }, (err) => console.error(err));
   }
 
-  function stopPoll() {
-    clearInterval(pollTimer);
-    pollTimer = null;
+  function showApprovedJoin(name) {
+    $('nickInput').value = name;
+    $('joinError').textContent = '';
+    $('joinRetake').hidden = true;
+    $('joinNote').textContent = 'Организатор разрешил перездачу. Нажмите «Войти», чтобы начать заново.';
+    $('joinNote').hidden = false;
+    show('joinScreen');
   }
 
-  /* ---------- Таймер ведущего и переход между вопросами ---------- */
-  function clearDriver() {
-    clearTimeout(driverTimer);
-    driverTimer = null;
-    driverPos = null;
-  }
-
-  // Ведущий двигает игру: по таймеру (авто) или по кнопке (ручной режим)
-  function driver(g) {
-    if (g.status !== 'running') {
-      clearDriver();
-      clearInterval(tickTimer);
-      return;
-    }
-    if (g.current === driverPos) return;
-
-    clearDriver();
-    driverPos = g.current;
-
-    const order = g.order || [];
-    const pos = g.current;
-    if (pos < 0 || pos >= order.length) return;
-
-    const q = quiz.questions[order[pos]];
-    const sec = q.timeLimit || quiz.timeLimit;
-    hostTotalMs = sec * 1000;
-    hostEndAt = Date.now() + hostTotalMs;
-    startTick();
-
-    if (quiz.manualMode) return;
-
-    const pause = quiz.showAnswers ? 3500 : 2000;
-    driverTimer = setTimeout(() => advance(pos), hostTotalMs + pause);
-  }
-
-  function startTick() {
-    clearInterval(tickTimer);
-    tickTimer = setInterval(() => {
-      const bar = $('hBar');
-      const label = $('hLabel');
-      if (!bar || !label) return;
-      const left = Math.max(0, hostEndAt - Date.now());
-      bar.style.width = (left / hostTotalMs * 100) + '%';
-      label.textContent = Math.ceil(left / 1000);
-    }, 200);
-  }
-
-  async function advance(pos) {
-    if (!game || game.status !== 'running' || game.current !== pos) return;
+  $('doneRetake').addEventListener('click', async () => {
+    const btn = $('doneRetake');
+    btn.disabled = true;
     try {
-      await updateDoc(doc(db, 'games', code), {
-        current: pos + 1,
-        questionStartedAt: serverTimestamp()
-      });
+      await requestRetake(playerName, attempt, myGrade);
+      btn.hidden = true;
+      $('retakeMsg').textContent = 'Запрос отправлен. Ждём решения организатора.';
+      watchRetake(playerName);
     } catch (err) {
       console.error(err);
-      showToast('Не удалось переключить вопрос');
+      $('retakeMsg').textContent = 'Не удалось отправить запрос. Попробуйте ещё раз';
+    } finally {
+      btn.disabled = false;
     }
-  }
+  });
 
-  /* ---------- Запросы на перездачу ---------- */
-  // Участник, который уже прошёл тест, просит повторный вход. Разрешить можно только текущему запросу.
-  function watchRetakes() {
-    if (unsubRetakes) return;
-    unsubRetakes = onSnapshot(collection(db, 'games', code, 'retakeRequests'), (snap) => {
-      const pending = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((r) => r.status === 'pending' && (r.round ?? currentRound) === currentRound);
-      $('retakeCard').hidden = pending.length === 0;
-      $('retakeList').innerHTML = pending.map((r) => `
-        <div class="rq-row">
-          <span class="rq-name">${esc(r.name)} · попытка ${esc(r.attempt || 1)}${r.grade != null ? ` · оценка ${esc(r.grade)}` : ''}</span>
-          <button class="btn-ok" data-approve="${esc(r.id)}" data-att="${Number(r.attempt) || 1}">Разрешить</button>
-          <button class="btn-no" data-reject="${esc(r.id)}">Отклонить</button>
-        </div>`).join('');
-    });
-  }
+  /* ---------- Экран завершения ---------- */
+  async function finish(note) {
+    if (DEMO) {
+      gameOver = true;
+      clearInterval(timerId);
+      $('doneText').textContent = note || 'Спасибо за участие!';
+      $('doneGrade').textContent = quiz.gradeMode ? `Оценка в демо: ${gradeFor(demoScore, quiz.grades)}` : '';
+      $('doneRating').textContent = `Ваш рейтинг: ${demoScore} баллов`;
+      $('doneBoard').innerHTML = '';
+      $('doneCert').hidden = true;
+      $('doneRetake').hidden = true;
+      $('retakeMsg').textContent = '';
+      show('doneScreen');
+      return;
+    }
 
-  $('retakeList').addEventListener('click', async (e) => {
-    const ok = e.target.closest('[data-approve]');
-    const no = e.target.closest('[data-reject]');
+    gameOver = true;
+    clearInterval(timerId);
+    $('doneText').textContent = ended
+      ? 'Вы дважды подряд покинули страницу, поэтому тест для вас завершён. Сертификат не выдаётся.'
+      : (note || 'Спасибо за участие!');
+    $('doneGrade').textContent = '';
+    $('doneRating').textContent = '';
+    $('doneCert').hidden = true;
+    $('doneRetake').hidden = true;   // покажем после расчёта оценки
+    $('retakeMsg').textContent = '';
+    show('doneScreen');
+
     try {
-      if (ok) {
-        await updateDoc(doc(db, 'games', code, 'retakeRequests', ok.dataset.approve), {
-          status: 'approved',
-          allowedAttempt: Number(ok.dataset.att) + 1
-        });
-        showToast('Перездача разрешена. Участник может войти снова');
-      } else if (no) {
-        await updateDoc(doc(db, 'games', code, 'retakeRequests', no.dataset.reject), { status: 'rejected' });
+      const list = await loadScores();
+      renderBoard($('doneBoard'), list);
+      const i = list.findIndex((p) => p.id === playerId);
+      if (i < 0) return;
+      const me = list[i];
+      myGrade = quiz.gradeMode ? gradeFor(me.score, quiz.grades) : null;
+      $('doneRetake').hidden = ended || !playerId || !retakeAllowed(myGrade);
+      $('doneRating').textContent = `Ваш итог: ${me.score} баллов · место ${i + 1} из ${list.length}`;
+      if (quiz.gradeMode && !ended) $('doneGrade').textContent = `Ваша оценка: ${gradeFor(me.score, quiz.grades)}`;
+      if (!ended) {
+        certData = await issueCertificate(me.score, i + 1, list.length);
+        $('doneCert').hidden = false;
       }
     } catch (err) {
       console.error(err);
-      showToast('Не удалось обновить запрос');
-    }
-  });
-
-  /* ---------- Плакат с QR (как сертификат) ---------- */
-  const PW = 1754; // A4 альбомный, 150 dpi
-  const PH = 1240;
-
-  // QR рисуем библиотекой qrcodejs во временный контейнер и берём готовую картинку
-  function makeQrSource() {
-    return new Promise((resolve) => {
-      const holder = document.createElement('div');
-      new QRCode(holder, {
-        text: joinUrl(),
-        width: 560,
-        height: 560,
-        colorDark: '#3b0f8c',
-        colorLight: '#ffffff',
-        correctLevel: QRCode.CorrectLevel.M
-      });
-      const canvas = holder.querySelector('canvas');
-      if (canvas) return resolve(canvas);
-      const img = holder.querySelector('img');
-      if (img.complete && img.naturalWidth) return resolve(img);
-      img.onload = () => resolve(img);
-    });
-  }
-
-  function fitSize(ctx, text, weight, family, maxW, start) {
-    let size = start;
-    while (size > 24) {
-      ctx.font = `${weight} ${size}px ${family}`;
-      if (ctx.measureText(text).width <= maxW) break;
-      size -= 2;
-    }
-    return size;
-  }
-
-  // Разбивает текст на строки по ширине (шрифт уже выставлен в ctx)
-  function wrapLines(ctx, text, maxW) {
-    const words = text.split(' ');
-    const lines = [];
-    let line = '';
-    words.forEach((w) => {
-      const test = line ? line + ' ' + w : w;
-      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
-      else line = test;
-    });
-    if (line) lines.push(line);
-    return lines;
-  }
-
-  function roundRect(ctx, x, y, w, h, r) {
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.arcTo(x + w, y, x + w, y + h, r);
-    ctx.arcTo(x + w, y + h, x, y + h, r);
-    ctx.arcTo(x, y + h, x, y, r);
-    ctx.arcTo(x, y, x + w, y, r);
-    ctx.closePath();
-  }
-
-  async function drawPoster(canvas) {
-    await Promise.all([
-      document.fonts.load('900 60px Unbounded'),
-      document.fonts.load('700 40px Manrope'),
-      document.fonts.load('400 40px Manrope')
-    ]).catch(() => {});
-    const qr = await makeQrSource();
-
-    canvas.width = PW;
-    canvas.height = PH;
-    const ctx = canvas.getContext('2d');
-    const HEAD = 'Unbounded, Manrope, sans-serif';
-    const BODY = 'Manrope, sans-serif';
-    const cx = PW / 2;
-
-    // Фон и декор, как у сертификата
-    const g = ctx.createLinearGradient(0, 0, PW, PH);
-    g.addColorStop(0, '#3b0f8c');
-    g.addColorStop(0.5, '#6c2bd9');
-    g.addColorStop(1, '#9b3fe8');
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, PW, PH);
-    ctx.save();
-    ctx.globalAlpha = 0.16; ctx.fillStyle = '#ffd23f';
-    ctx.beginPath(); ctx.arc(PW - 120, 60, 340, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 0.2; ctx.fillStyle = '#ff7a1a';
-    ctx.beginPath(); ctx.arc(100, PH - 80, 240, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-
-    // Рамка
-    ctx.lineWidth = 6; ctx.strokeStyle = '#ffd23f';
-    roundRect(ctx, 52, 52, PW - 104, PH - 104, 44); ctx.stroke();
-
-    // Шапка: ИЗИ КВИЗ и название квиза
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = '#ffd23f';
-    ctx.font = `900 110px ${HEAD}`;
-    ctx.fillText('ИЗИ КВИЗ', cx, 180);
-    ctx.fillStyle = '#ffffff';
-    const ts = fitSize(ctx, quiz.title, '900', HEAD, PW - 240, 84);
-    ctx.font = `900 ${ts}px ${HEAD}`;
-    ctx.fillText(quiz.title, cx, 280);
-
-    // Левая колонка: QR и код
-    const qx = 160, qy = 330, qw = 680;
-    ctx.save();
-    ctx.fillStyle = '#ffffff';
-    ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 12;
-    roundRect(ctx, qx, qy, qw, qw, 36); ctx.fill();
-    ctx.restore();
-    ctx.drawImage(qr, qx + 60, qy + 60, qw - 120, qw - 120);
-
-    const pillH = 96, pillY = qy + qw + 36;
-    ctx.fillStyle = '#ffd23f';
-    const lcx = qx + qw / 2; // центр левой колонки
-    roundRect(ctx, lcx - 170, pillY, 340, pillH, 28); ctx.fill();
-    ctx.fillStyle = '#3b0f8c';
-    ctx.font = `900 64px ${HEAD}`;
-    ctx.fillText(code, lcx, pillY + 67);
-    ctx.fillStyle = '#ffffff';
-    ctx.globalAlpha = 0.85;
-    ctx.font = `600 26px ${BODY}`;
-    ctx.fillText('код квиза', lcx, pillY + pillH + 40);
-    ctx.globalAlpha = 1;
-
-    // Правая колонка: как играть
-    const rx = 940, rw = 654;
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#ffd23f';
-    ctx.font = `900 56px ${HEAD}`;
-    ctx.fillText('Как играть', rx, 370);
-
-    const steps = [
-      'Наведите камеру телефона на QR-код',
-      'Введите никнейм, под которым вас увидит организатор',
-      'Дождитесь отсчёта 5-4-3-2-1 и старта',
-      'Отвечайте, пока не закончилось время на вопрос',
-      'В конце увидите рейтинг' + (quiz.gradeMode ? ' и свою оценку, а также сможете скачать сертификат' : ''),
-      'Не покидайте страницу во время теста: два выхода подряд завершат тест'
-    ];
-    let y = 430;
-    steps.forEach((text, i) => {
-      ctx.font = `600 32px ${BODY}`;
-      const lines = wrapLines(ctx, text, rw - 84);
-      ctx.fillStyle = '#ffd23f';
-      ctx.beginPath(); ctx.arc(rx + 22, y - 10, 22, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = '#3b0f8c';
-      ctx.font = `900 26px ${HEAD}`;
-      ctx.textAlign = 'center';
-      ctx.fillText(String(i + 1), rx + 22, y - 1);
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `600 32px ${BODY}`;
-      lines.forEach((ln, k) => ctx.fillText(ln, rx + 66, y + k * 44));
-      y += lines.length * 44 + 30;
-    });
-
-    ctx.textAlign = 'center';
-    return canvas;
-  }
-
-  async function openPoster() {
-    $('posterModal').hidden = false;
-    try {
-      await drawPoster($('posterCanvas'));
-    } catch (err) {
-      console.error(err);
-      $('posterModal').hidden = true;
-      showToast('Не удалось собрать плакат');
+      $('retakeMsg').textContent = 'Не удалось выдать сертификат. Обновите страницу.';
     }
   }
 
-  $('content').addEventListener('click', (e) => {
-    if (e.target.closest('#qrPosterBtn')) openPoster();
-  });
-  $('posterClose').addEventListener('click', () => { $('posterModal').hidden = true; });
-  $('posterModal').addEventListener('click', (e) => { if (e.target === $('posterModal')) $('posterModal').hidden = true; });
-
-  $('posterPng').addEventListener('click', () => {
-    $('posterCanvas').toBlob((blob) => {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `izi-kviz-${code}.png`;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-    }, 'image/png');
-  });
-
-  $('posterPdf').addEventListener('click', () => {
-    try {
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-      pdf.addImage($('posterCanvas').toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 297, 210);
-      pdf.save(`izi-kviz-${code}.pdf`);
-    } catch (err) {
-      console.error(err);
-      showToast('Не удалось создать PDF. Проверьте интернет');
-    }
-  });
-
-  /* ---------- Действия ведущего ---------- */
-  async function startGame() {
-    const now = Date.now();
-    if (quiz.startsAt && now < quiz.startsAt.toMillis()) {
-      showToast(`Квиз откроется ${fmt(quiz.startsAt)}`);
+  /* ---------- Демо-режим ---------- */
+  function demoRun(pos) {
+    if (gameOver) return;
+    if (pos >= order.length) {
+      finish(`Демо-тест завершён. Ваш результат: ${demoScore} баллов`);
       return;
     }
-    if (quiz.endsAt && now > quiz.endsAt.toMillis()) {
-      showToast('Срок проведения квиза уже истёк');
-      return;
-    }
-    const order = makeOrder(quiz);
-    if (!order.length) {
-      showToast('Добавьте хотя бы один вопрос в квиз');
-      return;
-    }
-    // Отсчёт запускаем сразу по нажатию, не дожидаясь ответа базы
-    const token = Date.now();
-    countdownToken = token;
-    countdownActive = true;
-    clearDriver();
-    runHostCountdown(() => {
-      countdownActive = false;
-      driver(game);
-      render();
-    });
-
-    try {
-      await updateDoc(doc(db, 'games', code), {
-        status: 'running',
-        startToken: token,
-        order,
-        current: 0,
-        questionStartedAt: serverTimestamp()
-      });
-    } catch (err) {
-      console.error(err);
-      showToast('Не удалось запустить тест');
-    }
-  }
-
-  async function restartGame() {
-    try {
-      await updateDoc(doc(db, 'games', code), {
-        status: 'waiting',
-        round: (game.round || 1) + 1,
-        current: -1,
-        order: [],
-        startedAt: null
-      });
-    } catch (err) {
-      console.error(err);
-      showToast('Не удалось запустить тест заново');
-    }
-  }
-
-  async function finishGame() {
-    if (!confirm('Завершить тест? Игроки перестанут отвечать.')) return;
-    clearDriver();
-    try {
-      await updateDoc(doc(db, 'games', code), { status: 'finished', finishedAt: serverTimestamp() });
-    } catch (err) {
-      console.error(err);
-      showToast('Не удалось завершить тест');
-    }
-  }
-
-  function openDemo() {
-    window.location.href = 'quize.html?code=' + encodeURIComponent(code) + '&demo=1';
+    showQuestionAt(pos);
   }
 
   window.addEventListener('beforeunload', () => {
     if (unsubGame) unsubGame();
-    if (unsubPlayers) unsubPlayers();
-    stopPoll();
-    clearDriver();
+    if (unsubRetake) unsubRetake();
+    clearInterval(timerId);
   });
+
+  init();
 </script>
 </body>
 </html>

@@ -288,12 +288,13 @@
 
   const $ = (id) => document.getElementById(id);
   const code = new URLSearchParams(location.search).get('code');
-  const PLAYER_KEY = 'izi_player_' + code;
+  const playerKey = (round) => 'izi_player_' + code + '_' + round;
   const DEFAULT_TIME = 20;
   const LETTERS = ['А', 'Б', 'В', 'Г', 'Д', 'Е'];
 
   let quiz = null;
-  let playerId = code ? sessionStorage.getItem(PLAYER_KEY) : null;
+  let playerId = null;
+  let currentRound = null;
   let playerName = '';
   let started = false;
   let unsubGame = null;
@@ -337,6 +338,9 @@
         return;
       }
 
+      currentRound = gameSnap.data().round || 1;
+      playerId = sessionStorage.getItem(playerKey(currentRound));
+
       if (playerId) {
         playerName = sessionStorage.getItem('izi_nickname') || 'Игрок';
         $('lobbyScreen').querySelector('.lead').textContent = `Вы в игре как «${playerName}». Ждём старт.`;
@@ -363,13 +367,13 @@
     btn.disabled = true;
     error.textContent = '';
     try {
-      const ref = await addDoc(collection(db, 'games', code, 'players'), {
+      const ref = await addDoc(collection(db, 'games', code, 'rounds', String(currentRound), 'players'), {
         name,
         joinedAt: serverTimestamp()
       });
       playerId = ref.id;
       playerName = name;
-      sessionStorage.setItem(PLAYER_KEY, playerId);
+      sessionStorage.setItem(playerKey(currentRound), playerId);
       sessionStorage.setItem('izi_nickname', name);
       $('lobbyScreen').querySelector('.lead').textContent = `Вы в игре как «${playerName}». Ждём старт.`;
       watchGame();
@@ -390,16 +394,41 @@
   function watchGame() {
     unsubGame = onSnapshot(doc(db, 'games', code), (snap) => {
       if (!snap.exists()) return;
-      const status = snap.data().status;
-      if (status === 'finished') {
-        finish('Организатор завершил тест. Спасибо за участие!');
+      const g = snap.data();
+      const round = g.round || 1;
+
+      // Организатор запустил игру заново: сбрасываем экран и просим войти снова
+      if (round !== currentRound) {
+        currentRound = round;
+        resetForNewRound();
+      }
+
+      if (g.status === 'finished') {
+        if (!gameOver) finish('Организатор завершил тест. Спасибо за участие!');
         return;
       }
-      if (status === 'running' && !started) {
+      if (g.status === 'running' && !started) {
         started = true;
         runCountdown();
       }
     });
+  }
+
+  function resetForNewRound() {
+    clearInterval(timerId);
+    started = false;
+    gameOver = false;
+    answered = false;
+    playerId = sessionStorage.getItem(playerKey(currentRound));
+
+    if (playerId) {
+      $('lobbyScreen').querySelector('.lead').textContent = `Вы в игре как «${playerName}». Ждём старт.`;
+      show('lobbyScreen');
+    } else {
+      $('nickInput').value = sessionStorage.getItem('izi_nickname') || '';
+      $('joinError').textContent = '';
+      show('joinScreen');
+    }
   }
 
   /* ---------- Обратный отсчёт 5-4-3-2-1-Старт ---------- */
@@ -532,7 +561,7 @@
 
     try {
       // Ответ сохраняется в свою подколлекцию игрока; документ = номер вопроса
-      await setDoc(doc(db, 'games', code, 'players', playerId, 'answers', String(qIndex)), {
+      await setDoc(doc(db, 'games', code, 'rounds', String(currentRound), 'players', playerId, 'answers', String(qIndex)), {
         questionIndex: qIndex,
         answer: value,
         answeredAt: serverTimestamp()
@@ -554,7 +583,6 @@
   function finish(note) {
     gameOver = true;
     clearInterval(timerId);
-    if (unsubGame) unsubGame();
     $('doneText').textContent = note || `Спасибо за участие, ${playerName || 'игрок'}!`;
     show('doneScreen');
   }

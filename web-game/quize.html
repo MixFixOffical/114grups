@@ -82,6 +82,7 @@
     .screen h1 { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: clamp(24px, 4vw, 32px); line-height: 1.15; margin-bottom: 8px; }
     .lead { color: var(--text-light); font-size: 16px; line-height: 1.5; margin-bottom: 22px; }
     .quiz-title { color: var(--yellow); font-weight: 800; font-size: 18px; margin-bottom: 6px; }
+    #joinNote { color: var(--yellow); font-weight: 700; margin-bottom: 16px; }
 
     input {
       font-family: inherit; font-size: 18px; color: var(--purple-dark);
@@ -102,8 +103,16 @@
     .btn-primary:hover { transform: translateY(-2px); }
     .btn-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
     .btn-primary.small { padding: 14px 20px; font-size: 16px; }
+    .btn-ghost-p {
+      font-family: inherit; font-weight: 800; font-size: 16px; color: var(--white);
+      background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.6);
+      border-radius: 16px; padding: 14px 24px; cursor: pointer; margin-top: 10px;
+      transition: background 0.2s ease;
+    }
+    .btn-ghost-p:hover:not(:disabled) { background: rgba(255, 255, 255, 0.22); }
+    .btn-ghost-p:disabled { opacity: 0.6; cursor: wait; }
 
-    .error { color: #ffe0a3; font-weight: 700; font-size: 15px; min-height: 20px; margin-top: 12px; }
+    .error { color: #ffe0a3; font-weight: 700; font-size: 15px; min-height: 20px; margin-top: 12px; line-height: 1.45; }
 
     .waiting-dot {
       width: 22px; height: 22px; border-radius: 50%; background: var(--yellow);
@@ -168,6 +177,10 @@
     .rating-badge:empty { display: none; }
     .next-wrap { margin-top: 16px; }
 
+    .done-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
+    .done-actions .btn-primary, .done-actions .btn-ghost-p { margin-top: 0; }
+    .retake-msg { margin-top: 10px; color: #ffe0a3; font-weight: 700; font-size: 15px; min-height: 20px; line-height: 1.45; }
+
     .lb { text-align: left; margin-top: 14px; }
     .lb-row {
       display: flex; gap: 10px; align-items: center;
@@ -181,7 +194,7 @@
     @media (max-width: 560px) {
       .screen { padding: 22px; }
       .answers { grid-template-columns: 1fr; }
-      .btn-primary { width: 100%; }
+      .btn-primary, .btn-ghost-p { width: 100%; }
       .open-row { flex-direction: column; }
       .logo { font-size: 17px; }
       .logo-mark { width: 34px; height: 34px; font-size: 18px; }
@@ -212,9 +225,11 @@
     <section class="screen" id="joinScreen" hidden>
       <h1>Войти в игру</h1>
       <div class="quiz-title" id="quizTitleJoin"></div>
+      <p class="lead" id="joinNote" hidden></p>
       <p class="lead">Придумайте никнейм, под которым вас увидит организатор.</p>
       <div class="field"><input type="text" id="nickInput" maxlength="20" placeholder="Например, Мах123" autocomplete="off" /></div>
       <button class="btn-primary" id="joinBtn">Войти</button>
+      <div><button class="btn-ghost-p" id="joinRetake" hidden>Запросить перездачу</button></div>
       <div class="error" id="joinError"></div>
     </section>
 
@@ -241,15 +256,16 @@
       <div class="next-wrap" id="nextWrap"></div>
     </section>
 
-    <section class="screen" id="waitScreen" hidden>
-      <h1 id="waitTitle">Ждём организатора</h1>
-      <div class="waiting-dot" aria-hidden="true"></div>
-    </section>
-
     <section class="screen" id="doneScreen" hidden>
       <h1>Тест завершён!</h1>
       <p class="lead" id="doneText">Спасибо за участие.</p>
+      <div class="rating-badge" id="doneGrade"></div>
       <p class="rating-line" id="doneRating"></p>
+      <div class="done-actions">
+        <button class="btn-primary small" id="doneCert" hidden>Скачать сертификат</button>
+        <button class="btn-ghost-p" id="doneRetake" hidden>Запросить перездачу</button>
+      </div>
+      <p class="retake-msg" id="retakeMsg"></p>
       <div id="doneBoard" class="lb"></div>
     </section>
 
@@ -260,9 +276,11 @@
     </section>
   </main>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, addDoc, collection, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, collection, query, where, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { makeCertNumber, downloadCertificate, gradeFor, maxScoreOf } from "./cert.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
@@ -289,12 +307,20 @@
   let round = 1;
   let playerId = null;
   let playerName = '';
+  let attempt = 1;
+  let exitCount = 0;       // выходов со страницы подряд (сбрасывается, когда участник снова ответил)
+  let ended = false;       // попытка завершена из-за двух выходов подряд
+  let blockedAttempt = 0;
+  let certPromise = null;  // сертификат выдаётся один раз на попытку
+  let certData = null;
   let gameStatus = 'waiting';
   let latestPos = -1;
+  let questionStartedMs = 0;
   let started = false;
   let countdownDone = false;
   let gameOver = false;
   let unsubGame = null;
+  let unsubRetake = null;
   let timerId = null;
   let shownPos = -1;
   let curPos = -1;
@@ -303,7 +329,7 @@
   let demoScore = 0;
 
   function show(id) {
-    ['joinScreen', 'lobbyScreen', 'countdownScreen', 'questionScreen', 'waitScreen', 'doneScreen', 'errorScreen']
+    ['joinScreen', 'lobbyScreen', 'countdownScreen', 'questionScreen', 'doneScreen', 'errorScreen']
       .forEach((s) => { $(s).hidden = s !== id; });
   }
 
@@ -332,8 +358,21 @@
     return q.shuffleQuestions ? shuffle(idx) : idx;
   }
 
+  // Ключ человека: один никнейм = один участник в пределах запуска квиза
+  const personKey = (name) => 'n_' + name.trim().toLowerCase().replace(/[\/\s]+/g, '_');
+  const playerRef = () => doc(db, 'games', code, 'rounds', String(round), 'players', playerId);
+  const todayStr = () => new Date().toLocaleDateString('ru-RU');
+
   function setLobbyText() {
     $('lobbyText').textContent = `Вы в игре как «${playerName}». Ждём старт.`;
+  }
+
+  // Данные сертификата -> то, что рисует cert.js
+  function toDraw(c) {
+    return {
+      name: c.nickname, quiz: c.quizTitle, attempt: c.attempt, score: c.score, maxScore: c.maxScore,
+      grade: c.grade ?? null, place: c.place, total: c.total, date: c.date, certNo: c.certNo, quizCode: c.quizCode
+    };
   }
 
   /* ---------- Старт ---------- */
@@ -370,17 +409,34 @@
       if (!gs.exists()) return fail('Организатор ещё не открыл экран ожидания. Попробуйте чуть позже.');
 
       round = gs.data().round || 1;
-      playerId = sessionStorage.getItem(playerKey(round));
       playerName = sessionStorage.getItem('izi_nickname') || '';
+      playerId = sessionStorage.getItem(playerKey(round));
 
+      // Восстанавливаем состояние участника после перезагрузки страницы
       if (playerId) {
+        const ps = await getDoc(playerRef());
+        if (ps.exists()) {
+          const p = ps.data();
+          attempt = p.attempt || 1;
+          exitCount = p.exits || 0;
+          ended = !!p.ended;
+        } else {
+          playerId = null;
+        }
+      }
+
+      watchGame();
+      if (playerName) watchRetake(playerName);
+
+      if (playerId && ended) {
+        finish();
+      } else if (playerId) {
         setLobbyText();
         show('lobbyScreen');
       } else {
         $('nickInput').value = playerName;
         show('joinScreen');
       }
-      watchGame();
     } catch (err) {
       console.error(err);
       fail('Не удалось загрузить квиз. Проверьте интернет и обновите страницу.');
@@ -397,17 +453,38 @@
     const btn = $('joinBtn');
     btn.disabled = true;
     error.textContent = '';
+    $('joinRetake').hidden = true;
+    $('joinNote').hidden = true;
+
     try {
-      const ref = await addDoc(collection(db, 'games', code, 'rounds', String(round), 'players'), {
-        name,
-        joinedAt: serverTimestamp()
-      });
-      playerId = ref.id;
-      playerName = name;
-      sessionStorage.setItem(playerKey(round), playerId);
-      sessionStorage.setItem('izi_nickname', name);
-      setLobbyText();
-      show('lobbyScreen');
+      const key = personKey(name);
+      const base = collection(db, 'games', code, 'rounds', String(round), 'players');
+      const same = (await getDocs(query(base, where('key', '==', key)))).docs.map((d) => d.data());
+      const maxAttempt = same.reduce((m, p) => Math.max(m, p.attempt || 1), 0);
+      const anyEnded = same.some((p) => p.ended);
+
+      // Повторный вход разрешён только если организатор одобрил перездачу именно этой попытки
+      let approved = false;
+      const reqRef = doc(db, 'games', code, 'retakeRequests', key);
+      if (same.length) {
+        const rs = await getDoc(reqRef);
+        const r = rs.exists() ? rs.data() : null;
+        approved = !!r && r.status === 'approved' && r.round === round && r.allowedAttempt === maxAttempt + 1;
+      }
+
+      if (same.length && !approved && (quiz.gradeMode || anyEnded)) {
+        blockedAttempt = maxAttempt;
+        error.textContent = anyEnded
+          ? 'Этот никнейм уже проходил тест и был завершён. Чтобы пройти снова, запросите перездачу у организатора.'
+          : 'Этот никнейм уже проходил тест. Повторно пройти можно только с разрешения организатора.';
+        $('joinRetake').hidden = false;
+        return;
+      }
+
+      const newAttempt = same.length ? maxAttempt + 1 : 1;
+      const ref = await addDoc(base, { name, key, attempt: newAttempt, ended: false, exits: 0, joinedAt: serverTimestamp() });
+      if (approved) await updateDoc(reqRef, { status: 'used' });
+      beginAttempt(ref.id, name, newAttempt);
     } catch (err) {
       console.error(err);
       error.textContent = 'Не удалось войти в игру. Попробуйте ещё раз';
@@ -418,8 +495,44 @@
 
   $('nickInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBtn').click(); });
 
+  $('joinRetake').addEventListener('click', async () => {
+    const name = $('nickInput').value.trim();
+    if (name.length < 2) { $('joinError').textContent = 'Введите никнейм, под которым вы проходили тест'; return; }
+    try {
+      await requestRetake(name, blockedAttempt);
+      $('joinRetake').hidden = true;
+      $('joinError').textContent = 'Запрос отправлен. Когда организатор разрешит, нажмите «Войти» ещё раз.';
+      watchRetake(name);
+    } catch (err) {
+      console.error(err);
+      $('joinError').textContent = 'Не удалось отправить запрос. Попробуйте ещё раз';
+    }
+  });
+
+  function beginAttempt(id, name, att) {
+    playerId = id;
+    playerName = name;
+    attempt = att;
+    exitCount = 0;
+    ended = false;
+    gameOver = false;
+    answered = false;
+    shownPos = -1;
+    certData = null;
+    certPromise = null;
+    sessionStorage.setItem(playerKey(round), id);
+    sessionStorage.setItem('izi_nickname', name);
+    watchRetake(name);
+    setLobbyText();
+    show('lobbyScreen');
+    if (gameStatus === 'finished') { finish(); return; }
+    if (started) applyLatest();
+    else maybeStartGame();
+  }
+
   /* ---------- Состояние игры от организатора ---------- */
   function watchGame() {
+    if (unsubGame) return;
     unsubGame = onSnapshot(doc(db, 'games', code), (snap) => {
       if (!snap.exists()) return;
       const g = snap.data();
@@ -438,18 +551,22 @@
       if (g.status === 'running') {
         order = g.order || order;
         latestPos = g.current ?? -1;
-        if (!started) {
-          started = true;
-          startCountdown(() => { countdownDone = true; applyLatest(); });
-        } else {
-          applyLatest();
-        }
+        // Время вопроса считаем от момента, когда организатор его показал
+        questionStartedMs = g.questionStartedAt?.toMillis?.() ?? Date.now();
+        if (started) applyLatest();
+        else maybeStartGame();
       }
     });
   }
 
+  function maybeStartGame() {
+    if (gameStatus !== 'running' || !playerId || ended || gameOver || started) return;
+    started = true;
+    startCountdown(() => { countdownDone = true; applyLatest(); });
+  }
+
   function applyLatest() {
-    if (!countdownDone || gameOver || latestPos < 0) return;
+    if (!countdownDone || gameOver || ended || latestPos < 0) return;
     if (quiz.endsAt && Date.now() > quiz.endsAt.toMillis()) {
       finish('Срок проведения квиза истёк.');
       return;
@@ -458,7 +575,7 @@
       finish('Вопросы закончились. Ждём итоги от организатора.');
       return;
     }
-    if (latestPos !== shownPos) showQuestionAt(latestPos);
+    if (latestPos !== shownPos) showQuestionAt(latestPos, questionStartedMs);
   }
 
   function resetForNewRound() {
@@ -469,13 +586,20 @@
     answered = false;
     shownPos = -1;
     latestPos = -1;
+    ended = false;
+    exitCount = 0;
+    attempt = 1;
+    certData = null;
+    certPromise = null;
     playerId = sessionStorage.getItem(playerKey(round));
     if (playerId) {
       setLobbyText();
       show('lobbyScreen');
     } else {
-      $('nickInput').value = sessionStorage.getItem('izi_nickname') || '';
+      $('nickInput').value = playerName;
       $('joinError').textContent = '';
+      $('joinRetake').hidden = true;
+      $('joinNote').hidden = true;
       show('joinScreen');
     }
   }
@@ -508,7 +632,7 @@
   }
 
   /* ---------- Вопросы ---------- */
-  function showQuestionAt(pos) {
+  function showQuestionAt(pos, startedMs) {
     shownPos = pos;
     curPos = pos;
     curQ = quiz.questions[order[pos]];
@@ -570,14 +694,15 @@
       setTimeout(() => input.focus(), 50);
     }
 
-    startTimer(curQ.timeLimit || quiz.timeLimit, () => endQuestion('Время вышло', undefined, true));
+    // Время идёт от старта вопроса у организатора, даже если участник ушёл со страницы
+    const limit = curQ.timeLimit || quiz.timeLimit;
+    startTimer(limit, (startedMs || Date.now()) + limit * 1000, () => endQuestion('Время вышло', undefined, true));
     refreshRating();
   }
 
-  function startTimer(seconds, onEnd) {
+  function startTimer(seconds, endAt, onEnd) {
     clearInterval(timerId);
     const total = seconds * 1000;
-    const endAt = Date.now() + total;
     const bar = $('timerBar');
     const label = $('timerLabel');
 
@@ -649,7 +774,7 @@
   }
 
   async function submitAnswer(value) {
-    if (answered) return;
+    if (answered || ended || gameOver) return;
     const ok = isCorrect(curQ, value);
     const pts = ok ? (curQ.points ?? 1) : 0;
     endQuestion('Ответ принят ✓', value, false);
@@ -669,11 +794,44 @@
         points: pts,
         answeredAt: serverTimestamp()
       });
+      // Участник снова в игре: счётчик выходов подряд сбрасываем
+      if (exitCount > 0) {
+        exitCount = 0;
+        updateDoc(playerRef(), { exits: 0 }).catch((e) => console.error(e));
+      }
     } catch (err) {
       console.error(err);
       $('qStatus').textContent = 'Ответ не сохранился. Проверьте интернет';
     }
     refreshRating();
+  }
+
+  /* ---------- Выход со страницы ---------- */
+  // Время не останавливается: вопрос идёт дальше. Второй выход подряд завершает тест для участника
+  document.addEventListener('visibilitychange', () => {
+    if (DEMO || !playerId || ended) return;
+    if (document.visibilityState === 'hidden') {
+      if (!countdownDone || gameOver) return;
+      exitCount += 1;
+      if (exitCount >= 2) {
+        endAttempt();
+        return;
+      }
+      updateDoc(playerRef(), { exits: exitCount }).catch((e) => console.error(e));
+    } else if (exitCount === 1 && !answered && !gameOver && shownPos >= 0) {
+      $('qStatus').textContent = 'Вы покинули страницу. Ещё один выход подряд — и тест для вас завершится.';
+    }
+  });
+
+  async function endAttempt() {
+    ended = true;
+    clearInterval(timerId);
+    try {
+      await updateDoc(playerRef(), { ended: true, exits: exitCount, endedAt: serverTimestamp() });
+    } catch (err) {
+      console.error(err);
+    }
+    finish();
   }
 
   /* ---------- Рейтинг ---------- */
@@ -689,7 +847,7 @@
       scores[a.player] = (scores[a.player] || 0) + (a.points || 0);
     });
     return playersSnap.docs
-      .map((d) => ({ id: d.id, name: d.data().name, score: scores[d.id] || 0 }))
+      .map((d) => ({ id: d.id, name: d.data().name, score: scores[d.id] || 0, ended: !!d.data().ended }))
       .sort((a, b) => b.score - a.score);
   }
 
@@ -698,6 +856,7 @@
       $('ratingLine').textContent = `Ваши баллы: ${demoScore}`;
       return;
     }
+    if (!playerId) return;
     try {
       const list = await loadScores();
       const i = list.findIndex((p) => p.id === playerId);
@@ -714,7 +873,7 @@
       ? list.map((p, i) => `
           <div class="lb-row">
             <span class="lb-rank">${i + 1}</span>
-            <span class="lb-name">${esc(p.name)}${p.id === playerId ? ' (вы)' : ''}</span>
+            <span class="lb-name">${esc(p.name)}${p.id === playerId ? ' (вы)' : ''}${p.ended ? ' · вышел' : ''}</span>
             <span class="lb-score">${p.score}</span>
           </div>`).join('')
       : '';
@@ -730,6 +889,159 @@
     return data;
   }
 
+  /* ---------- Сертификат ---------- */
+  // Номер уникальный: если такой уже есть, берём другой
+  async function saveCertificate(fields) {
+    for (let i = 0; i < 5; i++) {
+      const certNo = makeCertNumber();
+      const ref = doc(db, 'certificates', certNo);
+      const snap = await getDoc(ref);
+      if (snap.exists()) continue;
+      await setDoc(ref, { ...fields, certNo, createdAt: serverTimestamp() });
+      return certNo;
+    }
+    throw new Error('Не удалось создать номер сертификата. Попробуйте позже');
+  }
+
+  // Сертификат выдаётся один раз на попытку; при перезагрузке берём уже выданный
+  function issueCertificate(score, place, total) {
+    if (!certPromise) {
+      certPromise = (async () => {
+        const ps = await getDoc(playerRef());
+        if (ps.exists() && ps.data().certNo) {
+          const cs = await getDoc(doc(db, 'certificates', ps.data().certNo));
+          if (cs.exists()) return toDraw(cs.data());
+        }
+        const fields = {
+          quizCode: code,
+          quizTitle: quiz.title,
+          ownerUid: quiz.ownerUid || null,
+          nickname: playerName,
+          personKey: personKey(playerName),
+          attempt,
+          score,
+          maxScore: maxScoreOf(quiz),
+          grade: quiz.gradeMode ? gradeFor(score, quiz.grades) : null,
+          gradeMode: !!quiz.gradeMode,
+          place,
+          total,
+          date: todayStr()
+        };
+        const certNo = await saveCertificate(fields);
+        await updateDoc(playerRef(), { certNo });
+        return toDraw({ ...fields, certNo });
+      })();
+      certPromise.catch(() => { certPromise = null; });
+    }
+    return certPromise;
+  }
+
+  $('doneCert').addEventListener('click', async () => {
+    if (!certData) return;
+    try {
+      await downloadCertificate(certData);
+    } catch (err) {
+      console.error(err);
+      $('retakeMsg').textContent = err.message || 'Не удалось скачать сертификат';
+    }
+  });
+
+  /* ---------- Перездача ---------- */
+  function requestRetake(name, att) {
+    return setDoc(doc(db, 'games', code, 'retakeRequests', personKey(name)), {
+      name: name.trim(),
+      key: personKey(name),
+      attempt: att,
+      round,
+      status: 'pending',
+      requestedAt: serverTimestamp()
+    });
+  }
+
+  // Следим за решением организатора по своему запросу
+  function watchRetake(name) {
+    if (DEMO || !name) return;
+    if (unsubRetake) unsubRetake();
+    unsubRetake = onSnapshot(doc(db, 'games', code, 'retakeRequests', personKey(name)), (snap) => {
+      if (!snap.exists()) return;
+      const r = snap.data();
+      if (r.status === 'approved' && r.round === round && (ended || !playerId)) {
+        showApprovedJoin(name);
+      }
+    }, (err) => console.error(err));
+  }
+
+  function showApprovedJoin(name) {
+    $('nickInput').value = name;
+    $('joinError').textContent = '';
+    $('joinRetake').hidden = true;
+    $('joinNote').textContent = 'Организатор разрешил перездачу. Нажмите «Войти», чтобы начать заново.';
+    $('joinNote').hidden = false;
+    show('joinScreen');
+  }
+
+  $('doneRetake').addEventListener('click', async () => {
+    const btn = $('doneRetake');
+    btn.disabled = true;
+    try {
+      await requestRetake(playerName, attempt);
+      btn.hidden = true;
+      $('retakeMsg').textContent = 'Запрос отправлен. Ждём решения организатора.';
+      watchRetake(playerName);
+    } catch (err) {
+      console.error(err);
+      $('retakeMsg').textContent = 'Не удалось отправить запрос. Попробуйте ещё раз';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  /* ---------- Экран завершения ---------- */
+  async function finish(note) {
+    if (DEMO) {
+      gameOver = true;
+      clearInterval(timerId);
+      $('doneText').textContent = note || 'Спасибо за участие!';
+      $('doneGrade').textContent = quiz.gradeMode ? `Оценка в демо: ${gradeFor(demoScore, quiz.grades)}` : '';
+      $('doneRating').textContent = `Ваш рейтинг: ${demoScore} баллов`;
+      $('doneBoard').innerHTML = '';
+      $('doneCert').hidden = true;
+      $('doneRetake').hidden = true;
+      $('retakeMsg').textContent = '';
+      show('doneScreen');
+      return;
+    }
+
+    gameOver = true;
+    clearInterval(timerId);
+    $('doneText').textContent = ended
+      ? 'Вы дважды подряд покинули страницу, поэтому тест для вас завершён. Сертификат не выдаётся.'
+      : (note || 'Спасибо за участие!');
+    $('doneGrade').textContent = '';
+    $('doneRating').textContent = '';
+    $('doneCert').hidden = true;
+    $('doneRetake').hidden = !playerId;
+    $('retakeMsg').textContent = '';
+    show('doneScreen');
+
+    try {
+      const list = await loadScores();
+      renderBoard($('doneBoard'), list);
+      const i = list.findIndex((p) => p.id === playerId);
+      if (i < 0) return;
+      const me = list[i];
+      $('doneRating').textContent = `Ваш итог: ${me.score} баллов · место ${i + 1} из ${list.length}`;
+      if (quiz.gradeMode && !ended) $('doneGrade').textContent = `Ваша оценка: ${gradeFor(me.score, quiz.grades)}`;
+      if (!ended) {
+        certData = await issueCertificate(me.score, i + 1, list.length);
+        $('doneCert').hidden = false;
+      }
+    } catch (err) {
+      console.error(err);
+      $('retakeMsg').textContent = 'Не удалось выдать сертификат. Обновите страницу.';
+    }
+  }
+
   /* ---------- Демо-режим ---------- */
   function demoRun(pos) {
     if (gameOver) return;
@@ -740,38 +1052,9 @@
     showQuestionAt(pos);
   }
 
-  /* ---------- Экраны ожидания и завершения ---------- */
-  function waitScreen(title) {
-    $('waitTitle').textContent = title;
-    show('waitScreen');
-  }
-
-  async function finish(note) {
-    gameOver = true;
-    clearInterval(timerId);
-    $('doneText').textContent = note || 'Спасибо за участие!';
-    show('doneScreen');
-
-    if (DEMO) {
-      $('doneRating').textContent = `Ваш рейтинг: ${demoScore} баллов`;
-      $('doneBoard').innerHTML = '';
-      return;
-    }
-
-    try {
-      const list = await loadScores();
-      const i = list.findIndex((p) => p.id === playerId);
-      $('doneRating').textContent = i >= 0
-        ? `Ваш итог: ${list[i].score} баллов · место ${i + 1} из ${list.length}`
-        : '';
-      renderBoard($('doneBoard'), list);
-    } catch (err) {
-      console.error(err);
-    }
-  }
-
   window.addEventListener('beforeunload', () => {
     if (unsubGame) unsubGame();
+    if (unsubRetake) unsubRetake();
     clearInterval(timerId);
   });
 

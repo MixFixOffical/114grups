@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Сертификаты — Изи квиз</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --purple: #6c2bd9;
+      --purple-dark: #3b0f8c;
+      --purple-soft: #ece6fb;
+      --yellow: #ffd23f;
+      --orange: #ff7a1a;
+      --green: #5cc26b;
+      --green-dark: #46a955;
+      --text: #1f1640;
+      --muted: #8a84a3;
+      --line: #e6e2f2;
+      --bg: #f5f3fb;
+      --red: #c0392b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+    body { font-family: "Manrope", system-ui, sans-serif; color: var(--text); background: var(--bg); min-height: 100vh; }
+
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 16px clamp(16px, 4vw, 48px); background: #fff; border-bottom: 1px solid var(--line);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 18px;
+      color: var(--purple-dark); text-decoration: none;
+    }
+    .logo-mark {
+      width: 36px; height: 36px; border-radius: 11px;
+      background: linear-gradient(135deg, var(--yellow), var(--orange));
+      display: grid; place-items: center; color: var(--purple-dark); font-size: 19px; transform: rotate(-6deg);
+    }
+    .btn-back {
+      font-family: inherit; font-weight: 800; font-size: 14px; color: var(--purple-dark);
+      background: var(--yellow); border: none; border-radius: 999px; padding: 10px 22px;
+      cursor: pointer; box-shadow: 0 4px 0 #e0a800; text-decoration: none;
+    }
+
+    .page { max-width: 1000px; margin: 0 auto; padding: 24px clamp(16px, 4vw, 40px) 60px; }
+    h1 { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: clamp(22px, 3vw, 28px); color: var(--purple-dark); margin-bottom: 18px; }
+    .panel { background: #fff; border-radius: 18px; padding: 22px; border: 1px solid var(--line); margin-bottom: 22px; }
+    .panel h2 { font-size: 16px; font-weight: 800; margin-bottom: 12px; }
+
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    input[type="text"] {
+      flex: 1; min-width: 200px; font-family: inherit; font-size: 16px; color: var(--text);
+      background: var(--bg); border: 2px solid transparent; border-radius: 12px; padding: 12px 14px; outline: none;
+    }
+    input[type="text"]:focus { border-color: var(--purple); }
+    .btn {
+      font-family: inherit; font-weight: 800; font-size: 15px; color: #fff; background: var(--purple);
+      border: none; border-radius: 12px; padding: 12px 20px; cursor: pointer;
+    }
+    .btn:hover { background: var(--purple-dark); }
+    .btn-soft {
+      font-family: inherit; font-weight: 700; font-size: 13px; color: var(--purple);
+      background: var(--purple-soft); border: none; border-radius: 999px; padding: 8px 14px; cursor: pointer;
+    }
+    .btn-soft:hover { background: #ddd3f8; }
+    .btn-soft:disabled { opacity: .6; cursor: wait; }
+
+    .verify-result { margin-top: 14px; font-weight: 700; line-height: 1.5; }
+    .verify-result.ok { color: var(--green-dark); }
+    .verify-result.bad { color: var(--red); }
+
+    .quiz-block { border-top: 1px solid var(--line); padding: 18px 0; }
+    .quiz-block:first-child { border-top: none; padding-top: 0; }
+    .quiz-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .quiz-name { font-weight: 800; font-size: 17px; }
+    .quiz-code { font-size: 13px; color: var(--muted); font-weight: 700; letter-spacing: 1px; }
+
+    .person { background: var(--bg); border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
+    .person-name { font-weight: 800; margin-bottom: 8px; }
+    .attempt {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      padding: 8px 0; border-top: 1px dashed var(--line); font-size: 14px;
+    }
+    .attempt:first-of-type { border-top: none; }
+    .attempt-no { font-weight: 800; color: var(--purple); min-width: 96px; }
+    .grade {
+      font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 15px;
+      background: var(--yellow); color: var(--purple-dark); border-radius: 10px; padding: 4px 10px;
+    }
+    .muted { color: var(--muted); font-size: 13px; }
+    .num { font-size: 12px; color: var(--muted); letter-spacing: .5px; }
+    .attempt .btn-soft { margin-left: auto; }
+
+    .state { text-align: center; color: var(--muted); padding: 30px 0; }
+    .state.error { color: var(--red); }
+
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(120px);
+      background: var(--purple-dark); color: #fff; font-weight: 700;
+      padding: 14px 22px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25);
+      transition: transform .35s ease; z-index: 60; max-width: calc(100% - 40px); text-align: center;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 560px) {
+      .btn-back { padding: 9px 14px; font-size: 13px; }
+      .logo { font-size: 16px; }
+      .attempt .btn-soft { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="topbar">
+    <a href="index.html" class="logo"><span class="logo-mark">?</span>Изи квиз</a>
+    <a href="cabinet.html" class="btn-back">В кабинет</a>
+  </header>
+
+  <main class="page">
+    <h1>Сертификаты</h1>
+
+    <section class="panel">
+      <h2>Проверить сертификат по номеру</h2>
+      <div class="row">
+        <input type="text" id="verifyInput" placeholder="Например, ИК-2026-ABCD-EFGHJK" autocomplete="off" />
+        <button class="btn" id="verifyBtn">Проверить</button>
+      </div>
+      <div class="verify-result" id="verifyResult"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Мои квизы</h2>
+      <div class="row" style="margin-bottom:16px">
+        <input type="text" id="searchInput" placeholder="Поиск по имени участника или названию квиза" aria-label="Поиск" />
+      </div>
+      <div id="list"><div class="state">Загружаем сертификаты…</div></div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { downloadCertificate } from "./cert.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
+    authDomain: "sokrat-7c938.firebaseapp.com",
+    projectId: "sokrat-7c938",
+    storageBucket: "sokrat-7c938.firebasestorage.app",
+    messagingSenderId: "19858604945",
+    appId: "1:19858604945:web:8ec6dc1a81dba35c481030",
+    measurementId: "G-B3SDDN1T50"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  const $ = (id) => document.getElementById(id);
+
+  const MONTHS = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  let toastTimer;
+  function showToast(text) {
+    const t = $('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  let all = [];
+
+  /* ---------- Загрузка сертификатов владельца ---------- */
+  onAuthStateChanged(auth, async (user) => {
+    if (!user) {
+      window.location.replace('index.html');
+      return;
+    }
+    try {
+      const snap = await getDocs(query(collection(db, 'certificates'), where('ownerUid', '==', user.uid)));
+      all = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      render();
+    } catch (err) {
+      console.error(err);
+      $('list').innerHTML = '<div class="state error">Не удалось загрузить сертификаты. Проверьте интернет и обновите страницу.</div>';
+    }
+  });
+
+  /* ---------- Список: квиз → участник → попытки ---------- */
+  function render() {
+    const q = $('searchInput').value.trim().toLowerCase();
+    const byQuiz = {};
+    all.forEach((c) => {
+      const key = c.quizCode;
+      if (!byQuiz[key]) byQuiz[key] = { title: c.quizTitle, code: c.quizCode, people: {} };
+      const pk = c.personKey || c.nickname;
+      if (!byQuiz[key].people[pk]) byQuiz[key].people[pk] = { name: c.nickname, attempts: [] };
+      byQuiz[key].people[pk].attempts.push(c);
+    });
+
+    const blocks = Object.values(byQuiz)
+      .map((quiz) => {
+        const people = Object.values(quiz.people)
+          .map((p) => ({ ...p, attempts: p.attempts.sort((a, b) => (a.attempt || 1) - (b.attempt || 1)) }))
+          .filter((p) => !q || p.name.toLowerCase().includes(q) || (quiz.title || '').toLowerCase().includes(q));
+        return { ...quiz, people };
+      })
+      .filter((quiz) => quiz.people.length > 0);
+
+    if (blocks.length === 0) {
+      $('list').innerHTML = `<div class="state">${all.length ? 'Ничего не найдено' : 'Сертификатов пока нет. Они появятся после прохождения квизов.'}</div>`;
+      return;
+    }
+
+    $('list').innerHTML = blocks.map((quiz) => `
+      <div class="quiz-block">
+        <div class="quiz-head">
+          <span class="quiz-name">${esc(quiz.title || 'Без названия')}</span>
+          <span class="quiz-code">код ${esc(quiz.code)}</span>
+        </div>
+        ${quiz.people.map((p) => `
+          <div class="person">
+            <div class="person-name">${esc(p.name)}</div>
+            ${p.attempts.map((c) => `
+              <div class="attempt">
+                <span class="attempt-no">Попытка ${c.attempt || 1}</span>
+                ${c.grade != null ? `<span class="grade">${esc(c.grade)}</span>` : ''}
+                <span class="muted">${esc(c.score)}${c.maxScore != null ? ' из ' + esc(c.maxScore) : ''} баллов</span>
+                <span class="muted">${esc(c.date)}</span>
+                <span class="num">№ ${esc(c.id)}</span>
+                <button class="btn-soft" data-pdf="${esc(c.id)}">Скачать PDF</button>
+              </div>`).join('')}
+          </div>`).join('')}
+      </div>`).join('');
+  }
+
+  $('searchInput').addEventListener('input', render);
+
+  $('list').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-pdf]');
+    if (!btn) return;
+    const cert = all.find((c) => c.id === btn.dataset.pdf);
+    if (!cert) return;
+    btn.disabled = true;
+    try {
+      await downloadCertificate({
+        name: cert.nickname,
+        quiz: cert.quizTitle,
+        attempt: cert.attempt,
+        score: cert.score,
+        maxScore: cert.maxScore,
+        grade: cert.grade ?? null,
+        place: cert.place,
+        total: cert.total,
+        date: cert.date,
+        certNo: cert.id,
+        quizCode: cert.quizCode
+      });
+    } catch (err) {
+      console.error(err);
+      showToast(err.message || 'Не удалось создать PDF');
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  /* ---------- Проверка по номеру (доступна всем) ---------- */
+  async function verify() {
+    const no = $('verifyInput').value.trim().toUpperCase();
+    const out = $('verifyResult');
+    out.className = 'verify-result';
+    if (!no) { out.textContent = 'Введите номер сертификата'; return; }
+    out.textContent = 'Проверяем…';
+    try {
+      const snap = await getDoc(doc(db, 'certificates', no));
+      if (!snap.exists()) {
+        out.className = 'verify-result bad';
+        out.textContent = 'Сертификат с таким номером не найден';
+        return;
+      }
+      const c = snap.data();
+      out.className = 'verify-result ok';
+      out.innerHTML = `✓ Сертификат подлинный: ${esc(c.nickname)} · ${esc(c.quizTitle)}`
+        + (c.grade != null ? ` · оценка ${esc(c.grade)}` : '')
+        + ` · попытка ${esc(c.attempt || 1)} · ${esc(c.date)}`;
+    } catch (err) {
+      console.error(err);
+      out.className = 'verify-result bad';
+      out.textContent = 'Не удалось проверить. Проверьте интернет';
+    }
+  }
+
+  $('verifyBtn').addEventListener('click', verify);
+  $('verifyInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') verify(); });
+</script>
+</body>
+</html>

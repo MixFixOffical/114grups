@@ -140,6 +140,18 @@
     .btn-primary:hover { transform: translateY(-3px); }
     .btn-primary:disabled { opacity: 0.6; cursor: wait; animation: none; transform: none; }
 
+    .btn-danger {
+      font-family: inherit; font-weight: 800; font-size: 16px; color: var(--white);
+      background: #e0473a; border: none; border-radius: 16px; padding: 15px 30px;
+      cursor: pointer; box-shadow: 0 8px 22px rgba(224, 71, 58, 0.4);
+      transition: transform 0.2s ease;
+    }
+    .btn-danger:hover { transform: translateY(-2px); }
+    .btn-danger:disabled { opacity: 0.6; cursor: wait; transform: none; }
+    .status.finished { background: rgba(255, 255, 255, 0.3); }
+    .status.finished::before { content: "■ "; }
+    .actions-wrap { display: flex; flex-direction: column; gap: 12px; align-items: center; }
+
     .qr-card { margin-bottom: 20px; }
     .qr-wrap {
       display: inline-block;
@@ -254,7 +266,7 @@
 
   // Ссылка для входа игроков: /p/quize?code=XXXXXX
   function joinUrl() {
-    return new URL('p/quize?code=' + encodeURIComponent(code), location.href).href;
+    return new URL('quize.html?code=' + encodeURIComponent(code), location.href).href;
   }
 
   // QR-код со ссылкой для входа игроков
@@ -277,24 +289,46 @@
     });
   }
 
+  async function finishGame() {
+    if (!confirm('Завершить тест? Игроки перестанут отвечать.')) return;
+    try {
+      await updateDoc(doc(db, 'games', code), { status: 'finished', finishedAt: serverTimestamp() });
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось завершить тест');
+    }
+  }
+
   function renderGame(game, quizTitle, players) {
     const isRunning = game.status === 'running';
+    const isFinished = game.status === 'finished';
+    const actionsHtml = isFinished
+      ? '<p class="hint">Тест завершён. Результаты можно посмотреть в личном кабинете.</p>'
+      : isRunning
+        ? '<p class="hint">Тест запущен. Игроки уже отвечают на вопросы.</p><button class="btn-danger" id="finishBtn">Завершить тест</button>'
+        : '<button class="btn-primary" id="startBtn">Начать тест</button>';
     const playersHtml = players.length
       ? players.map((p) => `<span class="player">${escapeHtml(p.name)}</span>`).join('')
       : '<span class="players-empty">Пока никто не подключился. Передайте игрокам код.</span>';
 
     $('content').innerHTML = `
-      <h1>${isRunning ? 'Тест идёт' : 'Экран ожидания'}</h1>
+      <h1>${isFinished ? 'Тест завершён' : isRunning ? 'Тест идёт' : 'Экран ожидания'}</h1>
       <div class="quiz-title">${escapeHtml(quizTitle)}</div>
       <div class="code-big">${escapeHtml(code)}</div>
       <p class="qr-url">Или откройте ссылку: ${escapeHtml(joinUrl())}</p>
-      <div><span class="status ${isRunning ? 'running' : 'waiting'}">${isRunning ? 'Игра запущена' : 'Ждём игроков'}</span></div>
+      <div><span class="status ${isFinished ? 'finished' : isRunning ? 'running' : 'waiting'}">${isFinished ? 'Игра завершена' : isRunning ? 'Игра запущена' : 'Ждём игроков'}</span></div>
       <div class="section-title">Игроки (${players.length})</div>
       <div class="players">${playersHtml}</div>
-      ${isRunning
-        ? '<p class="hint">Тест запущен. Игроки уже отвечают на вопросы.</p>'
-        : '<button class="btn-primary" id="startBtn">Начать тест</button>'}
+      <div class="actions-wrap">${actionsHtml}</div>
     `;
+
+    const finishBtn = $('finishBtn');
+    if (finishBtn) {
+      finishBtn.addEventListener('click', () => {
+        finishBtn.disabled = true;
+        finishGame().finally(() => { finishBtn.disabled = false; });
+      });
+    }
 
     const startBtn = $('startBtn');
     if (startBtn) {

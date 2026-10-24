@@ -220,7 +220,18 @@
       transition: border-color 0.2s ease;
       resize: vertical;
     }
-    input:focus, textarea:focus { border-color: var(--yellow); }
+    input:focus, textarea:focus, select:focus { border-color: var(--yellow); }
+    select {
+      font-family: inherit;
+      font-size: 16px;
+      color: var(--purple-dark);
+      background: var(--white);
+      border: 3px solid transparent;
+      border-radius: 14px;
+      padding: 13px 16px;
+      outline: none;
+      width: 100%;
+    }
     input::placeholder, textarea::placeholder { color: #9a8bc4; }
 
     .counter { text-align: right; font-size: 12px; color: var(--text-light); margin-top: 6px; }
@@ -533,6 +544,20 @@
         <div class="counter"><span id="descCount">0</span>/300</div>
       </div>
 
+      <div class="field">
+        <label class="field-label" for="timeInput">Время на каждый вопрос</label>
+        <select id="timeInput">
+          <option value="10">10 секунд</option>
+          <option value="15">15 секунд</option>
+          <option value="20" selected>20 секунд</option>
+          <option value="30">30 секунд</option>
+          <option value="45">45 секунд</option>
+          <option value="60">1 минута</option>
+          <option value="90">1,5 минуты</option>
+          <option value="120">2 минуты</option>
+        </select>
+      </div>
+
       <div class="error" id="step1Error"></div>
       <div class="btn-row">
         <span></span>
@@ -837,6 +862,7 @@
       description: state.description.trim(),
       ownerUid: user.uid,
       createdAt: serverTimestamp(),
+      timeLimit: Number($('timeInput').value),
       questions: state.questions.map((q) => {
         if (q.type === 'choice') {
           return {
@@ -936,6 +962,7 @@
       $('titleCount').textContent = state.title.length;
       $('descInput').value = state.description;
       $('descCount').textContent = state.description.length;
+      $('timeInput').value = String(data.timeLimit || 20);
 
       document.querySelector('#step1 h1').textContent = 'Редактирование квиза';
       $('publishBtn').textContent = 'Сохранить изменения';

@@ -434,6 +434,18 @@
     .type-name { font-weight: 800; font-size: 16px; margin-bottom: 6px; }
     .type-desc { font-size: 13px; color: #6f6790; line-height: 1.45; }
 
+    .time-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .time-label { font-size: 13px; font-weight: 700; color: #6f6790; }
+    .q-card select {
+      width: auto;
+      font-size: 14px;
+      padding: 10px 12px;
+      background: #f5f3fb;
+      color: var(--purple-dark);
+      border: 2px solid transparent;
+    }
+    .q-card select:focus { border-color: var(--purple); }
+
     .empty-q {
       text-align: center;
       color: var(--text-light);
@@ -545,7 +557,7 @@
       </div>
 
       <div class="field">
-        <label class="field-label" for="timeInput">Время на каждый вопрос</label>
+        <label class="field-label" for="timeInput">Время на вопрос по умолчанию</label>
         <select id="timeInput">
           <option value="10">10 секунд</option>
           <option value="15">15 секунд</option>
@@ -556,6 +568,13 @@
           <option value="90">1,5 минуты</option>
           <option value="120">2 минуты</option>
         </select>
+      </div>
+
+      <div class="field">
+        <label class="field-label" style="display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--white)">
+          <input type="checkbox" id="showAnswersInput" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--yellow);padding:0" />
+          Показывать игрокам, верный ли ответ, и правильный ответ
+        </label>
       </div>
 
       <div class="error" id="step1Error"></div>
@@ -639,6 +658,11 @@
   const USER_KEY = 'izi_user';
   const MAX_OPTIONS = 6;
   const MAX_ANSWERS = 10;
+  const TIME_OPTIONS = [
+    [0, 'По умолчанию (из настроек квиза)'],
+    [10, '10 секунд'], [15, '15 секунд'], [20, '20 секунд'], [30, '30 секунд'],
+    [45, '45 секунд'], [60, '1 минута'], [90, '1,5 минуты'], [120, '2 минуты']
+  ];
   const $ = (id) => document.getElementById(id);
 
   // Защита: создавать квиз можно только после входа
@@ -753,6 +777,12 @@
             <button class="q-del" data-del="${i}" aria-label="Удалить вопрос">×</button>
           </div>
           <input type="text" data-text="${i}" value="${escapeHtml(q.text)}" placeholder="Текст вопроса" maxlength="200" />
+          <div class="time-row">
+            <label class="time-label" for="qtime-${i}">Время на вопрос</label>
+            <select id="qtime-${i}" data-qtime="${i}">
+              ${TIME_OPTIONS.map(([v, label]) => `<option value="${v}" ${(q.timeLimit || 0) === v ? 'selected' : ''}>${label}</option>`).join('')}
+            </select>
+          </div>
           ${body}
         </div>`;
     }).join('');
@@ -807,6 +837,9 @@
     const t = e.target;
     if (t.dataset.correct !== undefined) {
       state.questions[+t.dataset.correct].correct = +t.dataset.idx;
+    } else if (t.dataset.qtime !== undefined) {
+      // 0 = по умолчанию (время из настроек квиза)
+      state.questions[+t.dataset.qtime].timeLimit = +t.value || null;
     }
   });
 
@@ -863,19 +896,22 @@
       ownerUid: user.uid,
       createdAt: serverTimestamp(),
       timeLimit: Number($('timeInput').value),
+      showAnswers: $('showAnswersInput').checked,
       questions: state.questions.map((q) => {
         if (q.type === 'choice') {
           return {
             type: 'choice',
             text: q.text.trim(),
             options: q.options.map((o) => o.trim()),
-            correct: q.correct
+            correct: q.correct,
+            timeLimit: q.timeLimit || null
           };
         }
         return {
           type: 'open',
           text: q.text.trim(),
-          answers: q.answers.map((a) => a.trim()).filter(Boolean)
+          answers: q.answers.map((a) => a.trim()).filter(Boolean),
+          timeLimit: q.timeLimit || null
         };
       })
     };
@@ -955,14 +991,15 @@
       state.title = data.title || '';
       state.description = data.description || '';
       state.questions = (data.questions || []).map((q) => q.type === 'choice'
-        ? { type: 'choice', text: q.text, options: [...q.options], correct: q.correct }
-        : { type: 'open', text: q.text, answers: q.answers.length ? [...q.answers] : [''] });
+        ? { type: 'choice', text: q.text, options: [...q.options], correct: q.correct, timeLimit: q.timeLimit || null }
+        : { type: 'open', text: q.text, answers: q.answers.length ? [...q.answers] : [''], timeLimit: q.timeLimit || null });
 
       $('titleInput').value = state.title;
       $('titleCount').textContent = state.title.length;
       $('descInput').value = state.description;
       $('descCount').textContent = state.description.length;
       $('timeInput').value = String(data.timeLimit || 20);
+      $('showAnswersInput').checked = !!data.showAnswers;
 
       document.querySelector('#step1 h1').textContent = 'Редактирование квиза';
       $('publishBtn').textContent = 'Сохранить изменения';

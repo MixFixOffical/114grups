@@ -303,7 +303,7 @@
     const isRunning = game.status === 'running';
     const isFinished = game.status === 'finished';
     const actionsHtml = isFinished
-      ? '<p class="hint">Тест завершён. Результаты можно посмотреть в личном кабинете.</p>'
+      ? '<p class="hint">Тест завершён.</p><button class="btn-primary" id="restartBtn">Запустить заново</button>'
       : isRunning
         ? '<p class="hint">Тест запущен. Игроки уже отвечают на вопросы.</p><button class="btn-danger" id="finishBtn">Завершить тест</button>'
         : '<button class="btn-primary" id="startBtn">Начать тест</button>';
@@ -321,6 +321,25 @@
       <div class="players">${playersHtml}</div>
       <div class="actions-wrap">${actionsHtml}</div>
     `;
+
+    const restartBtn = $('restartBtn');
+    if (restartBtn) {
+      restartBtn.addEventListener('click', async () => {
+        restartBtn.disabled = true;
+        try {
+          // Новый раунд: игроки и ответы пишутся в games/{код}/rounds/{раунд}
+          await updateDoc(doc(db, 'games', code), {
+            status: 'waiting',
+            round: (game.round || 1) + 1,
+            startedAt: null
+          });
+        } catch (err) {
+          console.error(err);
+          restartBtn.disabled = false;
+          showToast('Не удалось запустить тест заново');
+        }
+      });
+    }
 
     const finishBtn = $('finishBtn');
     if (finishBtn) {
@@ -373,17 +392,25 @@
       // Живое обновление статуса и списка игроков
       let game = gameSnap.data();
       let players = [];
+      let currentRound = null;
       const redraw = () => renderGame(game, quizTitle, players);
 
-      unsubGame = onSnapshot(doc(db, 'games', code), (snap) => {
-        if (snap.exists()) {
-          game = snap.data();
+      // Список игроков текущего раунда
+      const watchPlayers = (round) => {
+        if (unsubPlayers) unsubPlayers();
+        currentRound = round;
+        players = [];
+        unsubPlayers = onSnapshot(collection(db, 'games', code, 'rounds', String(round), 'players'), (snap) => {
+          players = snap.docs.map((d) => d.data());
           redraw();
-        }
-      });
+        });
+      };
 
-      unsubPlayers = onSnapshot(collection(db, 'games', code, 'players'), (snap) => {
-        players = snap.docs.map((d) => d.data());
+      unsubGame = onSnapshot(doc(db, 'games', code), (snap) => {
+        if (!snap.exists()) return;
+        game = snap.data();
+        const round = game.round || 1;
+        if (round !== currentRound) watchPlayers(round);
         redraw();
       });
 

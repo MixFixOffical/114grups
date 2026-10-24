@@ -455,6 +455,22 @@
       border-radius: 12px;
     }
     .pts-input:focus { border-color: var(--purple); }
+    .img-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .img-preview { position: relative; }
+    .img-preview img {
+      display: block; height: 90px; width: auto; max-width: 180px;
+      object-fit: cover; border-radius: 12px; background: #f5f3fb;
+    }
+    .img-rm {
+      position: absolute; top: -8px; right: -8px; width: 26px; height: 26px;
+      border-radius: 50%; border: none; background: var(--purple-dark); color: #fff;
+      cursor: pointer; font-size: 16px; line-height: 1;
+    }
+    .add-img {
+      font-size: 13px; font-weight: 700; color: var(--purple);
+      background: #efeaff; padding: 9px 14px; border-radius: 999px; cursor: pointer;
+    }
+    .add-img:hover { background: #e2d9fb; }
 
     .empty-q {
       text-align: center;
@@ -689,6 +705,75 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
+  // Уменьшаем фото до 1280px и сжимаем в JPEG, чтобы быстро грузить и не занимать много места
+  async function compressImage(file) {
+    const img = await new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const image = new Image();
+      image.onload = () => { URL.revokeObjectURL(url); resolve(image); };
+      image.onerror = reject;
+      image.src = url;
+    });
+    const scale = Math.min(1, 800 / Math.max(img.width, img.height));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(img.width * scale);
+    canvas.height = Math.round(img.height * scale);
+    canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+    return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.7));
+  }
+
+  function blobToDataUrl(blob) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  }
+
+  async function uploadQuestionImage(idx, file) {
+    if (!user) {
+      $('step2Error').textContent = 'Войдите в аккаунт, чтобы загружать фото';
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      $('step2Error').textContent = 'Можно загружать только изображения';
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      $('step2Error').textContent = 'Фото больше 15 МБ. Выберите файл поменьше';
+      return;
+    }
+
+    const q = state.questions[idx];
+    q.uploading = true;
+    renderQuestions();
+    $('step2Error').textContent = '';
+
+    try {
+      const blob = await compressImage(file);
+      // Документ Firestore не может быть больше 1 МБ, поэтому фото должно помещаться с запасом
+      if (blob.size > 700000) {
+        $('step2Error').textContent = 'Фото слишком большое даже после сжатия. Выберите другое изображение';
+        return;
+      }
+      const dataUrl = await blobToDataUrl(blob);
+      const imageId = `${user.uid.slice(0, 8)}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      await setDoc(doc(db, 'quizImages', imageId), {
+        data: dataUrl,
+        ownerUid: user.uid,
+        createdAt: serverTimestamp()
+      });
+      q.image = { id: imageId, preview: dataUrl };
+    } catch (err) {
+      console.error(err);
+      $('step2Error').textContent = 'Не удалось загрузить фото. Проверьте интернет и настройки Storage';
+    } finally {
+      q.uploading = false;
+      renderQuestions();
+    }
+  }
+
   const USER_KEY = 'izi_user';
   const MAX_OPTIONS = 6;
   const MAX_ANSWERS = 10;
@@ -828,6 +913,10 @@
             <button class="q-del" data-del="${i}" aria-label="Удалить вопрос">×</button>
           </div>
           <input type="text" data-text="${i}" value="${escapeHtml(q.text)}" placeholder="Текст вопроса" maxlength="200" />
+          <div class="img-row">
+            ${q.image ? `<div class="img-preview">${q.image.preview ? `<img src="${q.image.preview}" alt="" />` : '<span class="add-img">📷 Фото</span>'}<button class="img-rm" data-imgrm="${i}" aria-label="Убрать фото">×</button></div>` : ''}
+            <label class="add-img">${q.uploading ? 'Загружаем…' : (q.image ? 'Заменить фото' : '+ Добавить фото')}<input type="file" accept="image/*" data-imgfile="${i}" hidden ${q.uploading ? 'disabled' : ''} /></label>
+          </div>
           <div class="time-row">
             <label class="time-label" for="qtime-${i}">Время на вопрос</label>
             <select id="qtime-${i}" data-qtime="${i}">
@@ -881,6 +970,8 @@
       state.questions[+t.dataset.opt].options[+t.dataset.idx] = t.value;
     } else if (t.dataset.ans !== undefined) {
       state.questions[+t.dataset.ans].answers[+t.dataset.idx] = t.value;
+    } else if (t.dataset.imgfile !== undefined && t.files && t.files[0]) {
+      uploadQuestionImage(+t.dataset.imgfile, t.files[0]);
     } else if (t.dataset.points !== undefined) {
       state.questions[+t.dataset.points].points = Math.max(0, parseInt(t.value, 10) || 0);
     }
@@ -903,7 +994,9 @@
     const b = e.target.closest('button');
     if (!b) return;
 
-    if (b.dataset.del !== undefined) {
+    if (b.dataset.imgrm !== undefined) {
+      state.questions[+b.dataset.imgrm].image = null;
+    } else if (b.dataset.del !== undefined) {
       state.questions.splice(+b.dataset.del, 1);
     } else if (b.dataset.addOpt !== undefined) {
       const q = state.questions[+b.dataset.addOpt];
@@ -964,7 +1057,8 @@
             options: q.options.map((o) => o.trim()),
             correct: q.correct,
             timeLimit: q.timeLimit || null,
-            points: q.points ?? 1
+            points: q.points ?? 1,
+            image: q.image?.id ? { id: q.image.id } : null
           };
         }
         return {
@@ -972,7 +1066,8 @@
           text: q.text.trim(),
           answers: q.answers.map((a) => a.trim()).filter(Boolean),
           timeLimit: q.timeLimit || null,
-          points: q.points ?? 1
+          points: q.points ?? 1,
+          image: q.image?.id ? { id: q.image.id } : null
         };
       })
     };
@@ -1052,8 +1147,8 @@
       state.title = data.title || '';
       state.description = data.description || '';
       state.questions = (data.questions || []).map((q) => q.type === 'choice'
-        ? { type: 'choice', text: q.text, options: [...q.options], correct: q.correct, timeLimit: q.timeLimit || null, points: q.points ?? 1 }
-        : { type: 'open', text: q.text, answers: q.answers.length ? [...q.answers] : [''], timeLimit: q.timeLimit || null, points: q.points ?? 1 });
+        ? { type: 'choice', text: q.text, options: [...q.options], correct: q.correct, timeLimit: q.timeLimit || null, points: q.points ?? 1, image: q.image || null }
+        : { type: 'open', text: q.text, answers: q.answers.length ? [...q.answers] : [''], timeLimit: q.timeLimit || null, points: q.points ?? 1, image: q.image || null });
 
       $('titleInput').value = state.title;
       $('titleCount').textContent = state.title.length;

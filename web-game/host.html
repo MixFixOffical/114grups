@@ -190,6 +190,26 @@
 
     .error { color: #ffe0a3; font-weight: 700; font-size: 15px; line-height: 1.5; margin-top: 10px; }
 
+    /* ---------- Перездачи и оценки ---------- */
+    .retake-card { margin-top: 20px; text-align: left; }
+    .rq-row {
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+      background: rgba(255, 255, 255, 0.14); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px;
+    }
+    .rq-name { flex: 1; min-width: 150px; font-weight: 700; }
+    .btn-ok {
+      font-family: inherit; font-weight: 800; font-size: 14px; color: var(--purple-dark);
+      background: var(--green); border: none; border-radius: 12px; padding: 10px 16px; cursor: pointer;
+    }
+    .btn-no {
+      font-family: inherit; font-weight: 700; font-size: 14px; color: var(--white);
+      background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.5); border-radius: 12px; padding: 8px 14px; cursor: pointer;
+    }
+    .lb-grade {
+      font-weight: 800; font-size: 13px; background: var(--yellow); color: var(--purple-dark);
+      border-radius: 999px; padding: 4px 10px; white-space: nowrap;
+    }
+
     @media (max-width: 800px) {
       .run-grid { grid-template-columns: 1fr; }
     }
@@ -228,6 +248,11 @@
       <h1>Экран организатора</h1>
       <p class="hint">Загружаем…</p>
     </section>
+
+    <section class="card retake-card" id="retakeCard" hidden>
+      <div class="section-title">Запросы на перездачу</div>
+      <div id="retakeList"></div>
+    </section>
   </main>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -237,6 +262,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+  import { gradeFor } from "./cert.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
@@ -273,6 +299,7 @@
   let firstSnapshot = true;
   let countdownToken = null;
   let countdownActive = false;
+  let unsubRetakes = null;
 
   // Дата из Timestamp для показа человеку
   const fmt = (ts) => ts.toDate().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
@@ -341,6 +368,7 @@
         if (snap.exists()) onGame(snap.data());
       });
       renderQr();
+      watchRetakes();
     } catch (err) {
       console.error(err);
       showError('Не удалось загрузить игру. Проверьте интернет и обновите страницу.');
@@ -575,7 +603,7 @@
       scores[a.player] = (scores[a.player] || 0) + (a.points || 0);
     });
     return playersSnap.docs
-      .map((d) => ({ id: d.id, name: d.data().name, score: scores[d.id] || 0 }))
+      .map((d) => ({ id: d.id, name: d.data().name, score: scores[d.id] || 0, ended: !!d.data().ended }))
       .sort((a, b) => b.score - a.score);
   }
 
@@ -589,8 +617,8 @@
         ? list.map((p, i) => `
             <div class="lb-row">
               <span class="lb-rank">${i + 1}</span>
-              <span class="lb-name">${esc(p.name)}</span>
-              <span class="lb-score">${p.score}</span>
+              <span class="lb-name">${esc(p.name)}${p.ended ? ' · вышел' : ''}</span>
+              <span class="lb-score">${p.score}</span>${quiz.gradeMode ? `<span class="lb-grade">оценка ${gradeFor(p.score, quiz.grades)}</span>` : ''}
             </div>`).join('')
         : '<div class="players-empty">Пока нет игроков</div>';
     } catch (err) {
@@ -702,6 +730,43 @@
       showToast('Не удалось переключить вопрос');
     }
   }
+
+  /* ---------- Запросы на перездачу ---------- */
+  // Участник, который уже прошёл тест, просит повторный вход. Разрешить можно только текущему запросу.
+  function watchRetakes() {
+    if (unsubRetakes) return;
+    unsubRetakes = onSnapshot(collection(db, 'games', code, 'retakeRequests'), (snap) => {
+      const pending = snap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((r) => r.status === 'pending' && (r.round ?? currentRound) === currentRound);
+      $('retakeCard').hidden = pending.length === 0;
+      $('retakeList').innerHTML = pending.map((r) => `
+        <div class="rq-row">
+          <span class="rq-name">${esc(r.name)} · попытка ${esc(r.attempt || 1)}</span>
+          <button class="btn-ok" data-approve="${esc(r.id)}" data-att="${Number(r.attempt) || 1}">Разрешить</button>
+          <button class="btn-no" data-reject="${esc(r.id)}">Отклонить</button>
+        </div>`).join('');
+    });
+  }
+
+  $('retakeList').addEventListener('click', async (e) => {
+    const ok = e.target.closest('[data-approve]');
+    const no = e.target.closest('[data-reject]');
+    try {
+      if (ok) {
+        await updateDoc(doc(db, 'games', code, 'retakeRequests', ok.dataset.approve), {
+          status: 'approved',
+          allowedAttempt: Number(ok.dataset.att) + 1
+        });
+        showToast('Перездача разрешена. Участник может войти снова');
+      } else if (no) {
+        await updateDoc(doc(db, 'games', code, 'retakeRequests', no.dataset.reject), { status: 'rejected' });
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось обновить запрос');
+    }
+  });
 
   /* ---------- Действия ведущего ---------- */
   async function startGame() {

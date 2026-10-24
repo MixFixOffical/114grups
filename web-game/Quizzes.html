@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cowboy Quiz — Мои викторины</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    :root {
+      --header: #3b2aa8;
+      --violet: #5f4be8;
+      --violet-dark: #4a36c9;
+      --green: #66bb5c;
+      --green-hover: #5aab4f;
+      --bg: #f3f4f8;
+      --ink: #1d1f3a;
+      --muted: #6b6f8f;
+      --line: #e4e6f0;
+      --red: #e5484d;
+    }
+
+    body {
+      font-family: "Montserrat", system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ===== Шапка ===== */
+    header {
+      height: 64px;
+      background: var(--header);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      color: #fff;
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+    .logo { font-size: 26px; font-weight: 800; color: #fff; text-decoration: none; }
+    .nav { display: flex; gap: 40px; font-size: 14px; font-weight: 600; }
+    .nav a { color: #cfc8ff; text-decoration: none; display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+    .nav a:hover { color: #fff; }
+    .nav a.active { color: #fff; font-weight: 700; border-bottom: 2px solid #fff; }
+    .header-right { display: flex; align-items: center; gap: 14px; font-size: 14px; font-weight: 700; }
+    .avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      background: #d9d4ff; color: var(--header);
+      display: grid; place-items: center; font-size: 16px;
+    }
+
+    /* ===== Основная часть ===== */
+    main { flex: 1; width: 100%; max-width: 1000px; margin: 0 auto; padding: 48px 24px 60px; }
+    h1 { font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+    .subtitle { font-size: 15px; color: #e0573a; margin-bottom: 28px; }
+
+    .notice {
+      background: #ecebfb; border-radius: 12px; padding: 18px 24px;
+      font-size: 14px; line-height: 1.7; display: flex; gap: 14px; margin-bottom: 24px;
+    }
+    .notice b { color: #3b2aa8; }
+    .notice-icon { color: #3b2aa8; font-size: 18px; }
+
+    .actions { display: flex; gap: 14px; margin-bottom: 28px; flex-wrap: wrap; }
+    .btn {
+      border: none; border-radius: 28px; font-family: inherit; font-size: 15px; font-weight: 700;
+      color: #fff; padding: 13px 28px; cursor: pointer; display: inline-flex; align-items: center;
+      gap: 8px; white-space: nowrap; text-decoration: none;
+    }
+    .btn-green { background: var(--green); }
+    .btn-green:hover { background: var(--green-hover); }
+    .btn-ai { background: var(--violet); }
+    .btn-ai:hover { background: var(--violet-dark); }
+    .badge-ai { background: #fff; color: var(--violet); border-radius: 8px; padding: 2px 8px; font-size: 12px; }
+
+    /* ===== Карусель ===== */
+    .carousel { position: relative; margin-bottom: 36px; }
+    .slides { display: flex; gap: 18px; overflow: hidden; scroll-behavior: smooth; padding: 0 28px; }
+    .slide { flex: 0 0 240px; }
+    .slide-img {
+      height: 140px; border-radius: 10px; padding: 14px; color: #fff; font-size: 16px;
+      font-weight: 800; line-height: 1.2; display: flex; align-items: flex-end; text-transform: uppercase;
+    }
+    .s-a { background: linear-gradient(135deg, #ff7a3d, #ff3d7f); }
+    .s-b { background: linear-gradient(135deg, #5f4be8, #3b2aa8); }
+    .s-c { background: linear-gradient(135deg, #7a5cff, #2f1f9a); }
+    .s-d { background: linear-gradient(135deg, #4b3ad1, #8a6cff); }
+    .slide p { font-size: 13px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+    .arrow {
+      position: absolute; top: 60px; width: 32px; height: 32px; border: 1px solid var(--line);
+      border-radius: 50%; background: #fff; color: var(--muted); font-size: 18px;
+      display: grid; place-items: center; cursor: pointer; z-index: 2;
+    }
+    .arrow-left { left: -6px; }
+    .arrow-right { right: -6px; }
+
+    /* ===== Фильтры и поиск ===== */
+    .filters { background: var(--violet); border-radius: 12px 12px 0 0; }
+    .tabs-row { display: flex; align-items: stretch; gap: 10px; padding: 12px 12px 0; flex-wrap: wrap; }
+    .tab {
+      background: #fff; border: none; border-radius: 8px 8px 0 0; padding: 9px 18px;
+      font-family: inherit; font-size: 14px; font-weight: 700; color: var(--muted); cursor: pointer;
+    }
+    .tab.active { background: var(--violet); color: #fff; }
+    .promo {
+      margin-left: auto; display: flex; align-items: center; background: #fff;
+      border-radius: 8px 8px 0 0; overflow: hidden; font-size: 13px; color: var(--ink);
+    }
+    .promo span { padding: 9px 14px; white-space: nowrap; }
+    .promo .free { color: var(--green); font-weight: 700; }
+    .promo .upgrade { background: var(--green); color: #fff; font-weight: 700; cursor: pointer; }
+
+    .search { padding: 12px 14px 14px; background: var(--violet); border-radius: 0 0 12px 12px; }
+    .search-box {
+      background: #fff; border-radius: 10px; display: flex; align-items: center;
+      padding: 12px 18px; font-size: 15px;
+    }
+    .search-box input {
+      flex: 1; border: none; outline: none; font-family: inherit; font-size: 15px;
+      color: var(--ink); background: transparent;
+    }
+    .search-box input::placeholder { color: #a7abc9; }
+
+    /* ===== Список викторин ===== */
+    .list { background: #fff; border-radius: 0 0 12px 12px; padding: 8px 0; box-shadow: 0 10px 30px rgba(20,10,80,.12); }
+    .row {
+      display: flex; align-items: center; gap: 18px; padding: 18px 24px;
+      border-bottom: 1px solid var(--line);
+    }
+    .row:last-child { border-bottom: none; }
+    .when { width: 120px; font-size: 13px; color: var(--ink); flex: 0 0 120px; }
+    .when small { display: block; color: var(--muted); font-size: 12px; margin-top: 4px; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--violet); box-shadow: 0 0 0 4px #ece9ff; flex: 0 0 14px; }
+    .time { font-size: 13px; color: var(--muted); flex: 0 0 60px; }
+    .code {
+      background: #eef0f8; border-radius: 16px; padding: 8px 18px; font-size: 14px;
+      font-weight: 700; letter-spacing: .04em; flex: 0 0 auto;
+    }
+    .qtitle { flex: 1; font-size: 15px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .btn-run {
+      background: var(--green); color: #fff; border: none; border-radius: 24px;
+      padding: 12px 22px; font-family: inherit; font-weight: 700; font-size: 14px;
+      cursor: pointer; text-decoration: none; white-space: nowrap;
+    }
+    .btn-run:hover { background: var(--green-hover); }
+    .icon-btn {
+      width: 40px; height: 40px; border-radius: 50%; border: none; background: var(--violet);
+      color: #fff; font-size: 16px; cursor: pointer; display: grid; place-items: center;
+      text-decoration: none; flex: 0 0 40px;
+    }
+    .icon-btn.light { background: #eceef6; color: var(--muted); }
+
+    /* ===== Модальное окно запуска игры ===== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(29, 31, 58, 0.6);
+      backdrop-filter: blur(4px);
+      display: grid;
+      place-items: center;
+      z-index: 100;
+      padding: 20px;
+    }
+    .modal-content {
+      background: var(--violet);
+      color: #fff;
+      width: 100%;
+      max-width: 520px;
+      border-radius: 20px;
+      padding: 36px 32px;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+      text-align: center;
+    }
+    .modal-close {
+      position: absolute;
+      top: 18px;
+      right: 18px;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 20px;
+      cursor: pointer;
+      opacity: 0.8;
+    }
+    .modal-close:hover { opacity: 1; }
+    .modal-content h2 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .modal-content p {
+      font-size: 13.5px;
+      line-height: 1.5;
+      color: #dedaff;
+      margin-bottom: 24px;
+      padding: 0 10px;
+    }
+    .modal-option-btn {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+      text-decoration: none;
+      color: #fff;
+      text-align: left;
+      transition: background 0.2s;
+    }
+    .modal-option-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+    .modal-option-icon {
+      width: 38px;
+      height: 38px;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      font-size: 16px;
+      flex: 0 0 38px;
+    }
+    .modal-option-text {
+      flex: 1;
+    }
+    .modal-option-text strong {
+      display: block;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+    .modal-option-text small {
+      font-size: 12px;
+      color: #dedaff;
+    }
+    .modal-arrow {
+      font-size: 18px;
+      color: #dedaff;
+    }
+
+    /* ===== Пустое состояние ===== */
+    .empty { text-align: center; margin-top: 80px; }
+    .empty-icon {
+      width: 96px; height: 96px; margin: 0 auto 24px; border: 3px dashed #c5c9dd;
+      border-radius: 12px; position: relative;
+    }
+    .empty-icon::after {
+      content: ""; position: absolute; left: 22px; top: 24px; width: 48px; height: 40px;
+      border-top: 3px solid #c5c9dd; border-bottom: 3px solid #c5c9dd;
+    }
+    .empty h2 { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .empty p { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 22px; }
+    .empty p a { color: var(--green); }
+
+    .loading { text-align: center; padding: 40px; color: var(--muted); font-size: 14px; }
+    .msg { margin-top: 16px; text-align: center; font-size: 14px; font-weight: 700; color: var(--red); min-height: 18px; }
+
+    /* ===== Подвал ===== */
+    footer {
+      background: var(--header); color: #fff; min-height: 56px; display: flex;
+      align-items: center; justify-content: center; flex-wrap: wrap; gap: 32px;
+      font-size: 14px; font-weight: 700; padding: 12px 24px;
+    }
+    footer a { color: #fff; text-decoration: underline; }
+
+    /* ===== Вкладка помощи ===== */
+    .help-tab {
+      position: fixed; right: 0; bottom: 60px; width: 30px; height: 200px;
+      background: linear-gradient(180deg, #f7a21b, #ff4d2e);
+      border-radius: 14px 0 0 14px; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; box-shadow: -2px 4px 10px rgba(0, 0, 0, .2);
+    }
+    .help-tab span {
+      writing-mode: vertical-rl; transform: rotate(180deg); color: #fff;
+      font-weight: 700; font-size: 14px; white-space: nowrap;
+    }
+
+    @media (max-width: 760px) {
+      header { padding: 0 16px; }
+      .nav { display: none; }
+      main { padding: 32px 16px 40px; }
+      h1 { font-size: 22px; }
+      .arrow { display: none; }
+      .slide { flex: 0 0 200px; }
+      .promo { display: none; }
+      .help-tab { display: none; }
+      .tab { padding: 8px 12px; font-size: 13px; }
+      .row { flex-wrap: wrap; gap: 10px; padding: 16px; }
+      .when { width: auto; flex: 0 0 auto; }
+      .qtitle { flex-basis: 100%; order: 10; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <a class="logo" href="index.html">майКвиз</a>
+    <nav class="nav">
+      <a href="game.html">🎮 Играть</a>
+      <a href="prices.html">💲 Цены</a>
+      <a href="Quizzes.html" class="active">🧩 Мои Викторины</a>
+      <a href="catalog.html">🏪 Каталог викторин</a>
+      <a href="help.html">❔ Помощь</a>
+    </nav>
+    <div class="header-right">
+      <span>RU ▾</span>
+      <div class="avatar" aria-hidden="true">👤</div>
+      <span>▾</span>
+    </div>
+  </header>
+
+  <main>
+    <h1 id="count">Мои викторины</h1>
+    <p class="subtitle">Выберите викторину для редактирования, просмотра и управления.</p>
+
+    <div class="notice">
+      <span class="notice-icon">⚠</span>
+      <div>
+        Техническое обслуживание запланировано на <b>09.11.2026 с 20:00 до 21:00</b> по вашему часовому поясу.<br>
+        Пожалуйста, не планируйте игры на это время и не запускайте игры в это время.<br>
+        Надеемся, что закончим обновления раньше и будем дальше радовать вас квизами.
+      </div>
+    </div>
+
+    <div class="actions">
+      <a class="btn btn-green" href="create-quiz.html">＋ Создать викторину</a>
+      <button class="btn btn-ai" type="button">✦ Создать с помощью ИИ <span class="badge-ai">AI</span></button>
+    </div>
+
+    <div class="carousel">
+      <button class="arrow arrow-left" id="prev" type="button" aria-label="Назад">‹</button>
+      <div class="slides" id="slides">
+        <div class="slide">
+          <div class="slide-img s-a">Открыта запись на новогодние ивенты</div>
+          <p>Скоро на сайте можно забронировать дату и время. Остался мало всяких на сайте!</p>
+        </div>
+        <div class="slide">
+          <div class="slide-img s-b">МояИгра создана в майКвиз</div>
+          <p>Новый проект в формате знаменитого ТВ-шоу: кот в мешке, вопрос-лукушки и недоформаты. Вам точно понравится!</p>
+        </div>
+        <div class="slide">
+          <div class="slide-img s-c">Стань тем, кто меняет будущее!</div>
+          <p>Делись идеями развития сервиса и поддерживай друг друга. Лучшие получат награды.</p>
+        </div>
+        <div class="slide">
+          <div class="slide-img s-d">Создадим вам уникальные ИТ-решения</div>
+          <p>майКвиз — проект компании WaveAccess. Проектируем, внедряем и поддерживаем софт, который приносит прогнозируемый результат.</p>
+        </div>
+      </div>
+      <button class="arrow arrow-right" id="next" type="button" aria-label="Вперёд">›</button>
+    </div>
+
+    <div class="filters">
+      <div class="tabs-row">
+        <button class="tab active" type="button">👥 мультиплеер</button>
+        <button class="tab" type="button">👤 одиночный ⓘ</button>
+        <button class="tab" type="button">👥 командный ⓘ</button>
+        <div class="promo">
+          <span class="free">БЕСПЛАТНЫЙ до 35 игроков</span>
+          <span>25/25 запусков до 01.11</span>
+          <span class="upgrade">Улучшить</span>
+        </div>
+      </div>
+      <div class="search">
+        <label class="search-box">
+          <input type="search" id="search" placeholder="Введите поисковой запрос">
+          <span>🔍</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="list" id="list">
+      <div class="loading" id="loading">Загружаем викторины…</div>
+    </div>
+
+    <section class="empty" id="empty" hidden>
+      <div class="empty-icon" aria-hidden="true"></div>
+      <h2>Создай свою первую викторину</h2>
+      <p>Или возьми готовую викторину в нашем<br><a href="catalog.html">Сообществе</a> наверху</p>
+      <a class="btn btn-green" href="create-quiz.html">＋ Создать викторину</a>
+    </section>
+
+    <div class="msg" id="msg"></div>
+  </main>
+
+  <!-- Модальное окно запуска игры -->
+  <div class="modal-overlay" id="quizModal" hidden>
+    <div class="modal-content">
+      <button class="modal-close" id="closeModal" type="button">✕</button>
+      <h2>Запуск игры</h2>
+      <p>В тарифе "FREE" ограничено количество запусков игры. Тестовый режим создан, чтобы отладить игру и убедиться в том, что она настроена корректно.</p>
+      
+      <a class="modal-option-btn" id="linkTest" href="#">
+        <span class="modal-option-icon">⚙</span>
+        <div class="modal-option-text">
+          <strong>Протестировать игру</strong>
+          <small>До 5 игроков</small>
+        </div>
+        <span class="modal-arrow">›</span>
+      </a>
+
+      <a class="modal-option-btn" id="linkPlay" href="#">
+        <span class="modal-option-icon">▶</span>
+        <div class="modal-option-text">
+          <strong>Играть</strong>
+          <small>24 из 25 запусков до 01.11.2026</small>
+        </div>
+        <span class="modal-arrow">›</span>
+      </a>
+    </div>
+  </div>
+
+  <footer>
+    <span>© 2026 WAVEACCESS</span>
+    <a href="privacy.html">Политика конфиденциальности</a>
+    <a href="terms.html">Пользовательское соглашение</a>
+    <a href="consent.html">Согласие на обработку ПДн</a>
+  </footer>
+
+  <div class="help-tab" aria-hidden="true"><span>Ответим на все вопросы</span></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
+      authDomain: "sokrat-7c938.firebaseapp.com",
+      projectId: "sokrat-7c938",
+      storageBucket: "sokrat-7c938.firebasestorage.app",
+      messagingSenderId: "19858604945",
+      appId: "1:19858604945:web:244b77bbe5afb849481030",
+      measurementId: "G-K06CVPVD15"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+    let quizzes = [];
+
+    // ===== Модальное окно =====
+    const modal = $("quizModal");
+    const closeModal = $("closeModal");
+    const linkTest = $("linkTest");
+    const linkPlay = $("linkPlay");
+
+    function openModal(quizId) {
+      const encodedId = encodeURIComponent(quizId);
+      linkTest.href = `host.html?id=${encodedId}&test=true`;
+      linkPlay.href = `host.html?id=${encodedId}`;
+      modal.hidden = false;
+    }
+
+    function closeModalWindow() {
+      modal.hidden = true;
+    }
+
+    closeModal.addEventListener("click", closeModalWindow);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) closeModalWindow();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") closeModalWindow();
+    });
+
+    // ===== Слайдер =====
+    const slides = $("slides");
+    const step = () => {
+      const s = slides.querySelector(".slide");
+      return s ? s.offsetWidth + 18 : 240;
+    };
+    $("prev").addEventListener("click", () => slides.scrollBy({ left: -step(), behavior: "smooth" }));
+    $("next").addEventListener("click", () => slides.scrollBy({ left: step(), behavior: "smooth" }));
+
+    // ===== Вкладки режима =====
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((t) => t.classList.remove("active"));
+        tab.classList.add("active");
+      });
+    });
+
+    // ===== Форматирование даты и времени =====
+    function formatWhen(settings = {}) {
+      const date = settings.date;
+      if (!date) return { day: "—", month: "", time: "" };
+      const d = new Date(date + "T00:00:00");
+      const weekday = d.toLocaleDateString("ru-RU", { weekday: "long" });
+      const dayMonth = d.toLocaleDateString("ru-RU", { day: "2-digit", month: "short", year: "numeric" });
+      return {
+        day: weekday.charAt(0).toUpperCase() + weekday.slice(1),
+        month: dayMonth,
+        time: `${settings.hour ?? "00"}:${settings.minute ?? "00"}`
+      };
+    }
+
+    // ===== Отрисовка =====
+    function render(filter = "") {
+      const q = filter.trim().toLowerCase();
+      const list = quizzes.filter((x) => !q || (x.title || "").toLowerCase().includes(q));
+
+      $("loading").hidden = true;
+      $("count").textContent = `Мои викторины (${quizzes.length})`;
+
+      if (!quizzes.length) {
+        $("list").hidden = true;
+        $("empty").hidden = false;
+        return;
+      }
+
+      $("empty").hidden = true;
+      $("list").hidden = false;
+
+      if (!list.length) {
+        $("list").innerHTML = `<div class="loading">Ничего не найдено</div>`;
+        return;
+      }
+
+      $("list").innerHTML = list.map((x) => {
+        const w = formatWhen(x.settings);
+        return `
+          <div class="row">
+            <div class="when">${esc(w.day)}<small>${esc(w.month)}</small></div>
+            <span class="dot" aria-hidden="true"></span>
+            <div class="time">🕒 ${esc(w.time)}</div>
+            <div class="code">${esc(x.id.slice(0, 8).toUpperCase())}</div>
+            <div class="qtitle">${esc(x.title || "Без названия")}</div>
+            <button class="btn-run" data-quiz-id="${esc(x.id)}" type="button">▷ Запустить экран ожидания</button>
+            <a class="icon-btn" href="create-quiz.html?id=${encodeURIComponent(x.id)}" title="Редактировать">✎</a>
+            <span class="icon-btn light" title="Ещё">⋮</span>
+          </div>`;
+      }).join("");
+
+      // Привязываем клики на кнопки запуска
+      document.querySelectorAll(".btn-run").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          openModal(btn.dataset.quizId);
+        });
+      });
+    }
+
+    $("search").addEventListener("input", (e) => render(e.target.value));
+
+    // ===== Загрузка викторин текущего пользователя =====
+    async function loadQuizzes(uid) {
+      try {
+        const q = query(collection(db, "quizzes"), where("ownerUid", "==", uid));
+        const snap = await getDocs(q);
+        quizzes = snap.docs
+          .map((d) => ({ id: d.id, ...d.data() }))
+          .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+        render($("search").value);
+      } catch (e) {
+        console.error(e);
+        $("loading").hidden = true;
+        $("msg").textContent = "Не удалось загрузить викторины";
+      }
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (!user) {
+        location.href = "login.html";
+        return;
+      }
+      loadQuizzes(user.uid);
+    });
+  </script>
+</body>
+</html>

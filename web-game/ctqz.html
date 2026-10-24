@@ -472,6 +472,14 @@
     }
     .add-img:hover { background: #e2d9fb; }
 
+    /* ---------- СКР-тест: пороги оценок ---------- */
+    .skr-box { margin-top: 14px; background: rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 16px; }
+    .grade-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .grade-cell { display: flex; flex-direction: column; gap: 6px; font-weight: 800; font-size: 14px; color: var(--text-light); text-align: center; }
+    .grade-cell input { text-align: center; padding: 10px 6px; font-size: 16px; }
+    .hint-light { color: var(--text-light); font-size: 13px; margin-top: 12px; line-height: 1.45; }
+    @media (max-width: 560px) { .grade-grid { grid-template-columns: repeat(3, 1fr); } }
+
     .empty-q {
       text-align: center;
       color: var(--text-light);
@@ -615,6 +623,23 @@
           <input type="checkbox" id="manualInput" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--yellow);padding:0" />
           Ручное переключение вопросов (ведущий нажимает «Следующий вопрос»)
         </label>
+      </div>
+
+      <div class="field">
+        <label class="field-label" style="display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--white)">
+          <input type="checkbox" id="skrInput" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--yellow);padding:0" />
+          СКР-тест: оценки 5–1 по баллам (сертификат с оценкой)
+        </label>
+        <div class="skr-box" id="skrBox" hidden>
+          <div class="grade-grid">
+            <div class="grade-cell">Оценка 5<input type="number" id="gr5" min="0" max="10000" placeholder="баллов" /></div>
+            <div class="grade-cell">Оценка 4<input type="number" id="gr4" min="0" max="10000" placeholder="баллов" /></div>
+            <div class="grade-cell">Оценка 3<input type="number" id="gr3" min="0" max="10000" placeholder="баллов" /></div>
+            <div class="grade-cell">Оценка 2<input type="number" id="gr2" min="0" max="10000" placeholder="баллов" /></div>
+            <div class="grade-cell">Оценка 1<input type="number" id="gr1" min="0" max="10000" placeholder="баллов" /></div>
+          </div>
+          <div class="hint-light">Минимальное число баллов для каждой оценки. Например, 5 — от 18 баллов. У каждого вопроса в СКР-тесте нужно указать баллы (от 1).</div>
+        </div>
       </div>
 
       <div class="field">
@@ -869,6 +894,18 @@
 
   $('backToStep1').addEventListener('click', () => showStep(1));
 
+  // СКР-тест: показываем пороги оценок только когда галочка включена
+  $('skrInput').addEventListener('change', (e) => { $('skrBox').hidden = !e.target.checked; });
+
+  // Пороги оценок из полей: { 5: n, 4: n, 3: n, 2: n, 1: n } или null, если СКР выключен
+  const GRADE_KEYS = [5, 4, 3, 2, 1];
+  function readGrades() {
+    if (!$('skrInput').checked) return null;
+    const out = {};
+    GRADE_KEYS.forEach((g) => { out[g] = $('gr' + g).value === '' ? NaN : Number($('gr' + g).value); });
+    return out;
+  }
+
   /* ---------- Шаг 2: вопросы ---------- */
   function renderQuestions() {
     const list = $('questionList');
@@ -1034,6 +1071,19 @@
         if (q.answers.every((a) => !a.trim())) return `Вопрос ${n}: введите хотя бы один правильный ответ`;
       }
     }
+    // СКР-тест: баллы у каждого вопроса и пороги оценок
+    if ($('skrInput').checked) {
+      for (let i = 0; i < state.questions.length; i++) {
+        if ((state.questions[i].points ?? 1) < 1) return `Вопрос ${i + 1}: в СКР-тесте укажите баллы (от 1)`;
+      }
+      const g = readGrades();
+      if (GRADE_KEYS.some((k) => Number.isNaN(g[k]))) return 'СКР-тест: заполните пороги баллов для оценок 5, 4, 3, 2 и 1';
+      for (let k = 0; k < GRADE_KEYS.length - 1; k++) {
+        if (g[GRADE_KEYS[k]] < g[GRADE_KEYS[k + 1]]) return 'СКР-тест: пороги должны уменьшаться от оценки 5 к оценке 1';
+      }
+      const maxScore = state.questions.reduce((s, q) => s + (q.points ?? 1), 0);
+      if (g[5] > maxScore) return `СКР-тест: порог для оценки 5 больше суммы баллов всех вопросов (${maxScore})`;
+    }
     return null;
   }
 
@@ -1047,6 +1097,8 @@
       showAnswers: $('showAnswersInput').checked,
       shuffleQuestions: $('shuffleInput').checked,
       manualMode: $('manualInput').checked,
+      gradeMode: $('skrInput').checked,
+      grades: readGrades(),
       startsAt: toTs($('startInput').value),
       endsAt: toTs($('endInput').value),
       questions: state.questions.map((q) => {
@@ -1158,6 +1210,9 @@
       $('showAnswersInput').checked = !!data.showAnswers;
       $('shuffleInput').checked = !!data.shuffleQuestions;
       $('manualInput').checked = !!data.manualMode;
+      $('skrInput').checked = !!data.gradeMode;
+      $('skrBox').hidden = !data.gradeMode;
+      if (data.grades) GRADE_KEYS.forEach((g) => { $('gr' + g).value = data.grades[g] ?? ''; });
       $('startInput').value = toLocalInput(data.startsAt);
       $('endInput').value = toLocalInput(data.endsAt);
 

@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Экран ожидания — Изи квиз</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --purple: #6c2bd9;
+      --purple-dark: #3b0f8c;
+      --yellow: #ffd23f;
+      --orange: #ff7a1a;
+      --green: #5cc26b;
+      --white: #ffffff;
+      --text-light: rgba(255, 255, 255, 0.85);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    [hidden] { display: none !important; }
+
+    body {
+      font-family: "Manrope", system-ui, sans-serif;
+      color: var(--white);
+      background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple) 50%, #9b3fe8 100%);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    .bg-shapes { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .shape {
+      position: absolute; border-radius: 50%; opacity: 0.5; filter: blur(2px);
+      animation: float 14s ease-in-out infinite;
+    }
+    .shape.s1 { width: 340px; height: 340px; background: radial-gradient(circle at 30% 30%, var(--orange), #ff4d6d); top: -80px; left: -60px; }
+    .shape.s2 { width: 240px; height: 240px; background: radial-gradient(circle at 30% 30%, var(--yellow), var(--orange)); top: 30%; right: -70px; animation-delay: -4s; }
+    .shape.s3 { width: 180px; height: 180px; background: radial-gradient(circle at 30% 30%, #c084fc, var(--purple)); bottom: 5%; left: 15%; animation-delay: -2s; }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(40px, -30px) scale(1.06); }
+      66% { transform: translate(-30px, 25px) scale(0.95); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 63, 0.7); }
+      50% { box-shadow: 0 0 0 14px rgba(255, 210, 63, 0); }
+    }
+
+    header {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 20px clamp(20px, 5vw, 60px);
+    }
+    .logo {
+      display: flex; align-items: center; gap: 10px;
+      font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 22px;
+      color: var(--white); text-decoration: none;
+    }
+    .logo-mark {
+      width: 40px; height: 40px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--yellow), var(--orange));
+      display: grid; place-items: center; color: var(--purple-dark); font-size: 22px;
+      transform: rotate(-6deg);
+    }
+    .btn-outline {
+      font-family: inherit; font-weight: 700; font-size: 15px; color: var(--white);
+      background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.5);
+      border-radius: 999px; padding: 10px 20px; text-decoration: none;
+      backdrop-filter: blur(6px);
+    }
+    .btn-outline:hover { background: rgba(255, 255, 255, 0.22); }
+
+    main {
+      position: relative; z-index: 5;
+      max-width: 720px; margin: 0 auto; padding: 16px 20px 80px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      padding: 32px;
+      text-align: center;
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .card h1 {
+      font-family: "Unbounded", sans-serif; font-weight: 900;
+      font-size: clamp(24px, 4vw, 34px); margin-bottom: 6px;
+    }
+    .quiz-title { color: var(--text-light); font-size: 17px; margin-bottom: 22px; }
+
+    .code-big {
+      display: inline-block;
+      font-family: "Unbounded", sans-serif; font-weight: 900;
+      font-size: clamp(34px, 7vw, 56px); letter-spacing: 8px;
+      background: var(--white); color: var(--purple-dark);
+      padding: 18px 30px; border-radius: 20px; margin-bottom: 22px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+    }
+
+    .status {
+      display: inline-block; font-weight: 800; font-size: 14px;
+      padding: 8px 18px; border-radius: 999px; margin-bottom: 26px;
+      background: rgba(255, 255, 255, 0.18); border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .status.waiting::before { content: "● "; color: var(--yellow); }
+    .status.running { background: var(--green); border-color: var(--green); }
+    .status.running::before { content: "● "; }
+
+    .section-title { font-weight: 800; font-size: 16px; margin-bottom: 12px; }
+
+    .players {
+      display: flex; flex-wrap: wrap; gap: 10px; justify-content: center;
+      min-height: 44px; margin-bottom: 28px;
+    }
+    .player {
+      background: var(--white); color: var(--purple-dark); font-weight: 700;
+      padding: 10px 16px; border-radius: 999px;
+      animation: fadeUp 0.4s ease both;
+    }
+    .players-empty { color: var(--text-light); font-size: 15px; padding-top: 8px; }
+
+    .btn-primary {
+      font-family: inherit; font-weight: 800; font-size: 18px; color: var(--purple-dark);
+      background: linear-gradient(135deg, var(--yellow), var(--orange));
+      border: none; border-radius: 18px; padding: 18px 36px; cursor: pointer;
+      box-shadow: 0 10px 30px rgba(255, 122, 26, 0.45);
+      animation: pulse 2s ease-in-out infinite;
+      transition: transform 0.2s ease;
+    }
+    .btn-primary:hover { transform: translateY(-3px); }
+    .btn-primary:disabled { opacity: 0.6; cursor: wait; animation: none; transform: none; }
+
+    .qr-card { margin-bottom: 20px; }
+    .qr-wrap {
+      display: inline-block;
+      background: var(--white);
+      padding: 16px;
+      border-radius: 20px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
+      margin: 6px 0 16px;
+    }
+    #qrBox { min-width: 220px; min-height: 220px; }
+    #qrBox img, #qrBox canvas { display: block; margin: 0 auto; }
+    .qr-url { display: block; margin-top: 6px; font-weight: 700; word-break: break-all; color: var(--white); }
+
+    .error { color: #ffe0a3; font-weight: 700; font-size: 15px; line-height: 1.5; margin-top: 10px; }
+    .hint { color: var(--text-light); font-size: 15px; line-height: 1.5; }
+
+    .toast {
+      position: fixed; bottom: 28px; left: 50%;
+      transform: translateX(-50%) translateY(120px);
+      background: var(--yellow); color: var(--purple-dark); font-weight: 700;
+      padding: 14px 22px; border-radius: 14px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      transition: transform 0.35s ease; z-index: 60;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 560px) {
+      .card { padding: 22px; }
+      .btn-primary { width: 100%; }
+      .logo { font-size: 17px; }
+      .logo-mark { width: 34px; height: 34px; font-size: 18px; }
+      .btn-outline { padding: 9px 14px; font-size: 13px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg-shapes" aria-hidden="true">
+    <div class="shape s1"></div>
+    <div class="shape s2"></div>
+    <div class="shape s3"></div>
+  </div>
+
+  <header>
+    <a href="index.html" class="logo"><span class="logo-mark">?</span>Изи квиз</a>
+    <a href="cabinet.html" class="btn-outline">Личный кабинет</a>
+  </header>
+
+  <main>
+    <section class="card qr-card" id="qrCard">
+      <div class="section-title">Игроки сканируют QR-код</div>
+      <div class="qr-wrap"><div id="qrBox"></div></div>
+    </section>
+
+    <section class="card" id="content">
+      <h1>Экран ожидания</h1>
+      <p class="hint">Загружаем…</p>
+    </section>
+  </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import { getFirestore, doc, getDoc, updateDoc, collection, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
+    authDomain: "sokrat-7c938.firebaseapp.com",
+    projectId: "sokrat-7c938",
+    storageBucket: "sokrat-7c938.firebasestorage.app",
+    messagingSenderId: "19858604945",
+    appId: "1:19858604945:web:8ec6dc1a81dba35c481030",
+    measurementId: "G-B3SDDN1T50"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+
+  const $ = (id) => document.getElementById(id);
+  const code = new URLSearchParams(location.search).get('code');
+
+  let unsubGame = null;
+  let unsubPlayers = null;
+  let hostUid = null;
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  let toastTimer;
+  function showToast(text) {
+    const t = $('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  function showError(text) {
+    $('content').innerHTML = `
+      <h1>Не получилось</h1>
+      <p class="error">${escapeHtml(text)}</p>
+      <div style="margin-top:24px"><a class="btn-outline" href="cabinet.html">В личный кабинет</a></div>`;
+  }
+
+  // Ссылка для входа игроков: /p/quize?code=XXXXXX
+  function joinUrl() {
+    return new URL('p/quize?code=' + encodeURIComponent(code), location.href).href;
+  }
+
+  // QR-код со ссылкой для входа игроков
+  function renderQr() {
+    const url = joinUrl();
+    const box = $('qrBox');
+    box.innerHTML = '';
+
+    if (typeof QRCode === 'undefined') {
+      box.innerHTML = '<p class="hint">QR не загрузился. Передайте игрокам код вручную.</p>';
+      return;
+    }
+    new QRCode(box, {
+      text: url,
+      width: 220,
+      height: 220,
+      colorDark: '#3b0f8c',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  }
+
+  function renderGame(game, quizTitle, players) {
+    const isRunning = game.status === 'running';
+    const playersHtml = players.length
+      ? players.map((p) => `<span class="player">${escapeHtml(p.name)}</span>`).join('')
+      : '<span class="players-empty">Пока никто не подключился. Передайте игрокам код.</span>';
+
+    $('content').innerHTML = `
+      <h1>${isRunning ? 'Тест идёт' : 'Экран ожидания'}</h1>
+      <div class="quiz-title">${escapeHtml(quizTitle)}</div>
+      <div class="code-big">${escapeHtml(code)}</div>
+      <p class="qr-url">Или откройте ссылку: ${escapeHtml(joinUrl())}</p>
+      <div><span class="status ${isRunning ? 'running' : 'waiting'}">${isRunning ? 'Игра запущена' : 'Ждём игроков'}</span></div>
+      <div class="section-title">Игроки (${players.length})</div>
+      <div class="players">${playersHtml}</div>
+      ${isRunning
+        ? '<p class="hint">Тест запущен. Игроки уже отвечают на вопросы.</p>'
+        : '<button class="btn-primary" id="startBtn">Начать тест</button>'}
+    `;
+
+    const startBtn = $('startBtn');
+    if (startBtn) {
+      startBtn.addEventListener('click', async () => {
+        startBtn.disabled = true;
+        try {
+          await updateDoc(doc(db, 'games', code), { status: 'running', startedAt: serverTimestamp() });
+        } catch (err) {
+          console.error(err);
+          startBtn.disabled = false;
+          showToast('Не удалось запустить тест');
+        }
+      });
+    }
+  }
+
+  async function start(user) {
+    if (!code) {
+      showError('Не указан код квиза.');
+      return;
+    }
+
+    try {
+      const quizSnap = await getDoc(doc(db, 'quizzes', code));
+      if (!quizSnap.exists() || quizSnap.data().ownerUid !== user.uid) {
+        showError('Квиз не найден или у вас нет прав на его запуск.');
+        return;
+      }
+      const quizTitle = quizSnap.data().title || 'Без названия';
+
+      const gameSnap = await getDoc(doc(db, 'games', code));
+      if (!gameSnap.exists()) {
+        showError('Экран ожидания ещё не создан. Запустите его из личного кабинета.');
+        return;
+      }
+      hostUid = gameSnap.data().hostUid;
+      if (hostUid !== user.uid) {
+        showError('Эту игру ведёт другой пользователь.');
+        return;
+      }
+
+      // Живое обновление статуса и списка игроков
+      let game = gameSnap.data();
+      let players = [];
+      const redraw = () => renderGame(game, quizTitle, players);
+
+      unsubGame = onSnapshot(doc(db, 'games', code), (snap) => {
+        if (snap.exists()) {
+          game = snap.data();
+          redraw();
+        }
+      });
+
+      unsubPlayers = onSnapshot(collection(db, 'games', code, 'players'), (snap) => {
+        players = snap.docs.map((d) => d.data());
+        redraw();
+      });
+
+      redraw();
+      renderQr();
+    } catch (err) {
+      console.error(err);
+      showError('Не удалось загрузить игру. Проверьте интернет и обновите страницу.');
+    }
+  }
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      window.location.replace('index.html');
+      return;
+    }
+    start(user);
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (unsubGame) unsubGame();
+    if (unsubPlayers) unsubPlayers();
+  });
+</script>
+</body>
+</html>

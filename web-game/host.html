@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Cowboy Quiz — Экран ожидания</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Генератор QR-кода -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-  
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     [hidden] { display: none !important; }
@@ -24,6 +23,7 @@
       --muted: #6b6f8f;
       --card-bg: #ffffff;
       --line: #e4e6f0;
+      --orange: #ff9800;
     }
 
     body {
@@ -33,6 +33,7 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
 
     /* ===== Шапка ===== */
@@ -45,9 +46,9 @@
       padding: 0 32px;
       color: #fff;
     }
-    .logo { font-size: 24px; font-weight: 800; color: #fff; text-decoration: none; }
+    .logo { font-size: 22px; font-weight: 800; color: #fff; text-decoration: none; }
     .nav { display: flex; gap: 32px; font-size: 13px; font-weight: 600; }
-    .nav a { color: #cfc8ff; text-decoration: none; display: flex; align-items: center; gap: 6px; }
+    .nav a { color: #cfc8ff; text-decoration: none; }
     .nav a:hover { color: #fff; }
     .header-right { display: flex; align-items: center; gap: 14px; font-size: 13px; font-weight: 700; }
     .avatar {
@@ -56,7 +57,7 @@
       display: grid; place-items: center; font-size: 14px;
     }
 
-    /* ===== Фиолетовый фоновый баннер ===== */
+    /* ===== Фиолетовый баннер ===== */
     .top-banner {
       background: linear-gradient(135deg, #5f4be8 0%, #3b2aa8 100%);
       height: 220px;
@@ -76,21 +77,19 @@
       align-items: start;
     }
 
-    /* ===== Левая карточка (Управление) ===== */
-    .left-col {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .quiz-card {
+    .card {
       background: var(--card-bg);
       border-radius: 16px;
-      padding: 32px;
       box-shadow: 0 10px 30px rgba(0,0,0,0.06);
     }
+
+    /* ===== Левая колонка ===== */
+    .left-col { display: flex; flex-direction: column; gap: 20px; }
+
+    .quiz-card { padding: 32px; }
     .badge-notice {
       background: #ecebfb;
-      color: #5f4be8;
+      color: var(--violet);
       font-size: 13px;
       font-weight: 600;
       padding: 10px 16px;
@@ -103,11 +102,7 @@
       font-weight: 800;
       margin-bottom: 28px;
     }
-    .controls {
-      display: flex;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
+    .controls { display: flex; gap: 16px; flex-wrap: wrap; }
     .btn {
       border: none;
       border-radius: 24px;
@@ -117,10 +112,6 @@
       font-weight: 700;
       cursor: pointer;
       color: #fff;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
       transition: background 0.2s;
     }
     .btn-start { background: var(--green); }
@@ -128,13 +119,7 @@
     .btn-cancel { background: var(--red); }
     .btn-cancel:hover { background: var(--red-hover); }
 
-    /* ===== Список игроков ===== */
-    .players-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 24px 32px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-    }
+    .players-card { padding: 24px 32px; }
     .players-header {
       font-size: 18px;
       font-weight: 700;
@@ -143,11 +128,7 @@
       justify-content: space-between;
       align-items: center;
     }
-    .players-grid {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
+    .players-grid { display: flex; flex-wrap: wrap; gap: 10px; min-height: 36px; }
     .player-tag {
       background: #f0edff;
       color: var(--violet);
@@ -155,29 +136,19 @@
       font-size: 14px;
       padding: 8px 16px;
       border-radius: 20px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
     }
+    .waiting-text { color: var(--muted); font-size: 14px; }
 
-    /* ===== Правая панель (QR и Подключение) ===== */
-    .right-col {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-    .qr-card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 24px;
-      text-align: center;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
-    }
+    /* ===== Правая колонка ===== */
+    .right-col { display: flex; flex-direction: column; gap: 16px; }
+
+    .qr-card { padding: 24px; text-align: center; }
     .btn-fullscreen {
       background: #f4f4fa;
       border: 1px solid var(--line);
       border-radius: 20px;
       padding: 8px 18px;
+      font-family: inherit;
       font-size: 12px;
       font-weight: 700;
       color: var(--ink);
@@ -186,7 +157,7 @@
     }
     .code-label { font-size: 12px; color: var(--muted); font-weight: 600; }
     .game-code { font-size: 32px; font-weight: 800; letter-spacing: 2px; margin-bottom: 16px; }
-    
+
     .qr-box {
       width: 180px;
       height: 180px;
@@ -195,7 +166,7 @@
       align-items: center;
       justify-content: center;
     }
-    .qr-box img { max-width: 100%; height: auto; }
+    .qr-box img, .qr-box canvas { max-width: 100%; height: auto; }
 
     .link-box {
       background: #f8f9fc;
@@ -205,10 +176,12 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      gap: 8px;
       font-size: 12px;
       color: var(--muted);
       margin-bottom: 16px;
     }
+    #gameLinkDisplay { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .copy-btn { background: none; border: none; cursor: pointer; font-size: 14px; }
 
     .test-badge {
@@ -222,7 +195,6 @@
       margin-bottom: 20px;
     }
 
-    /* Счетчики статуса */
     .stats-row {
       display: flex;
       justify-content: space-around;
@@ -242,21 +214,57 @@
       font-size: 14px;
     }
     .stat-circle.active { border-color: var(--green); color: var(--green); }
-    .stat-circle.limit { border-color: #ff9800; color: #ff9800; }
-    .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; }
+    .stat-circle.limit { border-color: var(--orange); color: var(--orange); }
+    .stat-circle.total { border-color: var(--violet); color: var(--violet); }
+    .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; line-height: 1.3; }
 
-    /* Инструкция */
+    .actions-card {
+      display: flex;
+      justify-content: space-around;
+      padding: 12px 8px;
+    }
+    .action {
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border-radius: 8px;
+    }
+    .action:hover { background: #f4f4fa; color: var(--ink); }
+    .action .icon { font-size: 16px; }
+
     .info-card {
-      background: var(--card-bg);
-      border-radius: 16px;
       padding: 20px 24px;
       font-size: 12px;
       line-height: 1.6;
       color: var(--muted);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
     }
     .info-card h4 { color: var(--ink); font-size: 13px; margin-bottom: 8px; }
-    .info-card ul { padding-left: 16px; margin-bottom: 10px; }
+    .info-card ol { padding-left: 18px; margin-bottom: 10px; }
+    .info-card ul { padding-left: 18px; }
+    .info-card li { margin-bottom: 4px; }
+
+    .chat-bubble {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--violet);
+      color: #fff;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+    }
 
     @media (max-width: 850px) {
       main { grid-template-columns: 1fr; margin-top: -120px; }
@@ -267,7 +275,7 @@
 <body>
 
   <header>
-    <a class="logo" href="index.html">майКвиз</a>
+    <a class="logo" href="index.html">Cowboy Quiz</a>
     <nav class="nav">
       <a href="game.html">🎮 Играть</a>
       <a href="Quizzes.html">🧩 Мои Викторины</a>
@@ -285,8 +293,8 @@
   <main>
     <!-- Левая колонка -->
     <div class="left-col">
-      <div class="quiz-card">
-        <div class="badge-notice" id="modeNotice">Вы используете тестовую версию майКвиз (лимит 5 игроков)</div>
+      <div class="card quiz-card">
+        <div class="badge-notice" id="modeNotice">Вы используете тестовую версию Cowboy Quiz (лимит 5 игроков)</div>
         <h1 class="quiz-title" id="quizTitle">Загрузка викторины...</h1>
         <div class="controls">
           <button class="btn btn-start" id="startBtn" type="button">Запустить игру</button>
@@ -294,21 +302,21 @@
         </div>
       </div>
 
-      <div class="players-card">
+      <div class="card players-card">
         <div class="players-header">
           <span>Подключившиеся игроки</span>
           <span id="playerCountLabel">0 / 5</span>
         </div>
         <div class="players-grid" id="playersList">
-          <span style="color: var(--muted); font-size: 14px;">Ожидание игроков...</span>
+          <span class="waiting-text">Ожидание игроков...</span>
         </div>
       </div>
     </div>
 
     <!-- Правая колонка -->
     <div class="right-col">
-      <div class="qr-card">
-        <button class="btn-fullscreen" type="button">Открыть QR-код на весь экран</button>
+      <div class="card qr-card" id="qrCard">
+        <button class="btn-fullscreen" id="fullscreenBtn" type="button">Открыть QR-код на весь экран</button>
         <div class="code-label">Код викторины:</div>
         <div class="game-code" id="gameCodeDisplay">----</div>
 
@@ -316,7 +324,7 @@
 
         <div class="link-box">
           <span id="gameLinkDisplay">https://...</span>
-          <button class="copy-btn" id="copyBtn" title="Скопировать ссылку">📋</button>
+          <button class="copy-btn" id="copyBtn" title="Скопировать ссылку" type="button">📋</button>
         </div>
 
         <div class="test-badge" id="modeBadge">ТЕСТОВЫЙ РЕЖИМ</div>
@@ -331,21 +339,43 @@
             <div class="stat-label">Лимит</div>
           </div>
           <div class="stat-item">
-            <div class="stat-circle" id="statTotal">0</div>
+            <div class="stat-circle total" id="statTotal">0</div>
             <div class="stat-label">Все<br>пользователи</div>
           </div>
         </div>
       </div>
 
-      <div class="info-card">
+      <div class="card actions-card">
+        <button class="action" type="button" id="editBtn"><span class="icon">✏️</span>Редактировать</button>
+        <button class="action" type="button" id="fullscreenBtn2"><span class="icon">⛶</span>На весь экран</button>
+        <button class="action" type="button" id="startBtn2"><span class="icon">▶</span>Пуск</button>
+      </div>
+
+      <div class="card info-card">
         <h4>Как играть:</h4>
-        <ul>
-          <li>После запуска на экране появится вопрос с вариантами ответа.</li>
-          <li>Первые 3 игрока с правильным ответом получают доп. баллы!</li>
-        </ul>
+        <ol>
+          <li>Как только игра будет запущена, вам будет показан вопрос и несколько вариантов ответа.
+            <ul>
+              <li>Может быть один или несколько правильных ответов.</li>
+              <li>Если нажмёте один вариант ответа, должен быть неправильным.</li>
+            </ul>
+          </li>
+          <li>После выбора варианта ответа(ов) необходимо нажать кнопку «Ответить».
+            <ul>
+              <li>Первые 3 игрока, ответившие все правильные ответы, получат дополнительные баллы.</li>
+            </ul>
+          </li>
+          <li>В конце игры вам будет показан Лидерборд.
+            <ul>
+              <li>При одинаковом количестве очков выиграет тот, кто ответил быстрее на последний вопрос.</li>
+            </ul>
+          </li>
+        </ol>
       </div>
     </div>
   </main>
+
+  <div class="chat-bubble" title="Помощь">💬</div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -368,20 +398,22 @@
 
     const $ = (id) => document.getElementById(id);
 
-    // Получаем параметры из URL (?id=...&test=true)
     const urlParams = new URLSearchParams(window.location.search);
     const quizId = urlParams.get("id");
     const isTestMode = urlParams.get("test") === "true";
-    const PLAYER_LIMIT = 5; // Ограничение в 5 человек
+    const PLAYER_LIMIT = 5;
 
     let gameCode = "";
 
-    // Генерация случайного 4-значного кода
     function generateGameCode() {
       return Math.floor(1000 + Math.random() * 9000).toString();
     }
 
-    // Инициализация игры
+    function escapeHtml(str) {
+      return String(str ?? "").replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
+
     async function initHost() {
       if (!quizId) {
         alert("Не указан ID викторины!");
@@ -389,7 +421,6 @@
         return;
       }
 
-      // Загружаем данные викторины
       let title = "Тестовая викторина";
       try {
         const qSnap = await getDoc(doc(db, "quizzes", quizId));
@@ -399,43 +430,37 @@
       }
       $("quizTitle").textContent = title;
 
-      // Генерируем 4-значный код игры
       gameCode = generateGameCode();
       $("gameCodeDisplay").textContent = gameCode;
 
-      // Формируем ссылку на подключение
       const joinUrl = `${window.location.origin}/index.html?code=${gameCode}`;
       $("gameLinkDisplay").textContent = joinUrl;
 
-      // Отрисовка QR-кода
       new QRCode($("qrcode"), {
         text: joinUrl,
         width: 180,
         height: 180,
-        colorDark : "#1d1f3a",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
+        colorDark: "#1d1f3a",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
       });
 
-      // Создаем игру в Firestore (Коллекция "games")
       await setDoc(doc(db, "games", gameCode), {
         quizId: quizId,
-        status: "waiting", // waiting | running | finished
+        status: "waiting",
         isTest: isTestMode,
         limit: PLAYER_LIMIT,
         createdAt: Date.now()
       });
 
-      // Слушаем подключение игроков в реальном времени
       listenPlayers();
     }
 
-    // Прослушивание списка подключенных игроков
     function listenPlayers() {
       const playersRef = collection(db, "games", gameCode, "players");
       onSnapshot(playersRef, (snapshot) => {
         const players = [];
-        snapshot.forEach((doc) => players.push(doc.data()));
+        snapshot.forEach((d) => players.push(d.data()));
 
         const count = players.length;
         $("playerCountLabel").textContent = `${count} / ${PLAYER_LIMIT}`;
@@ -443,24 +468,24 @@
         $("statTotal").textContent = count;
 
         if (count === 0) {
-          $("playersList").innerHTML = `<span style="color: var(--muted); font-size: 14px;">Ожидание игроков...</span>`;
+          $("playersList").innerHTML = `<span class="waiting-text">Ожидание игроков...</span>`;
         } else {
-          $("playersList").innerHTML = players.map(p => 
-            `<div class="player-tag">👤 ${p.name}</div>`
-          ).join("");
+          $("playersList").innerHTML = players
+            .map((p) => `<div class="player-tag">👤 ${escapeHtml(p.name)}</div>`)
+            .join("");
         }
       });
     }
 
-    // Кнопка запуска игры
-    $("startBtn").addEventListener("click", async () => {
+    async function startGame() {
+      if (!gameCode) return;
       await updateDoc(doc(db, "games", gameCode), { status: "running" });
-      alert("Игра запущена!");
-      // Переход на экран игры ведущего
       location.href = `game.html?host=true&code=${gameCode}`;
-    });
+    }
 
-    // Кнопка отмены
+    $("startBtn").addEventListener("click", startGame);
+    $("startBtn2").addEventListener("click", startGame);
+
     $("cancelBtn").addEventListener("click", async () => {
       if (confirm("Завершить сессию игры?")) {
         await updateDoc(doc(db, "games", gameCode), { status: "cancelled" });
@@ -468,14 +493,31 @@
       }
     });
 
-    // Копирование ссылки
-    $("copyBtn").addEventListener("click", () => {
-      const link = $("gameLinkDisplay").textContent;
-      navigator.clipboard.writeText(link);
-      alert("Ссылка скопирована!");
+    $("editBtn").addEventListener("click", () => {
+      location.href = "Quizzes.html";
     });
 
-    // Запуск при загрузке
+    function toggleFullscreen() {
+      if (!document.fullscreenElement) {
+        $("qrCard").requestFullscreen?.();
+      } else {
+        document.exitFullscreen?.();
+      }
+    }
+    $("fullscreenBtn").addEventListener("click", toggleFullscreen);
+    $("fullscreenBtn2").addEventListener("click", toggleFullscreen);
+
+    $("copyBtn").addEventListener("click", async () => {
+      const link = $("gameLinkDisplay").textContent;
+      try {
+        await navigator.clipboard.writeText(link);
+        alert("Ссылка скопирована!");
+      } catch (e) {
+        console.error(e);
+        alert("Не удалось скопировать ссылку");
+      }
+    });
+
     initHost();
   </script>
 </body>

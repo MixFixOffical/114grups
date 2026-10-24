@@ -170,6 +170,23 @@
     .lb-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .lb-score { font-weight: 900; color: var(--yellow); }
 
+    /* ---------- Код и плакат с QR ---------- */
+    .code-row { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; }
+    .code-row .code-big { margin-bottom: 14px; }
+    .modal {
+      position: fixed; inset: 0; z-index: 50; background: rgba(20, 0, 60, 0.65);
+      display: grid; place-items: center; padding: 16px; overflow: auto;
+    }
+    .modal-card { background: #fff; border-radius: 20px; padding: 14px; width: 100%; max-width: 920px; }
+    #posterCanvas { display: block; width: 100%; height: auto; border-radius: 12px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 14px; }
+    .btn-dark {
+      font-family: inherit; font-weight: 800; font-size: 15px; color: #fff;
+      background: var(--purple); border: none; border-radius: 14px; padding: 12px 20px; cursor: pointer;
+    }
+    .btn-dark:hover { background: var(--purple-dark); }
+    .btn-dark.btn-light { background: #e9e6f5; color: var(--purple-dark); }
+
     .toast {
       position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(120px);
       background: var(--yellow); color: var(--purple-dark); font-weight: 700;
@@ -257,7 +274,20 @@
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
+  <!-- Плакат с QR -->
+  <div class="modal" id="posterModal" hidden>
+    <div class="modal-card">
+      <canvas id="posterCanvas"></canvas>
+      <div class="modal-actions">
+        <button class="btn-dark" id="posterPng">Скачать PNG</button>
+        <button class="btn-dark" id="posterPdf">Скачать PDF</button>
+        <button class="btn-dark btn-light" id="posterClose">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import { getFirestore, doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -500,7 +530,7 @@
       <h1>${fin ? 'Тест завершён' : 'Экран ожидания'}</h1>
       <div class="quiz-title">${esc(quiz.title)}</div>
       ${scheduleHtml()}
-      <div class="code-big">${esc(code)}</div>
+      <div class="code-row"><div class="code-big">${esc(code)}</div><button class="btn-ghost" id="qrPosterBtn">QR</button></div>
       <p class="qr-url">Или откройте ссылку: ${esc(joinUrl())}</p>
       <div><span class="status ${fin ? 'finished' : 'waiting'}">${fin ? 'Игра завершена' : 'Ждём игроков'}</span></div>
       <div class="section-title">Игроки (${players.length})</div>
@@ -765,6 +795,212 @@
     } catch (err) {
       console.error(err);
       showToast('Не удалось обновить запрос');
+    }
+  });
+
+  /* ---------- Плакат с QR (как сертификат) ---------- */
+  const PW = 1754; // A4 альбомный, 150 dpi
+  const PH = 1240;
+
+  // QR рисуем библиотекой qrcodejs во временный контейнер и берём готовую картинку
+  function makeQrSource() {
+    return new Promise((resolve) => {
+      const holder = document.createElement('div');
+      new QRCode(holder, {
+        text: joinUrl(),
+        width: 560,
+        height: 560,
+        colorDark: '#3b0f8c',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+      const canvas = holder.querySelector('canvas');
+      if (canvas) return resolve(canvas);
+      const img = holder.querySelector('img');
+      if (img.complete && img.naturalWidth) return resolve(img);
+      img.onload = () => resolve(img);
+    });
+  }
+
+  function fitSize(ctx, text, weight, family, maxW, start) {
+    let size = start;
+    while (size > 24) {
+      ctx.font = `${weight} ${size}px ${family}`;
+      if (ctx.measureText(text).width <= maxW) break;
+      size -= 2;
+    }
+    return size;
+  }
+
+  // Разбивает текст на строки по ширине (шрифт уже выставлен в ctx)
+  function wrapLines(ctx, text, maxW) {
+    const words = text.split(' ');
+    const lines = [];
+    let line = '';
+    words.forEach((w) => {
+      const test = line ? line + ' ' + w : w;
+      if (ctx.measureText(test).width > maxW && line) { lines.push(line); line = w; }
+      else line = test;
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+  }
+
+  async function drawPoster(canvas) {
+    await Promise.all([
+      document.fonts.load('900 60px Unbounded'),
+      document.fonts.load('700 40px Manrope'),
+      document.fonts.load('400 40px Manrope')
+    ]).catch(() => {});
+    const qr = await makeQrSource();
+
+    canvas.width = PW;
+    canvas.height = PH;
+    const ctx = canvas.getContext('2d');
+    const HEAD = 'Unbounded, Manrope, sans-serif';
+    const BODY = 'Manrope, sans-serif';
+    const cx = PW / 2;
+
+    // Фон и декор, как у сертификата
+    const g = ctx.createLinearGradient(0, 0, PW, PH);
+    g.addColorStop(0, '#3b0f8c');
+    g.addColorStop(0.5, '#6c2bd9');
+    g.addColorStop(1, '#9b3fe8');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, PW, PH);
+    ctx.save();
+    ctx.globalAlpha = 0.16; ctx.fillStyle = '#ffd23f';
+    ctx.beginPath(); ctx.arc(PW - 120, 60, 340, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 0.2; ctx.fillStyle = '#ff7a1a';
+    ctx.beginPath(); ctx.arc(100, PH - 80, 240, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    // Рамка
+    ctx.lineWidth = 6; ctx.strokeStyle = '#ffd23f';
+    roundRect(ctx, 52, 52, PW - 104, PH - 104, 44); ctx.stroke();
+
+    // Шапка: ИЗИ КВИЗ и название квиза
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = '#ffd23f';
+    ctx.font = `900 110px ${HEAD}`;
+    ctx.fillText('ИЗИ КВИЗ', cx, 180);
+    ctx.fillStyle = '#ffffff';
+    const ts = fitSize(ctx, quiz.title, '900', HEAD, PW - 240, 84);
+    ctx.font = `900 ${ts}px ${HEAD}`;
+    ctx.fillText(quiz.title, cx, 280);
+
+    // Левая колонка: QR и код
+    const qx = 160, qy = 330, qw = 680;
+    ctx.save();
+    ctx.fillStyle = '#ffffff';
+    ctx.shadowColor = 'rgba(0,0,0,0.25)'; ctx.shadowBlur = 30; ctx.shadowOffsetY = 12;
+    roundRect(ctx, qx, qy, qw, qw, 36); ctx.fill();
+    ctx.restore();
+    ctx.drawImage(qr, qx + 60, qy + 60, qw - 120, qw - 120);
+
+    const pillH = 96, pillY = qy + qw + 36;
+    ctx.fillStyle = '#ffd23f';
+    const lcx = qx + qw / 2; // центр левой колонки
+    roundRect(ctx, lcx - 170, pillY, 340, pillH, 28); ctx.fill();
+    ctx.fillStyle = '#3b0f8c';
+    ctx.font = `900 64px ${HEAD}`;
+    ctx.fillText(code, lcx, pillY + 67);
+    ctx.fillStyle = '#ffffff';
+    ctx.globalAlpha = 0.85;
+    ctx.font = `600 26px ${BODY}`;
+    ctx.fillText('код квиза', lcx, pillY + pillH + 40);
+    ctx.globalAlpha = 1;
+
+    // Правая колонка: как играть
+    const rx = 940, rw = 654;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#ffd23f';
+    ctx.font = `900 56px ${HEAD}`;
+    ctx.fillText('Как играть', rx, 370);
+
+    const steps = [
+      'Наведите камеру телефона на QR-код или откройте ссылку ниже',
+      'Введите никнейм, под которым вас увидит организатор',
+      'Дождитесь отсчёта 5-4-3-2-1 и старта',
+      'Отвечайте, пока не закончилось время на вопрос',
+      'В конце увидите рейтинг' + (quiz.gradeMode ? ' и свою оценку, а также сможете скачать сертификат' : ''),
+      'Не покидайте страницу во время теста: два выхода подряд завершат тест'
+    ];
+    let y = 430;
+    steps.forEach((text, i) => {
+      ctx.font = `600 32px ${BODY}`;
+      const lines = wrapLines(ctx, text, rw - 84);
+      ctx.fillStyle = '#ffd23f';
+      ctx.beginPath(); ctx.arc(rx + 22, y - 10, 22, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#3b0f8c';
+      ctx.font = `900 26px ${HEAD}`;
+      ctx.textAlign = 'center';
+      ctx.fillText(String(i + 1), rx + 22, y - 1);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `600 32px ${BODY}`;
+      lines.forEach((ln, k) => ctx.fillText(ln, rx + 66, y + k * 44));
+      y += lines.length * 44 + 30;
+    });
+
+    // Ссылка для входа
+    ctx.globalAlpha = 0.85;
+    ctx.font = `600 24px ${BODY}`;
+    ctx.fillText('Или откройте ссылку:', rx, 1090);
+    ctx.font = `700 24px ${BODY}`;
+    wrapLines(ctx, joinUrl(), rw).forEach((ln, k) => ctx.fillText(ln, rx, 1126 + k * 32));
+    ctx.globalAlpha = 1;
+    ctx.textAlign = 'center';
+    return canvas;
+  }
+
+  async function openPoster() {
+    $('posterModal').hidden = false;
+    try {
+      await drawPoster($('posterCanvas'));
+    } catch (err) {
+      console.error(err);
+      $('posterModal').hidden = true;
+      showToast('Не удалось собрать плакат');
+    }
+  }
+
+  $('content').addEventListener('click', (e) => {
+    if (e.target.closest('#qrPosterBtn')) openPoster();
+  });
+  $('posterClose').addEventListener('click', () => { $('posterModal').hidden = true; });
+  $('posterModal').addEventListener('click', (e) => { if (e.target === $('posterModal')) $('posterModal').hidden = true; });
+
+  $('posterPng').addEventListener('click', () => {
+    $('posterCanvas').toBlob((blob) => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `izi-kviz-${code}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }, 'image/png');
+  });
+
+  $('posterPdf').addEventListener('click', () => {
+    try {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      pdf.addImage($('posterCanvas').toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, 297, 210);
+      pdf.save(`izi-kviz-${code}.pdf`);
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось создать PDF. Проверьте интернет');
     }
   });
 

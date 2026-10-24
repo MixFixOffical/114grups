@@ -311,6 +311,10 @@
   let exitCount = 0;       // выходов со страницы подряд (сбрасывается, когда участник снова ответил)
   let ended = false;       // попытка завершена из-за двух выходов подряд
   let blockedAttempt = 0;
+  let blockedGrade = null;
+  let myGrade = null;
+  // Перездача доступна только при оценках 2 и 1 (без СКР — всегда)
+  const retakeAllowed = (g) => g == null || Number(g) <= 2;
   let certPromise = null;  // сертификат выдаётся один раз на попытку
   let certData = null;
   let gameStatus = 'waiting';
@@ -462,11 +466,12 @@
       const same = (await getDocs(query(base, where('key', '==', key)))).docs.map((d) => d.data());
       const maxAttempt = same.reduce((m, p) => Math.max(m, p.attempt || 1), 0);
       const anyEnded = same.some((p) => p.ended);
+      const last = same.reduce((a, p) => ((p.attempt || 1) > (a ? a.attempt || 1 : 0) ? p : a), null);
 
-      // Повторный вход разрешён только если организатор одобрил перездачу именно этой попытки
+      // Второй выход подряд — перездачи нет совсем. Иначе — только с разрешения организатора
       let approved = false;
       const reqRef = doc(db, 'games', code, 'retakeRequests', key);
-      if (same.length) {
+      if (same.length && !anyEnded) {
         const rs = await getDoc(reqRef);
         const r = rs.exists() ? rs.data() : null;
         approved = !!r && r.status === 'approved' && r.round === round && r.allowedAttempt === maxAttempt + 1;
@@ -474,10 +479,14 @@
 
       if (same.length && !approved && (quiz.gradeMode || anyEnded)) {
         blockedAttempt = maxAttempt;
+        blockedGrade = last?.grade ?? null;
+        const canAsk = !anyEnded && retakeAllowed(blockedGrade);
         error.textContent = anyEnded
-          ? 'Этот никнейм уже проходил тест и был завершён. Чтобы пройти снова, запросите перездачу у организатора.'
-          : 'Этот никнейм уже проходил тест. Повторно пройти можно только с разрешения организатора.';
-        $('joinRetake').hidden = false;
+          ? 'Этот никнейм уже проходил тест и был завершён из-за двух выходов со страницы. Повторно пройти его нельзя.'
+          : !canAsk
+            ? 'Повторно пройти тест можно только при оценках 2 или 1.'
+            : 'Этот никнейм уже проходил тест. Повторно пройти можно только с разрешения организатора.';
+        $('joinRetake').hidden = !canAsk;
         return;
       }
 
@@ -499,7 +508,7 @@
     const name = $('nickInput').value.trim();
     if (name.length < 2) { $('joinError').textContent = 'Введите никнейм, под которым вы проходили тест'; return; }
     try {
-      await requestRetake(name, blockedAttempt);
+      await requestRetake(name, blockedAttempt, blockedGrade);
       $('joinRetake').hidden = true;
       $('joinError').textContent = 'Запрос отправлен. Когда организатор разрешит, нажмите «Войти» ещё раз.';
       watchRetake(name);
@@ -928,7 +937,7 @@
           date: todayStr()
         };
         const certNo = await saveCertificate(fields);
-        await updateDoc(playerRef(), { certNo });
+        await updateDoc(playerRef(), { certNo, grade: fields.grade });
         return toDraw({ ...fields, certNo });
       })();
       certPromise.catch(() => { certPromise = null; });
@@ -947,11 +956,12 @@
   });
 
   /* ---------- Перездача ---------- */
-  function requestRetake(name, att) {
+  function requestRetake(name, att, grade) {
     return setDoc(doc(db, 'games', code, 'retakeRequests', personKey(name)), {
       name: name.trim(),
       key: personKey(name),
       attempt: att,
+      grade: grade ?? null,
       round,
       status: 'pending',
       requestedAt: serverTimestamp()
@@ -984,7 +994,7 @@
     const btn = $('doneRetake');
     btn.disabled = true;
     try {
-      await requestRetake(playerName, attempt);
+      await requestRetake(playerName, attempt, myGrade);
       btn.hidden = true;
       $('retakeMsg').textContent = 'Запрос отправлен. Ждём решения организатора.';
       watchRetake(playerName);
@@ -1020,7 +1030,7 @@
     $('doneGrade').textContent = '';
     $('doneRating').textContent = '';
     $('doneCert').hidden = true;
-    $('doneRetake').hidden = !playerId;
+    $('doneRetake').hidden = true;   // покажем после расчёта оценки
     $('retakeMsg').textContent = '';
     show('doneScreen');
 
@@ -1030,6 +1040,8 @@
       const i = list.findIndex((p) => p.id === playerId);
       if (i < 0) return;
       const me = list[i];
+      myGrade = quiz.gradeMode ? gradeFor(me.score, quiz.grades) : null;
+      $('doneRetake').hidden = ended || !playerId || !retakeAllowed(myGrade);
       $('doneRating').textContent = `Ваш итог: ${me.score} баллов · место ${i + 1} из ${list.length}`;
       if (quiz.gradeMode && !ended) $('doneGrade').textContent = `Ваша оценка: ${gradeFor(me.score, quiz.grades)}`;
       if (!ended) {

@@ -296,6 +296,8 @@
       .forEach((s) => { $(s).hidden = s !== id; });
   }
 
+  const fmt = (ts) => ts.toDate().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+
   function esc(s) {
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
@@ -334,6 +336,13 @@
       quiz.timeLimit = quiz.timeLimit || 20;
       $('quizTitleJoin').textContent = quiz.title;
       $('quizTitleLobby').textContent = quiz.title;
+
+      // Расписание: вход открыт только в заданное время (демо не ограничиваем)
+      if (!DEMO) {
+        const now = Date.now();
+        if (quiz.startsAt && now < quiz.startsAt.toMillis()) return fail(`Квиз откроется ${fmt(quiz.startsAt)}.`);
+        if (quiz.endsAt && now > quiz.endsAt.toMillis()) return fail('Срок проведения этого квиза уже истёк.');
+      }
 
       if (DEMO) {
         $('demoBar').hidden = false;
@@ -430,6 +439,10 @@
 
   function applyLatest() {
     if (!countdownDone || gameOver || latestPos < 0) return;
+    if (quiz.endsAt && Date.now() > quiz.endsAt.toMillis()) {
+      finish('Срок проведения квиза истёк.');
+      return;
+    }
     if (latestPos >= order.length) {
       finish('Вопросы закончились. Ждём итоги от организатора.');
       return;

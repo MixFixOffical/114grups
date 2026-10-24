@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cowboy Quiz — Игра</title>
+  <title>Cowboy Quiz</title>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -14,7 +15,6 @@
       --bg: #f3f4f8;
       --header-bg: #3b2aa8;
       --violet: #5f4be8;
-      --violet-dark: #3b2aa8;
       --green: #66bb5c;
       --green-hover: #5aab4f;
       --red: #e5484d;
@@ -23,7 +23,7 @@
       --muted: #6b6f8f;
       --card-bg: #ffffff;
       --line: #e4e6f0;
-      --ring-track: rgba(255,255,255,0.3);
+      --orange: #ff9800;
     }
 
     body {
@@ -33,7 +33,6 @@
       min-height: 100vh;
       display: flex;
       flex-direction: column;
-      position: relative;
     }
 
     /* ===== Шапка ===== */
@@ -58,7 +57,154 @@
       display: grid; place-items: center; font-size: 14px;
     }
 
-    /* ===== Экран отсчёта ===== */
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+    }
+    .banner {
+      background: linear-gradient(135deg, #5f4be8 0%, #3b2aa8 100%);
+      height: 200px;
+      width: 100%;
+    }
+
+    /* ===== 1. Лобби ===== */
+    #lobby main {
+      max-width: 1200px;
+      width: 100%;
+      margin: -150px auto 40px;
+      padding: 0 24px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 24px;
+      align-items: start;
+    }
+    .left-col, .right-col { display: flex; flex-direction: column; gap: 20px; }
+    .right-col { gap: 16px; }
+    .quiz-card { padding: 32px; }
+    .badge-notice {
+      background: #ecebfb;
+      color: var(--violet);
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .quiz-title { font-size: 26px; font-weight: 800; margin-bottom: 28px; }
+    .controls { display: flex; gap: 16px; flex-wrap: wrap; }
+    .btn {
+      border: none;
+      border-radius: 24px;
+      padding: 14px 28px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      color: #fff;
+      transition: background 0.2s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: default; }
+    .btn-start { background: var(--green); }
+    .btn-start:hover:not(:disabled) { background: var(--green-hover); }
+    .btn-cancel { background: var(--red); }
+    .btn-cancel:hover { background: var(--red-hover); }
+    .btn-violet { background: var(--violet); }
+    .btn-violet:hover:not(:disabled) { background: #4c39d0; }
+
+    .players-card { padding: 24px 32px; }
+    .players-header {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .players-grid { display: flex; flex-wrap: wrap; gap: 10px; min-height: 36px; }
+    .player-tag {
+      background: #f0edff;
+      color: var(--violet);
+      font-weight: 700;
+      font-size: 14px;
+      padding: 8px 16px;
+      border-radius: 20px;
+    }
+    .muted { color: var(--muted); font-size: 14px; }
+
+    .qr-card { padding: 24px; text-align: center; }
+    .btn-fullscreen {
+      background: #f4f4fa;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 8px 18px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--ink);
+      cursor: pointer;
+      margin-bottom: 18px;
+    }
+    .code-label { font-size: 12px; color: var(--muted); font-weight: 600; }
+    .game-code { font-size: 32px; font-weight: 800; letter-spacing: 2px; margin-bottom: 16px; }
+    .qr-box {
+      width: 180px; height: 180px; margin: 0 auto 16px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .qr-box img, .qr-box canvas { max-width: 100%; height: auto; }
+    .link-box {
+      background: #f8f9fc;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 8px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+    #gameLinkDisplay { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .copy-btn { background: none; border: none; cursor: pointer; font-size: 14px; }
+    .test-badge {
+      background: #e1f5fe; color: #0288d1;
+      font-weight: 800; font-size: 12px;
+      padding: 6px; border-radius: 6px;
+      letter-spacing: 0.05em; margin-bottom: 20px;
+    }
+    .stats-row { display: flex; justify-content: space-around; padding-top: 10px; border-top: 1px solid var(--line); }
+    .stat-item { text-align: center; }
+    .stat-circle {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 2px solid var(--line);
+      display: grid; place-items: center;
+      margin: 0 auto 6px; font-weight: 700; font-size: 14px;
+    }
+    .stat-circle.active { border-color: var(--green); color: var(--green); }
+    .stat-circle.limit { border-color: var(--orange); color: var(--orange); }
+    .stat-circle.total { border-color: var(--violet); color: var(--violet); }
+    .stat-label { font-size: 11px; color: var(--muted); font-weight: 600; line-height: 1.3; }
+
+    .actions-card { display: flex; justify-content: space-around; padding: 12px 8px; }
+    .action {
+      background: none; border: none;
+      font-family: inherit; font-size: 11px; font-weight: 600;
+      color: var(--muted); cursor: pointer;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 4px; padding: 6px 10px; border-radius: 8px;
+    }
+    .action:hover { background: #f4f4fa; color: var(--ink); }
+    .action .icon { font-size: 16px; }
+
+    .info-card { padding: 20px 24px; font-size: 12px; line-height: 1.6; color: var(--muted); }
+    .info-card h4 { color: var(--ink); font-size: 13px; margin-bottom: 8px; }
+    .info-card ol { padding-left: 18px; }
+    .info-card ul { padding-left: 18px; }
+    .info-card li { margin-bottom: 4px; }
+
+    /* ===== 2. Отсчёт ===== */
     #countdown {
       flex: 1;
       background:
@@ -67,122 +213,64 @@
         linear-gradient(135deg, #5f4be8 0%, #3b2aa8 100%);
       display: grid;
       place-items: center;
-      position: relative;
+      min-height: calc(100vh - 60px);
     }
     .countdown-wrap { position: relative; width: 240px; height: 240px; }
     .countdown-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
-    .countdown-track { stroke: var(--ring-track); }
+    .countdown-track { stroke: rgba(255,255,255,0.3); }
     .countdown-progress { stroke: var(--green); transition: stroke-dashoffset 0.9s linear; }
     .countdown-num {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      font-size: 110px;
-      font-weight: 800;
-      font-style: italic;
-      color: #fff;
+      position: absolute; inset: 0;
+      display: grid; place-items: center;
+      font-size: 110px; font-weight: 800; font-style: italic; color: #fff;
     }
 
-    /* ===== Экран вопроса ===== */
-    #question {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      background: var(--bg);
-    }
+    /* ===== 3. Вопрос ===== */
+    #question { flex: 1; display: flex; flex-direction: column; }
     .q-banner {
       background: linear-gradient(135deg, #5f4be8 0%, #3b2aa8 100%);
       height: 150px;
       position: relative;
     }
     .q-top {
-      position: absolute;
-      top: 14px;
-      left: 0;
-      right: 0;
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 0 24px;
-      display: flex;
-      justify-content: space-between;
-      color: #fff;
-      font-size: 13px;
-      font-weight: 700;
+      position: absolute; top: 14px; left: 0; right: 0;
+      max-width: 1100px; margin: 0 auto; padding: 0 24px;
+      color: #fff; font-size: 13px; font-weight: 700;
     }
     .q-layout {
-      max-width: 1100px;
-      width: 100%;
-      margin: -110px auto 40px;
-      padding: 0 24px;
-      display: grid;
-      grid-template-columns: 1fr 260px;
-      gap: 16px;
-      align-items: start;
-    }
-    .card {
-      background: var(--card-bg);
-      border-radius: 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.06);
+      max-width: 1100px; width: 100%;
+      margin: -110px auto 40px; padding: 0 24px;
+      display: grid; grid-template-columns: 1fr 260px; gap: 16px; align-items: start;
     }
     .q-card { padding: 32px; }
     .q-notice {
-      background: #ecebfb;
-      color: var(--violet);
-      font-size: 13px;
-      font-weight: 600;
-      padding: 12px 16px;
-      border-radius: 8px;
-      text-align: center;
-      margin-bottom: 20px;
+      background: #ecebfb; color: var(--violet);
+      font-size: 13px; font-weight: 600;
+      padding: 12px 16px; border-radius: 8px;
+      text-align: center; margin-bottom: 20px;
     }
-    .admin-notice {
-      background: #fff6e5;
-      color: var(--ink);
-      font-size: 13px;
-      text-align: center;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-    }
-    .admin-notice a { color: #e08a00; font-weight: 700; }
     .q-meta { font-size: 13px; font-weight: 700; color: var(--muted); margin-bottom: 6px; }
     .q-meta span { color: var(--ink); }
     .q-text { font-size: 20px; font-weight: 700; margin-bottom: 20px; }
     .option {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: #f8f9fc;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 10px;
-      font-size: 14px;
-      font-weight: 600;
+      display: flex; align-items: center; gap: 14px;
+      background: #f8f9fc; border: 2px solid var(--line);
+      border-radius: 8px; padding: 16px; margin-bottom: 10px;
+      font-size: 14px; font-weight: 600; cursor: pointer;
+      width: 100%; text-align: left; font-family: inherit; color: var(--ink);
     }
+    .option:hover { border-color: #c4c0ff; }
+    .option.selected { border-color: var(--violet); background: #f0edff; }
     .option .letter { font-size: 26px; font-weight: 800; color: #c4c0ff; width: 26px; }
-
+    .option.selected .letter { color: var(--violet); }
+    .answer-row { display: flex; justify-content: flex-end; margin-top: 14px; }
     .q-side { display: flex; flex-direction: column; gap: 16px; }
-    .controls-card {
-      display: flex;
-      gap: 8px;
-      padding: 12px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
+    .controls-card { display: flex; gap: 8px; padding: 12px; flex-wrap: wrap; justify-content: center; }
     .ctrl {
-      border: none;
-      border-radius: 20px;
-      padding: 10px 14px;
-      font-family: inherit;
-      font-size: 13px;
-      font-weight: 700;
-      color: #fff;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
+      border: none; border-radius: 20px; padding: 10px 14px;
+      font-family: inherit; font-size: 13px; font-weight: 700;
+      color: #fff; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
     }
     .ctrl-icon { background: var(--violet); width: 36px; padding: 10px 0; justify-content: center; }
     .ctrl-stop { background: var(--red); }
@@ -190,7 +278,6 @@
     .ctrl-pause { background: var(--green); }
     .ctrl-pause:hover { background: var(--green-hover); }
     .ctrl-next { background: var(--violet); }
-
     .timer-card { padding: 18px; text-align: center; }
     .timer-title { font-size: 13px; font-weight: 700; margin-bottom: 14px; }
     .timer-ring { position: relative; width: 88px; height: 88px; margin: 0 auto; }
@@ -198,93 +285,50 @@
     .timer-track { stroke: #e5e5ee; }
     .timer-progress { stroke: var(--green); transition: stroke-dashoffset 0.9s linear; }
     .timer-num {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-      font-size: 26px;
-      font-weight: 800;
+      position: absolute; inset: 0; display: grid; place-items: center;
+      font-size: 26px; font-weight: 800;
     }
 
-    /* ===== Экран результатов ===== */
+    /* ===== 4. Результаты ===== */
     #results { flex: 1; display: flex; flex-direction: column; }
     .res-banner {
       background: linear-gradient(135deg, #5f4be8 0%, #3b2aa8 100%);
       height: 240px;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 0 calc((100% - 760px) / 2);
       color: #fff;
     }
     .res-title { font-size: 26px; font-weight: 800; margin-bottom: 10px; }
     .res-text { font-size: 15px; font-weight: 600; line-height: 1.5; margin-bottom: 22px; }
     .res-actions { display: flex; gap: 12px; align-items: center; }
-    .btn-green {
-      background: var(--green);
-      color: #fff;
-      border: none;
-      border-radius: 24px;
-      padding: 12px 24px;
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-    }
-    .btn-green:hover { background: var(--green-hover); }
     .btn-round {
-      width: 40px; height: 40px;
-      border-radius: 50%;
-      border: none;
-      background: var(--green);
-      color: #fff;
-      cursor: pointer;
-      font-size: 16px;
+      width: 40px; height: 40px; border-radius: 50%; border: none;
+      background: var(--green); color: #fff; cursor: pointer; font-size: 16px;
     }
     .trophy { font-size: 130px; filter: drop-shadow(0 10px 20px rgba(0,0,0,0.25)); }
-
     .leaders {
-      width: 100%;
-      max-width: 760px;
-      margin: 30px auto 40px;
-      padding: 40px 24px;
-      min-height: 280px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 12px;
+      width: 100%; max-width: 760px;
+      margin: 30px auto 40px; padding: 40px 24px; min-height: 280px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
     }
     .leaders-list { width: 100%; display: flex; flex-direction: column; gap: 10px; }
     .leader-row {
-      display: flex;
-      justify-content: space-between;
-      background: #fff;
-      border-radius: 10px;
-      padding: 12px 18px;
-      font-weight: 700;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.05);
+      display: flex; justify-content: space-between;
+      background: #fff; border-radius: 10px; padding: 12px 18px;
+      font-weight: 700; box-shadow: 0 6px 16px rgba(0,0,0,0.05);
     }
-    .empty-text { color: var(--muted); font-size: 13px; }
 
     .chat-bubble {
-      position: fixed;
-      right: 16px;
-      bottom: 16px;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: var(--violet);
-      color: #fff;
-      display: grid;
-      place-items: center;
-      font-size: 16px;
+      position: fixed; right: 16px; bottom: 16px;
+      width: 36px; height: 36px; border-radius: 50%;
+      background: var(--violet); color: #fff;
+      display: grid; place-items: center; font-size: 16px;
       box-shadow: 0 6px 16px rgba(0,0,0,0.2);
     }
 
     @media (max-width: 850px) {
       .nav { display: none; }
+      #lobby main { grid-template-columns: 1fr; margin-top: -120px; }
       .q-layout { grid-template-columns: 1fr; margin-top: -90px; }
       .trophy { font-size: 80px; }
     }
@@ -306,40 +350,111 @@
     </div>
   </header>
 
-  <!-- ===== 1. Отсчёт перед вопросом ===== -->
-  <section id="countdown">
+  <!-- ===== 1. Лобби ===== -->
+  <section id="lobby">
+    <div class="banner"></div>
+    <main>
+      <div class="left-col">
+        <div class="card quiz-card">
+          <div class="badge-notice">Вы используете тестовую версию Cowboy Quiz (лимит 5 игроков)</div>
+          <h1 class="quiz-title" id="quizTitle">Загрузка викторины...</h1>
+          <div class="controls">
+            <button class="btn btn-start" id="startBtn" type="button" disabled>Запустить игру</button>
+            <button class="btn btn-cancel" id="cancelBtn" type="button">Завершить игру</button>
+          </div>
+        </div>
+
+        <div class="card players-card">
+          <div class="players-header">
+            <span>Подключившиеся игроки</span>
+            <span id="playerCountLabel">0 / 5</span>
+          </div>
+          <div class="players-grid" id="playersList">
+            <span class="muted">Ожидание игроков...</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="right-col">
+        <div class="card qr-card" id="qrCard">
+          <button class="btn-fullscreen" id="fullscreenBtn" type="button">Открыть QR-код на весь экран</button>
+          <div class="code-label">Код викторины:</div>
+          <div class="game-code" id="gameCodeDisplay">----</div>
+          <div class="qr-box" id="qrcode"></div>
+          <div class="link-box">
+            <span id="gameLinkDisplay">https://...</span>
+            <button class="copy-btn" id="copyBtn" title="Скопировать ссылку" type="button">📋</button>
+          </div>
+          <div class="test-badge">ТЕСТОВЫЙ РЕЖИМ</div>
+          <div class="stats-row">
+            <div class="stat-item">
+              <div class="stat-circle active" id="statConnected">0</div>
+              <div class="stat-label">Активные<br>пользователи</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-circle limit">5</div>
+              <div class="stat-label">Лимит</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-circle total" id="statTotal">0</div>
+              <div class="stat-label">Все<br>пользователи</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card actions-card">
+          <button class="action" type="button" id="editBtn"><span class="icon">✏️</span>Редактировать</button>
+          <button class="action" type="button" id="fullscreenBtn2"><span class="icon">⛶</span>На весь экран</button>
+          <button class="action" type="button" id="startBtn2"><span class="icon">▶</span>Пуск</button>
+        </div>
+
+        <div class="card info-card">
+          <h4>Как играть:</h4>
+          <ol>
+            <li>Как только игра будет запущена, вам будет показан вопрос и несколько вариантов ответа.
+              <ul>
+                <li>Может быть один или несколько правильных ответов.</li>
+                <li>Если нажмёте один вариант ответа, должен быть неправильным.</li>
+              </ul>
+            </li>
+            <li>После выбора варианта ответа(ов) необходимо нажать кнопку «Ответить».
+              <ul><li>Первые 3 игрока, ответившие все правильные ответы, получат дополнительные баллы.</li></ul>
+            </li>
+            <li>В конце игры вам будет показан Лидерборд.
+              <ul><li>При одинаковом количестве очков выиграет тот, кто ответил быстрее на последний вопрос.</li></ul>
+            </li>
+          </ol>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <!-- ===== 2. Отсчёт ===== -->
+  <section id="countdown" hidden>
     <div class="countdown-wrap">
       <svg viewBox="0 0 240 240">
         <circle class="countdown-track" cx="120" cy="120" r="108" fill="none" stroke-width="16"/>
         <circle class="countdown-progress" id="cdProgress" cx="120" cy="120" r="108" fill="none" stroke-width="16"
-                stroke-linecap="butt" stroke-dasharray="678.58" stroke-dashoffset="0"/>
+                stroke-dasharray="678.58" stroke-dashoffset="0"/>
       </svg>
       <div class="countdown-num" id="cdNum">5</div>
     </div>
   </section>
 
-  <!-- ===== 2. Вопрос ===== -->
+  <!-- ===== 3. Вопрос ===== -->
   <section id="question" hidden>
     <div class="q-banner">
-      <div class="q-top">
-        <span id="qCode">ТЕст: 01094227</span>
-      </div>
+      <div class="q-top"><span id="qCode">Код: ----</span></div>
     </div>
-
     <div class="q-layout">
       <div class="card q-card">
         <div class="q-notice">Вы используете бесплатную версию Cowboy Quiz</div>
-        <div class="admin-notice">
-          Вы находитесь в режиме администратора.<br>
-          <a href="#">Нажмите, если хотите перейти в режим игрока.</a>
+        <div class="q-meta">Вопрос <span id="qNum">1</span> / <span id="qTotal">1</span></div>
+        <div class="q-text" id="qText"></div>
+        <div id="qOptions"></div>
+        <div class="answer-row">
+          <button class="btn btn-violet" id="answerBtn" type="button">Ответить</button>
         </div>
-        <div class="q-meta">Вопрос <span>1</span> / <span>1</span></div>
-        <div class="q-text">12124536</div>
-
-        <div class="option"><span class="letter">A</span>1</div>
-        <div class="option"><span class="letter">B</span>123</div>
-        <div class="option"><span class="letter">C</span>1243</div>
-        <div class="option"><span class="letter">D</span>51435</div>
       </div>
 
       <div class="q-side">
@@ -349,7 +464,6 @@
           <button class="ctrl ctrl-pause" type="button" id="qPause">⏸ Пауза</button>
           <button class="ctrl ctrl-next" type="button" id="qNext">⏭ Далее</button>
         </div>
-
         <div class="card timer-card">
           <div class="timer-title">Время на ответ:</div>
           <div class="timer-ring">
@@ -365,66 +479,160 @@
     </div>
   </section>
 
-  <!-- ===== 3. Результаты ===== -->
+  <!-- ===== 4. Результаты ===== -->
   <section id="results" hidden>
     <div class="res-banner">
       <div>
         <div class="res-title">Победитель викторины:</div>
         <div class="res-text" id="resText">Никто из игроков не дал правильного ответа<br>и не заработал баллов</div>
         <div class="res-actions">
-          <button class="btn-green" type="button" id="resQuizzes">Мои викторины</button>
-          <button class="btn-round" type="button" id="resFullscreen" title="На весь экран">⛶</button>
+          <button class="btn btn-start" id="resQuizzes" type="button">Мои викторины</button>
+          <button class="btn-round" id="resFullscreen" type="button" title="На весь экран">⛶</button>
         </div>
       </div>
       <div class="trophy">🤠</div>
     </div>
-
-    <div class="leaders card" id="leaders">
+    <div class="card leaders" id="leaders">
       <div class="leaders-list" id="leadersList"></div>
       <div id="leadersEmpty" style="text-align:center;">
         <div style="font-size:40px; opacity:0.4;">🌵</div>
-        <div class="empty-text">Лидеры отсутствуют</div>
+        <div class="muted">Лидеры отсутствуют</div>
       </div>
     </div>
   </section>
 
   <div class="chat-bubble" title="Помощь">💬</div>
 
-  <script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getFirestore, doc, getDoc, setDoc, updateDoc, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw",
+      authDomain: "sokrat-7c938.firebaseapp.com",
+      projectId: "sokrat-7c938",
+      storageBucket: "sokrat-7c938.firebasestorage.app",
+      messagingSenderId: "19858604945",
+      appId: "1:19858604945:web:244b77bbe5afb849481030",
+      measurementId: "G-K06CVPVD15"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
     const $ = (id) => document.getElementById(id);
+    const urlParams = new URLSearchParams(window.location.search);
+    const quizId = urlParams.get("id");
+    const isTestMode = urlParams.get("test") === "true";
+    const PLAYER_LIMIT = 5;
 
-    const COUNTDOWN_SECONDS = 5;
+    // Демо-вопросы. Позже заменим на вопросы из Firestore.
+    const QUESTIONS = [
+      { text: "12124536", options: ["1", "123", "1243", "51435"], correct: [0] }
+    ];
     const QUESTION_SECONDS = 16;
-    const CD_LENGTH = 678.58;   // 2 * π * 108
-    const Q_LENGTH = 238.76;    // 2 * π * 38
+    const COUNTDOWN_SECONDS = 5;
+    const CD_LENGTH = 678.58;
+    const Q_LENGTH = 238.76;
 
-    let cdTimer = null;
-    let qTimer = null;
-    let qLeft = QUESTION_SECONDS;
-    let paused = false;
+    let gameCode = "";
+    let cdTimer = null, qTimer = null;
+    let qIndex = 0, qLeft = QUESTION_SECONDS, paused = false;
+    let selected = new Set();
+    let answered = false;
+
+    function escapeHtml(str) {
+      return String(str ?? "").replace(/[&<>"']/g, (c) =>
+        ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+    }
 
     function show(name) {
-      ["countdown", "question", "results"].forEach((n) => {
-        $(n).hidden = n !== name;
-      });
+      ["lobby", "countdown", "question", "results"].forEach((n) => { $(n).hidden = n !== name; });
     }
 
     function setRing(circle, length, fraction) {
       circle.style.strokeDashoffset = String(length * (1 - fraction));
     }
 
-    // ----- 1. Отсчёт -----
+    // ----- Лобби -----
+    async function initHost() {
+      if (!quizId) {
+        // Без id открываем демо: код и QR генерируются, Firestore не используется
+        $("quizTitle").textContent = "Тестовая викторина";
+      } else {
+        try {
+          const qSnap = await getDoc(doc(db, "quizzes", quizId));
+          $("quizTitle").textContent = (qSnap.exists() && qSnap.data().title) || "Тестовая викторина";
+        } catch (e) {
+          console.error(e);
+          $("quizTitle").textContent = "Тестовая викторина";
+        }
+      }
+
+      gameCode = String(Math.floor(1000 + Math.random() * 9000));
+      $("gameCodeDisplay").textContent = gameCode;
+      $("qCode").textContent = `Код: ${gameCode}`;
+
+      const joinUrl = `${window.location.origin}/index.html?code=${gameCode}`;
+      $("gameLinkDisplay").textContent = joinUrl;
+      new QRCode($("qrcode"), {
+        text: joinUrl, width: 180, height: 180,
+        colorDark: "#1d1f3a", colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      try {
+        await setDoc(doc(db, "games", gameCode), {
+          quizId: quizId || null,
+          status: "waiting",
+          isTest: isTestMode,
+          limit: PLAYER_LIMIT,
+          createdAt: Date.now()
+        });
+        listenPlayers();
+      } catch (e) {
+        console.error(e);
+      }
+
+      $("startBtn").disabled = false;
+    }
+
+    function listenPlayers() {
+      onSnapshot(collection(db, "games", gameCode, "players"), (snapshot) => {
+        const players = [];
+        snapshot.forEach((d) => players.push(d.data()));
+        const count = players.length;
+        $("playerCountLabel").textContent = `${count} / ${PLAYER_LIMIT}`;
+        $("statConnected").textContent = count;
+        $("statTotal").textContent = count;
+        $("playersList").innerHTML = count === 0
+          ? `<span class="muted">Ожидание игроков...</span>`
+          : players.map((p) => `<div class="player-tag">👤 ${escapeHtml(p.name)}</div>`).join("");
+      });
+    }
+
+    async function startGame() {
+      if (!gameCode) return;
+      try {
+        await updateDoc(doc(db, "games", gameCode), { status: "running" });
+      } catch (e) {
+        console.error(e);
+      }
+      startCountdown();
+    }
+
+    // ----- Отсчёт -----
     function startCountdown() {
       show("countdown");
       let left = COUNTDOWN_SECONDS;
       $("cdNum").textContent = left;
       setRing($("cdProgress"), CD_LENGTH, 0);
-
+      clearInterval(cdTimer);
       cdTimer = setInterval(() => {
         left -= 1;
         if (left <= 0) {
           clearInterval(cdTimer);
-          startQuestion();
+          startQuestion(0);
           return;
         }
         $("cdNum").textContent = left;
@@ -432,20 +640,42 @@
       }, 1000);
     }
 
-    // ----- 2. Вопрос -----
-    function startQuestion() {
+    // ----- Вопрос -----
+    function startQuestion(index) {
+      qIndex = index;
+      const q = QUESTIONS[qIndex];
       show("question");
-      qLeft = QUESTION_SECONDS;
+      $("qNum").textContent = qIndex + 1;
+      $("qTotal").textContent = QUESTIONS.length;
+      $("qText").textContent = q.text;
+      selected = new Set();
+      answered = false;
       paused = false;
       $("qPause").textContent = "⏸ Пауза";
-      renderQuestionTimer();
+      $("answerBtn").disabled = false;
 
+      $("qOptions").innerHTML = q.options.map((opt, i) =>
+        `<button class="option" type="button" data-i="${i}">
+           <span class="letter">${String.fromCharCode(65 + i)}</span>${escapeHtml(opt)}
+         </button>`
+      ).join("");
+      document.querySelectorAll("#qOptions .option").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          if (answered) return;
+          const i = Number(btn.dataset.i);
+          if (selected.has(i)) selected.delete(i); else selected.add(i);
+          btn.classList.toggle("selected", selected.has(i));
+        });
+      });
+
+      qLeft = QUESTION_SECONDS;
+      renderQuestionTimer();
       clearInterval(qTimer);
       qTimer = setInterval(() => {
         if (paused) return;
         qLeft -= 1;
         renderQuestionTimer();
-        if (qLeft <= 0) finishGame();
+        if (qLeft <= 0) answerQuestion();
       }, 1000);
     }
 
@@ -454,38 +684,83 @@
       setRing($("qProgress"), Q_LENGTH, qLeft / QUESTION_SECONDS);
     }
 
+    // Ответ ведущего: в демо фиксирует выбор и переходит к результатам
+    function answerQuestion() {
+      if (answered) return;
+      answered = true;
+      clearInterval(qTimer);
+      $("answerBtn").disabled = true;
+      nextQuestion();
+    }
+
+    function nextQuestion() {
+      clearInterval(qTimer);
+      if (qIndex + 1 < QUESTIONS.length) {
+        startQuestion(qIndex + 1);
+      } else {
+        finishGame();
+      }
+    }
+
     function togglePause() {
       paused = !paused;
       $("qPause").textContent = paused ? "▶ Продолжить" : "⏸ Пауза";
     }
 
-    // ----- 3. Результаты -----
+    // ----- Результаты -----
     function finishGame() {
       clearInterval(qTimer);
       clearInterval(cdTimer);
       show("results");
     }
 
-    $("qStop").addEventListener("click", finishGame);
-    $("qNext").addEventListener("click", finishGame);
-    $("qPause").addEventListener("click", togglePause);
+    function backToLobby() {
+      clearInterval(qTimer);
+      clearInterval(cdTimer);
+      show("lobby");
+    }
 
-    $("resQuizzes").addEventListener("click", () => {
+    // ----- Кнопки -----
+    $("startBtn").addEventListener("click", startGame);
+    $("startBtn2").addEventListener("click", startGame);
+    $("answerBtn").addEventListener("click", answerQuestion);
+    $("qStop").addEventListener("click", finishGame);
+    $("qNext").addEventListener("click", nextQuestion);
+    $("qPause").addEventListener("click", togglePause);
+    $("resQuizzes").addEventListener("click", () => { location.href = "Quizzes.html"; });
+    $("editBtn").addEventListener("click", () => { location.href = "Quizzes.html"; });
+
+    $("cancelBtn").addEventListener("click", async () => {
+      if (!confirm("Завершить сессию игры?")) return;
+      try {
+        if (gameCode) await updateDoc(doc(db, "games", gameCode), { status: "cancelled" });
+      } catch (e) {
+        console.error(e);
+      }
       location.href = "Quizzes.html";
     });
 
     function toggleFullscreen(el) {
-      if (!document.fullscreenElement) {
-        el.requestFullscreen?.();
-      } else {
-        document.exitFullscreen?.();
-      }
+      if (!document.fullscreenElement) el.requestFullscreen?.();
+      else document.exitFullscreen?.();
     }
+    $("fullscreenBtn").addEventListener("click", () => toggleFullscreen($("qrCard")));
+    $("fullscreenBtn2").addEventListener("click", () => toggleFullscreen(document.documentElement));
     $("qFullscreen").addEventListener("click", () => toggleFullscreen(document.documentElement));
     $("resFullscreen").addEventListener("click", () => toggleFullscreen(document.documentElement));
 
-    // Демо-запуск: отсчёт → вопрос → результаты
-    startCountdown();
+    $("copyBtn").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText($("gameLinkDisplay").textContent);
+        alert("Ссылка скопирована!");
+      } catch (e) {
+        console.error(e);
+        alert("Не удалось скопировать ссылку");
+      }
+    });
+
+    show("lobby");
+    initHost();
   </script>
 </body>
 </html>

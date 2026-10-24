@@ -130,6 +130,11 @@
       box-shadow: 0 12px 30px rgba(20, 0, 60, 0.25);
     }
 
+    .q-img {
+      display: block; max-width: 100%; max-height: 300px; object-fit: contain;
+      margin: 0 auto 16px; border-radius: 16px; background: #fff;
+    }
+    .q-img[hidden] { display: none !important; }
     .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .opt {
       font-family: inherit; font-weight: 700; font-size: 16px; text-align: left;
@@ -229,6 +234,7 @@
       <div class="rating-badge" id="ratingLine"></div>
       <div class="timer-track"><div class="timer-bar" id="timerBar"></div></div>
       <div class="timer-label" id="timerLabel"></div>
+      <img class="q-img" id="qImg" alt="" hidden />
       <div class="q-text" id="qText"></div>
       <div id="qAnswers"></div>
       <div class="q-status" id="qStatus"></div>
@@ -511,6 +517,18 @@
     show('questionScreen');
     $('qProgress').textContent = `Вопрос ${pos + 1} из ${order.length} · баллов: ${curQ.points ?? 1}`;
     $('qText').textContent = curQ.text;
+    const img = $('qImg');
+    img.removeAttribute('src');
+    img.hidden = true;
+    if (curQ.image && curQ.image.id) {
+      const imgPos = pos;
+      loadImageData(curQ.image.id).then((src) => {
+        if (src && shownPos === imgPos) {
+          img.src = src;
+          img.hidden = false;
+        }
+      });
+    }
     $('qStatus').textContent = '';
     $('nextWrap').innerHTML = '';
 
@@ -700,6 +718,16 @@
             <span class="lb-score">${p.score}</span>
           </div>`).join('')
       : '';
+  }
+
+  /* ---------- Фото вопросов (из коллекции quizImages) ---------- */
+  const imageCache = {};
+  async function loadImageData(id) {
+    if (imageCache[id]) return imageCache[id];
+    const snap = await getDoc(doc(db, 'quizImages', id));
+    const data = snap.exists() ? snap.data().data : null;
+    if (data) imageCache[id] = data;
+    return data;
   }
 
   /* ---------- Демо-режим ---------- */

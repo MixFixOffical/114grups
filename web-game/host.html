@@ -174,6 +174,16 @@
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
+    .count-wrap { display: grid; place-items: center; min-height: 320px; }
+    .count-num {
+      font-family: "Unbounded", sans-serif; font-weight: 900;
+      font-size: clamp(90px, 22vw, 160px); line-height: 1; color: var(--yellow);
+      text-shadow: 0 8px 30px rgba(255, 122, 26, 0.5); min-height: 1.1em;
+    }
+    .count-num.pop { animation: pop 0.9s ease both; }
+    .count-num.start { font-size: clamp(56px, 14vw, 96px); color: var(--white); }
+    @keyframes pop { 0% { opacity: 0; transform: scale(1.8); } 40% { opacity: 1; transform: scale(1); } 100% { opacity: 1; transform: scale(1); } }
+
     .error { color: #ffe0a3; font-weight: 700; font-size: 15px; line-height: 1.5; margin-top: 10px; }
 
     @media (max-width: 800px) {
@@ -256,6 +266,9 @@
   let hostTotalMs = 1;
   let tickTimer = null;
   let pollTimer = null;
+  let firstSnapshot = true;
+  let countdownToken = null;
+  let countdownActive = false;
 
   // Дата из Timestamp для показа человеку
   const fmt = (ts) => ts.toDate().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
@@ -337,8 +350,57 @@
       currentRound = r;
       watchPlayers(r);
     }
+
+    // При первом открытии страницы отсчёт не повторяем (например, после перезагрузки)
+    if (firstSnapshot) {
+      firstSnapshot = false;
+      countdownToken = g.startToken ?? null;
+    }
+
+    // Новый старт игры: сначала отсчёт 5-4-3-2-1-Старт, как у игроков
+    if (g.status === 'running' && g.startToken != null && g.startToken !== countdownToken) {
+      countdownToken = g.startToken;
+      clearDriver();
+      countdownActive = true;
+      runHostCountdown(() => {
+        countdownActive = false;
+        driver(game);
+        render();
+      });
+      return;
+    }
+
+    if (countdownActive) return;
     driver(g);
     render();
+  }
+
+  function runHostCountdown(cb) {
+    placeQr(false);
+    stopPoll();
+    $('content').innerHTML = '<div class="count-wrap"><div class="count-num" id="hCount"></div></div>';
+    const el = $('hCount');
+    const seq = ['5', '4', '3', '2', '1', 'Старт!'];
+    let i = 0;
+
+    const set = (text) => {
+      el.textContent = text;
+      el.classList.toggle('start', text === 'Старт!');
+      el.classList.remove('pop');
+      void el.offsetWidth;
+      el.classList.add('pop');
+    };
+
+    set(seq[0]);
+    const t = setInterval(() => {
+      i++;
+      if (i >= seq.length) {
+        clearInterval(t);
+        setTimeout(cb, 800);
+        return;
+      }
+      set(seq[i]);
+    }, 1000);
   }
 
   function watchPlayers(r) {
@@ -390,7 +452,7 @@
 
   /* ---------- Отрисовка ---------- */
   function render() {
-    if (!game) return;
+    if (!game || countdownActive) return;
     if (game.status === 'running') renderRunning();
     else renderWaitingOrFinished();
   }
@@ -421,7 +483,12 @@
 
     attach();
     placeQr(false);
-    if (fin) loadBoard('lb');
+    if (fin) {
+      // Итоги: показываем всех подключившихся игроков и обновляем, пока не начали заново
+      stopPoll();
+      loadBoard('lb');
+      pollTimer = setInterval(() => loadBoard('lb'), 4000);
+    }
   }
 
   function renderRunning() {
@@ -625,9 +692,21 @@
       showToast('Добавьте хотя бы один вопрос в квиз');
       return;
     }
+    // Отсчёт запускаем сразу по нажатию, не дожидаясь ответа базы
+    const token = Date.now();
+    countdownToken = token;
+    countdownActive = true;
+    clearDriver();
+    runHostCountdown(() => {
+      countdownActive = false;
+      driver(game);
+      render();
+    });
+
     try {
       await updateDoc(doc(db, 'games', code), {
         status: 'running',
+        startToken: token,
         order,
         current: 0,
         questionStartedAt: serverTimestamp()
@@ -665,7 +744,7 @@
   }
 
   function openDemo() {
-    window.open('quize.html?code=' + encodeURIComponent(code) + '&demo=1', '_blank');
+    window.location.href = 'quize.html?code=' + encodeURIComponent(code) + '&demo=1';
   }
 
   window.addEventListener('beforeunload', () => {

@@ -445,6 +445,16 @@
       border: 2px solid transparent;
     }
     .q-card select:focus { border-color: var(--purple); }
+    .pts-input {
+      width: 90px;
+      font-size: 14px;
+      padding: 10px 12px;
+      background: #f5f3fb;
+      color: var(--purple-dark);
+      border: 2px solid transparent;
+      border-radius: 12px;
+    }
+    .pts-input:focus { border-color: var(--purple); }
 
     .empty-q {
       text-align: center;
@@ -577,6 +587,30 @@
         </label>
       </div>
 
+      <div class="field">
+        <label class="field-label" style="display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--white)">
+          <input type="checkbox" id="shuffleInput" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--yellow);padding:0" />
+          Перемешивать вопросы (каждый раз в случайном порядке)
+        </label>
+      </div>
+
+      <div class="field">
+        <label class="field-label" style="display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--white)">
+          <input type="checkbox" id="manualInput" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--yellow);padding:0" />
+          Ручное переключение вопросов (ведущий нажимает «Следующий вопрос»)
+        </label>
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="startInput">Дата и время открытия <span style="opacity:.7;font-weight:600">(необязательно)</span></label>
+        <input type="datetime-local" id="startInput" />
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="endInput">Дата и время закрытия <span style="opacity:.7;font-weight:600">(необязательно)</span></label>
+        <input type="datetime-local" id="endInput" />
+      </div>
+
       <div class="error" id="step1Error"></div>
       <div class="btn-row">
         <span></span>
@@ -638,7 +672,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
   const firebaseConfig = {
@@ -658,6 +692,17 @@
   const USER_KEY = 'izi_user';
   const MAX_OPTIONS = 6;
   const MAX_ANSWERS = 10;
+
+  // Дата из поля datetime-local -> Timestamp (или null, если не задана)
+  const toTs = (v) => (v ? Timestamp.fromDate(new Date(v)) : null);
+
+  // Timestamp -> значение для поля datetime-local
+  const toLocalInput = (ts) => {
+    if (!ts || typeof ts.toDate !== 'function') return '';
+    const d = ts.toDate();
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
   const TIME_OPTIONS = [
     [0, 'По умолчанию (из настроек квиза)'],
     [10, '10 секунд'], [15, '15 секунд'], [20, '20 секунд'], [30, '30 секунд'],
@@ -728,6 +773,12 @@
       $('titleInput').focus();
       return;
     }
+    const startVal = $('startInput').value;
+    const endVal = $('endInput').value;
+    if (startVal && endVal && new Date(endVal) <= new Date(startVal)) {
+      $('step1Error').textContent = 'Дата закрытия должна быть позже даты открытия';
+      return;
+    }
     showStep(2);
   });
 
@@ -782,6 +833,8 @@
             <select id="qtime-${i}" data-qtime="${i}">
               ${TIME_OPTIONS.map(([v, label]) => `<option value="${v}" ${(q.timeLimit || 0) === v ? 'selected' : ''}>${label}</option>`).join('')}
             </select>
+            <label class="time-label" for="qpts-${i}">Баллов</label>
+            <input type="number" class="pts-input" id="qpts-${i}" data-points="${i}" min="0" max="100" value="${q.points ?? 1}" />
           </div>
           ${body}
         </div>`;
@@ -828,6 +881,8 @@
       state.questions[+t.dataset.opt].options[+t.dataset.idx] = t.value;
     } else if (t.dataset.ans !== undefined) {
       state.questions[+t.dataset.ans].answers[+t.dataset.idx] = t.value;
+    } else if (t.dataset.points !== undefined) {
+      state.questions[+t.dataset.points].points = Math.max(0, parseInt(t.value, 10) || 0);
     }
     $('step2Error').textContent = '';
   });
@@ -897,6 +952,10 @@
       createdAt: serverTimestamp(),
       timeLimit: Number($('timeInput').value),
       showAnswers: $('showAnswersInput').checked,
+      shuffleQuestions: $('shuffleInput').checked,
+      manualMode: $('manualInput').checked,
+      startsAt: toTs($('startInput').value),
+      endsAt: toTs($('endInput').value),
       questions: state.questions.map((q) => {
         if (q.type === 'choice') {
           return {
@@ -904,14 +963,16 @@
             text: q.text.trim(),
             options: q.options.map((o) => o.trim()),
             correct: q.correct,
-            timeLimit: q.timeLimit || null
+            timeLimit: q.timeLimit || null,
+            points: q.points ?? 1
           };
         }
         return {
           type: 'open',
           text: q.text.trim(),
           answers: q.answers.map((a) => a.trim()).filter(Boolean),
-          timeLimit: q.timeLimit || null
+          timeLimit: q.timeLimit || null,
+          points: q.points ?? 1
         };
       })
     };
@@ -991,8 +1052,8 @@
       state.title = data.title || '';
       state.description = data.description || '';
       state.questions = (data.questions || []).map((q) => q.type === 'choice'
-        ? { type: 'choice', text: q.text, options: [...q.options], correct: q.correct, timeLimit: q.timeLimit || null }
-        : { type: 'open', text: q.text, answers: q.answers.length ? [...q.answers] : [''], timeLimit: q.timeLimit || null });
+        ? { type: 'choice', text: q.text, options: [...q.options], correct: q.correct, timeLimit: q.timeLimit || null, points: q.points ?? 1 }
+        : { type: 'open', text: q.text, answers: q.answers.length ? [...q.answers] : [''], timeLimit: q.timeLimit || null, points: q.points ?? 1 });
 
       $('titleInput').value = state.title;
       $('titleCount').textContent = state.title.length;
@@ -1000,6 +1061,10 @@
       $('descCount').textContent = state.description.length;
       $('timeInput').value = String(data.timeLimit || 20);
       $('showAnswersInput').checked = !!data.showAnswers;
+      $('shuffleInput').checked = !!data.shuffleQuestions;
+      $('manualInput').checked = !!data.manualMode;
+      $('startInput').value = toLocalInput(data.startsAt);
+      $('endInput').value = toLocalInput(data.endsAt);
 
       document.querySelector('#step1 h1').textContent = 'Редактирование квиза';
       $('publishBtn').textContent = 'Сохранить изменения';

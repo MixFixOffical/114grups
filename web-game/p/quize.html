@@ -177,6 +177,8 @@
     .opt:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--yellow); }
     .opt:disabled { cursor: default; opacity: 0.7; }
     .opt.chosen { border-color: var(--green); opacity: 1; }
+    .opt.correct { border-color: var(--green); background: #e9f8ee; opacity: 1; }
+    .opt.wrong { border-color: #e0473a; background: #ffe9e6; opacity: 1; }
     .opt-letter {
       width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
       background: linear-gradient(135deg, var(--yellow), var(--orange));
@@ -521,9 +523,11 @@
       setTimeout(() => input.focus(), 50);
     }
 
-    startTimer(quiz.timeLimit, () => {
+    // Время вопроса, если задано организатором, иначе — общее время квиза
+    startTimer(q.timeLimit || quiz.timeLimit, () => {
       if (answered) return;
       lockAnswers('Время вышло');
+      reveal(undefined, true);
       nextAfterDelay();
     });
   }
@@ -548,6 +552,36 @@
     timerId = setInterval(tick, 100);
   }
 
+  function isCorrect(q, value) {
+    if (q.type === 'choice') return value === q.correct;
+    const v = String(value).trim().toLowerCase();
+    return q.answers.some((a) => a.trim().toLowerCase() === v);
+  }
+
+  function correctText(q) {
+    return q.type === 'choice' ? q.options[q.correct] : q.answers[0];
+  }
+
+  // Показ правильного ответа — только если организатор включил эту настройку
+  function reveal(value, timedOut) {
+    if (!quiz.showAnswers) return;
+    const q = quiz.questions[qIndex];
+
+    if (q.type === 'choice') {
+      document.querySelectorAll('#qAnswers .opt').forEach((b) => {
+        const idx = +b.dataset.idx;
+        if (idx === q.correct) b.classList.add('correct');
+        else if (idx === value) b.classList.add('wrong');
+      });
+    }
+
+    let msg;
+    if (timedOut) msg = `Время вышло. Правильный ответ: ${correctText(q)}`;
+    else if (isCorrect(q, value)) msg = 'Верно! ✓';
+    else msg = `Неверно. Правильный ответ: ${correctText(q)}`;
+    $('qStatus').textContent = msg;
+  }
+
   function lockAnswers(text) {
     answered = true;
     clearInterval(timerId);
@@ -558,6 +592,7 @@
   async function submitAnswer(value) {
     if (answered) return;
     lockAnswers('Ответ принят ✓');
+    reveal(value, false);
 
     try {
       // Ответ сохраняется в свою подколлекцию игрока; документ = номер вопроса
@@ -577,7 +612,7 @@
     setTimeout(() => {
       qIndex++;
       showQuestion();
-    }, 2000);
+    }, quiz.showAnswers ? 3500 : 2000);
   }
 
   function finish(note) {

@@ -74,6 +74,11 @@
     .card h1 { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: clamp(24px, 4vw, 34px); margin-bottom: 6px; }
     .quiz-title { color: var(--text-light); font-size: 17px; margin-bottom: 22px; }
     .qr-card { margin-bottom: 20px; }
+    .qr-card.qr-side { margin-bottom: 18px; padding: 18px; }
+    .qr-side .section-title { font-size: 14px; }
+    .qr-side .qr-wrap { padding: 10px; margin: 0 0 10px; }
+    .qr-side #qrBox { min-width: 0; min-height: 0; }
+    .qr-side .qr-url { font-size: 13px; }
     .qr-wrap { display: inline-block; background: var(--white); padding: 16px; border-radius: 20px; box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25); margin: 6px 0 16px; }
     #qrBox { min-width: 220px; min-height: 220px; }
     #qrBox img, #qrBox canvas { display: block; margin: 0 auto; }
@@ -200,7 +205,7 @@
   </header>
 
   <main>
-    <section class="card qr-card" id="qrCard" hidden>
+    <section class="card qr-card" id="qrCard">
       <div class="section-title">Игроки сканируют QR-код</div>
       <div class="qr-wrap"><div id="qrBox"></div></div>
     </section>
@@ -332,7 +337,6 @@
       currentRound = r;
       watchPlayers(r);
     }
-    $('qrCard').hidden = g.status !== 'waiting';
     driver(g);
     render();
   }
@@ -347,6 +351,19 @@
   }
 
   /* ---------- QR ---------- */
+  // QR всегда виден: над экраном ожидания или в боковой колонке во время игры
+  function placeQr(inSide) {
+    const card = $('qrCard');
+    card.hidden = false;
+    if (inSide && $('qrSlot')) {
+      $('qrSlot').appendChild(card);
+      card.classList.add('qr-side');
+    } else {
+      $('content').before(card);
+      card.classList.remove('qr-side');
+    }
+  }
+
   function renderQr() {
     const box = $('qrBox');
     box.innerHTML = '';
@@ -403,6 +420,7 @@
       ${fin ? '<div class="section-title" style="margin-top:26px">Итоги</div><div id="lb"></div>' : ''}`;
 
     attach();
+    placeQr(false);
     if (fin) loadBoard('lb');
   }
 
@@ -419,6 +437,7 @@
         <div class="section-title" style="margin-top:26px">Рейтинг</div>
         <div id="lb"></div>`;
       attach();
+      placeQr(false);
       stopPoll();
       loadBoard('lb');
       pollTimer = setInterval(() => loadBoard('lb'), 4000);
@@ -447,6 +466,7 @@
           </div>
         </div>
         <aside class="side">
+          <div id="qrSlot"></div>
           <div class="stat">
             <div class="stat-num" id="answeredNum">0</div>
             <div>ответили из <span id="totalNum">${players.length}</span></div>
@@ -457,6 +477,7 @@
       </div>`;
 
     attach();
+    placeQr(true);
     startPoll(pos);
   }
 

@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Срез знаний — Microsoft Access</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#eef2f7;margin:0;padding:12px;color:#222;-webkit-user-select:none;user-select:none}
+.card{background:#fff;max-width:760px;margin:16px auto;padding:22px;border-radius:12px;box-shadow:0 2px 10px #0001}
+h1{font-size:1.35em;margin:0 0 8px}
+input[type=text]{width:100%;padding:10px;margin:6px 0;border:1px solid #bbb;border-radius:8px;font-size:16px;-webkit-user-select:text;user-select:text}
+button{background:#2b6cb0;color:#fff;border:0;padding:10px 16px;border-radius:8px;font-size:15px;cursor:pointer}
+button.sec{background:#718096;padding:6px 12px}
+.q{border-top:1px solid #e2e8f0;padding:14px 0}
+.q b{display:block;margin-bottom:8px;line-height:1.4}
+label.opt{display:block;padding:6px 8px;border-radius:6px;cursor:pointer}
+label.opt:hover{background:#f0f5fb}
+.row{display:flex;align-items:center;gap:8px;padding:5px 0}
+.row .t{flex:1}
+.sel{padding:6px;border-radius:6px;border:1px solid #bbb;font-size:15px;max-width:55%}
+.sticky{position:sticky;top:0;background:#fff;padding:10px 0;border-bottom:1px solid #e2e8f0;z-index:5;display:flex;justify-content:space-between;font-weight:600}
+.warn{color:#b7791f;font-size:14px;line-height:1.4}
+.ov{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:99;padding:16px}
+.ov .card{margin:0;max-width:440px;text-align:center}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="start" class="card">
+  <h1>Срез знаний: Microsoft Access</h1>
+  <p>2 курс · 50 вопросов · время 45 минут</p>
+  <input type="text" id="fname" placeholder="Фамилия и имя">
+  <input type="text" id="fgroup" placeholder="Группа">
+  <p class="warn">Правила: нельзя переключать вкладки и приложения, сворачивать окно, выходить из полноэкранного режима, копировать и вставлять текст. Первое нарушение — предупреждение. Второе — тест блокируется, ответы фиксируются.</p>
+  <button onclick="startTest()">Начать тест</button>
+</div>
+
+<div id="test" hidden>
+  <div class="card">
+    <div class="sticky"><span id="prog"></span><span id="timer"></span></div>
+    <div id="qs"></div>
+    <p style="text-align:center"><button onclick="finish(false)">Завершить и посмотреть результат</button></p>
+  </div>
+</div>
+
+<div id="warnBox" class="ov" hidden>
+  <div class="card">
+    <h1>⚠ Нарушение</h1>
+    <p id="warnText"></p>
+    <button onclick="backFS()">Вернуться к тесту</button>
+  </div>
+</div>
+
+<div id="lockBox" class="ov" hidden>
+  <div class="card">
+    <h1>🔒 Тест заблокирован</h1>
+    <p>Зафиксировано 2 нарушения. Повторная попытка недоступна. Ответы зафиксированы.</p>
+    <button onclick="$('lockBox').hidden=true">Посмотреть результат</button>
+  </div>
+</div>
+
+<div id="result" class="card" hidden></div>
+
+<script>
+const o=(q,a,c)=>({t:'o',q,a,c});
+const x=(q,c)=>({t:'x',q,c});
+const r=(q,items)=>({t:'r',q,items});
+const m=(q,pairs)=>({t:'m',q,pairs});
+
+const Q=[
+o('Расширение файла базы данных Access 2007 и новее:',['.mdb','.accdb','.xlsx','.docx'],'.accdb'),
+o('Объект, предназначенный для ввода и просмотра данных пользователем:',['Таблица','Запрос','Форма','Отчёт'],'Форма'),
+o('Объект, предназначенный для печати и вывода итогов:',['Макрос','Отчёт','Модуль','Форма'],'Отчёт'),
+o('Связь «многие-ко-многим» в Access реализуется через:',['Ключевое поле','Связующую (промежуточную) таблицу','Индекс','Маску ввода'],'Связующую (промежуточную) таблицу'),
+o('Оператор, проверяющий значение в заданном диапазоне:',['In','Between','Like','Is Null'],'Between'),
+o('Подстановочный символ «любое количество символов» в Access:',['%','*','?','#'],'*'),
+o('Функция, заменяющая значение Null на заданное:',['IIf','Nz','Left','Format'],'Nz'),
+o('Какой запрос изменяет данные в таблице:',['На выборку','Перекрёстный','На обновление','Параметрический'],'На обновление'),
+o('Свойство поля, делающее заполнение обязательным:',['Required','Unique','Indexed','Default Value'],'Required'),
+o('Свойство формы, задающее источник данных:',['Caption','RecordSource','Name','Visible'],'RecordSource'),
+o('Ключевое слово для ссылки на текущую форму в VBA:',['Me','This','Current','Self'],'Me'),
+o('Событие, возникающее при нажатии кнопки:',['OnLoad','OnClick','OnOpen','OnChange'],'OnClick'),
+o('Команда для закрытия объекта в VBA:',['DoCmd.Close','DoCmd.Exit','Close.Form','Application.End'],'DoCmd.Close'),
+o('Функция подсчёта количества записей:',['Sum','Count','Avg','Max'],'Count'),
+o('Сортировка от А до Я называется:',['По убыванию','По возрастанию','Случайная','По дате'],'По возрастанию'),
+o('Первая нормальная форма (1НФ) требует:',['Атомарности значений','Отсутствия ключа','Одного поля в таблице','Связей 1:1'],'Атомарности значений'),
+o('Ссылочная целостность НЕ позволяет:',['Создавать связи','Добавить запись в подчинённую таблицу без связанной записи в главной','Открывать таблицу','Печатать отчёт'],'Добавить запись в подчинённую таблицу без связанной записи в главной'),
+o('Символ маски ввода «0» означает:',['Любой символ','Обязательную цифру','Букву','Необязательную цифру'],'Обязательную цифру'),
+o('Тип данных для денежных значений:',['Числовой','Денежный','Текстовый','Счётчик'],'Денежный'),
+o('Объект, в котором хранится программный код VBA:',['Модуль','Макрос','Запрос','Отчёт'],'Модуль'),
+o('Функция, возвращающая текущие дату и время:',['Date()','Now()','Time()','Day()'],'Now()'),
+o('Выражение, находящее слова, начинающиеся с «Ив»:',['Like "Ив*"','Like "*Ив"','= "Ив"','Between "Ив"'],'Like "Ив*"'),
+o('Запрос, создающий новую таблицу:',['Запрос на создание таблицы','Запрос на добавление','Перекрёстный запрос','Запрос на выборку'],'Запрос на создание таблицы'),
+o('Форма, вложенная в другую форму, называется:',['Подчинённой','Главной','Связной','Модальной'],'Подчинённой'),
+o('Объект автоматизации без написания кода VBA:',['Макрос','Модуль','Таблица','Запрос'],'Макрос'),
+o('Функция, возвращающая длину строки:',['Len','Mid','Left','Right'],'Len'),
+
+x('Тип данных для автоматической нумерации записей (введите ответ):',['счетчик','autonumber']),
+x('Ключ, однозначно идентифицирующий запись в таблице (введите ответ):',['первичный ключ','primary key']),
+x('Ключевое слово SQL для группировки записей (введите ответ):',['group by']),
+x('Ключевое слово SQL для сортировки записей (введите ответ):',['order by']),
+x('Английское название функции округления числа в Access:',['round']),
+x('Объект, который хранит данные в виде строк и столбцов (введите ответ):',['таблица','table']),
+x('Полное название аббревиатуры СУБД (введите ответ):',['система управления базами данных']),
+x('Логический оператор отрицания в VBA (введите ответ):',['not']),
+x('Английское название свойства поля, запрещающего повторяющиеся значения:',['unique']),
+x('Вид запроса, который выводит данные в виде сводной таблицы (введите ответ):',['перекрёстный','перекрестный','crosstab']),
+
+r('Расположите части SQL-инструкции SELECT в правильном порядке:',['SELECT','FROM','WHERE','GROUP BY','HAVING','ORDER BY']),
+r('Расположите этапы проектирования базы данных в правильном порядке:',['Определить цель базы данных','Выделить таблицы','Определить поля','Задать первичные ключи','Установить связи','Создать формы и отчёты']),
+r('Расположите объекты от меньшего к большему:',['Поле','Запись','Таблица','База данных']),
+r('Расположите этапы создания связи в Схеме данных:',['Открыть Схему данных','Добавить таблицы','Перетащить связанные поля','Включить обеспечение целостности','Нажать «Создать»']),
+r('Расположите нормальные формы в порядке их применения:',['1НФ','2НФ','3НФ']),
+r('Расположите этапы работы с данными в приложении Access:',['Ввод данных через форму','Сохранение в таблицу','Выборка запросом','Вывод отчёта на печать']),
+
+m('Сопоставьте типы данных и их назначение:',[['Короткий текст','Хранит текст до 255 символов'],['Дата/время','Хранит дату и время'],['Денежный','Хранит денежные суммы'],['Вложение','Хранит файлы и изображения']]),
+m('Сопоставьте объекты Access и их назначение:',[['Таблица','Хранит данные'],['Запрос','Отбирает и обрабатывает данные'],['Форма','Удобный ввод и просмотр данных'],['Отчёт','Оформляет данные для печати']]),
+m('Сопоставьте типы запросов и их действия:',[['На выборку','Отбирает записи по условию'],['На обновление','Изменяет значения полей'],['На удаление','Удаляет записи'],['На добавление','Копирует записи в другую таблицу']]),
+m('Сопоставьте операторы и их назначение:',[['Like','Поиск по шаблону'],['Between','Проверка диапазона'],['In','Проверка по списку значений'],['Is Null','Проверка на пустое значение']]),
+m('Сопоставьте термины и их определения:',[['Внешний ключ','Связывает записи двух таблиц'],['Индекс','Ускоряет поиск данных'],['Маска ввода','Задаёт формат ввода'],['Условие на значение','Проверяет вводимые данные']]),
+m('Сопоставьте элементы VBA и их назначение:',[['Dim','Объявление переменной'],['Sub','Процедура без возвращаемого значения'],['Function','Процедура, возвращающая значение'],['Option Explicit','Обязательное объявление переменных']]),
+m('Сопоставьте виды связей и пример:',[['Один-к-одному','Паспорт и владелец'],['Один-ко-многим','Группа и студенты'],['Многие-ко-многим','Студенты и дисциплины']]),
+m('Сопоставьте свойства полей и их назначение:',[['Caption','Подпись поля'],['Format','Формат отображения'],['Default Value','Значение по умолчанию'],['Validation Rule','Условие проверки значения']])
+];
+
+const $=id=>document.getElementById(id);
+let S=null, KEY='', tmr=null, lastV=0;
+const LIMIT=45*60000;
+
+const norm=s=>String(s).toLowerCase().replace(/ё/g,'е').replace(/[\s().,;:«»"'\-]/g,'');
+const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
+const gradeOf=s=>s>=45?5:s>=40?4:s>=35?3:2;
+
+function init(i){
+  if(S.ans[i]!==undefined)return;
+  const q=Q[i];
+  if(q.t==='r')S.ans[i]=shuf(q.items);
+  else if(q.t==='m'){S.ans[i]=q.pairs.map(()=>'');S.ord[i]=shuf(q.pairs.map(p=>p[1]));}
+  else if(q.t==='o'){S.ans[i]='';S.ord[i]=shuf(q.a);}
+  else S.ans[i]='';
+}
+
+function check(i){
+  const q=Q[i],a=S.ans[i];
+  if(q.t==='o')return a===q.c;
+  if(q.t==='x')return q.c.map(norm).includes(norm(a));
+  if(q.t==='r')return a.every((v,j)=>v===q.items[j]);
+  if(q.t==='m')return q.pairs.every((p,j)=>a[j]===p[1]);
+  return false;
+}
+
+function answered(i){
+  const a=S.ans[i],q=Q[i];
+  if(q.t==='r')return !!S.touched[i];
+  if(q.t==='m')return a.some(Boolean);
+  return a!=='';
+}
+
+function updProg(){
+  const c=Q.reduce((s,_,i)=>s+(answered(i)?1:0),0);
+  $('prog').textContent=`Отвечено ${c} из ${Q.length}`;
+}
+
+function renderQ(qi,k){
+  const q=Q[qi];
+  let h=`<div class="q" id="q${qi}"><b>${k+1}. ${q.q}</b>`;
+  if(q.t==='o')h+=S.ord[qi].map(v=>`<label class="opt"><input type="radio" name="q${qi}" value="${esc(v)}"${S.ans[qi]===v?' checked':''} onchange="setA(${qi},this.value)"> ${v}</label>`).join('');
+  else if(q.t==='x')h+=`<input type="text" value="${esc(S.ans[qi])}" oninput="setA(${qi},this.value)" placeholder="Ваш ответ" autocomplete="off">`;
+  else if(q.t==='r')h+=S.ans[qi].map((it,j)=>`<div class="row"><span class="t">${it}</span><button class="sec" onclick="mv(${qi},${j},-1)">↑</button><button class="sec" onclick="mv(${qi},${j},1)">↓</button></div>`).join('');
+  else if(q.t==='m')h+=q.pairs.map((p,j)=>`<div class="row"><span class="t">${p[0]}</span><select class="sel" onchange="setM(${qi},${j},this.value)"><option value="">— выберите —</option>${S.ord[qi].map(v=>`<option${S.ans[qi][j]===v?' selected':''}>${esc(v)}</option>`).join('')}</select></div>`).join('');
+  return h+'</div>';
+}
+
+function renderAll(){
+  $('qs').innerHTML=S.qorder.map((qi,k)=>{init(qi);return renderQ(qi,k);}).join('');
+  save();updProg();
+}
+
+function redraw(qi){
+  const k=S.qorder.indexOf(qi);
+  $('q'+qi).outerHTML=renderQ(qi,k);
+  save();updProg();
+}
+
+function setA(qi,v){S.ans[qi]=v;S.touched[qi]=1;save();updProg();}
+function setM(qi,j,v){S.ans[qi][j]=v;S.touched[qi]=1;save();updProg();}
+function mv(qi,j,d){
+  const a=S.ans[qi],t=j+d;
+  if(t<0||t>=a.length)return;
+  [a[j],a[t]]=[a[t],a[j]];
+  S.touched[qi]=1;redraw(qi);
+}
+
+function enterFS(){
+  const el=document.documentElement;
+  if(el.requestFullscreen&&!document.fullscreenElement)el.requestFullscreen().catch(()=>{});
+}
+function backFS(){$('warnBox').hidden=true;enterFS();}
+
+function startTest(){
+  const n=$('fname').value.trim(),g=$('fgroup').value.trim();
+  if(!n||!g){alert('Введите ФИО и группу');return;}
+  KEY='acc_test_'+(n+'_'+g).toLowerCase();
+  const old=JSON.parse(localStorage.getItem(KEY)||'null');
+  if(old&&(old.locked||old.done)){
+    S=old;$('start').hidden=true;showResult();
+    if(old.locked)$('lockBox').hidden=false;
+    return;
+  }
+  S=old||{name:n,group:g,ans:{},ord:{},touched:{},viol:0,locked:false,done:false,t0:Date.now(),qorder:shuf(Q.map((_,i)=>i))};
+  $('start').hidden=true;$('test').hidden=false;
+  renderAll();
+  tmr=setInterval(tick,1000);tick();
+  enterFS();
+}
+
+function tick(){
+  if(!S||S.done)return;
+  const left=LIMIT-(Date.now()-S.t0);
+  if(left<=0){$('timer').textContent='0:00';finish(true,'Время вышло');return;}
+  const m=Math.floor(left/60000),s=Math.floor(left/1000)%60;
+  $('timer').textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
+}
+
+function viol(reason){
+  if(!S||S.done||S.locked)return;
+  const now=Date.now();
+  if(now-lastV<1500)return;
+  lastV=now;
+  S.viol++;save();
+  if(S.viol>=2){
+    S.locked=true;
+    finish(true,'Тест заблокирован: 2 нарушения (последнее: '+reason+')');
+    $('lockBox').hidden=false;
+  }else{
+    $('warnText').textContent=`Нарушение ${S.viol} из 2: ${reason}. При следующем нарушении тест будет заблокирован.`;
+    $('warnBox').hidden=false;
+  }
+}
+
+function finish(auto,reason){
+  if(!S||S.done)return;
+  if(!auto&&!confirm('Завершить тест и посмотреть результат?'))return;
+  S.done=true;S.reason=reason||'';save();
+  clearInterval(tmr);
+  $('test').hidden=true;$('warnBox').hidden=true;$('start').hidden=true;
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  showResult();
+}
+
+function showResult(){
+  const sc=Q.reduce((s,_,i)=>s+(check(i)?1:0),0);
+  S.score=sc;save();
+  $('result').innerHTML=`<h1>Результат</h1>
+  <p><b>${S.name}</b>, группа ${S.group}</p>
+  <p>Баллы: <b>${sc} из ${Q.length}</b> (${sc*2}%)</p>
+  <p style="font-size:1.5em">Оценка: <b>${gradeOf(sc)}</b></p>
+  <p>Нарушений: ${S.viol}${S.locked?' — <b style="color:#c53030">тест заблокирован</b>':''}</p>
+  ${S.reason?`<p class="warn">${S.reason}</p>`:''}
+  <p><button onclick="dl()">Скачать результат (.txt)</button></p>`;
+  $('result').hidden=false;
+  window.scrollTo(0,0);
+}
+
+function dl(){
+  let t=`Срез знаний: Microsoft Access\n${S.name}, группа ${S.group}\nБаллы: ${S.score} из ${Q.length}, оценка: ${gradeOf(S.score)}\nНарушений: ${S.viol}${S.locked?' (тест заблокирован)':''}\n\n`;
+  S.qorder.forEach((qi,k)=>{
+    const a=S.ans[qi],q=Q[qi];
+    let ans=Array.isArray(a)?(q.t==='m'?a.join(' | '):a.join(' → ')):(a||'—');
+    t+=`${k+1}. [${check(qi)?'+':'-'}] ${q.q}\n   Ответ: ${ans}\n`;
+  });
+  const u=URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'}));
+  const e=document.createElement('a');
+  e.href=u;e.download=`access_${S.name}_${S.group}.txt`;e.click();
+}
+
+/* ---------- Защита от списывания ---------- */
+['copy','cut','paste','contextmenu','dragstart','selectstart'].forEach(ev=>
+  document.addEventListener(ev,e=>{if(S&&!S.done)e.preventDefault();},true));
+
+document.addEventListener('keydown',e=>{
+  if(!S||S.done)return;
+  const k=e.key.toLowerCase(),ctrl=e.ctrlKey||e.metaKey;
+  if(e.key==='PrintScreen'){viol('снимок экрана');return;}
+  if(e.key==='F12'||(ctrl&&['c','v','x','a','u','s','p'].includes(k))||(ctrl&&e.shiftKey&&['i','j','c'].includes(k))){
+    e.preventDefault();e.stopPropagation();
+  }
+},true);
+
+document.addEventListener('visibilitychange',()=>{if(document.hidden)viol('переход на другую вкладку или приложение');});
+window.addEventListener('blur',()=>viol('окно потеряло фокус'));
+document.addEventListener('fullscreenchange',()=>{
+  if(document.fullscreenEnabled&&!document.fullscreenElement)viol('выход из полноэкранного режима');
+});
+window.addEventListener('beforeunload',e=>{if(S&&!S.done){e.preventDefault();e.returnValue='';}});
+</script>
+</body>
+</html>

@@ -123,6 +123,9 @@
     .img-rm { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%; border: none; background: var(--purple-dark); color: #fff; cursor: pointer; font-size: 16px; line-height: 1; }
     .add-img { font-size: 13px; font-weight: 700; color: var(--purple); background: #efeaff; padding: 9px 14px; border-radius: 999px; cursor: pointer; }
     .add-img:hover { background: #e2d9fb; }
+    .uses-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+    .use-chip { font-family: "Consolas", "Courier New", monospace; font-size: 14px; font-weight: 700; color: var(--purple-dark); background: #efeaff; border-radius: 10px; padding: 6px 10px; white-space: pre; display: inline-flex; gap: 8px; align-items: center; }
+    .use-chip b { font-family: "Unbounded", sans-serif; font-size: 12px; color: var(--purple); }
     .empty-q { text-align: center; color: var(--text-light); padding: 18px 0; font-size: 15px; }
 
     .done-box { text-align: center; padding: 10px 0; }
@@ -566,8 +569,22 @@
             <button class="rm" data-rm-extra="${i}" data-idx="${j}" aria-label="Удалить блок">×</button>
           </div>`).join('') : ''}
         <button class="add-link" data-add-extra="${i}">+ Создать свой блок</button>
+        ${blockPreview(q)}
         <div class="hint">Все блоки перемешиваются у участника. Правильный ответ — только блоки из первого списка в нужном порядке.</div>
       </div>`;
+  }
+
+  // Предпросмотр того, что увидит участник: повторы показываются одной кнопкой с числом использований
+  function blockPreview(q) {
+    const counts = new Map();
+    [...q.seq, ...q.extra].forEach((t) => {
+      const k = String(t).trim();
+      if (k) counts.set(k, (counts.get(k) || 0) + 1);
+    });
+    if (!counts.size) return '';
+    return `
+      <div class="sub-label">Блоки у участника (повторы — одна кнопка)</div>
+      <div class="uses-wrap">${[...counts].map(([t, n]) => `<span class="use-chip">${esc(t)}<b>×${n}</b></span>`).join('')}</div>`;
   }
 
   function renderQuestions() {
@@ -746,6 +763,15 @@
   /* ---------- Сохранение: публичная часть и ключ ---------- */
   // В публичном документе квиза правильных ответов НЕТ. Ключ уходит в quizzes/{code}/private/key.
   // Участники видят только вопросы, варианты и (для блоков) перемешанный набор блоков.
+  // Повторяющийся блок — одна запись с числом использований (вхождения в ответ + лишние)
+  function poolWithUses(answer, extra) {
+    const map = new Map();
+    [...answer, ...extra].forEach((t) => map.set(t, 0));
+    answer.forEach((t) => map.set(t, map.get(t) + 1));
+    extra.forEach((t) => map.set(t, map.get(t) + 1));
+    return shuffle([...map.entries()].map(([text, uses]) => ({ text, uses })));
+  }
+
   function splitQuestion(q) {
     const pub = {
       text: q.text.trim(),
@@ -782,7 +808,7 @@
     const answer = q.seq.map((b) => b.trim());
     const extra = q.extra.map((b) => b.trim()).filter(Boolean);
     return {
-      pub: { ...pub, type: 'blocks', pool: shuffle([...answer, ...extra]) },
+      pub: { ...pub, type: 'blocks', pool: poolWithUses(answer, extra) },
       key: { answer, extra }
     };
   }

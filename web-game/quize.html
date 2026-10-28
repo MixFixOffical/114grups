@@ -115,6 +115,11 @@
     .lb-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .lb-score { font-weight: 900; color: var(--yellow); }
 
+    .ov { position: fixed; inset: 0; background: rgba(10, 0, 30, .8); display: flex; align-items: center; justify-content: center; z-index: 99; padding: 16px; }
+    .ov[hidden] { display: none !important; }
+    .ov-card { background: #fff; color: var(--purple-dark); border-radius: 20px; padding: 26px; max-width: 420px; text-align: center; }
+    .ov-card h2 { font-family: "Unbounded", sans-serif; font-size: 20px; margin-bottom: 10px; }
+    .ov-card p { margin-bottom: 18px; line-height: 1.5; }
     .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(120px); background: var(--yellow); color: var(--purple-dark); font-weight: 700; padding: 14px 22px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: transform .35s ease; z-index: 60; max-width: calc(100% - 40px); text-align: center; }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
@@ -246,6 +251,15 @@
     </div>
   </div>
 
+  <!-- Предупреждение о нарушении (строгий режим) -->
+  <div class="ov" id="warnBox" hidden>
+    <div class="ov-card">
+      <h2>⚠ Нарушение правил</h2>
+      <p id="warnText"></p>
+      <button class="btn-primary small" id="warnBack">Вернуться к тесту</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script type="module">
@@ -373,6 +387,10 @@
   }
 
   function applyJoinLabels() {
+    if (quiz.masterCode || quiz.gradeMode) {
+      $('joinNote').textContent = 'Тест пройдёт в полноэкранном режиме. Выход из него, переключение вкладок или окон — нарушение. После второго нарушения доступ к квизу закрывается.';
+      $('joinNote').hidden = false;
+    }
     $('nameLabel').textContent = quiz.requireName ? 'ФИО' : 'Никнейм';
     $('nameInput').placeholder = quiz.requireName ? 'Иванов Иван Иванович' : 'Например, Мах123';
     $('groupField').hidden = !quiz.requireGroup;
@@ -497,6 +515,8 @@
   const retakeAllowed = (g) => g == null || Number(g) <= 2;
 
   $('joinBtn').addEventListener('click', async () => {
+    // Вызов из обработчика клика обязателен: браузер разрешает полноэкранный режим только по действию пользователя
+    if (isStrict()) enterFS();
     const name = $('nameInput').value.trim();
     const group = $('groupInput').value.trim();
     const err = checkIdentity(name, group);
@@ -529,7 +549,7 @@
       }
 
       // Повторно проходить СКР-тест без разрешения нельзя
-      if (same.length && !approved && quiz.gradeMode) {
+      if (same.length && !approved && (quiz.gradeMode || quiz.masterCode)) {
         const grade = last?.grade ?? null;
         retakeCtx = { attempt: maxAttempt, grade };
         const canAsk = retakeAllowed(grade);
@@ -599,7 +619,7 @@
       if (g.status === 'running') {
         order = g.order || order;
         latestPos = g.current ?? -1;
-        questionStartedMs = g.questionStartedAt?.toMillis?.() ?? Date.now();
+        questionStartedMs = g.questionStartedAt?.toMillis?.() ?? null;
         if (started) applyLatest();
         else maybeStartGame();
       }
@@ -937,24 +957,88 @@
     }
   }
 
-  /* ---------- Выход со страницы ---------- */
-  // Строгое правило: второй выход за попытку означает исключение
+  /* ---------- Выход со страницы и нарушения ---------- */
+  // Обычный квиз: два выхода со страницы = исключение.
+  // Квиз с MasterCode или СКР (строгий режим): полноэкранный режим, любой уход из него,
+  // смена вкладки или окна и снимок экрана — нарушение. Первое — предупреждение, второе — исключение.
+  const isStrict = () => !!(quiz && (quiz.masterCode || quiz.gradeMode));
+  let lastViolation = 0;
+
+  function enterFS() {
+    const el = document.documentElement;
+    if (el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(() => {});
+  }
+
+  function showWarning(reason, count) {
+    $('warnText').textContent = `Нарушение ${count} из ${MAX_EXITS}: ${reason}. При следующем нарушении доступ к квизу будет закрыт.`;
+    $('warnBox').hidden = false;
+  }
+
+  function registerViolation(reason) {
+    if (DEMO || !playerId || excluded || gameOver) return;
+    if (!isStrict() && !countdownDone) return;
+    const now = Date.now();
+    // Одно действие часто даёт два события сразу (blur и visibilitychange), считаем его один раз
+    if (now - lastViolation < 1500) return;
+    lastViolation = now;
+    exitCount += 1;
+    if (exitCount >= MAX_EXITS) {
+      excludePlayer(reason);
+      return;
+    }
+    updateDoc(playerRef(), { exits: exitCount }).catch((e) => console.error(e));
+    if (isStrict()) showWarning(reason, exitCount);
+    else $('qStatus').textContent = 'Вы покинули страницу. Следующий выход — и система безопасности исключит вас из теста.';
+  }
+
   document.addEventListener('visibilitychange', () => {
-    if (DEMO || !playerId || excluded) return;
-    if (document.visibilityState === 'hidden') {
-      if (!countdownDone || gameOver) return;
-      exitCount += 1;
-      if (exitCount >= MAX_EXITS) {
-        excludePlayer();
-        return;
-      }
-      updateDoc(playerRef(), { exits: exitCount }).catch((e) => console.error(e));
-    } else if (exitCount === 1 && !gameOver && countdownDone && !excluded) {
-      $('qStatus').textContent = 'Вы покинули страницу. Следующий выход — и система безопасности исключит вас из теста.';
+    if (document.visibilityState === 'hidden') registerViolation('переход на другую вкладку или приложение');
+  });
+
+  window.addEventListener('blur', () => {
+    if (isStrict()) registerViolation('окно потеряло фокус');
+  });
+
+  document.addEventListener('fullscreenchange', () => {
+    if (isStrict() && document.fullscreenEnabled && !document.fullscreenElement) {
+      registerViolation('выход из полноэкранного режима');
     }
   });
 
-  async function excludePlayer() {
+  // В строгом квизе нельзя копировать, вставлять и открывать контекстное меню
+  ['copy', 'cut', 'paste', 'contextmenu'].forEach((ev) => document.addEventListener(ev, (e) => {
+    if (isStrict() && playerId && !gameOver && !excluded && !DEMO) e.preventDefault();
+  }, true));
+
+  document.addEventListener('keydown', (e) => {
+    if (!isStrict() || !playerId || gameOver || excluded || DEMO) return;
+    const k = e.key.toLowerCase();
+    const ctrl = e.ctrlKey || e.metaKey;
+    if (e.key === 'PrintScreen') { registerViolation('снимок экрана'); return; }
+    if (e.key === 'F12' || (ctrl && ['c', 'v', 'x', 'a', 'u', 's', 'p'].includes(k)) || (ctrl && e.shiftKey && ['i', 'j', 'c'].includes(k))) {
+      e.preventDefault();
+    }
+  }, true);
+
+  // Любой клик возвращает полноэкранный режим, если его отключили
+  document.addEventListener('click', () => {
+    if (isStrict() && playerId && !gameOver && !excluded && !DEMO && !document.fullscreenElement) enterFS();
+  });
+
+  // В строгом квизе при попытке закрыть вкладку браузер спросит подтверждение
+  window.addEventListener('beforeunload', (e) => {
+    if (isStrict() && playerId && !gameOver && !excluded && !DEMO) {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  $('warnBack').addEventListener('click', () => {
+    $('warnBox').hidden = true;
+    enterFS();
+  });
+
+  async function excludePlayer(reason = EXIT_REASON) {
     if (excluded) return;
     excluded = true;
     gameOver = true;
@@ -970,7 +1054,7 @@
           quizTitle: quiz.title,
           quizCode: code,
           round,
-          reason: EXIT_REASON,
+          reason,
           exits: exitCount,
           excludedAt: serverTimestamp()
         })
@@ -981,7 +1065,7 @@
   }
 
   function showExcluded() {
-    $('exText').textContent = 'Вас исключила система безопасности: вы дважды покинули страницу во время теста. Повторно пройти этот квиз нельзя. Организатор получит уведомление.';
+    $('exText').textContent = 'Вас исключила система безопасности: вы нарушили правила прохождения квиза (покинули страницу, вышли из полноэкранного режима или переключились на другое окно). Повторно пройти этот квиз нельзя. Организатор получит уведомление.';
     show('excludedScreen');
   }
 

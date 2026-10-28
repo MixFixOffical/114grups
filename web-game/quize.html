@@ -94,6 +94,7 @@
     .chip { font-family: Consolas, "Courier New", monospace; font-weight: 700; font-size: 15px; color: var(--purple-dark); background: var(--white); border: none; border-radius: 10px; padding: 8px 12px; cursor: pointer; white-space: pre; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
     .chip:disabled { opacity: .7; cursor: default; }
     .chip-hint { color: var(--text-light); font-size: 14px; }
+    .chip-count { font-family: "Unbounded", sans-serif; font-size: 12px; color: var(--purple); }
     .blk-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
 
     .q-status { margin-top: 18px; font-weight: 800; font-size: 17px; color: var(--yellow); min-height: 24px; white-space: pre-line; }
@@ -696,11 +697,19 @@
       area.appendChild(b);
     });
     poolEl.innerHTML = '';
-    pool.filter((p) => !chosen.includes(p.id)).forEach((item) => {
+    pool.forEach((item) => {
+      const left = item.uses - chosen.filter((id) => id === item.id).length;
+      if (left <= 0) return;
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'chip';
       b.textContent = item.text;
+      if (item.uses > 1) {
+        const n = document.createElement('span');
+        n.className = 'chip-count';
+        n.textContent = ` ×${left}`;
+        b.appendChild(n);
+      }
       b.addEventListener('click', () => { chosen.push(item.id); renderBlocks(); });
       poolEl.appendChild(b);
     });
@@ -776,7 +785,10 @@
       });
     } else {
       // Блоки: в публичной части уже перемешанный набор
-      pool = (curQ.pool || []).map((text, i) => ({ id: i, text }));
+      // Совместимость: старые квизы хранили строки без счётчика
+      pool = (curQ.pool || []).map((p, i) => (typeof p === 'string'
+        ? { id: i, text: p, uses: 1 }
+        : { id: i, text: p.text, uses: p.uses || 1 }));
       box.innerHTML = `
         <div class="blk-label">Ваш код</div>
         <div class="chip-area" id="blkChosen"></div>

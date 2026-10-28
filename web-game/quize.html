@@ -14,6 +14,7 @@
       --yellow: #ffd23f;
       --orange: #ff7a1a;
       --green: #5cc26b;
+      --red: #e0473a;
       --white: #ffffff;
       --text-light: rgba(255, 255, 255, 0.85);
     }
@@ -50,12 +51,11 @@
     .demo-bar {
       position: sticky; top: 0; z-index: 20;
       background: var(--yellow); color: var(--purple-dark); font-weight: 800;
-      padding: 12px 18px; display: flex; justify-content: space-between; align-items: center;
-      gap: 12px; flex-wrap: wrap;
+      padding: 12px 18px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
     }
     .demo-end {
       font-family: inherit; font-weight: 800; font-size: 14px; color: var(--white);
-      background: #e0473a; border: none; border-radius: 999px; padding: 10px 18px; cursor: pointer;
+      background: var(--red); border: none; border-radius: 999px; padding: 10px 18px; cursor: pointer;
     }
 
     header { position: relative; z-index: 10; display: flex; align-items: center; padding: 20px clamp(20px, 5vw, 60px); }
@@ -82,17 +82,19 @@
     .screen h1 { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: clamp(24px, 4vw, 32px); line-height: 1.15; margin-bottom: 8px; }
     .lead { color: var(--text-light); font-size: 16px; line-height: 1.5; margin-bottom: 22px; }
     .quiz-title { color: var(--yellow); font-weight: 800; font-size: 18px; margin-bottom: 6px; }
-    #joinNote { color: var(--yellow); font-weight: 700; margin-bottom: 16px; }
+    .note { color: var(--yellow); font-weight: 700; margin-bottom: 16px; line-height: 1.45; }
 
-    input {
+    input, textarea {
       font-family: inherit; font-size: 18px; color: var(--purple-dark);
       background: var(--white); border: 3px solid transparent; border-radius: 14px;
       padding: 14px 16px; outline: none; width: 100%; transition: border-color 0.2s ease;
     }
-    input:focus { border-color: var(--yellow); }
-    input::placeholder { color: #9a8bc4; }
+    input:focus, textarea:focus { border-color: var(--yellow); }
+    input::placeholder, textarea::placeholder { color: #9a8bc4; }
+    textarea { font-size: 16px; resize: vertical; }
 
     .field { margin-bottom: 14px; text-align: left; }
+    .field-label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--text-light); }
 
     .btn-primary {
       font-family: inherit; font-weight: 800; font-size: 17px; color: var(--purple-dark);
@@ -103,14 +105,18 @@
     .btn-primary:hover { transform: translateY(-2px); }
     .btn-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
     .btn-primary.small { padding: 14px 20px; font-size: 16px; }
-    .btn-ghost-p {
+    .btn-ghost {
       font-family: inherit; font-weight: 800; font-size: 16px; color: var(--white);
       background: rgba(255, 255, 255, 0.1); border: 2px solid rgba(255, 255, 255, 0.6);
       border-radius: 16px; padding: 14px 24px; cursor: pointer; margin-top: 10px;
-      transition: background 0.2s ease;
+      transition: background 0.2s ease; text-decoration: none; display: inline-block;
     }
-    .btn-ghost-p:hover:not(:disabled) { background: rgba(255, 255, 255, 0.22); }
-    .btn-ghost-p:disabled { opacity: 0.6; cursor: wait; }
+    .btn-ghost:hover:not(:disabled) { background: rgba(255, 255, 255, 0.22); }
+    .btn-ghost:disabled { opacity: 0.6; cursor: wait; }
+    .btn-danger-soft {
+      font-family: inherit; font-weight: 800; font-size: 16px; color: var(--white);
+      background: var(--red); border: none; border-radius: 16px; padding: 14px 24px; cursor: pointer;
+    }
 
     .error { color: #ffe0a3; font-weight: 700; font-size: 15px; min-height: 20px; margin-top: 12px; line-height: 1.45; }
 
@@ -138,12 +144,11 @@
       font-weight: 800; font-size: clamp(19px, 3vw, 24px); line-height: 1.35;
       box-shadow: 0 12px 30px rgba(20, 0, 60, 0.25);
     }
-
     .q-img {
       display: block; max-width: 100%; max-height: 300px; object-fit: contain;
       margin: 0 auto 16px; border-radius: 16px; background: #fff;
     }
-    .q-img[hidden] { display: none !important; }
+
     .answers { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .opt {
       font-family: inherit; font-weight: 700; font-size: 16px; text-align: left;
@@ -157,7 +162,7 @@
     .opt:disabled { cursor: default; opacity: 0.7; }
     .opt.chosen { border-color: var(--purple); opacity: 1; }
     .opt.correct { border-color: var(--green); background: #e9f8ee; opacity: 1; }
-    .opt.wrong { border-color: #e0473a; background: #ffe9e6; opacity: 1; }
+    .opt.wrong { border-color: var(--red); background: #ffe9e6; opacity: 1; }
     .opt-letter {
       width: 30px; height: 30px; border-radius: 9px; flex-shrink: 0;
       background: linear-gradient(135deg, var(--yellow), var(--orange));
@@ -165,10 +170,31 @@
     }
 
     .open-row { display: flex; gap: 10px; }
-    .open-row input:disabled { opacity: 0.6; }
+    .open-row input { font-size: 16px; }
     .open-row .btn-primary { white-space: nowrap; }
 
-    .q-status { margin-top: 18px; font-weight: 800; font-size: 17px; color: var(--yellow); min-height: 24px; }
+    .code-ta {
+      font-family: Consolas, "Courier New", monospace; font-size: 15px; line-height: 1.45;
+      background: #1e1640; color: #e9e3ff; text-align: left; min-height: 150px;
+    }
+    .code-ta:focus { border-color: var(--yellow); }
+    .send-row { display: flex; justify-content: flex-end; margin-top: 12px; }
+
+    .blk-label { font-size: 13px; font-weight: 700; color: var(--text-light); text-align: left; margin: 6px 0; }
+    .chip-area, .chip-pool {
+      min-height: 52px; background: rgba(255, 255, 255, 0.12); border-radius: 14px;
+      padding: 10px; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; align-items: flex-start;
+    }
+    .chip {
+      font-family: Consolas, "Courier New", monospace; font-weight: 700; font-size: 15px;
+      color: var(--purple-dark); background: var(--white); border: none; border-radius: 10px;
+      padding: 8px 12px; cursor: pointer; white-space: pre; max-width: 100%; overflow: hidden; text-overflow: ellipsis;
+    }
+    .chip:disabled { opacity: 0.7; cursor: default; }
+    .chip-hint { color: var(--text-light); font-size: 14px; }
+    .blk-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+
+    .q-status { margin-top: 18px; font-weight: 800; font-size: 17px; color: var(--yellow); min-height: 24px; white-space: pre-line; }
     .rating-line { margin-top: 14px; font-weight: 700; font-size: 15px; color: var(--text-light); }
     .rating-badge {
       display: inline-block; background: var(--yellow); color: var(--purple-dark);
@@ -178,23 +204,38 @@
     .next-wrap { margin-top: 16px; }
 
     .done-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 18px; }
-    .done-actions .btn-primary, .done-actions .btn-ghost-p { margin-top: 0; }
     .retake-msg { margin-top: 10px; color: #ffe0a3; font-weight: 700; font-size: 15px; min-height: 20px; line-height: 1.45; }
+
+    .retake-form {
+      background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 18px; padding: 18px; margin-top: 16px; text-align: left;
+    }
+    .retake-form h2 { font-family: "Unbounded", sans-serif; font-size: 18px; margin-bottom: 14px; }
+    .retake-form textarea { min-height: 90px; }
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 4px; }
+    .form-error { color: #ffe0a3; font-weight: 700; font-size: 14px; min-height: 20px; margin-bottom: 8px; }
 
     .lb { text-align: left; margin-top: 14px; }
     .lb-row {
       display: flex; gap: 10px; align-items: center;
-      background: rgba(255, 255, 255, 0.14); border-radius: 12px;
-      padding: 10px 14px; margin-bottom: 8px;
+      background: rgba(255, 255, 255, 0.14); border-radius: 12px; padding: 10px 14px; margin-bottom: 8px;
     }
     .lb-rank { font-family: "Unbounded", sans-serif; font-weight: 900; width: 28px; }
     .lb-name { flex: 1; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .lb-score { font-weight: 900; color: var(--yellow); }
 
+    .toast {
+      position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(120px);
+      background: var(--yellow); color: var(--purple-dark); font-weight: 700;
+      padding: 14px 22px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+      transition: transform 0.35s ease; z-index: 60; max-width: calc(100% - 40px); text-align: center;
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
     @media (max-width: 560px) {
       .screen { padding: 22px; }
       .answers { grid-template-columns: 1fr; }
-      .btn-primary, .btn-ghost-p { width: 100%; }
+      .btn-primary, .btn-ghost, .btn-danger-soft { width: 100%; text-align: center; }
       .open-row { flex-direction: column; }
       .logo { font-size: 17px; }
       .logo-mark { width: 34px; height: 34px; font-size: 18px; }
@@ -222,17 +263,30 @@
   </header>
 
   <main>
+    <!-- Вход: ФИО или никнейм, группа -->
     <section class="screen" id="joinScreen" hidden>
       <h1>Войти в игру</h1>
       <div class="quiz-title" id="quizTitleJoin"></div>
-      <p class="lead" id="joinNote" hidden></p>
-      <p class="lead">Придумайте никнейм, под которым вас увидит организатор.</p>
-      <div class="field"><input type="text" id="nickInput" maxlength="20" placeholder="Например, Мах123" autocomplete="off" /></div>
+      <p class="note" id="joinNote" hidden></p>
+      <p class="lead" id="joinLead">Заполните данные, по которым вас увидит организатор.</p>
+
+      <div class="field">
+        <label class="field-label" id="nameLabel" for="nameInput">ФИО</label>
+        <input type="text" id="nameInput" maxlength="60" autocomplete="off" />
+      </div>
+      <div class="field" id="groupField" hidden>
+        <label class="field-label" for="groupInput">Группа</label>
+        <input type="text" id="groupInput" maxlength="30" autocomplete="off" />
+      </div>
+
       <button class="btn-primary" id="joinBtn">Войти</button>
-      <div><button class="btn-ghost-p" id="joinRetake" hidden>Запросить перездачу</button></div>
+      <div><button class="btn-ghost" id="joinRetake" hidden>Запросить перездачу</button></div>
       <div class="error" id="joinError"></div>
+      <div id="joinRetakeSlot"></div>
+      <div class="done-actions"><a class="btn-ghost" href="index.html">Выйти</a></div>
     </section>
 
+    <!-- Ожидание старта -->
     <section class="screen" id="lobbyScreen" hidden>
       <h1>Вы в игре!</h1>
       <div class="quiz-title" id="quizTitleLobby"></div>
@@ -244,6 +298,7 @@
       <div class="count-num" id="countNum">5</div>
     </section>
 
+    <!-- Вопрос -->
     <section class="screen" id="questionScreen" hidden>
       <div class="q-progress" id="qProgress"></div>
       <div class="rating-badge" id="ratingLine"></div>
@@ -256,6 +311,7 @@
       <div class="next-wrap" id="nextWrap"></div>
     </section>
 
+    <!-- Итог -->
     <section class="screen" id="doneScreen" hidden>
       <h1>Тест завершён!</h1>
       <p class="lead" id="doneText">Спасибо за участие.</p>
@@ -263,10 +319,19 @@
       <p class="rating-line" id="doneRating"></p>
       <div class="done-actions">
         <button class="btn-primary small" id="doneCert" hidden>Скачать сертификат</button>
-        <button class="btn-ghost-p" id="doneRetake" hidden>Запросить перездачу</button>
+        <button class="btn-ghost" id="doneRetake" hidden>Запросить перездачу</button>
+        <a class="btn-ghost" href="index.html">Выйти</a>
       </div>
+      <div id="doneRetakeSlot"></div>
       <p class="retake-msg" id="retakeMsg"></p>
       <div id="doneBoard" class="lb"></div>
+    </section>
+
+    <!-- Исключение -->
+    <section class="screen" id="excludedScreen" hidden>
+      <h1>Доступ закрыт</h1>
+      <p class="lead" id="exText"></p>
+      <a class="btn-ghost" href="index.html">Выйти</a>
     </section>
 
     <section class="screen" id="errorScreen" hidden>
@@ -275,6 +340,30 @@
       <a class="btn-primary" href="index.html" style="text-decoration:none;display:inline-block">На главную</a>
     </section>
   </main>
+
+  <!-- Общая форма перездачи: переносится в нужный экран -->
+  <div class="retake-form" id="retakeForm" hidden>
+    <h2>Запрос на перездачу</h2>
+    <div class="form-error" id="rfError"></div>
+    <div class="field">
+      <label class="field-label" for="rfName">ФИО</label>
+      <input type="text" id="rfName" maxlength="60" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label class="field-label" for="rfGroup">Группа</label>
+      <input type="text" id="rfGroup" maxlength="30" autocomplete="off" />
+    </div>
+    <div class="field">
+      <label class="field-label" for="rfReason">Причина</label>
+      <textarea id="rfReason" maxlength="300" rows="3" placeholder="Например: сбой интернета, не успел ответить"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-ghost" id="rfCancel">Отмена</button>
+      <button class="btn-primary small" id="rfSend">Отправить</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
@@ -299,30 +388,32 @@
   const params = new URLSearchParams(location.search);
   const code = params.get('code');
   const DEMO = params.get('demo') === '1';
-  const playerKey = (r) => `izi_player_${code}_${r}`;
   const LETTERS = ['А', 'Б', 'В', 'Г', 'Д', 'Е'];
+  const MAX_EXITS = 2;
+  const EXIT_REASON = 'Два выхода со страницы во время теста';
+  const playerStorageKey = (r) => `izi_player_${code}_${r}`;
 
   let quiz = null;
   let order = [];
   let round = 1;
   let playerId = null;
   let playerName = '';
+  let playerGroup = '';
+  let playerKey = '';
   let attempt = 1;
-  let exitCount = 0;       // выходов со страницы подряд (сбрасывается, когда участник снова ответил)
-  let ended = false;       // попытка завершена из-за двух выходов подряд
-  let blockedAttempt = 0;
-  let blockedGrade = null;
+  let exitCount = 0;
+  let excluded = false;
+  let gameOver = false;
   let myGrade = null;
-  // Перездача доступна только при оценках 2 и 1 (без СКР — всегда)
-  const retakeAllowed = (g) => g == null || Number(g) <= 2;
-  let certPromise = null;  // сертификат выдаётся один раз на попытку
+  let retakeCtx = null;      // { attempt, grade } для запроса перездачи
+  let retakeOrigin = 'join'; // где открыта форма: 'join' или 'done'
   let certData = null;
+  let certPromise = null;
   let gameStatus = 'waiting';
   let latestPos = -1;
   let questionStartedMs = 0;
   let started = false;
   let countdownDone = false;
-  let gameOver = false;
   let unsubGame = null;
   let unsubRetake = null;
   let timerId = null;
@@ -331,10 +422,14 @@
   let curQ = null;
   let answered = false;
   let demoScore = 0;
+  let chosen = [];   // выбранные блоки (id)
+  let pool = [];     // все блоки вопроса { id, text }
 
+  /* ---------- Утилиты ---------- */
   function show(id) {
-    ['joinScreen', 'lobbyScreen', 'countdownScreen', 'questionScreen', 'doneScreen', 'errorScreen']
+    ['joinScreen', 'lobbyScreen', 'countdownScreen', 'questionScreen', 'doneScreen', 'excludedScreen', 'errorScreen']
       .forEach((s) => { $(s).hidden = s !== id; });
+    $('retakeForm').hidden = true;
   }
 
   const fmt = (ts) => ts.toDate().toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
@@ -346,6 +441,15 @@
   function fail(text) {
     $('errorText').textContent = text;
     show('errorScreen');
+  }
+
+  let toastTimer;
+  function showToast(text) {
+    const t = $('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
   }
 
   function shuffle(a) {
@@ -362,16 +466,43 @@
     return q.shuffleQuestions ? shuffle(idx) : idx;
   }
 
-  // Ключ человека: один никнейм = один участник в пределах запуска квиза
-  const personKey = (name) => 'n_' + name.trim().toLowerCase().replace(/[\/\s]+/g, '_');
+  // Личность участника: ФИО + группа (ник не блокирует)
+  const normText = (s) => String(s).trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
+  const keyOf = (name, group) => normText(name) + '|' + normText(group || '');
+  const docId = (key) => key.replace(/\//g, '_');
+  const excludedRef = (key) => doc(db, 'games', code, 'excluded', `${round}_${docId(key)}`);
+  const retakeRef = (key) => doc(db, 'games', code, 'retakeRequests', docId(key));
   const playerRef = () => doc(db, 'games', code, 'rounds', String(round), 'players', playerId);
   const todayStr = () => new Date().toLocaleDateString('ru-RU');
+  const wordsCount = (s) => s.split(/\s+/).filter(Boolean).length;
 
-  function setLobbyText() {
-    $('lobbyText').textContent = `Вы в игре как «${playerName}». Ждём старт.`;
+  function checkIdentity(name, group) {
+    if (quiz.requireName) {
+      if (wordsCount(name) < 2) return 'Введите ФИО полностью (минимум фамилия и имя)';
+    } else if (name.length < 2) {
+      return 'Никнейм минимум 2 символа';
+    }
+    if (name.length > 60) return 'Слишком длинное имя';
+    if (quiz.requireGroup && !group) return 'Укажите группу';
+    if (group.length > 30) return 'Группа: максимум 30 символов';
+    return null;
   }
 
-  // Данные сертификата -> то, что рисует cert.js
+  function applyJoinLabels() {
+    $('nameLabel').textContent = quiz.requireName ? 'ФИО' : 'Никнейм';
+    $('nameInput').placeholder = quiz.requireName ? 'Иванов Иван Иванович' : 'Например, Мах123';
+    $('groupField').hidden = !quiz.requireGroup;
+    if (!quiz.requireName) {
+      const saved = sessionStorage.getItem('izi_nickname');
+      if (saved && !$('nameInput').value) $('nameInput').value = saved;
+    }
+  }
+
+  function setLobbyText() {
+    const g = playerGroup ? `, группа ${playerGroup}` : '';
+    $('lobbyText').textContent = `Вы в игре как «${playerName}»${g}. Ждём старт.`;
+  }
+
   function toDraw(c) {
     return {
       name: c.nickname, quiz: c.quizTitle, attempt: c.attempt, score: c.score, maxScore: c.maxScore,
@@ -391,7 +522,6 @@
       $('quizTitleJoin').textContent = quiz.title;
       $('quizTitleLobby').textContent = quiz.title;
 
-      // Расписание: вход открыт только в заданное время (демо не ограничиваем)
       if (!DEMO) {
         const now = Date.now();
         if (quiz.startsAt && now < quiz.startsAt.toMillis()) return fail(`Квиз откроется ${fmt(quiz.startsAt)}.`);
@@ -411,34 +541,34 @@
 
       const gs = await getDoc(doc(db, 'games', code));
       if (!gs.exists()) return fail('Организатор ещё не открыл экран ожидания. Попробуйте чуть позже.');
-
       round = gs.data().round || 1;
-      playerName = sessionStorage.getItem('izi_nickname') || '';
-      playerId = sessionStorage.getItem(playerKey(round));
 
-      // Восстанавливаем состояние участника после перезагрузки страницы
-      if (playerId) {
-        const ps = await getDoc(playerRef());
+      // Восстанавливаем участника после перезагрузки страницы
+      const savedId = sessionStorage.getItem(playerStorageKey(round));
+      if (savedId) {
+        const ps = await getDoc(doc(db, 'games', code, 'rounds', String(round), 'players', savedId));
         if (ps.exists()) {
           const p = ps.data();
+          playerId = savedId;
+          playerName = p.name;
+          playerGroup = p.group || '';
+          playerKey = p.key;
           attempt = p.attempt || 1;
           exitCount = p.exits || 0;
-          ended = !!p.ended;
+          excluded = !!p.excluded;
+          if (excluded) { watchGame(); return showExcluded(); }
         } else {
-          playerId = null;
+          sessionStorage.removeItem(playerStorageKey(round));
         }
       }
 
+      applyJoinLabels();
       watchGame();
-      if (playerName) watchRetake(playerName);
 
-      if (playerId && ended) {
-        finish();
-      } else if (playerId) {
+      if (playerId) {
         setLobbyText();
         show('lobbyScreen');
       } else {
-        $('nickInput').value = playerName;
         show('joinScreen');
       }
     } catch (err) {
@@ -449,89 +579,82 @@
 
   /* ---------- Вход ---------- */
   $('joinBtn').addEventListener('click', async () => {
-    const name = $('nickInput').value.trim();
-    const error = $('joinError');
-    if (name.length < 2) { error.textContent = 'Никнейм минимум 2 символа'; return; }
-    if (name.length > 20) { error.textContent = 'Никнейм максимум 20 символов'; return; }
+    const name = $('nameInput').value.trim();
+    const group = $('groupInput').value.trim();
+    const err = checkIdentity(name, group);
+    if (err) { $('joinError').textContent = err; return; }
 
+    const key = keyOf(name, group);
     const btn = $('joinBtn');
     btn.disabled = true;
-    error.textContent = '';
+    $('joinError').textContent = '';
     $('joinRetake').hidden = true;
     $('joinNote').hidden = true;
 
     try {
-      const key = personKey(name);
+      // Исключённых не пускаем
+      const ex = await getDoc(excludedRef(key));
+      if (ex.exists()) { excluded = true; return showExcluded(); }
+
       const base = collection(db, 'games', code, 'rounds', String(round), 'players');
       const same = (await getDocs(query(base, where('key', '==', key)))).docs.map((d) => d.data());
       const maxAttempt = same.reduce((m, p) => Math.max(m, p.attempt || 1), 0);
-      const anyEnded = same.some((p) => p.ended);
-      const last = same.reduce((a, p) => ((p.attempt || 1) > (a ? a.attempt || 1 : 0) ? p : a), null);
+      const last = same.reduce((a, p) => (!a || (p.attempt || 1) > (a.attempt || 1) ? p : a), null);
 
-      // Второй выход подряд — перездачи нет совсем. Иначе — только с разрешения организатора
+      // Перездача: только с разрешения организатора
       let approved = false;
-      const reqRef = doc(db, 'games', code, 'retakeRequests', key);
-      if (same.length && !anyEnded) {
+      const reqRef = retakeRef(key);
+      if (same.length) {
         const rs = await getDoc(reqRef);
         const r = rs.exists() ? rs.data() : null;
         approved = !!r && r.status === 'approved' && r.round === round && r.allowedAttempt === maxAttempt + 1;
       }
 
-      if (same.length && !approved && (quiz.gradeMode || anyEnded)) {
-        blockedAttempt = maxAttempt;
-        blockedGrade = last?.grade ?? null;
-        const canAsk = !anyEnded && retakeAllowed(blockedGrade);
-        error.textContent = anyEnded
-          ? 'Этот никнейм уже проходил тест и был завершён из-за двух выходов со страницы. Повторно пройти его нельзя.'
-          : !canAsk
-            ? 'Повторно пройти тест можно только при оценках 2 или 1.'
-            : 'Этот никнейм уже проходил тест. Повторно пройти можно только с разрешения организатора.';
+      // Повторное прохождение при СКР-тесте запрещено, кроме случаев одобрения
+      if (same.length && !approved && quiz.gradeMode) {
+        const grade = last?.grade ?? null;
+        retakeCtx = { attempt: maxAttempt, grade };
+        const canAsk = retakeAllowed(grade);
+        $('joinError').textContent = canAsk
+          ? 'Вы уже проходили этот квиз. Повторно пройти можно только с разрешения организатора.'
+          : 'Повторно пройти квиз можно только при оценках 2 или 1.';
         $('joinRetake').hidden = !canAsk;
         return;
       }
 
       const newAttempt = same.length ? maxAttempt + 1 : 1;
-      const ref = await addDoc(base, { name, key, attempt: newAttempt, ended: false, exits: 0, joinedAt: serverTimestamp() });
+      const ref = await addDoc(base, {
+        name, group, key, attempt: newAttempt, ended: false, excluded: false, exits: 0, joinedAt: serverTimestamp()
+      });
       if (approved) await updateDoc(reqRef, { status: 'used' });
-      beginAttempt(ref.id, name, newAttempt);
+      beginAttempt(ref.id, name, group, newAttempt);
     } catch (err) {
       console.error(err);
-      error.textContent = 'Не удалось войти в игру. Попробуйте ещё раз';
+      $('joinError').textContent = 'Не удалось войти в игру. Попробуйте ещё раз';
     } finally {
       btn.disabled = false;
     }
   });
 
-  $('nickInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBtn').click(); });
+  $('nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBtn').click(); });
+  $('groupInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBtn').click(); });
 
-  $('joinRetake').addEventListener('click', async () => {
-    const name = $('nickInput').value.trim();
-    if (name.length < 2) { $('joinError').textContent = 'Введите никнейм, под которым вы проходили тест'; return; }
-    try {
-      await requestRetake(name, blockedAttempt, blockedGrade);
-      $('joinRetake').hidden = true;
-      $('joinError').textContent = 'Запрос отправлен. Когда организатор разрешит, нажмите «Войти» ещё раз.';
-      watchRetake(name);
-    } catch (err) {
-      console.error(err);
-      $('joinError').textContent = 'Не удалось отправить запрос. Попробуйте ещё раз';
-    }
-  });
+  const retakeAllowed = (g) => g == null || Number(g) <= 2;
 
-  function beginAttempt(id, name, att) {
+  function beginAttempt(id, name, group, att) {
     playerId = id;
     playerName = name;
+    playerGroup = group;
+    playerKey = keyOf(name, group);
     attempt = att;
     exitCount = 0;
-    ended = false;
+    excluded = false;
     gameOver = false;
     answered = false;
     shownPos = -1;
     certData = null;
     certPromise = null;
-    sessionStorage.setItem(playerKey(round), id);
-    sessionStorage.setItem('izi_nickname', name);
-    watchRetake(name);
+    sessionStorage.setItem(playerStorageKey(round), id);
     setLobbyText();
     show('lobbyScreen');
     if (gameStatus === 'finished') { finish(); return; }
@@ -543,7 +666,7 @@
   function watchGame() {
     if (unsubGame) return;
     unsubGame = onSnapshot(doc(db, 'games', code), (snap) => {
-      if (!snap.exists()) return;
+      if (!snap.exists() || excluded) return;
       const g = snap.data();
       const r = g.round || 1;
 
@@ -554,13 +677,13 @@
 
       gameStatus = g.status;
       if (g.status === 'finished') {
+        if (!playerId) { fail('Тест уже завершён организатором.'); return; }
         finish('Организатор завершил тест.');
         return;
       }
       if (g.status === 'running') {
         order = g.order || order;
         latestPos = g.current ?? -1;
-        // Время вопроса считаем от момента, когда организатор его показал
         questionStartedMs = g.questionStartedAt?.toMillis?.() ?? Date.now();
         if (started) applyLatest();
         else maybeStartGame();
@@ -569,13 +692,13 @@
   }
 
   function maybeStartGame() {
-    if (gameStatus !== 'running' || !playerId || ended || gameOver || started) return;
+    if (gameStatus !== 'running' || !playerId || excluded || gameOver || started) return;
     started = true;
     startCountdown(() => { countdownDone = true; applyLatest(); });
   }
 
   function applyLatest() {
-    if (!countdownDone || gameOver || ended || latestPos < 0) return;
+    if (!countdownDone || gameOver || excluded || latestPos < 0) return;
     if (quiz.endsAt && Date.now() > quiz.endsAt.toMillis()) {
       finish('Срок проведения квиза истёк.');
       return;
@@ -595,17 +718,15 @@
     answered = false;
     shownPos = -1;
     latestPos = -1;
-    ended = false;
     exitCount = 0;
     attempt = 1;
     certData = null;
     certPromise = null;
-    playerId = sessionStorage.getItem(playerKey(round));
+    playerId = sessionStorage.getItem(playerStorageKey(round));
     if (playerId) {
       setLobbyText();
       show('lobbyScreen');
     } else {
-      $('nickInput').value = playerName;
       $('joinError').textContent = '';
       $('joinRetake').hidden = true;
       $('joinNote').hidden = true;
@@ -641,25 +762,66 @@
   }
 
   /* ---------- Вопросы ---------- */
+  function shuffleBlocks(texts) {
+    const items = texts.map((t, i) => ({ id: i, text: t }));
+    let r = items;
+    for (let k = 0; k < 10; k++) {
+      r = shuffle(items);
+      if (items.length < 2 || r.some((it, i) => it.id !== i)) break;
+    }
+    return r;
+  }
+
+  function makeChip(text) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip';
+    b.textContent = text;
+    return b;
+  }
+
+  function renderBlocks() {
+    const area = $('blkChosen');
+    const poolEl = $('blkPool');
+    area.innerHTML = '';
+    if (!chosen.length) {
+      const hint = document.createElement('span');
+      hint.className = 'chip-hint';
+      hint.textContent = 'Нажимайте блоки, чтобы собрать код по порядку';
+      area.appendChild(hint);
+    }
+    chosen.forEach((id, j) => {
+      const item = pool.find((p) => p.id === id);
+      const b = makeChip(item.text);
+      b.addEventListener('click', () => { chosen.splice(j, 1); renderBlocks(); });
+      area.appendChild(b);
+    });
+    poolEl.innerHTML = '';
+    pool.filter((p) => !chosen.includes(p.id)).forEach((item) => {
+      const b = makeChip(item.text);
+      b.addEventListener('click', () => { chosen.push(item.id); renderBlocks(); });
+      poolEl.appendChild(b);
+    });
+  }
+
   function showQuestionAt(pos, startedMs) {
     shownPos = pos;
     curPos = pos;
     curQ = quiz.questions[order[pos]];
     answered = false;
+    chosen = [];
+    pool = [];
 
     show('questionScreen');
     $('qProgress').textContent = `Вопрос ${pos + 1} из ${order.length} · баллов: ${curQ.points ?? 1}`;
     $('qText').textContent = curQ.text;
+
     const img = $('qImg');
     img.removeAttribute('src');
     img.hidden = true;
     if (curQ.image && curQ.image.id) {
-      const imgPos = pos;
       loadImageData(curQ.image.id).then((src) => {
-        if (src && shownPos === imgPos) {
-          img.src = src;
-          img.hidden = false;
-        }
+        if (src && shownPos === pos) { img.src = src; img.hidden = false; }
       });
     }
     $('qStatus').textContent = '';
@@ -686,24 +848,47 @@
         grid.appendChild(b);
       });
       box.appendChild(grid);
-    } else {
-      const row = document.createElement('div');
-      row.className = 'open-row';
-      row.innerHTML = `
-        <input type="text" id="openInput" maxlength="120" placeholder="Ваш ответ" autocomplete="off" />
-        <button class="btn-primary small" id="openSend">Ответить</button>`;
-      box.appendChild(row);
+    } else if (curQ.type === 'open') {
+      box.innerHTML = `
+        <div class="open-row">
+          <input type="text" id="openInput" maxlength="120" placeholder="Ваш ответ" autocomplete="off" />
+          <button class="btn-primary small" id="openSend">Ответить</button>
+        </div>`;
       const input = $('openInput');
-      const send = () => {
-        const value = input.value.trim();
-        if (value) submitAnswer(value);
-      };
+      const send = () => { const v = input.value.trim(); if (v) submitAnswer(v); };
       $('openSend').addEventListener('click', send);
       input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
       setTimeout(() => input.focus(), 50);
+    } else if (curQ.type === 'code') {
+      box.innerHTML = `
+        <textarea class="code-ta" id="codeInput" rows="8" spellcheck="false" placeholder="Напишите код здесь"></textarea>
+        <div class="send-row"><button class="btn-primary small" id="codeSend">Отправить код</button></div>`;
+      const ta = $('codeInput');
+      ta.value = curQ.starter || '';
+      $('codeSend').addEventListener('click', () => {
+        if (!ta.value.trim()) { showToast('Введите код'); return; }
+        submitAnswer(ta.value);
+      });
+    } else {
+      // blocks
+      pool = shuffleBlocks([...(curQ.answer || []), ...(curQ.extra || [])]);
+      box.innerHTML = `
+        <div class="blk-label">Ваш код</div>
+        <div class="chip-area" id="blkChosen"></div>
+        <div class="blk-label">Блоки</div>
+        <div class="chip-pool" id="blkPool"></div>
+        <div class="blk-actions">
+          <button class="btn-ghost" id="blkReset" style="margin-top:0">Сбросить</button>
+          <button class="btn-primary small" id="blkSend">Проверить</button>
+        </div>`;
+      renderBlocks();
+      $('blkReset').addEventListener('click', () => { chosen = []; renderBlocks(); });
+      $('blkSend').addEventListener('click', () => {
+        if (!chosen.length) { showToast('Соберите код из блоков'); return; }
+        submitAnswer(chosen.map((id) => pool.find((p) => p.id === id).text));
+      });
     }
 
-    // Время идёт от старта вопроса у организатора, даже если участник ушёл со страницы
     const limit = curQ.timeLimit || quiz.timeLimit;
     startTimer(limit, (startedMs || Date.now()) + limit * 1000, () => endQuestion('Время вышло', undefined, true));
     refreshRating();
@@ -714,7 +899,6 @@
     const total = seconds * 1000;
     const bar = $('timerBar');
     const label = $('timerLabel');
-
     const tick = () => {
       const left = Math.max(0, endAt - Date.now());
       bar.style.width = (left / total * 100) + '%';
@@ -728,24 +912,41 @@
     timerId = setInterval(tick, 100);
   }
 
+  // Проверка: код сравнивается построчно, пробелы по краям строк не учитываются
+  function sameCode(a, b) {
+    const n = (s) => String(s).split('\n').map((l) => l.trim()).join('\n').trim();
+    return n(a) === n(b);
+  }
+
   function isCorrect(q, value) {
+    if (value === undefined || value === null) return false;
     if (q.type === 'choice') return value === q.correct;
-    const v = String(value).trim().toLowerCase();
-    return q.answers.some((a) => a.trim().toLowerCase() === v);
+    if (q.type === 'open') {
+      const v = normText(value);
+      return q.answers.some((a) => normText(a) === v);
+    }
+    if (q.type === 'code') return sameCode(value, q.answer);
+    if (q.type === 'blocks') {
+      return Array.isArray(value)
+        && value.length === q.answer.length
+        && value.every((v, i) => v.trim() === String(q.answer[i]).trim());
+    }
+    return false;
   }
 
   function correctText(q) {
-    return q.type === 'choice' ? q.options[q.correct] : q.answers[0];
+    if (q.type === 'choice') return q.options[q.correct];
+    if (q.type === 'open') return q.answers[0];
+    if (q.type === 'code') return q.answer;
+    return q.answer.join('\n');
   }
 
-  // После ответа варианты блокируются, но таймер продолжает идти до конца вопроса
   function lockAnswers(text) {
     answered = true;
-    document.querySelectorAll('#qAnswers button, #qAnswers input').forEach((el) => { el.disabled = true; });
+    document.querySelectorAll('#qAnswers button, #qAnswers input, #qAnswers textarea').forEach((el) => { el.disabled = true; });
     $('qStatus').textContent = text;
   }
 
-  // Показ правильного ответа — только если организатор включил эту настройку
   function reveal(value, timedOut) {
     if (!quiz.showAnswers) return;
 
@@ -758,9 +959,9 @@
     }
 
     let msg;
-    if (timedOut) msg = `Время вышло. Правильный ответ: ${correctText(curQ)}`;
+    if (timedOut) msg = `Время вышло. Правильный ответ:\n${correctText(curQ)}`;
     else if (isCorrect(curQ, value)) msg = 'Верно! ✓';
-    else msg = `Неверно. Правильный ответ: ${correctText(curQ)}`;
+    else msg = `Неверно. Правильный ответ:\n${correctText(curQ)}`;
     $('qStatus').textContent = msg;
   }
 
@@ -771,7 +972,6 @@
     onQuestionEnded();
   }
 
-  // В демо-режиме переход к следующему вопросу делает сам «участник» (локально)
   function onQuestionEnded() {
     if (!DEMO) return;
     if (quiz.manualMode) {
@@ -783,7 +983,7 @@
   }
 
   async function submitAnswer(value) {
-    if (answered || ended || gameOver) return;
+    if (answered || excluded || gameOver) return;
     const ok = isCorrect(curQ, value);
     const pts = ok ? (curQ.points ?? 1) : 0;
     endQuestion('Ответ принят ✓', value, false);
@@ -803,11 +1003,6 @@
         points: pts,
         answeredAt: serverTimestamp()
       });
-      // Участник снова в игре: счётчик выходов подряд сбрасываем
-      if (exitCount > 0) {
-        exitCount = 0;
-        updateDoc(playerRef(), { exits: 0 }).catch((e) => console.error(e));
-      }
     } catch (err) {
       console.error(err);
       $('qStatus').textContent = 'Ответ не сохранился. Проверьте интернет';
@@ -815,32 +1010,62 @@
     refreshRating();
   }
 
+  /* ---------- Запрет вставки ---------- */
+  ['paste', 'drop'].forEach((evt) => {
+    document.addEventListener(evt, (e) => {
+      if (!quiz || !quiz.noPaste || $('questionScreen').hidden) return;
+      if (!e.target.closest || !e.target.closest('#qAnswers')) return;
+      e.preventDefault();
+      showToast('Вставка отключена организатором. Напишите ответ сами');
+    }, true);
+  });
+
   /* ---------- Выход со страницы ---------- */
-  // Время не останавливается: вопрос идёт дальше. Второй выход подряд завершает тест для участника
+  // Строгое правило: второй выход за попытку означает исключение
   document.addEventListener('visibilitychange', () => {
-    if (DEMO || !playerId || ended) return;
+    if (DEMO || !playerId || excluded) return;
     if (document.visibilityState === 'hidden') {
       if (!countdownDone || gameOver) return;
       exitCount += 1;
-      if (exitCount >= 2) {
-        endAttempt();
+      if (exitCount >= MAX_EXITS) {
+        excludePlayer();
         return;
       }
       updateDoc(playerRef(), { exits: exitCount }).catch((e) => console.error(e));
-    } else if (exitCount === 1 && !answered && !gameOver && shownPos >= 0) {
-      $('qStatus').textContent = 'Вы покинули страницу. Ещё один выход подряд — и тест для вас завершится.';
+    } else if (exitCount === 1 && !gameOver && countdownDone && !excluded) {
+      $('qStatus').textContent = 'Вы покинули страницу. Следующий выход — и система безопасности исключит вас из теста.';
     }
   });
 
-  async function endAttempt() {
-    ended = true;
+  async function excludePlayer() {
+    if (excluded) return;
+    excluded = true;
+    gameOver = true;
     clearInterval(timerId);
+    showExcluded();
     try {
-      await updateDoc(playerRef(), { ended: true, exits: exitCount, endedAt: serverTimestamp() });
+      await Promise.all([
+        updateDoc(playerRef(), { excluded: true, ended: true, exits: exitCount, endedAt: serverTimestamp() }),
+        setDoc(excludedRef(playerKey), {
+          name: playerName,
+          group: playerGroup,
+          key: playerKey,
+          quizTitle: quiz.title,
+          quizCode: code,
+          round,
+          reason: EXIT_REASON,
+          exits: exitCount,
+          excludedAt: serverTimestamp()
+        })
+      ]);
     } catch (err) {
       console.error(err);
     }
-    finish();
+  }
+
+  function showExcluded() {
+    $('exText').textContent = 'Вас исключила система безопасности: вы дважды покинули страницу во время теста. Повторно пройти этот квиз нельзя. Организатор получит уведомление.';
+    show('excludedScreen');
   }
 
   /* ---------- Рейтинг ---------- */
@@ -856,7 +1081,7 @@
       scores[a.player] = (scores[a.player] || 0) + (a.points || 0);
     });
     return playersSnap.docs
-      .map((d) => ({ id: d.id, name: d.data().name, score: scores[d.id] || 0, ended: !!d.data().ended }))
+      .map((d) => ({ id: d.id, name: d.data().name, score: scores[d.id] || 0, ended: !!d.data().excluded }))
       .sort((a, b) => b.score - a.score);
   }
 
@@ -869,9 +1094,7 @@
     try {
       const list = await loadScores();
       const i = list.findIndex((p) => p.id === playerId);
-      $('ratingLine').textContent = i >= 0
-        ? `Ваши баллы: ${list[i].score} · место ${i + 1} из ${list.length}`
-        : '';
+      $('ratingLine').textContent = i >= 0 ? `Ваши баллы: ${list[i].score} · место ${i + 1} из ${list.length}` : '';
     } catch (err) {
       console.error(err);
     }
@@ -882,13 +1105,13 @@
       ? list.map((p, i) => `
           <div class="lb-row">
             <span class="lb-rank">${i + 1}</span>
-            <span class="lb-name">${esc(p.name)}${p.id === playerId ? ' (вы)' : ''}${p.ended ? ' · вышел' : ''}</span>
+            <span class="lb-name">${esc(p.name)}${p.id === playerId ? ' (вы)' : ''}${p.ended ? ' · исключён' : ''}</span>
             <span class="lb-score">${p.score}</span>
           </div>`).join('')
       : '';
   }
 
-  /* ---------- Фото вопросов (из коллекции quizImages) ---------- */
+  /* ---------- Фото вопросов ---------- */
   const imageCache = {};
   async function loadImageData(id) {
     if (imageCache[id]) return imageCache[id];
@@ -899,7 +1122,6 @@
   }
 
   /* ---------- Сертификат ---------- */
-  // Номер уникальный: если такой уже есть, берём другой
   async function saveCertificate(fields) {
     for (let i = 0; i < 5; i++) {
       const certNo = makeCertNumber();
@@ -912,7 +1134,6 @@
     throw new Error('Не удалось создать номер сертификата. Попробуйте позже');
   }
 
-  // Сертификат выдаётся один раз на попытку; при перезагрузке берём уже выданный
   function issueCertificate(score, place, total) {
     if (!certPromise) {
       certPromise = (async () => {
@@ -926,7 +1147,8 @@
           quizTitle: quiz.title,
           ownerUid: quiz.ownerUid || null,
           nickname: playerName,
-          personKey: personKey(playerName),
+          group: playerGroup || null,
+          personKey: playerKey,
           attempt,
           score,
           maxScore: maxScoreOf(quiz),
@@ -955,56 +1177,90 @@
     }
   });
 
-  /* ---------- Перездача ---------- */
-  function requestRetake(name, att, grade) {
-    return setDoc(doc(db, 'games', code, 'retakeRequests', personKey(name)), {
-      name: name.trim(),
-      key: personKey(name),
-      attempt: att,
-      grade: grade ?? null,
-      round,
-      status: 'pending',
-      requestedAt: serverTimestamp()
-    });
+  /* ---------- Перездача: форма ---------- */
+  function openRetakeForm(origin) {
+    retakeOrigin = origin;
+    const slot = origin === 'join' ? $('joinRetakeSlot') : $('doneRetakeSlot');
+    slot.appendChild($('retakeForm'));
+    $('rfName').value = origin === 'join' ? $('nameInput').value.trim() : playerName;
+    $('rfGroup').value = origin === 'join' ? $('groupInput').value.trim() : playerGroup;
+    $('rfReason').value = '';
+    $('rfError').textContent = '';
+    $('retakeForm').hidden = false;
+    $('joinRetake').hidden = true;
+    $('doneRetake').hidden = true;
+    $('retakeForm').scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  // Следим за решением организатора по своему запросу
-  function watchRetake(name) {
-    if (DEMO || !name) return;
+  function closeRetakeForm() {
+    $('retakeForm').hidden = true;
+    if (retakeOrigin === 'join') $('joinRetake').hidden = false;
+    else $('doneRetake').hidden = false;
+  }
+
+  $('joinRetake').addEventListener('click', () => openRetakeForm('join'));
+  $('doneRetake').addEventListener('click', () => openRetakeForm('done'));
+  $('rfCancel').addEventListener('click', closeRetakeForm);
+
+  $('rfSend').addEventListener('click', async () => {
+    const name = $('rfName').value.trim();
+    const group = $('rfGroup').value.trim();
+    const reason = $('rfReason').value.trim();
+    const err = $('rfError');
+
+    if (wordsCount(name) < 2) { err.textContent = 'Введите ФИО полностью'; return; }
+    if (!group) { err.textContent = 'Укажите группу'; return; }
+    if (reason.length < 5) { err.textContent = 'Опишите причину (минимум 5 символов)'; return; }
+
+    const key = keyOf(name, group);
+    const btn = $('rfSend');
+    btn.disabled = true;
+    try {
+      await setDoc(retakeRef(key), {
+        name,
+        group,
+        key,
+        reason,
+        attempt: retakeCtx?.attempt ?? attempt,
+        grade: retakeCtx?.grade ?? myGrade ?? null,
+        round,
+        status: 'pending',
+        requestedAt: serverTimestamp()
+      });
+      $('retakeForm').hidden = true;
+      const msg = retakeOrigin === 'join' ? $('joinError') : $('retakeMsg');
+      msg.textContent = 'Запрос отправлен. Ждём решения организатора.';
+      watchRetake(key);
+    } catch (e) {
+      console.error(e);
+      err.textContent = 'Не удалось отправить запрос. Попробуйте ещё раз';
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  // Следим за решением организатора по запросу этого человека
+  function watchRetake(key) {
+    if (DEMO) return;
     if (unsubRetake) unsubRetake();
-    unsubRetake = onSnapshot(doc(db, 'games', code, 'retakeRequests', personKey(name)), (snap) => {
+    unsubRetake = onSnapshot(retakeRef(key), (snap) => {
       if (!snap.exists()) return;
       const r = snap.data();
-      if (r.status === 'approved' && r.round === round && (ended || !playerId)) {
-        showApprovedJoin(name);
+      if (r.status === 'approved' && r.round === round && !excluded && (!playerId || gameOver)) {
+        showApprovedJoin(r);
       }
     }, (err) => console.error(err));
   }
 
-  function showApprovedJoin(name) {
-    $('nickInput').value = name;
+  function showApprovedJoin(r) {
+    $('nameInput').value = r.name || '';
+    $('groupInput').value = r.group || '';
     $('joinError').textContent = '';
     $('joinRetake').hidden = true;
     $('joinNote').textContent = 'Организатор разрешил перездачу. Нажмите «Войти», чтобы начать заново.';
     $('joinNote').hidden = false;
     show('joinScreen');
   }
-
-  $('doneRetake').addEventListener('click', async () => {
-    const btn = $('doneRetake');
-    btn.disabled = true;
-    try {
-      await requestRetake(playerName, attempt, myGrade);
-      btn.hidden = true;
-      $('retakeMsg').textContent = 'Запрос отправлен. Ждём решения организатора.';
-      watchRetake(playerName);
-    } catch (err) {
-      console.error(err);
-      $('retakeMsg').textContent = 'Не удалось отправить запрос. Попробуйте ещё раз';
-    } finally {
-      btn.disabled = false;
-    }
-  });
 
   /* ---------- Экран завершения ---------- */
   async function finish(note) {
@@ -1022,15 +1278,15 @@
       return;
     }
 
+    if (excluded) return showExcluded();
+
     gameOver = true;
     clearInterval(timerId);
-    $('doneText').textContent = ended
-      ? 'Вы дважды подряд покинули страницу, поэтому тест для вас завершён. Сертификат не выдаётся.'
-      : (note || 'Спасибо за участие!');
+    $('doneText').textContent = note || 'Спасибо за участие!';
     $('doneGrade').textContent = '';
     $('doneRating').textContent = '';
     $('doneCert').hidden = true;
-    $('doneRetake').hidden = true;   // покажем после расчёта оценки
+    $('doneRetake').hidden = true;
     $('retakeMsg').textContent = '';
     show('doneScreen');
 
@@ -1041,13 +1297,12 @@
       if (i < 0) return;
       const me = list[i];
       myGrade = quiz.gradeMode ? gradeFor(me.score, quiz.grades) : null;
-      $('doneRetake').hidden = ended || !playerId || !retakeAllowed(myGrade);
+      retakeCtx = { attempt, grade: myGrade };
       $('doneRating').textContent = `Ваш итог: ${me.score} баллов · место ${i + 1} из ${list.length}`;
-      if (quiz.gradeMode && !ended) $('doneGrade').textContent = `Ваша оценка: ${gradeFor(me.score, quiz.grades)}`;
-      if (!ended) {
-        certData = await issueCertificate(me.score, i + 1, list.length);
-        $('doneCert').hidden = false;
-      }
+      if (quiz.gradeMode) $('doneGrade').textContent = `Ваша оценка: ${myGrade}`;
+      $('doneRetake').hidden = !(quiz.gradeMode && retakeAllowed(myGrade));
+      certData = await issueCertificate(me.score, i + 1, list.length);
+      $('doneCert').hidden = false;
     } catch (err) {
       console.error(err);
       $('retakeMsg').textContent = 'Не удалось выдать сертификат. Обновите страницу.';

@@ -9,578 +9,169 @@
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --purple: #6c2bd9;
-      --purple-dark: #3b0f8c;
-      --yellow: #ffd23f;
-      --orange: #ff7a1a;
-      --white: #ffffff;
-      --text-light: rgba(255, 255, 255, 0.85);
-      --danger: #ffb3a7;
+      --purple: #6c2bd9; --purple-dark: #3b0f8c; --yellow: #ffd23f; --orange: #ff7a1a;
+      --white: #ffffff; --text-light: rgba(255,255,255,.85); --danger: #ffb3a7;
     }
-
     * { box-sizing: border-box; margin: 0; padding: 0; }
     [hidden] { display: none !important; }
-    html, body { height: 100%; }
-
+    html, body { min-height: 100%; }
     body {
-      font-family: "Manrope", system-ui, sans-serif;
-      color: var(--white);
+      font-family: "Manrope", system-ui, sans-serif; color: var(--white);
       background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple) 50%, #9b3fe8 100%);
-      min-height: 100vh;
-      overflow-x: hidden;
-      position: relative;
+      min-height: 100vh; overflow-x: hidden; position: relative;
     }
-
-    /* ---------- Анимированный фон (как на главной) ---------- */
     .bg-shapes { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .shape { position: absolute; border-radius: 50%; opacity: .5; filter: blur(2px); animation: float 14s ease-in-out infinite; }
+    .shape.s1 { width: 340px; height: 340px; background: radial-gradient(circle at 30% 30%, var(--orange), #ff4d6d); top: -80px; left: -60px; }
+    .shape.s2 { width: 240px; height: 240px; background: radial-gradient(circle at 30% 30%, var(--yellow), var(--orange)); top: 30%; right: -70px; animation-delay: -4s; }
+    .shape.s3 { width: 180px; height: 180px; background: radial-gradient(circle at 30% 30%, #c084fc, var(--purple)); bottom: 5%; left: 15%; animation-delay: -2s; }
+    @keyframes float { 0%,100% { transform: translate(0,0) scale(1); } 33% { transform: translate(40px,-30px) scale(1.06); } 66% { transform: translate(-30px,25px) scale(.95); } }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
 
-    .shape {
-      position: absolute;
-      border-radius: 50%;
-      opacity: 0.55;
-      filter: blur(2px);
-      animation: float 14s ease-in-out infinite;
-    }
-    .shape.s1 { width: 340px; height: 340px; background: radial-gradient(circle at 30% 30%, var(--orange), #ff4d6d); top: -80px; left: -60px; animation-duration: 16s; }
-    .shape.s2 { width: 240px; height: 240px; background: radial-gradient(circle at 30% 30%, var(--yellow), var(--orange)); top: 30%; right: -70px; animation-duration: 18s; animation-delay: -4s; }
-    .shape.s3 { width: 180px; height: 180px; background: radial-gradient(circle at 30% 30%, #c084fc, var(--purple)); bottom: 5%; left: 15%; animation-duration: 12s; animation-delay: -2s; }
-    .shape.s4 { width: 120px; height: 120px; background: var(--yellow); bottom: 20%; right: 20%; opacity: 0.35; animation-duration: 10s; }
+    header { position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 20px clamp(20px,5vw,60px); }
+    .logo { display: flex; align-items: center; gap: 10px; font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 22px; color: var(--white); text-decoration: none; }
+    .logo-mark { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, var(--yellow), var(--orange)); display: grid; place-items: center; color: var(--purple-dark); font-size: 22px; transform: rotate(-6deg); }
+    .btn-outline { font-family: inherit; font-weight: 700; font-size: 15px; color: var(--white); background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.5); border-radius: 999px; padding: 10px 20px; text-decoration: none; backdrop-filter: blur(6px); }
+    .btn-outline:hover { background: rgba(255,255,255,.22); }
 
-    .blob {
-      position: absolute;
-      width: 420px;
-      height: 420px;
-      background: rgba(255, 210, 63, 0.18);
-      border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      animation: morph 20s ease-in-out infinite, spin 40s linear infinite;
-      filter: blur(30px);
-    }
-
-    .star { position: absolute; font-size: 22px; color: var(--yellow); opacity: 0.8; animation: twinkle 3s ease-in-out infinite; }
-
-    .quiz-icon {
-      position: absolute;
-      font-family: "Unbounded", sans-serif;
-      font-weight: 900;
-      color: rgba(255, 255, 255, 0.18);
-      animation: drift 22s linear infinite;
-      user-select: none;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) scale(1); }
-      33% { transform: translate(40px, -30px) scale(1.06); }
-      66% { transform: translate(-30px, 25px) scale(0.95); }
-    }
-    @keyframes morph {
-      0%, 100% { border-radius: 42% 58% 70% 30% / 45% 45% 55% 55%; }
-      50% { border-radius: 70% 30% 46% 54% / 30% 60% 40% 70%; }
-    }
-    @keyframes spin {
-      from { transform: translate(-50%, -50%) rotate(0deg); }
-      to { transform: translate(-50%, -50%) rotate(360deg); }
-    }
-    @keyframes twinkle {
-      0%, 100% { opacity: 0.3; transform: scale(0.8) rotate(0deg); }
-      50% { opacity: 1; transform: scale(1.2) rotate(20deg); }
-    }
-    @keyframes drift {
-      from { transform: translateY(110vh) rotate(0deg); }
-      to { transform: translateY(-20vh) rotate(360deg); }
-    }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(24px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* ---------- Шапка ---------- */
-    header {
-      position: relative;
-      z-index: 10;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 20px clamp(20px, 5vw, 60px);
-    }
-
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-family: "Unbounded", sans-serif;
-      font-weight: 900;
-      font-size: 22px;
-      color: var(--white);
-      text-decoration: none;
-    }
-    .logo-mark {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, var(--yellow), var(--orange));
-      display: grid;
-      place-items: center;
-      color: var(--purple-dark);
-      font-size: 22px;
-      box-shadow: 0 6px 18px rgba(255, 122, 26, 0.45);
-      transform: rotate(-6deg);
-    }
-
-    .btn-outline {
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 15px;
-      color: var(--white);
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.5);
-      border-radius: 999px;
-      padding: 10px 20px;
-      text-decoration: none;
-      backdrop-filter: blur(6px);
-      transition: background 0.2s ease;
-    }
-    .btn-outline:hover { background: rgba(255, 255, 255, 0.22); }
-
-    /* ---------- Основная область ---------- */
-    main {
-      position: relative;
-      z-index: 5;
-      max-width: 760px;
-      margin: 0 auto;
-      padding: 10px 20px 80px;
-    }
-
-    .steps {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-bottom: 26px;
-      animation: fadeUp 0.6s ease both;
-    }
-    .step-pill {
-      font-size: 14px;
-      font-weight: 700;
-      padding: 9px 16px;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      color: var(--text-light);
-      transition: background 0.3s ease, color 0.3s ease;
-    }
+    main { position: relative; z-index: 5; max-width: 800px; margin: 0 auto; padding: 10px 20px 80px; }
+    .steps { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 26px; }
+    .step-pill { font-size: 14px; font-weight: 700; padding: 9px 16px; border-radius: 999px; background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); color: var(--text-light); }
     .step-pill.active { background: var(--yellow); color: var(--purple-dark); border-color: var(--yellow); }
-    .step-pill.done { background: rgba(255, 255, 255, 0.25); color: var(--white); }
+    .step-pill.done { background: rgba(255,255,255,.25); color: var(--white); }
 
-    .card {
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(12px);
-      border-radius: 24px;
-      padding: 30px;
-      animation: fadeUp 0.5s ease both;
-    }
+    .card { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25); backdrop-filter: blur(12px); border-radius: 24px; padding: 30px; animation: fadeUp .5s ease both; }
+    .card h1 { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: clamp(24px,4vw,34px); line-height: 1.15; margin-bottom: 8px; }
+    .lead { color: var(--text-light); font-size: 16px; line-height: 1.5; margin-bottom: 24px; }
+    .section-title { font-weight: 800; font-size: 17px; margin: 28px 0 12px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,.2); }
+    .section-title:first-of-type { margin-top: 0; padding-top: 0; border-top: none; }
 
-    .card h1 {
-      font-family: "Unbounded", sans-serif;
-      font-weight: 900;
-      font-size: clamp(24px, 4vw, 34px);
-      line-height: 1.15;
-      margin-bottom: 8px;
-    }
-    .card .lead {
-      color: var(--text-light);
-      font-size: 16px;
-      line-height: 1.5;
-      margin-bottom: 24px;
-    }
-
-    label.field-label {
-      display: block;
-      font-weight: 700;
-      font-size: 14px;
-      margin-bottom: 8px;
-      color: var(--text-light);
-    }
+    label.field-label { display: block; font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--text-light); }
     .field { margin-bottom: 18px; }
-
-    input, textarea {
-      font-family: inherit;
-      font-size: 16px;
-      color: var(--purple-dark);
-      background: var(--white);
-      border: 3px solid transparent;
-      border-radius: 14px;
-      padding: 13px 16px;
-      outline: none;
-      width: 100%;
-      transition: border-color 0.2s ease;
-      resize: vertical;
-    }
+    input, textarea, select { font-family: inherit; font-size: 16px; color: var(--purple-dark); background: var(--white); border: 3px solid transparent; border-radius: 14px; padding: 13px 16px; outline: none; width: 100%; transition: border-color .2s ease; }
     input:focus, textarea:focus, select:focus { border-color: var(--yellow); }
-    select {
-      font-family: inherit;
-      font-size: 16px;
-      color: var(--purple-dark);
-      background: var(--white);
-      border: 3px solid transparent;
-      border-radius: 14px;
-      padding: 13px 16px;
-      outline: none;
-      width: 100%;
-    }
+    textarea { resize: vertical; }
     input::placeholder, textarea::placeholder { color: #9a8bc4; }
-
+    .code-ta { font-family: "Consolas", "Courier New", monospace; font-size: 15px; line-height: 1.45; background: #1e1640; color: #e9e3ff; border-color: transparent; }
+    .code-ta:focus { border-color: var(--yellow); }
     .counter { text-align: right; font-size: 12px; color: var(--text-light); margin-top: 6px; }
 
-    .error {
-      color: var(--danger);
-      font-size: 14px;
-      font-weight: 700;
-      min-height: 20px;
-      margin: 4px 0 12px;
-    }
+    .toggle { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; color: var(--white); font-weight: 600; font-size: 15px; line-height: 1.4; margin-bottom: 14px; }
+    .toggle input[type="checkbox"] { width: 22px; height: 22px; flex-shrink: 0; accent-color: var(--yellow); padding: 0; margin-top: 1px; }
+    .toggle-sub { margin: -6px 0 16px 34px; font-size: 13px; color: var(--text-light); line-height: 1.45; }
 
-    .btn-row { display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; margin-top: 8px; }
-
-    .btn-primary {
-      font-family: inherit;
-      font-weight: 800;
-      font-size: 17px;
-      color: var(--purple-dark);
-      background: linear-gradient(135deg, var(--yellow), var(--orange));
-      border: none;
-      border-radius: 16px;
-      padding: 16px 32px;
-      cursor: pointer;
-      box-shadow: 0 10px 30px rgba(255, 122, 26, 0.45);
-      transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-    }
-    .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 14px 36px rgba(255, 122, 26, 0.55); }
-    .btn-primary:disabled { opacity: 0.6; cursor: wait; transform: none; }
-
-    .btn-ghost {
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 16px;
-      color: var(--white);
-      background: rgba(255, 255, 255, 0.1);
-      border: 2px solid rgba(255, 255, 255, 0.5);
-      border-radius: 16px;
-      padding: 14px 24px;
-      cursor: pointer;
-      transition: background 0.2s ease;
-    }
-    .btn-ghost:hover { background: rgba(255, 255, 255, 0.22); }
-
-    .btn-link {
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 15px;
-      color: var(--yellow);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 8px 0;
-      text-decoration: underline;
-      text-underline-offset: 3px;
-    }
-
-    /* ---------- Вопросы ---------- */
-    .q-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 18px; }
-
-    .q-card {
-      background: var(--white);
-      color: var(--purple-dark);
-      border-radius: 18px;
-      padding: 20px;
-      box-shadow: 0 10px 30px rgba(20, 0, 60, 0.25);
-      animation: fadeUp 0.35s ease both;
-    }
-
-    .q-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-    .q-num {
-      width: 32px;
-      height: 32px;
-      border-radius: 10px;
-      background: linear-gradient(135deg, var(--yellow), var(--orange));
-      display: grid;
-      place-items: center;
-      font-family: "Unbounded", sans-serif;
-      font-weight: 900;
-      font-size: 14px;
-      color: var(--purple-dark);
-      flex-shrink: 0;
-    }
-    .q-type {
-      font-size: 13px;
-      font-weight: 800;
-      color: var(--purple);
-      background: #efeaff;
-      padding: 6px 12px;
-      border-radius: 999px;
-    }
-    .q-del {
-      margin-left: auto;
-      width: 34px;
-      height: 34px;
-      border-radius: 50%;
-      border: none;
-      background: #f3f0fa;
-      color: var(--purple-dark);
-      font-size: 18px;
-      cursor: pointer;
-      line-height: 1;
-    }
-    .q-del:hover { background: #ffe3df; }
-
-    .q-card input[type="text"] {
-      background: #f5f3fb;
-      color: var(--purple-dark);
-      font-weight: 700;
-      margin-bottom: 14px;
-    }
-    .q-card input[type="text"]:focus { border-color: var(--purple); }
-
-    .row-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-    .row-item input[type="text"] { margin-bottom: 0; padding: 11px 14px; font-size: 15px; }
-    .row-item input[type="radio"] {
-      appearance: none;
-      width: 22px;
-      height: 22px;
-      border-radius: 50%;
-      border: 2px solid var(--purple);
-      flex-shrink: 0;
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-    }
-    .row-item input[type="radio"]:checked {
-      background: var(--green, #5cc26b);
-      border-color: #46a955;
-      box-shadow: inset 0 0 0 4px #fff;
-    }
-    .row-item .rm {
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      border: none;
-      background: #f3f0fa;
-      color: var(--purple-dark);
-      cursor: pointer;
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-
-    .add-link {
-      font-family: inherit;
-      font-weight: 700;
-      font-size: 14px;
-      color: var(--purple);
-      background: none;
-      border: 2px dashed #c9bdf0;
-      border-radius: 12px;
-      padding: 10px;
-      width: 100%;
-      cursor: pointer;
-      margin-top: 4px;
-    }
-    .add-link:hover { background: #f7f4ff; }
-
-    .hint {
-      font-size: 13px;
-      color: #6f6790;
-      margin-top: 10px;
-      line-height: 1.45;
-    }
-
-    /* ---------- Выбор типа вопроса ---------- */
-    .chooser {
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px dashed rgba(255, 255, 255, 0.45);
-      border-radius: 20px;
-      padding: 20px;
-      margin-bottom: 18px;
-      animation: fadeUp 0.35s ease both;
-    }
-    .chooser-title { font-weight: 800; font-size: 16px; margin-bottom: 14px; }
-    .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-
-    .type-card {
-      text-align: left;
-      font-family: inherit;
-      color: var(--purple-dark);
-      background: var(--white);
-      border: 3px solid transparent;
-      border-radius: 18px;
-      padding: 18px;
-      cursor: pointer;
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-    .type-card:hover { transform: translateY(-3px); border-color: var(--yellow); }
-    .type-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 13px;
-      background: linear-gradient(135deg, var(--yellow), var(--orange));
-      display: grid;
-      place-items: center;
-      font-size: 22px;
-      margin-bottom: 12px;
-    }
-    .type-name { font-weight: 800; font-size: 16px; margin-bottom: 6px; }
-    .type-desc { font-size: 13px; color: #6f6790; line-height: 1.45; }
-
-    .time-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
-    .time-label { font-size: 13px; font-weight: 700; color: #6f6790; }
-    .q-card select {
-      width: auto;
-      font-size: 14px;
-      padding: 10px 12px;
-      background: #f5f3fb;
-      color: var(--purple-dark);
-      border: 2px solid transparent;
-    }
-    .q-card select:focus { border-color: var(--purple); }
-    .pts-input {
-      width: 90px;
-      font-size: 14px;
-      padding: 10px 12px;
-      background: #f5f3fb;
-      color: var(--purple-dark);
-      border: 2px solid transparent;
-      border-radius: 12px;
-    }
-    .pts-input:focus { border-color: var(--purple); }
-    .img-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
-    .img-preview { position: relative; }
-    .img-preview img {
-      display: block; height: 90px; width: auto; max-width: 180px;
-      object-fit: cover; border-radius: 12px; background: #f5f3fb;
-    }
-    .img-rm {
-      position: absolute; top: -8px; right: -8px; width: 26px; height: 26px;
-      border-radius: 50%; border: none; background: var(--purple-dark); color: #fff;
-      cursor: pointer; font-size: 16px; line-height: 1;
-    }
-    .add-img {
-      font-size: 13px; font-weight: 700; color: var(--purple);
-      background: #efeaff; padding: 9px 14px; border-radius: 999px; cursor: pointer;
-    }
-    .add-img:hover { background: #e2d9fb; }
-
-    /* ---------- СКР-тест: пороги оценок ---------- */
-    .skr-box { margin-top: 14px; background: rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 16px; }
-    .grade-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+    .skr-box { margin: -4px 0 18px; background: rgba(255,255,255,.1); border-radius: 16px; padding: 16px; }
+    .grade-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 10px; }
     .grade-cell { display: flex; flex-direction: column; gap: 6px; font-weight: 800; font-size: 14px; color: var(--text-light); text-align: center; }
     .grade-cell input { text-align: center; padding: 10px 6px; font-size: 16px; }
     .hint-light { color: var(--text-light); font-size: 13px; margin-top: 12px; line-height: 1.45; }
-    @media (max-width: 560px) { .grade-grid { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 560px) { .grade-grid { grid-template-columns: repeat(3,1fr); } }
 
-    .empty-q {
-      text-align: center;
-      color: var(--text-light);
-      padding: 18px 0;
-      font-size: 15px;
-    }
+    .error { color: var(--danger); font-size: 14px; font-weight: 700; min-height: 20px; margin: 4px 0 12px; }
+    .btn-row { display: flex; gap: 12px; justify-content: space-between; flex-wrap: wrap; margin-top: 8px; }
+    .btn-primary { font-family: inherit; font-weight: 800; font-size: 17px; color: var(--purple-dark); background: linear-gradient(135deg, var(--yellow), var(--orange)); border: none; border-radius: 16px; padding: 16px 32px; cursor: pointer; box-shadow: 0 10px 30px rgba(255,122,26,.45); transition: transform .2s ease, opacity .2s ease; }
+    .btn-primary:hover { transform: translateY(-3px); }
+    .btn-primary:disabled { opacity: .6; cursor: wait; transform: none; }
+    .btn-ghost { font-family: inherit; font-weight: 700; font-size: 16px; color: var(--white); background: rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.5); border-radius: 16px; padding: 14px 24px; cursor: pointer; }
+    .btn-ghost:hover { background: rgba(255,255,255,.22); }
+    .btn-link { font-family: inherit; font-weight: 700; font-size: 15px; color: var(--yellow); background: none; border: none; cursor: pointer; padding: 8px 0; text-decoration: underline; text-underline-offset: 3px; }
 
-    /* ---------- Готово ---------- */
+    .q-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 18px; }
+    .q-card { background: var(--white); color: var(--purple-dark); border-radius: 18px; padding: 20px; box-shadow: 0 10px 30px rgba(20,0,60,.25); animation: fadeUp .35s ease both; }
+    .q-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
+    .q-num { width: 32px; height: 32px; border-radius: 10px; background: linear-gradient(135deg, var(--yellow), var(--orange)); display: grid; place-items: center; font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 14px; color: var(--purple-dark); flex-shrink: 0; }
+    .q-type { font-size: 13px; font-weight: 800; color: var(--purple); background: #efeaff; padding: 6px 12px; border-radius: 999px; }
+    .q-del { margin-left: auto; width: 34px; height: 34px; border-radius: 50%; border: none; background: #f3f0fa; color: var(--purple-dark); font-size: 18px; cursor: pointer; line-height: 1; }
+    .q-del:hover { background: #ffe3df; }
+    .q-card input[type="text"] { background: #f5f3fb; color: var(--purple-dark); font-weight: 700; margin-bottom: 14px; }
+    .q-card input:focus, .q-card textarea:focus, .q-card select:focus { border-color: var(--purple); }
+    .q-card textarea:not(.code-ta) { background: #f5f3fb; color: var(--purple-dark); }
+    .sub-label { font-size: 13px; font-weight: 800; color: var(--purple); margin: 4px 0 8px; }
+
+    .row-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .row-item input[type="text"] { margin-bottom: 0; padding: 11px 14px; font-size: 15px; }
+    .row-item input[type="radio"] { appearance: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--purple); flex-shrink: 0; cursor: pointer; display: grid; place-items: center; }
+    .row-item input[type="radio"]:checked { background: #5cc26b; border-color: #46a955; box-shadow: inset 0 0 0 4px #fff; }
+    .rm, .mv { width: 30px; height: 30px; border-radius: 50%; border: none; background: #f3f0fa; color: var(--purple-dark); cursor: pointer; font-size: 15px; flex-shrink: 0; }
+    .mv:disabled { opacity: .35; cursor: default; }
+    .ord { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 13px; color: var(--purple); width: 22px; text-align: center; flex-shrink: 0; }
+
+    .add-link { font-family: inherit; font-weight: 700; font-size: 14px; color: var(--purple); background: none; border: 2px dashed #c9bdf0; border-radius: 12px; padding: 10px; width: 100%; cursor: pointer; margin-top: 4px; }
+    .add-link:hover { background: #f7f4ff; }
+    .inline-btn { font-family: inherit; font-weight: 700; font-size: 13px; color: var(--purple); background: #efeaff; border: none; border-radius: 999px; padding: 9px 14px; cursor: pointer; margin: 6px 0 10px; }
+    .inline-btn:hover { background: #e2d9fb; }
+    .hint { font-size: 13px; color: #6f6790; margin-top: 10px; line-height: 1.45; }
+    .block-group { background: #f7f5fc; border-radius: 14px; padding: 14px; margin-bottom: 14px; }
+
+    .chooser { background: rgba(255,255,255,.12); border: 1px dashed rgba(255,255,255,.45); border-radius: 20px; padding: 20px; margin-bottom: 18px; animation: fadeUp .35s ease both; }
+    .chooser-title { font-weight: 800; font-size: 16px; margin-bottom: 14px; }
+    .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .type-card { text-align: left; font-family: inherit; color: var(--purple-dark); background: var(--white); border: 3px solid transparent; border-radius: 18px; padding: 18px; cursor: pointer; transition: transform .2s ease, border-color .2s ease; }
+    .type-card:hover { transform: translateY(-3px); border-color: var(--yellow); }
+    .type-icon { width: 44px; height: 44px; border-radius: 13px; background: linear-gradient(135deg, var(--yellow), var(--orange)); display: grid; place-items: center; font-size: 22px; margin-bottom: 12px; }
+    .type-name { font-weight: 800; font-size: 16px; margin-bottom: 6px; }
+    .type-desc { font-size: 13px; color: #6f6790; line-height: 1.45; }
+    @media (max-width: 560px) { .type-grid { grid-template-columns: 1fr; } }
+
+    .time-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .time-label { font-size: 13px; font-weight: 700; color: #6f6790; }
+    .q-card select { width: auto; font-size: 14px; padding: 10px 12px; background: #f5f3fb; color: var(--purple-dark); border: 2px solid transparent; }
+    .pts-input { width: 90px; font-size: 14px; padding: 10px 12px; background: #f5f3fb; color: var(--purple-dark); border: 2px solid transparent; border-radius: 12px; }
+    .img-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .img-preview { position: relative; }
+    .img-preview img { display: block; height: 90px; width: auto; max-width: 180px; object-fit: cover; border-radius: 12px; background: #f5f3fb; }
+    .img-rm { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; border-radius: 50%; border: none; background: var(--purple-dark); color: #fff; cursor: pointer; font-size: 16px; line-height: 1; }
+    .add-img { font-size: 13px; font-weight: 700; color: var(--purple); background: #efeaff; padding: 9px 14px; border-radius: 999px; cursor: pointer; }
+    .add-img:hover { background: #e2d9fb; }
+    .empty-q { text-align: center; color: var(--text-light); padding: 18px 0; font-size: 15px; }
+
     .done-box { text-align: center; padding: 10px 0; }
     .done-emoji { font-size: 64px; margin-bottom: 10px; }
-    .code-big {
-      display: inline-block;
-      font-family: "Unbounded", sans-serif;
-      font-weight: 900;
-      font-size: clamp(34px, 7vw, 52px);
-      letter-spacing: 8px;
-      background: var(--white);
-      color: var(--purple-dark);
-      padding: 18px 28px;
-      border-radius: 20px;
-      margin: 14px 0 22px;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
-    }
+    .code-big { display: inline-block; font-family: "Unbounded", sans-serif; font-weight: 900; font-size: clamp(34px,7vw,52px); letter-spacing: 8px; background: var(--white); color: var(--purple-dark); padding: 18px 28px; border-radius: 20px; margin: 14px 0 22px; box-shadow: 0 12px 30px rgba(0,0,0,.25); }
     .done-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-go { text-decoration: none; display: inline-block; }
 
-    /* ---------- Тост ---------- */
-    .toast {
-      position: fixed;
-      bottom: 28px;
-      left: 50%;
-      transform: translateX(-50%) translateY(120px);
-      background: var(--yellow);
-      color: var(--purple-dark);
-      font-weight: 700;
-      padding: 14px 22px;
-      border-radius: 14px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-      transition: transform 0.35s ease;
-      z-index: 60;
-      max-width: calc(100% - 40px);
-      text-align: center;
-    }
+    .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(120px); background: var(--yellow); color: var(--purple-dark); font-weight: 700; padding: 14px 22px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: transform .35s ease; z-index: 60; max-width: calc(100% - 40px); text-align: center; }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
     @media (max-width: 560px) {
-      .type-grid { grid-template-columns: 1fr; }
       .card { padding: 22px; }
       .btn-primary, .btn-ghost { width: 100%; text-align: center; }
       .logo { font-size: 17px; }
       .logo-mark { width: 34px; height: 34px; font-size: 18px; }
       .btn-outline { padding: 9px 14px; font-size: 13px; }
     }
-
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation: none !important; transition: none !important; }
-    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   </style>
 </head>
 <body>
 
-  <!-- Анимированный фон -->
   <div class="bg-shapes" aria-hidden="true">
-    <div class="blob"></div>
     <div class="shape s1"></div>
     <div class="shape s2"></div>
     <div class="shape s3"></div>
-    <div class="shape s4"></div>
-    <div class="star" style="top: 15%; left: 10%; animation-delay: 0s;">✦</div>
-    <div class="star" style="top: 70%; left: 45%; animation-delay: 1s;">✦</div>
-    <div class="star" style="top: 25%; right: 12%; animation-delay: 2s;">✦</div>
-    <div class="star" style="top: 80%; right: 30%; animation-delay: 0.5s;">✦</div>
-    <div class="quiz-icon" style="left: 8%; font-size: 90px; animation-delay: 0s;">?</div>
-    <div class="quiz-icon" style="left: 35%; font-size: 60px; animation-delay: -7s;">!</div>
-    <div class="quiz-icon" style="left: 62%; font-size: 110px; animation-delay: -13s;">?</div>
-    <div class="quiz-icon" style="left: 88%; font-size: 70px; animation-delay: -18s;">!</div>
   </div>
 
-  <!-- Шапка -->
   <header>
-    <a href="index.html" class="logo">
-      <span class="logo-mark">?</span>
-      Изи квиз
-    </a>
+    <a href="index.html" class="logo"><span class="logo-mark">?</span>Изи квиз</a>
     <a href="cabinet.html" class="btn-outline">Личный кабинет</a>
   </header>
 
   <main>
     <div class="steps" aria-label="Шаги создания">
-      <span class="step-pill active" id="pill1">1. Название</span>
+      <span class="step-pill active" id="pill1">1. Настройки</span>
       <span class="step-pill" id="pill2">2. Вопросы</span>
       <span class="step-pill" id="pill3">3. Готово</span>
     </div>
 
-    <!-- Шаг 1: название и описание -->
+    <!-- Шаг 1: настройки -->
     <section class="card" id="step1">
-      <h1>Как назовём квиз?</h1>
-      <p class="lead">Название увидят игроки, а описание поможет понять, о чём квиз.</p>
+      <h1 id="step1Title">Как назовём квиз?</h1>
+      <p class="lead">Название увидят игроки, а настройки определяют, как проходит квиз.</p>
 
       <div class="field">
         <label class="field-label" for="titleInput">Название</label>
-        <input type="text" id="titleInput" maxlength="80" placeholder="Например, «Знаешь ли ты столицы?»" />
+        <input type="text" id="titleInput" maxlength="80" placeholder="Например, «Основы C#»" />
         <div class="counter"><span id="titleCount">0</span>/80</div>
       </div>
 
@@ -604,49 +195,41 @@
         </select>
       </div>
 
-      <div class="field">
-        <label class="field-label" style="display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--white)">
-          <input type="checkbox" id="showAnswersInput" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--yellow);padding:0" />
-          Показывать игрокам, верный ли ответ, и правильный ответ
-        </label>
-      </div>
+      <div class="section-title">Игра</div>
 
-      <div class="field">
-        <label class="field-label" style="display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--white)">
-          <input type="checkbox" id="shuffleInput" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--yellow);padding:0" />
-          Перемешивать вопросы (каждый раз в случайном порядке)
-        </label>
-      </div>
+      <label class="toggle"><input type="checkbox" id="showAnswersInput" />Показывать игрокам, верный ли ответ, и правильный ответ</label>
+      <label class="toggle"><input type="checkbox" id="shuffleInput" />Перемешивать вопросы (каждый раз в случайном порядке)</label>
+      <label class="toggle"><input type="checkbox" id="manualInput" />Ручное переключение вопросов (ведущий нажимает «Следующий вопрос»)</label>
+      <label class="toggle"><input type="checkbox" id="noPasteInput" />Запрет вставки ответов (участники не смогут вставлять текст из буфера обмена)</label>
 
-      <div class="field">
-        <label class="field-label" style="display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--white)">
-          <input type="checkbox" id="manualInput" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--yellow);padding:0" />
-          Ручное переключение вопросов (ведущий нажимает «Следующий вопрос»)
-        </label>
-      </div>
+      <div class="section-title">Участники</div>
 
-      <div class="field">
-        <label class="field-label" style="display:flex;align-items:center;gap:12px;cursor:pointer;color:var(--white)">
-          <input type="checkbox" id="skrInput" style="width:22px;height:22px;flex-shrink:0;accent-color:var(--yellow);padding:0" />
-          СКР-тест: оценки 5–1 по баллам (сертификат с оценкой)
-        </label>
-        <div class="skr-box" id="skrBox" hidden>
-          <div class="grade-grid">
-            <div class="grade-cell">Оценка 5<input type="number" id="gr5" min="0" max="10000" placeholder="баллов" /></div>
-            <div class="grade-cell">Оценка 4<input type="number" id="gr4" min="0" max="10000" placeholder="баллов" /></div>
-            <div class="grade-cell">Оценка 3<input type="number" id="gr3" min="0" max="10000" placeholder="баллов" /></div>
-            <div class="grade-cell">Оценка 2<input type="number" id="gr2" min="0" max="10000" placeholder="баллов" /></div>
-            <div class="grade-cell">Оценка 1<input type="number" id="gr1" min="0" max="10000" placeholder="баллов" /></div>
-          </div>
-          <div class="hint-light">Минимальное число баллов для каждой оценки. Например, 5 — от 18 баллов. У каждого вопроса в СКР-тесте нужно указать баллы (от 1).</div>
+      <label class="toggle"><input type="checkbox" id="requireNameInput" />Требовать ФИО</label>
+      <div class="toggle-sub">Участник вводит фамилию, имя и отчество. Имя попадёт в сертификат и отчёт.</div>
+      <label class="toggle"><input type="checkbox" id="requireGroupInput" />Требовать группу</label>
+      <div class="toggle-sub">Участник указывает группу или класс.</div>
+
+      <div class="section-title">Режимы</div>
+
+      <label class="toggle"><input type="checkbox" id="skrInput" />СКР-тест: оценки 5–1 по баллам (сертификат с оценкой)</label>
+      <div class="skr-box" id="skrBox" hidden>
+        <div class="grade-grid">
+          <div class="grade-cell">Оценка 5<input type="number" id="gr5" min="0" max="10000" placeholder="баллов" /></div>
+          <div class="grade-cell">Оценка 4<input type="number" id="gr4" min="0" max="10000" placeholder="баллов" /></div>
+          <div class="grade-cell">Оценка 3<input type="number" id="gr3" min="0" max="10000" placeholder="баллов" /></div>
+          <div class="grade-cell">Оценка 2<input type="number" id="gr2" min="0" max="10000" placeholder="баллов" /></div>
+          <div class="grade-cell">Оценка 1<input type="number" id="gr1" min="0" max="10000" placeholder="баллов" /></div>
         </div>
+        <div class="hint-light">Минимальное число баллов для каждой оценки. У каждого вопроса в СКР-тесте нужно указать баллы (от 1).</div>
       </div>
 
-      <div class="field">
+      <label class="toggle"><input type="checkbox" id="masterInput" />MasterCode: задания с кодом (код для исправления и сборка кода из блоков)</label>
+      <div class="toggle-sub">Включает типы вопросов «Код» и «Блоки». Участникам имеет смысл требовать ФИО и группу.</div>
+
+      <div class="field" style="margin-top:14px">
         <label class="field-label" for="startInput">Дата и время открытия <span style="opacity:.7;font-weight:600">(необязательно)</span></label>
         <input type="datetime-local" id="startInput" />
       </div>
-
       <div class="field">
         <label class="field-label" for="endInput">Дата и время закрытия <span style="opacity:.7;font-weight:600">(необязательно)</span></label>
         <input type="datetime-local" id="endInput" />
@@ -662,7 +245,7 @@
     <!-- Шаг 2: вопросы -->
     <section class="card" id="step2" hidden>
       <h1>Вопросы</h1>
-      <p class="lead">Добавьте хотя бы один вопрос. Выберите тип: обычный тест или вопрос с вводом ответа.</p>
+      <p class="lead">Добавьте хотя бы один вопрос. Типы «Код» и «Блоки» доступны при включённом MasterCode.</p>
 
       <div class="q-list" id="questionList"></div>
 
@@ -672,12 +255,22 @@
           <button class="type-card" data-type="choice">
             <div class="type-icon">🔘</div>
             <div class="type-name">Обычный тест</div>
-            <div class="type-desc">Вопрос и несколько вариантов ответа. Игрок выбирает один правильный.</div>
+            <div class="type-desc">Вопрос и варианты ответа. Игрок выбирает правильный.</div>
           </button>
           <button class="type-card" data-type="open">
             <div class="type-icon">⌨️</div>
             <div class="type-name">Свой ответ</div>
-            <div class="type-desc">Вы пишете вопрос и правильные ответы. Игрок вводит ответ сам.</div>
+            <div class="type-desc">Игрок вводит ответ сам. Засчитываются заданные варианты.</div>
+          </button>
+          <button class="type-card mc-only" data-type="code" hidden>
+            <div class="type-icon">💻</div>
+            <div class="type-name">Код</div>
+            <div class="type-desc">Игрок пишет код или исправляет готовый код.</div>
+          </button>
+          <button class="type-card mc-only" data-type="blocks" hidden>
+            <div class="type-icon">🧩</div>
+            <div class="type-name">Блоки</div>
+            <div class="type-desc">Игрок собирает код из блоков в правильном порядке.</div>
           </button>
         </div>
         <div class="btn-row" style="margin-top:14px">
@@ -698,12 +291,12 @@
     <section class="card" id="step3" hidden>
       <div class="done-box">
         <div class="done-emoji">🎉</div>
-        <h1>Квиз создан!</h1>
+        <h1 id="doneTitle">Квиз создан!</h1>
         <p class="lead">Передайте игрокам этот код, чтобы они могли войти в квиз.</p>
         <div class="code-big" id="codeOut">000000</div>
         <div class="done-actions">
           <button class="btn-ghost" id="copyCode">Скопировать код</button>
-          <a class="btn-primary" href="cabinet.html" style="text-decoration:none;display:inline-block">В личный кабинет</a>
+          <a class="btn-primary btn-go" href="cabinet.html">В личный кабинет</a>
         </div>
       </div>
     </section>
@@ -730,7 +323,131 @@
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  // Уменьшаем фото до 1280px и сжимаем в JPEG, чтобы быстро грузить и не занимать много места
+  const $ = (id) => document.getElementById(id);
+  const MAX_OPTIONS = 6;
+  const MAX_ANSWERS = 10;
+  const GRADE_KEYS = [5, 4, 3, 2, 1];
+  const TIME_OPTIONS = [
+    [0, 'По умолчанию (из настроек квиза)'],
+    [10, '10 секунд'], [15, '15 секунд'], [20, '20 секунд'], [30, '30 секунд'],
+    [45, '45 секунд'], [60, '1 минута'], [90, '1,5 минуты'], [120, '2 минуты']
+  ];
+  const TYPE_NAMES = { choice: 'Обычный тест', open: 'Свой ответ', code: 'Код', blocks: 'Блоки' };
+  const MC_TYPES = ['code', 'blocks'];
+
+  const toTs = (v) => (v ? Timestamp.fromDate(new Date(v)) : null);
+  const toLocalInput = (ts) => {
+    if (!ts || typeof ts.toDate !== 'function') return '';
+    const d = ts.toDate();
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+  };
+
+  function esc(s) {
+    return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // Разбивка кода на блоки: строки, числа, имена, знаки и операторы
+  function tokenize(code) {
+    return (code.match(/"[^"]*"|'[^']*'|[A-Za-z_]\w*|\d+(?:\.\d+)?|==|!=|<=|>=|&&|\|\||\S/g) || []);
+  }
+
+  function shuffle(a) {
+    const r = [...a];
+    for (let i = r.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [r[i], r[j]] = [r[j], r[i]];
+    }
+    return r;
+  }
+
+  let user = null;
+  const editCode = new URLSearchParams(location.search).get('code');
+
+  let toastTimer;
+  function showToast(text) {
+    const t = $('toast');
+    t.textContent = text;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+  }
+
+  onAuthStateChanged(auth, (u) => {
+    if (!u) { window.location.replace('index.html'); return; }
+    user = u;
+    if (editCode) loadForEdit();
+  });
+
+  const state = { title: '', description: '', questions: [] };
+
+  /* ---------- Шаг 1 ---------- */
+  $('titleInput').addEventListener('input', (e) => {
+    state.title = e.target.value;
+    $('titleCount').textContent = e.target.value.length;
+    $('step1Error').textContent = '';
+  });
+  $('descInput').addEventListener('input', (e) => {
+    state.description = e.target.value;
+    $('descCount').textContent = e.target.value.length;
+  });
+
+  $('skrInput').addEventListener('change', (e) => { $('skrBox').hidden = !e.target.checked; });
+
+  $('masterInput').addEventListener('change', (e) => {
+    if (!e.target.checked) {
+      const n = state.questions.filter((q) => MC_TYPES.includes(q.type)).length;
+      if (n && !confirm(`Без MasterCode вопросы «Код» и «Блоки» (${n}) будут удалены. Продолжить?`)) {
+        e.target.checked = true;
+        return;
+      }
+      state.questions = state.questions.filter((q) => !MC_TYPES.includes(q.type));
+      renderQuestions();
+    }
+    applyMasterVisibility();
+  });
+
+  function applyMasterVisibility() {
+    const on = $('masterInput').checked;
+    document.querySelectorAll('.mc-only').forEach((el) => { el.hidden = !on; });
+  }
+
+  function readGrades() {
+    if (!$('skrInput').checked) return null;
+    const out = {};
+    GRADE_KEYS.forEach((g) => { out[g] = $('gr' + g).value === '' ? NaN : Number($('gr' + g).value); });
+    return out;
+  }
+
+  $('toStep2').addEventListener('click', () => {
+    if (!state.title.trim()) {
+      $('step1Error').textContent = 'Введите название квиза';
+      $('titleInput').focus();
+      return;
+    }
+    const s = $('startInput').value;
+    const e = $('endInput').value;
+    if (s && e && new Date(e) <= new Date(s)) {
+      $('step1Error').textContent = 'Дата закрытия должна быть позже даты открытия';
+      return;
+    }
+    showStep(2);
+  });
+  $('backToStep1').addEventListener('click', () => showStep(1));
+
+  function setPill(n) {
+    [1, 2, 3].forEach((i) => {
+      $('pill' + i).classList.toggle('active', i === n);
+      $('pill' + i).classList.toggle('done', i < n);
+    });
+  }
+  function showStep(n) {
+    ['step1', 'step2', 'step3'].forEach((id, i) => { $(id).hidden = i + 1 !== n; });
+    setPill(n);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ---------- Фото вопросов ---------- */
   async function compressImage(file) {
     const img = await new Promise((resolve, reject) => {
       const url = URL.createObjectURL(file);
@@ -746,228 +463,145 @@
     canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
     return new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.7));
   }
-
   function blobToDataUrl(blob) {
     return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
     });
   }
 
   async function uploadQuestionImage(idx, file) {
-    if (!user) {
-      $('step2Error').textContent = 'Войдите в аккаунт, чтобы загружать фото';
-      return;
-    }
-    if (!file.type.startsWith('image/')) {
-      $('step2Error').textContent = 'Можно загружать только изображения';
-      return;
-    }
-    if (file.size > 15 * 1024 * 1024) {
-      $('step2Error').textContent = 'Фото больше 15 МБ. Выберите файл поменьше';
-      return;
-    }
+    if (!user) { $('step2Error').textContent = 'Войдите в аккаунт, чтобы загружать фото'; return; }
+    if (!file.type.startsWith('image/')) { $('step2Error').textContent = 'Можно загружать только изображения'; return; }
+    if (file.size > 15 * 1024 * 1024) { $('step2Error').textContent = 'Фото больше 15 МБ'; return; }
 
     const q = state.questions[idx];
     q.uploading = true;
     renderQuestions();
     $('step2Error').textContent = '';
-
     try {
       const blob = await compressImage(file);
-      // Документ Firestore не может быть больше 1 МБ, поэтому фото должно помещаться с запасом
       if (blob.size > 700000) {
         $('step2Error').textContent = 'Фото слишком большое даже после сжатия. Выберите другое изображение';
         return;
       }
       const dataUrl = await blobToDataUrl(blob);
       const imageId = `${user.uid.slice(0, 8)}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-      await setDoc(doc(db, 'quizImages', imageId), {
-        data: dataUrl,
-        ownerUid: user.uid,
-        createdAt: serverTimestamp()
-      });
+      await setDoc(doc(db, 'quizImages', imageId), { data: dataUrl, ownerUid: user.uid, createdAt: serverTimestamp() });
       q.image = { id: imageId, preview: dataUrl };
     } catch (err) {
       console.error(err);
-      $('step2Error').textContent = 'Не удалось загрузить фото. Проверьте интернет и настройки Storage';
+      $('step2Error').textContent = 'Не удалось загрузить фото. Проверьте интернет';
     } finally {
       q.uploading = false;
       renderQuestions();
     }
   }
 
-  const USER_KEY = 'izi_user';
-  const MAX_OPTIONS = 6;
-  const MAX_ANSWERS = 10;
-
-  // Дата из поля datetime-local -> Timestamp (или null, если не задана)
-  const toTs = (v) => (v ? Timestamp.fromDate(new Date(v)) : null);
-
-  // Timestamp -> значение для поля datetime-local
-  const toLocalInput = (ts) => {
-    if (!ts || typeof ts.toDate !== 'function') return '';
-    const d = ts.toDate();
-    const p = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-  };
-  const TIME_OPTIONS = [
-    [0, 'По умолчанию (из настроек квиза)'],
-    [10, '10 секунд'], [15, '15 секунд'], [20, '20 секунд'], [30, '30 секунд'],
-    [45, '45 секунд'], [60, '1 минута'], [90, '1,5 минуты'], [120, '2 минуты']
-  ];
-  const $ = (id) => document.getElementById(id);
-
-  // Защита: создавать квиз можно только после входа
-  let user = null;
-  onAuthStateChanged(auth, (u) => {
-    if (!u) {
-      window.location.replace('index.html');
-      return;
+  /* ---------- Шаг 2: отрисовка вопросов ---------- */
+  function questionBody(q, i) {
+    if (q.type === 'choice') {
+      return `
+        <div class="hint" style="margin:0 0 10px">Отметьте кружком правильный вариант.</div>
+        ${q.options.map((opt, j) => `
+          <div class="row-item">
+            <input type="radio" name="correct-${i}" data-correct="${i}" data-idx="${j}" ${q.correct === j ? 'checked' : ''} aria-label="Правильный вариант" />
+            <input type="text" data-opt="${i}" data-idx="${j}" value="${esc(opt)}" placeholder="Вариант ${j + 1}" maxlength="120" />
+            ${q.options.length > 2 ? `<button class="rm" data-rm-opt="${i}" data-idx="${j}" aria-label="Удалить вариант">×</button>` : ''}
+          </div>`).join('')}
+        ${q.options.length < MAX_OPTIONS ? `<button class="add-link" data-add-opt="${i}">+ Вариант</button>` : ''}`;
     }
-    user = u;
-    if (editCode) loadForEdit();
-  });
 
-  /* ---------- Состояние ---------- */
-  const state = {
-    title: '',
-    description: '',
-    questions: [] // { type:'choice', text, options:[], correct } | { type:'open', text, answers:[] }
-  };
-
-  /* ---------- Утилиты ---------- */
-  let toastTimer;
-  function showToast(text) {
-    const t = $('toast');
-    t.textContent = text;
-    t.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
-  }
-
-  function escapeHtml(str) {
-    return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  }
-
-  function setPill(n) {
-    [1, 2, 3].forEach((i) => {
-      const pill = $('pill' + i);
-      pill.classList.toggle('active', i === n);
-      pill.classList.toggle('done', i < n);
-    });
-  }
-
-  function showStep(n) {
-    ['step1', 'step2', 'step3'].forEach((id, i) => { $(id).hidden = i + 1 !== n; });
-    setPill(n);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
-
-  /* ---------- Шаг 1 ---------- */
-  $('titleInput').addEventListener('input', (e) => {
-    state.title = e.target.value;
-    $('titleCount').textContent = e.target.value.length;
-    $('step1Error').textContent = '';
-  });
-  $('descInput').addEventListener('input', (e) => {
-    state.description = e.target.value;
-    $('descCount').textContent = e.target.value.length;
-  });
-
-  $('toStep2').addEventListener('click', () => {
-    if (!state.title.trim()) {
-      $('step1Error').textContent = 'Введите название квиза';
-      $('titleInput').focus();
-      return;
+    if (q.type === 'open') {
+      return `
+        <div class="hint" style="margin:0 0 10px">Введите правильный ответ. Можно добавить другие варианты, которые тоже засчитываются.</div>
+        ${q.answers.map((ans, j) => `
+          <div class="row-item">
+            <input type="text" data-ans="${i}" data-idx="${j}" value="${esc(ans)}" placeholder="${j === 0 ? 'Правильный ответ' : 'Другой вариант ответа'}" maxlength="120" />
+            ${q.answers.length > 1 ? `<button class="rm" data-rm-ans="${i}" data-idx="${j}" aria-label="Удалить ответ">×</button>` : ''}
+          </div>`).join('')}
+        ${q.answers.length < MAX_ANSWERS ? `<button class="add-link" data-add-ans="${i}">+ Ещё вариант ответа</button>` : ''}
+        <div class="hint">Регистр не важен. Пробелы по краям не учитываются.</div>`;
     }
-    const startVal = $('startInput').value;
-    const endVal = $('endInput').value;
-    if (startVal && endVal && new Date(endVal) <= new Date(startVal)) {
-      $('step1Error').textContent = 'Дата закрытия должна быть позже даты открытия';
-      return;
+
+    if (q.type === 'code') {
+      return `
+        <div class="sub-label">Код</div>
+        <textarea class="code-ta" rows="5" data-ctext="${i}" placeholder='Например: Console.WriteLine("Hello, World!");'>${esc(q.code)}</textarea>
+        <label class="toggle" style="margin:12px 0 10px">
+          <input type="checkbox" data-bug="${i}" ${q.hasBug ? 'checked' : ''} />
+          Код не верный, нужно исправить (это будет задание для участников)
+        </label>
+        ${q.hasBug ? `
+          <div class="sub-label">Правильный код</div>
+          <textarea class="code-ta" rows="5" data-ccode="${i}" placeholder="Код, который должен получиться">${esc(q.correctCode)}</textarea>
+          <div class="hint">Участник увидит код выше и исправит его. Проверка построчно: пробелы в начале и конце строк не учитываются.</div>`
+        : `<div class="hint">Участник увидит пустое поле и напишет код сам. Проверка по тому же правилу.</div>`}`;
     }
-    showStep(2);
-  });
 
-  $('backToStep1').addEventListener('click', () => showStep(1));
-
-  // СКР-тест: показываем пороги оценок только когда галочка включена
-  $('skrInput').addEventListener('change', (e) => { $('skrBox').hidden = !e.target.checked; });
-
-  // Пороги оценок из полей: { 5: n, 4: n, 3: n, 2: n, 1: n } или null, если СКР выключен
-  const GRADE_KEYS = [5, 4, 3, 2, 1];
-  function readGrades() {
-    if (!$('skrInput').checked) return null;
-    const out = {};
-    GRADE_KEYS.forEach((g) => { out[g] = $('gr' + g).value === '' ? NaN : Number($('gr' + g).value); });
-    return out;
+    // blocks
+    return `
+      <div class="block-group">
+        <div class="sub-label">Код для разбиения на блоки</div>
+        <textarea class="code-ta" rows="3" data-bsrc="${i}" placeholder='Например: Console.WriteLine("Hello, World!");'>${esc(q.src)}</textarea>
+        <button class="inline-btn" data-autoblocks="${i}">Разбить на блоки автоматически</button>
+        <div class="sub-label">Правильный порядок блоков</div>
+        ${q.seq.length ? q.seq.map((b, j) => `
+          <div class="row-item">
+            <span class="ord">${j + 1}</span>
+            <input type="text" data-seq="${i}" data-idx="${j}" value="${esc(b)}" placeholder="Блок" maxlength="60" />
+            <button class="mv" data-up="${i}" data-idx="${j}" ${j === 0 ? 'disabled' : ''} aria-label="Выше">↑</button>
+            <button class="mv" data-down="${i}" data-idx="${j}" ${j === q.seq.length - 1 ? 'disabled' : ''} aria-label="Ниже">↓</button>
+            <button class="rm" data-rm-seq="${i}" data-idx="${j}" aria-label="Удалить блок">×</button>
+          </div>`).join('') : '<div class="hint" style="margin:0 0 10px">Блоков пока нет. Разбейте код автоматически или добавьте вручную.</div>'}
+        <button class="add-link" data-add-seq="${i}">+ Блок в ответ</button>
+      </div>
+      <div class="block-group">
+        <div class="sub-label">Лишние блоки (отвлекают участника)</div>
+        ${q.extra.length ? q.extra.map((b, j) => `
+          <div class="row-item">
+            <input type="text" data-extra="${i}" data-idx="${j}" value="${esc(b)}" placeholder="Блок" maxlength="60" />
+            <button class="rm" data-rm-extra="${i}" data-idx="${j}" aria-label="Удалить блок">×</button>
+          </div>`).join('') : ''}
+        <button class="add-link" data-add-extra="${i}">+ Создать свой блок</button>
+        <div class="hint">Все блоки перемешиваются у участника. Правильный ответ — только блоки из первого списка в нужном порядке.</div>
+      </div>`;
   }
 
-  /* ---------- Шаг 2: вопросы ---------- */
   function renderQuestions() {
     const list = $('questionList');
     if (state.questions.length === 0) {
       list.innerHTML = '<div class="empty-q">Вопросов пока нет. Нажмите «+ Добавить вопрос».</div>';
       return;
     }
-
-    list.innerHTML = state.questions.map((q, i) => {
-      const typeName = q.type === 'choice' ? 'Обычный тест' : 'Свой ответ';
-      let body = '';
-
-      if (q.type === 'choice') {
-        body = `
-          <div class="hint" style="margin:0 0 10px">Отметьте кружком правильный вариант.</div>
-          ${q.options.map((opt, j) => `
-            <div class="row-item">
-              <input type="radio" name="correct-${i}" data-correct="${i}" data-idx="${j}" ${q.correct === j ? 'checked' : ''} aria-label="Правильный вариант" />
-              <input type="text" data-opt="${i}" data-idx="${j}" value="${escapeHtml(opt)}" placeholder="Вариант ${j + 1}" maxlength="120" />
-              ${q.options.length > 2 ? `<button class="rm" data-rm-opt="${i}" data-idx="${j}" aria-label="Удалить вариант">×</button>` : ''}
-            </div>`).join('')}
-          ${q.options.length < MAX_OPTIONS ? `<button class="add-link" data-add-opt="${i}">+ Вариант</button>` : ''}
-        `;
-      } else {
-        body = `
-          <div class="hint" style="margin:0 0 10px">Введите правильный ответ. Можно добавить другие варианты, которые тоже засчитываются.</div>
-          ${q.answers.map((ans, j) => `
-            <div class="row-item">
-              <input type="text" data-ans="${i}" data-idx="${j}" value="${escapeHtml(ans)}" placeholder="${j === 0 ? 'Правильный ответ' : 'Другой вариант ответа'}" maxlength="120" />
-              ${q.answers.length > 1 ? `<button class="rm" data-rm-ans="${i}" data-idx="${j}" aria-label="Удалить ответ">×</button>` : ''}
-            </div>`).join('')}
-          ${q.answers.length < MAX_ANSWERS ? `<button class="add-link" data-add-ans="${i}">+ Ещё вариант ответа</button>` : ''}
-          <div class="hint">Регистр не важен: «москва» и «Москва» засчитываются. Пробелы по краям не учитываются.</div>
-        `;
-      }
-
-      return `
-        <div class="q-card">
-          <div class="q-head">
-            <span class="q-num">${i + 1}</span>
-            <span class="q-type">${typeName}</span>
-            <button class="q-del" data-del="${i}" aria-label="Удалить вопрос">×</button>
-          </div>
-          <input type="text" data-text="${i}" value="${escapeHtml(q.text)}" placeholder="Текст вопроса" maxlength="200" />
-          <div class="img-row">
-            ${q.image ? `<div class="img-preview">${q.image.preview ? `<img src="${q.image.preview}" alt="" />` : '<span class="add-img">📷 Фото</span>'}<button class="img-rm" data-imgrm="${i}" aria-label="Убрать фото">×</button></div>` : ''}
-            <label class="add-img">${q.uploading ? 'Загружаем…' : (q.image ? 'Заменить фото' : '+ Добавить фото')}<input type="file" accept="image/*" data-imgfile="${i}" hidden ${q.uploading ? 'disabled' : ''} /></label>
-          </div>
-          <div class="time-row">
-            <label class="time-label" for="qtime-${i}">Время на вопрос</label>
-            <select id="qtime-${i}" data-qtime="${i}">
-              ${TIME_OPTIONS.map(([v, label]) => `<option value="${v}" ${(q.timeLimit || 0) === v ? 'selected' : ''}>${label}</option>`).join('')}
-            </select>
-            <label class="time-label" for="qpts-${i}">Баллов</label>
-            <input type="number" class="pts-input" id="qpts-${i}" data-points="${i}" min="0" max="100" value="${q.points ?? 1}" />
-          </div>
-          ${body}
-        </div>`;
-    }).join('');
+    list.innerHTML = state.questions.map((q, i) => `
+      <div class="q-card">
+        <div class="q-head">
+          <span class="q-num">${i + 1}</span>
+          <span class="q-type">${TYPE_NAMES[q.type]}</span>
+          <button class="q-del" data-del="${i}" aria-label="Удалить вопрос">×</button>
+        </div>
+        <input type="text" data-text="${i}" value="${esc(q.text)}" placeholder="Текст вопроса" maxlength="200" />
+        <div class="img-row">
+          ${q.image ? `<div class="img-preview">${q.image.preview ? `<img src="${q.image.preview}" alt="" />` : ''}<button class="img-rm" data-imgrm="${i}" aria-label="Убрать фото">×</button></div>` : ''}
+          <label class="add-img">${q.uploading ? 'Загружаем…' : (q.image ? 'Заменить фото' : '+ Добавить фото')}<input type="file" accept="image/*" data-imgfile="${i}" hidden ${q.uploading ? 'disabled' : ''} /></label>
+        </div>
+        <div class="time-row">
+          <label class="time-label" for="qtime-${i}">Время на вопрос</label>
+          <select id="qtime-${i}" data-qtime="${i}">
+            ${TIME_OPTIONS.map(([v, label]) => `<option value="${v}" ${(q.timeLimit || 0) === v ? 'selected' : ''}>${label}</option>`).join('')}
+          </select>
+          <label class="time-label" for="qpts-${i}">Баллов</label>
+          <input type="number" class="pts-input" id="qpts-${i}" data-points="${i}" min="0" max="100" value="${q.points ?? 1}" />
+        </div>
+        ${questionBody(q, i)}
+      </div>`).join('');
   }
 
   function openChooser() {
+    applyMasterVisibility();
     $('chooser').hidden = false;
     $('addQuestionBtn').hidden = true;
     $('chooser').scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -983,81 +617,96 @@
   document.querySelectorAll('.type-card').forEach((btn) => {
     btn.addEventListener('click', () => {
       const type = btn.dataset.type;
-      if (type === 'choice') {
-        state.questions.push({ type: 'choice', text: '', options: ['', ''], correct: 0 });
-      } else {
-        state.questions.push({ type: 'open', text: '', answers: [''] });
-      }
+      const base = { text: '', points: 1, timeLimit: null, image: null };
+      if (type === 'choice') state.questions.push({ ...base, type, options: ['', ''], correct: 0 });
+      else if (type === 'open') state.questions.push({ ...base, type, answers: [''] });
+      else if (type === 'code') state.questions.push({ ...base, type, code: '', hasBug: false, correctCode: '' });
+      else state.questions.push({ ...base, type, src: '', seq: [], extra: [] });
+
       closeChooser();
       renderQuestions();
       $('step2Error').textContent = '';
       const cards = document.querySelectorAll('.q-card');
-      cards[cards.length - 1].scrollIntoView({ behavior: 'smooth', block: 'center' });
-      const newText = cards[cards.length - 1].querySelector('[data-text]');
-      if (newText) newText.focus();
+      const last = cards[cards.length - 1];
+      last.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const t = last.querySelector('[data-text]');
+      if (t) t.focus();
     });
   });
 
-  // Ввод текста (без перерисовки, чтобы не терять фокус)
+  // Ввод текста без перерисовки, чтобы не терять фокус
   $('questionList').addEventListener('input', (e) => {
     const t = e.target;
-    if (t.dataset.text !== undefined) {
-      state.questions[+t.dataset.text].text = t.value;
-    } else if (t.dataset.opt !== undefined) {
-      state.questions[+t.dataset.opt].options[+t.dataset.idx] = t.value;
-    } else if (t.dataset.ans !== undefined) {
-      state.questions[+t.dataset.ans].answers[+t.dataset.idx] = t.value;
-    } else if (t.dataset.imgfile !== undefined && t.files && t.files[0]) {
-      uploadQuestionImage(+t.dataset.imgfile, t.files[0]);
-    } else if (t.dataset.points !== undefined) {
-      state.questions[+t.dataset.points].points = Math.max(0, parseInt(t.value, 10) || 0);
-    }
+    const d = t.dataset;
+    if (d.text !== undefined) state.questions[+d.text].text = t.value;
+    else if (d.opt !== undefined) state.questions[+d.opt].options[+d.idx] = t.value;
+    else if (d.ans !== undefined) state.questions[+d.ans].answers[+d.idx] = t.value;
+    else if (d.ctext !== undefined) state.questions[+d.ctext].code = t.value;
+    else if (d.ccode !== undefined) state.questions[+d.ccode].correctCode = t.value;
+    else if (d.bsrc !== undefined) state.questions[+d.bsrc].src = t.value;
+    else if (d.seq !== undefined) state.questions[+d.seq].seq[+d.idx] = t.value;
+    else if (d.extra !== undefined) state.questions[+d.extra].extra[+d.idx] = t.value;
+    else if (d.points !== undefined) state.questions[+d.points].points = Math.max(0, parseInt(t.value, 10) || 0);
+    else if (d.imgfile !== undefined && t.files && t.files[0]) uploadQuestionImage(+d.imgfile, t.files[0]);
     $('step2Error').textContent = '';
   });
 
-  // Выбор правильного варианта
+  // Выбор, галочки и время: меняют структуру, поэтому перерисовываем
   $('questionList').addEventListener('change', (e) => {
     const t = e.target;
-    if (t.dataset.correct !== undefined) {
-      state.questions[+t.dataset.correct].correct = +t.dataset.idx;
-    } else if (t.dataset.qtime !== undefined) {
-      // 0 = по умолчанию (время из настроек квиза)
-      state.questions[+t.dataset.qtime].timeLimit = +t.value || null;
+    const d = t.dataset;
+    if (d.correct !== undefined) {
+      state.questions[+d.correct].correct = +d.idx;
+    } else if (d.qtime !== undefined) {
+      state.questions[+d.qtime].timeLimit = +t.value || null;
+    } else if (d.bug !== undefined) {
+      state.questions[+d.bug].hasBug = t.checked;
+      renderQuestions();
     }
   });
 
-  // Кнопки: удалить вопрос, добавить/удалить варианты и ответы
   $('questionList').addEventListener('click', (e) => {
     const b = e.target.closest('button');
     if (!b) return;
+    const d = b.dataset;
+    const q = (k) => state.questions[+k];
 
-    if (b.dataset.imgrm !== undefined) {
-      state.questions[+b.dataset.imgrm].image = null;
-    } else if (b.dataset.del !== undefined) {
-      state.questions.splice(+b.dataset.del, 1);
-    } else if (b.dataset.addOpt !== undefined) {
-      const q = state.questions[+b.dataset.addOpt];
-      if (q.options.length < MAX_OPTIONS) q.options.push('');
-    } else if (b.dataset.rmOpt !== undefined) {
-      const q = state.questions[+b.dataset.rmOpt];
-      const idx = +b.dataset.idx;
-      q.options.splice(idx, 1);
-      if (q.correct === idx) q.correct = 0;
-      else if (q.correct > idx) q.correct -= 1;
-    } else if (b.dataset.addAns !== undefined) {
-      const q = state.questions[+b.dataset.addAns];
-      if (q.answers.length < MAX_ANSWERS) q.answers.push('');
-    } else if (b.dataset.rmAns !== undefined) {
-      state.questions[+b.dataset.rmAns].answers.splice(+b.dataset.idx, 1);
-    } else {
-      return;
+    if (d.imgrm !== undefined) q(d.imgrm).image = null;
+    else if (d.del !== undefined) state.questions.splice(+d.del, 1);
+    else if (d.addOpt !== undefined) { if (q(d.addOpt).options.length < MAX_OPTIONS) q(d.addOpt).options.push(''); }
+    else if (d.rmOpt !== undefined) {
+      const qq = q(d.rmOpt); const idx = +d.idx;
+      qq.options.splice(idx, 1);
+      if (qq.correct === idx) qq.correct = 0; else if (qq.correct > idx) qq.correct -= 1;
     }
+    else if (d.addAns !== undefined) { if (q(d.addAns).answers.length < MAX_ANSWERS) q(d.addAns).answers.push(''); }
+    else if (d.rmAns !== undefined) q(d.rmAns).answers.splice(+d.idx, 1);
+    else if (d.autoblocks !== undefined) {
+      const qq = q(d.autoblocks);
+      qq.seq = tokenize(qq.src || '');
+      if (!qq.seq.length) showToast('Вставьте код в поле выше');
+    }
+    else if (d.addSeq !== undefined) q(d.addSeq).seq.push('');
+    else if (d.rmSeq !== undefined) q(d.rmSeq).seq.splice(+d.idx, 1);
+    else if (d.up !== undefined) {
+      const s = q(d.up).seq; const j = +d.idx;
+      [s[j - 1], s[j]] = [s[j], s[j - 1]];
+    }
+    else if (d.down !== undefined) {
+      const s = q(d.down).seq; const j = +d.idx;
+      [s[j + 1], s[j]] = [s[j], s[j + 1]];
+    }
+    else if (d.addExtra !== undefined) q(d.addExtra).extra.push('');
+    else if (d.rmExtra !== undefined) q(d.rmExtra).extra.splice(+d.idx, 1);
+    else return;
+
     renderQuestions();
   });
 
-  /* ---------- Проверка и публикация ---------- */
+  /* ---------- Проверка ---------- */
   function validate() {
     if (state.questions.length === 0) return 'Добавьте хотя бы один вопрос';
+    const mc = $('masterInput').checked;
 
     for (let i = 0; i < state.questions.length; i++) {
       const q = state.questions[i];
@@ -1067,11 +716,18 @@
       if (q.type === 'choice') {
         if (q.options.some((o) => !o.trim())) return `Вопрос ${n}: заполните все варианты ответа`;
         if (q.options.length < 2) return `Вопрос ${n}: нужно минимум два варианта`;
-      } else {
+      } else if (q.type === 'open') {
         if (q.answers.every((a) => !a.trim())) return `Вопрос ${n}: введите хотя бы один правильный ответ`;
+      } else if (q.type === 'code') {
+        if (!mc) return `Вопрос ${n}: тип «Код» доступен только при MasterCode`;
+        if (!q.code.trim()) return `Вопрос ${n}: введите код`;
+        if (q.hasBug && !q.correctCode.trim()) return `Вопрос ${n}: введите правильный код`;
+      } else if (q.type === 'blocks') {
+        if (!mc) return `Вопрос ${n}: тип «Блоки» доступен только при MasterCode`;
+        if (q.seq.length < 2 || q.seq.some((b) => !b.trim())) return `Вопрос ${n}: в правильном порядке должно быть минимум два заполненных блока`;
       }
     }
-    // СКР-тест: баллы у каждого вопроса и пороги оценок
+
     if ($('skrInput').checked) {
       for (let i = 0; i < state.questions.length; i++) {
         if ((state.questions[i].points ?? 1) < 1) return `Вопрос ${i + 1}: в СКР-тесте укажите баллы (от 1)`;
@@ -1087,45 +743,71 @@
     return null;
   }
 
-  function buildPayload() {
+  /* ---------- Сохранение: публичная часть и ключ ---------- */
+  // В публичном документе квиза правильных ответов НЕТ. Ключ уходит в quizzes/{code}/private/key.
+  // Участники видят только вопросы, варианты и (для блоков) перемешанный набор блоков.
+  function splitQuestion(q) {
+    const pub = {
+      text: q.text.trim(),
+      timeLimit: q.timeLimit || null,
+      points: q.points ?? 1,
+      image: q.image?.id ? { id: q.image.id } : null
+    };
+
+    if (q.type === 'choice') {
+      return {
+        pub: { ...pub, type: 'choice', options: q.options.map((o) => o.trim()) },
+        key: { correct: q.correct }
+      };
+    }
+    if (q.type === 'open') {
+      return {
+        pub: { ...pub, type: 'open' },
+        key: { answers: q.answers.map((a) => a.trim()).filter(Boolean) }
+      };
+    }
+    if (q.type === 'code') {
+      const answer = q.hasBug ? q.correctCode.trim() : q.code.trim();
+      return {
+        pub: {
+          ...pub, type: 'code',
+          // Пример показываем участнику только если он нужно исправить. Иначе поле пустое.
+          starter: q.hasBug ? q.code : '',
+          hasBug: !!q.hasBug
+        },
+        key: { answer }
+      };
+    }
+    // blocks: в публичной части только перемешанный набор, порядок — в ключе
+    const answer = q.seq.map((b) => b.trim());
+    const extra = q.extra.map((b) => b.trim()).filter(Boolean);
+    return {
+      pub: { ...pub, type: 'blocks', pool: shuffle([...answer, ...extra]) },
+      key: { answer, extra }
+    };
+  }
+
+  function buildPayload(split) {
     return {
       title: state.title.trim(),
       description: state.description.trim(),
       ownerUid: user.uid,
-      createdAt: serverTimestamp(),
       timeLimit: Number($('timeInput').value),
       showAnswers: $('showAnswersInput').checked,
       shuffleQuestions: $('shuffleInput').checked,
       manualMode: $('manualInput').checked,
+      noPaste: $('noPasteInput').checked,
+      requireName: $('requireNameInput').checked,
+      requireGroup: $('requireGroupInput').checked,
+      masterCode: $('masterInput').checked,
       gradeMode: $('skrInput').checked,
       grades: readGrades(),
       startsAt: toTs($('startInput').value),
       endsAt: toTs($('endInput').value),
-      questions: state.questions.map((q) => {
-        if (q.type === 'choice') {
-          return {
-            type: 'choice',
-            text: q.text.trim(),
-            options: q.options.map((o) => o.trim()),
-            correct: q.correct,
-            timeLimit: q.timeLimit || null,
-            points: q.points ?? 1,
-            image: q.image?.id ? { id: q.image.id } : null
-          };
-        }
-        return {
-          type: 'open',
-          text: q.text.trim(),
-          answers: q.answers.map((a) => a.trim()).filter(Boolean),
-          timeLimit: q.timeLimit || null,
-          points: q.points ?? 1,
-          image: q.image?.id ? { id: q.image.id } : null
-        };
-      })
+      questions: split.map((s) => s.pub)
     };
   }
 
-  // Подбираем свободный 6-значный код (он же ID документа)
   async function makeUniqueCode() {
     for (let attempt = 0; attempt < 10; attempt++) {
       const code = String(Math.floor(100000 + Math.random() * 900000));
@@ -1135,34 +817,43 @@
     throw new Error('Не удалось подобрать свободный код');
   }
 
+  async function saveQuiz(code, isNew) {
+    const split = state.questions.map(splitQuestion);
+    const payload = buildPayload(split);
+    if (isNew) {
+      payload.createdAt = serverTimestamp();
+      await setDoc(doc(db, 'quizzes', code), payload);
+    } else {
+      payload.updatedAt = serverTimestamp();
+      await updateDoc(doc(db, 'quizzes', code), payload);
+    }
+    // Ключ пишется отдельно: читать его может только владелец
+    await setDoc(doc(db, 'quizzes', code, 'private', 'key'), {
+      items: split.map((s) => s.key),
+      updatedAt: serverTimestamp()
+    });
+  }
+
   $('publishBtn').addEventListener('click', async () => {
-    if (!user) {
-      $('step2Error').textContent = 'Войдите в аккаунт, чтобы создать квиз';
-      return;
-    }
+    if (!user) { $('step2Error').textContent = 'Войдите в аккаунт, чтобы создать квиз'; return; }
     const error = validate();
-    if (error) {
-      $('step2Error').textContent = error;
-      return;
-    }
+    if (error) { $('step2Error').textContent = error; return; }
 
     const btn = $('publishBtn');
     btn.disabled = true;
-    btn.textContent = 'Создаём…';
+    btn.textContent = 'Сохраняем…';
     $('step2Error').textContent = '';
 
     try {
       if (editCode) {
-        // Редактирование: код и владелец не меняются, дата создания сохраняется
-        const { ownerUid, createdAt, ...fields } = buildPayload();
-        await updateDoc(doc(db, 'quizzes', editCode), { ...fields, updatedAt: serverTimestamp() });
+        await saveQuiz(editCode, false);
         $('codeOut').textContent = editCode;
-        document.querySelector('#step3 h1').textContent = 'Изменения сохранены!';
+        $('doneTitle').textContent = 'Изменения сохранены!';
       } else {
         const code = await makeUniqueCode();
-        await setDoc(doc(db, 'quizzes', code), buildPayload());
+        await saveQuiz(code, true);
         $('codeOut').textContent = code;
-        document.querySelector('#step3 h1').textContent = 'Квиз создан!';
+        $('doneTitle').textContent = 'Квиз создан!';
       }
       showStep(3);
     } catch (err) {
@@ -1183,24 +874,48 @@
     }
   });
 
-  // Режим редактирования: ?code=XXXXXX
-  const editCode = new URLSearchParams(location.search).get('code');
+  /* ---------- Редактирование ---------- */
+  // Собираем вопрос из публичной части и ключа. Старые квизы (ответы в публичном документе) тоже открываются.
+  function fromStored(pub, k) {
+    const K = k || pub;
+    const base = { text: pub.text || '', points: pub.points ?? 1, timeLimit: pub.timeLimit || null, image: pub.image || null };
+    if (pub.type === 'choice') {
+      return { ...base, type: 'choice', options: [...pub.options], correct: K.correct ?? 0 };
+    }
+    if (pub.type === 'open') {
+      const answers = K.answers || [];
+      return { ...base, type: 'open', answers: answers.length ? [...answers] : [''] };
+    }
+    if (pub.type === 'code') {
+      return {
+        ...base, type: 'code',
+        hasBug: !!pub.hasBug,
+        code: pub.hasBug ? (pub.starter || '') : (K.answer || ''),
+        correctCode: pub.hasBug ? (K.answer || '') : ''
+      };
+    }
+    const answer = K.answer || [];
+    const extra = K.extra || [];
+    return { ...base, type: 'blocks', src: answer.join(' '), seq: [...answer], extra: [...extra] };
+  }
 
   async function loadForEdit() {
     try {
-      const snap = await getDoc(doc(db, 'quizzes', editCode));
+      const [snap, keySnap] = await Promise.all([
+        getDoc(doc(db, 'quizzes', editCode)),
+        getDoc(doc(db, 'quizzes', editCode, 'private', 'key'))
+      ]);
       if (!snap.exists() || snap.data().ownerUid !== user.uid) {
         $('step1Error').textContent = 'Квиз не найден или у вас нет прав на его редактирование';
         $('toStep2').disabled = true;
         return;
       }
-
       const data = snap.data();
+      const items = keySnap.exists() ? keySnap.data().items || [] : null;
+
       state.title = data.title || '';
       state.description = data.description || '';
-      state.questions = (data.questions || []).map((q) => q.type === 'choice'
-        ? { type: 'choice', text: q.text, options: [...q.options], correct: q.correct, timeLimit: q.timeLimit || null, points: q.points ?? 1, image: q.image || null }
-        : { type: 'open', text: q.text, answers: q.answers.length ? [...q.answers] : [''], timeLimit: q.timeLimit || null, points: q.points ?? 1, image: q.image || null });
+      state.questions = (data.questions || []).map((pub, i) => fromStored(pub, items ? items[i] : null));
 
       $('titleInput').value = state.title;
       $('titleCount').textContent = state.title.length;
@@ -1210,14 +925,19 @@
       $('showAnswersInput').checked = !!data.showAnswers;
       $('shuffleInput').checked = !!data.shuffleQuestions;
       $('manualInput').checked = !!data.manualMode;
+      $('noPasteInput').checked = !!data.noPaste;
+      $('requireNameInput').checked = !!data.requireName;
+      $('requireGroupInput').checked = !!data.requireGroup;
+      $('masterInput').checked = !!data.masterCode;
       $('skrInput').checked = !!data.gradeMode;
       $('skrBox').hidden = !data.gradeMode;
       if (data.grades) GRADE_KEYS.forEach((g) => { $('gr' + g).value = data.grades[g] ?? ''; });
       $('startInput').value = toLocalInput(data.startsAt);
       $('endInput').value = toLocalInput(data.endsAt);
 
-      document.querySelector('#step1 h1').textContent = 'Редактирование квиза';
+      $('step1Title').textContent = 'Редактирование квиза';
       $('publishBtn').textContent = 'Сохранить изменения';
+      applyMasterVisibility();
       renderQuestions();
     } catch (err) {
       console.error(err);
@@ -1225,6 +945,7 @@
     }
   }
 
+  applyMasterVisibility();
   renderQuestions();
   setPill(1);
 </script>

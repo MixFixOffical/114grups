@@ -1103,22 +1103,29 @@ const auth = getAuth(app);
 const NOTIFY_URL = "https://broken-river-4c97.vasylkivmaksim.workers.dev/notify";
 const NOTIFY_SECRET = "k7s9f2h4j8d1m5n3q6w0e7r2t5y8u1i4p3o2l1k9j8h7g6f5d4s3a2";
 
-async function notifyStudents(date, groupId) {
+async function notifyStudents(date, groupId, opts = {}) {
     try {
+        const body = { date, groupId, ...opts };
         const r = await fetch(NOTIFY_URL, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
                 "X-Notify-Secret": NOTIFY_SECRET
             },
-            body: JSON.stringify({ date, groupId })
+            body: JSON.stringify(body)
         });
         const d = await r.json().catch(() => ({}));
         if (!r.ok) {
             console.warn("notify failed:", r.status, d);
             return { ok: false, error: d?.error || `HTTP ${r.status}` };
         }
-        return { ok: true, sent: d.sent ?? 0, skipped: d.skipped ?? 0 };
+        return {
+            ok: true,
+            sent: d.sent ?? 0,
+            skipped: d.skipped ?? 0,
+            errors: d.errors ?? 0,
+            details: d.details ?? []
+        };
     } catch (e) {
         console.warn("notify network error:", e);
         return { ok: false, error: e.message };
@@ -2126,7 +2133,11 @@ async function sendNotifications() {
     if (res.ok) {
         btn.classList.add("sent");
         btn.innerHTML = `✅ <span>Отправлено: ${res.sent}</span>`;
-        showToast(`📨 Отправлено: ${res.sent} · Пропущено: ${res.skipped}`, "success");
+        const parts = [`📨 Отправлено: ${res.sent}`];
+        if (res.skipped) parts.push(`пропущено: ${res.skipped}`);
+        if (res.errors) parts.push(`ошибок: ${res.errors}`);
+        showToast(parts.join(" · "), res.sent ? "success" : "warning");
+        if (res.errors) console.warn("notify details (ошибки):", res.details.filter(x => !x.ok));
         setTimeout(() => {
             btn.classList.remove("sent");
             btn.innerHTML = originalHtml;

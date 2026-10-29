@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Срез знаний — Сводные таблицы</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,sans-serif;background:#eef2f7;margin:0;padding:12px;color:#222;-webkit-user-select:none;user-select:none}
+.card{background:#fff;max-width:760px;margin:16px auto;padding:22px;border-radius:12px;box-shadow:0 2px 10px #0001}
+h1{font-size:1.35em;margin:0 0 8px}
+input[type=text]{width:100%;padding:10px;margin:6px 0;border:1px solid #bbb;border-radius:8px;font-size:16px;-webkit-user-select:text;user-select:text}
+button{background:#2b6cb0;color:#fff;border:0;padding:10px 16px;border-radius:8px;font-size:15px;cursor:pointer}
+button.sec{background:#718096;padding:6px 12px}
+.q{border-top:1px solid #e2e8f0;padding:14px 0}
+.q b{display:block;margin-bottom:8px;line-height:1.4}
+label.opt{display:block;padding:6px 8px;border-radius:6px;cursor:pointer}
+label.opt:hover{background:#f0f5fb}
+.row{display:flex;align-items:center;gap:8px;padding:5px 0}
+.row .t{flex:1}
+.sel{padding:6px;border-radius:6px;border:1px solid #bbb;font-size:15px;max-width:55%}
+.sticky{position:sticky;top:0;background:#fff;padding:10px 0;border-bottom:1px solid #e2e8f0;z-index:5;display:flex;justify-content:space-between;font-weight:600}
+.warn{color:#b7791f;font-size:14px;line-height:1.4}
+.tag{display:inline-block;font-size:12px;color:#2b6cb0;background:#ebf4ff;padding:2px 8px;border-radius:10px;margin-bottom:6px}
+.ov{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:99;padding:16px}
+.ov .card{margin:0;max-width:440px;text-align:center}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="start" class="card">
+  <h1>Срез знаний: Сводные таблицы</h1>
+  <p>20 вопросов · 7 минут · уровни: Легко, Сложно, Эксперт</p>
+  <input type="text" id="fname" placeholder="Фамилия и имя">
+  <input type="text" id="fgroup" placeholder="Группа">
+  <p class="warn">Правила: нельзя переключать вкладки и приложения, сворачивать окно, выходить из полноэкранного режима, копировать и вставлять текст. Первое нарушение — предупреждение. Второе — тест блокируется, ответы фиксируются.</p>
+  <button onclick="startTest()">Начать тест</button>
+</div>
+
+<div id="prep" class="card" hidden>
+  <h1>Перед началом теста</h1>
+  <p><b>Правила теста.</b></p>
+  <ul class="warn" style="padding-left:20px;line-height:1.6">
+    <li>20 вопросов, время 7 минут. Три уровня: Легко, Сложно, Эксперт.</li>
+    <li>Типы вопросов: Истина/Ложь, один ответ, несколько ответов, соединение соответствия.</li>
+    <li>Практических заданий нет. Ответы только по знаниям.</li>
+    <li>Досрочно завершить тест нельзя. Тест закончится по времени или когда отвечены все вопросы.</li>
+    <li>Нельзя переключать вкладки и приложения, сворачивать окно, выходить из полноэкранного режима.</li>
+    <li>Нельзя копировать, вставлять текст и делать снимки экрана.</li>
+    <li>Первое нарушение — предупреждение. Второе — тест блокируется, ответы фиксируются.</li>
+  </ul>
+  <p style="margin-top:18px;border-top:1px solid #e2e8f0;padding-top:14px"><b>Внизу:</b> я ознакомился с правилами теста.</p>
+  <button id="ackBtn" onclick="ackDone()">Ознакомлен</button>
+</div>
+
+<div id="test" hidden>
+  <div class="card">
+    <div class="sticky"><span id="prog"></span><span id="timer"></span></div>
+    <div id="qs"></div>
+    <p class="warn" style="text-align:center">Досрочно завершить тест нельзя. Тест закончится, когда выйдет время или будут отвечены все вопросы.</p>
+  </div>
+</div>
+
+<div id="warnBox" class="ov" hidden>
+  <div class="card">
+    <h1>⚠ Нарушение</h1>
+    <p id="warnText"></p>
+    <button onclick="backFS()">Вернуться к тесту</button>
+  </div>
+</div>
+
+<div id="lockBox" class="ov" hidden>
+  <div class="card">
+    <h1>🔒 Тест заблокирован</h1>
+    <p>Зафиксировано 2 нарушения. Повторная попытка недоступна. Ответы зафиксированы.</p>
+    <button onclick="$('lockBox').hidden=true">Посмотреть результат</button>
+  </div>
+</div>
+
+<div id="result" class="card" hidden></div>
+
+<script>
+const o=(q,a,c,d)=>({t:'o',q,a,c,d,lbl:'Один ответ'});
+const tf=(q,c,d)=>({t:'o',q,a:['Истина','Ложь'],c:c?'Истина':'Ложь',d,lbl:'Истина / Ложь'});
+const ms=(q,a,c,d)=>({t:'ms',q,a,c,d,lbl:'Несколько ответов'});
+const m=(q,pairs,d)=>({t:'m',q,pairs,d,lbl:'Соедините соответствие'});
+
+const Q=[
+o('Сводная таблица нужна в первую очередь для:',['Суммирования и группировки данных','Рисования диаграмм без данных','Защиты листа от изменений'],'Суммирования и группировки данных','Легко'),
+tf('Сводная таблица изменяет данные на исходном листе.',false,'Легко'),
+o('На какой вкладке ленты Excel создаётся сводная таблица?',['Вставка','Рецензирование','Разработчик'],'Вставка','Легко'),
+ms('Какие области есть в макете сводной таблицы?',['Строки','Столбцы','Значения','Фильтры','Слайды','Заголовки листа'],['Строки','Столбцы','Значения','Фильтры'],'Легко'),
+tf('Чтобы сводная таблица показала новые данные, её нужно обновить.',true,'Легко'),
+o('Какая функция по умолчанию применяется к числовому полю в области «Значения»?',['Сумма','Количество','Максимум'],'Сумма','Легко'),
+m('Соедините область и её назначение:',[['Строки','Поля, элементы которых выводятся списком слева'],['Столбцы','Поля, элементы которых выводятся заголовками сверху'],['Значения','Числа, которые вычисляются (сумма, среднее и т. д.)'],['Фильтры','Поля для отбора данных всей таблицы']],'Легко'),
+o('Как сгруппировать даты по месяцам в сводной таблице?',['Щёлкнуть правой кнопкой по дате → Группировать → выбрать «Месяцы»','Изменить формат ячейки на «Месяц»','Отсортировать даты по возрастанию'],'Щёлкнуть правой кнопкой по дате → Группировать → выбрать «Месяцы»','Сложно'),
+tf('Вычисляемое поле создаётся через «Анализ сводной таблицы» → «Поля, элементы и наборы».',true,'Сложно'),
+ms('Какие действия можно выполнить со сводной таблицей, не меняя исходные данные?',['Изменить тип вычисления в области «Значения»','Переместить поле из строк в столбцы','Отфильтровать элементы','Ввести формулу прямо в ячейку сводной таблицы'],['Изменить тип вычисления в области «Значения»','Переместить поле из строк в столбцы','Отфильтровать элементы'],'Сложно'),
+m('Соедините функцию вычисления и её результат:',[['Среднее','Арифметическое значение всех чисел'],['Количество','Число непустых значений'],['Максимум','Самое большое значение'],['Минимум','Самое маленькое значение']],'Сложно'),
+o('В исходную таблицу добавили новые строки. Что надёжнее всего сделать, чтобы сводная таблица их учла?',['Сделать исходные данные «умной таблицей» (Ctrl+T) и обновить сводную','Увеличить масштаб листа','Отключить фильтры на листе'],'Сделать исходные данные «умной таблицей» (Ctrl+T) и обновить сводную','Сложно'),
+tf('Срез (слайсер) — визуальный фильтр, который можно подключить к сводной таблице.',true,'Сложно'),
+ms('Какие утверждения о группировке верны?',['Числа можно сгруппировать по интервалам с заданным шагом','Даты можно сгруппировать по месяцам, кварталам и годам','Группировка меняет значения в исходной таблице','Группировку нельзя отменить'],['Числа можно сгруппировать по интервалам с заданным шагом','Даты можно сгруппировать по месяцам, кварталам и годам'],'Сложно'),
+o('Что делает параметр «Показывать элементы без данных»?',['Выводит строки и столбцы для элементов, у которых нет значений','Скрывает все пустые строки исходной таблицы','Удаляет элементы из источника данных'],'Выводит строки и столбцы для элементов, у которых нет значений','Эксперт'),
+tf('Сводную таблицу можно построить по модели данных Power Pivot, объединяющей несколько связанных таблиц.',true,'Эксперт'),
+ms('Какие источники данных можно использовать для сводной таблицы?',['Диапазон ячеек на листе','Таблица Excel («умная таблица»)','Внешняя база данных (например, Access)','Изображение таблицы'],['Диапазон ячеек на листе','Таблица Excel («умная таблица»)','Внешняя база данных (например, Access)'],'Эксперт'),
+m('Соедините вариант «Показать значения как» и его смысл:',[['% от общего итога','Доля каждого значения от общей суммы'],['Нарастающим итогом','Сумма с начала до текущего элемента'],['Разница с предыдущим','Изменение относительно предыдущего элемента'],['Ранг по убыванию','Место значения среди других от большего к меньшему']],'Эксперт'),
+tf('Один срез можно связать сразу с несколькими сводными таблицами.',true,'Эксперт'),
+o('Какой параметр позволяет сохранять ширину столбцов сводной таблицы при обновлении?',['«Автоподбор ширины столбцов при обновлении» в параметрах сводной таблицы','Защита листа','Пересчёт формул вручную'],'«Автоподбор ширины столбцов при обновлении» в параметрах сводной таблицы','Эксперт'),
+];
+
+const $=id=>document.getElementById(id);
+let S=null, KEY='', tmr=null, lastV=0, PEND=null;
+const LIMIT=7*60000;
+
+const norm=s=>String(s).toLowerCase().replace(/ё/g,'е').replace(/[\s().,;:«»"'\-]/g,'');
+const shuf=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const save=()=>localStorage.setItem(KEY,JSON.stringify(S));
+/* Текущая редакция: префикс ключей. Все записи прошлых редакций удаляются. */
+const EDN='pivot_v1_';
+const DEVKEY=EDN+'device';
+/* Учёт по устройству: блокировка и список прохождений, не зависит от ФИО */
+const getDev=()=>JSON.parse(localStorage.getItem(DEVKEY)||'null')||{locked:false,attempts:[]};
+const saveDev=d=>localStorage.setItem(DEVKEY,JSON.stringify(d));
+function recordDev(){
+  const d=getDev();
+  d.attempts.push({name:S.name,group:S.group,date:new Date().toISOString(),locked:!!S.locked,retake:!!S.retake});
+  if(S.locked)d.locked=true;
+  saveDev(d);
+}
+const gradeOf=s=>{const p=s/Q.length*100;return p>=90?5:p>=80?4:p>=70?3:2;};
+const retakeGrade=g=>g>=4?g-1:g;
+const finalGrade=()=>{const g0=gradeOf(S.score);return S.retake?retakeGrade(g0):g0;};
+
+function init(i){
+  if(S.ans[i]!==undefined)return;
+  const q=Q[i];
+  if(q.t==='r')S.ans[i]=shuf(q.items);
+  else if(q.t==='m'){S.ans[i]=q.pairs.map(()=>'');S.ord[i]=shuf(q.pairs.map(p=>p[1]));}
+  else if(q.t==='o'){S.ans[i]='';S.ord[i]=shuf(q.a);}
+  else if(q.t==='ms'){S.ans[i]=[];S.ord[i]=shuf(q.a);}
+  else S.ans[i]='';
+}
+
+function check(i){
+  const q=Q[i],a=S.ans[i];
+  if(q.t==='o')return a===q.c;
+  if(q.t==='ms')return a.length===q.c.length&&q.c.every(v=>a.includes(v));
+  if(q.t==='x')return q.c.map(norm).includes(norm(a));
+  if(q.t==='r')return a.every((v,j)=>v===q.items[j]);
+  if(q.t==='m')return q.pairs.every((p,j)=>a[j]===p[1]);
+  return false;
+}
+
+function answered(i){
+  const a=S.ans[i],q=Q[i];
+  if(q.t==='r')return !!S.touched[i];
+  if(q.t==='m')return a.some(Boolean);
+  if(q.t==='ms')return a.length>0;
+  return a!=='';
+}
+
+function updProg(){
+  const c=Q.reduce((s,_,i)=>s+(answered(i)?1:0),0);
+  $('prog').textContent=`Отвечено ${c} из ${Q.length}`;
+  if(c===Q.length&&S&&!S.done)finish(true,'');
+}
+
+function renderQ(qi,k){
+  const q=Q[qi];
+  let h=`<div class="q" id="q${qi}"><span class="tag">${q.d} · ${q.lbl}</span><b>${k+1}. ${q.q}</b>`;
+  if(q.t==='o')h+=S.ord[qi].map(v=>`<label class="opt"><input type="radio" name="q${qi}" value="${esc(v)}"${S.ans[qi]===v?' checked':''} onchange="setA(${qi},this.value)"> ${v}</label>`).join('');
+  else if(q.t==='ms')h+=S.ord[qi].map(v=>`<label class="opt"><input type="checkbox" value="${esc(v)}"${S.ans[qi].includes(v)?' checked':''} onchange="togMs(${qi},this.value,this.checked)"> ${v}</label>`).join('');
+  else if(q.t==='x')h+=`<input type="text" value="${esc(S.ans[qi])}" oninput="setA(${qi},this.value)" placeholder="Ваш ответ" autocomplete="off">`;
+  else if(q.t==='r')h+=S.ans[qi].map((it,j)=>`<div class="row"><span class="t">${it}</span><button class="sec" onclick="mv(${qi},${j},-1)">↑</button><button class="sec" onclick="mv(${qi},${j},1)">↓</button></div>`).join('');
+  else if(q.t==='m')h+=q.pairs.map((p,j)=>`<div class="row"><span class="t">${p[0]}</span><select class="sel" onchange="setM(${qi},${j},this.value)"><option value="">— выберите —</option>${S.ord[qi].map(v=>`<option${S.ans[qi][j]===v?' selected':''}>${esc(v)}</option>`).join('')}</select></div>`).join('');
+  return h+'</div>';
+}
+
+function renderAll(){
+  $('qs').innerHTML=S.qorder.map((qi,k)=>{init(qi);return renderQ(qi,k);}).join('');
+  save();updProg();
+}
+
+function redraw(qi){
+  const k=S.qorder.indexOf(qi);
+  $('q'+qi).outerHTML=renderQ(qi,k);
+  save();updProg();
+}
+
+function setA(qi,v){S.ans[qi]=v;S.touched[qi]=1;save();updProg();}
+function togMs(qi,v,on){const a=S.ans[qi],i=a.indexOf(v);if(on&&i<0)a.push(v);if(!on&&i>=0)a.splice(i,1);S.touched[qi]=1;save();updProg();}
+function setM(qi,j,v){S.ans[qi][j]=v;S.touched[qi]=1;save();updProg();}
+function mv(qi,j,d){
+  const a=S.ans[qi],t=j+d;
+  if(t<0||t>=a.length)return;
+  [a[j],a[t]]=[a[t],a[j]];
+  S.touched[qi]=1;redraw(qi);
+}
+
+function enterFS(){
+  const el=document.documentElement;
+  if(el.requestFullscreen&&!document.fullscreenElement)el.requestFullscreen().catch(()=>{});
+}
+function backFS(){$('warnBox').hidden=true;enterFS();}
+
+function startTest(){
+  const n=$('fname').value.trim(),g=$('fgroup').value.trim();
+  if(!n||!g){alert('Введите ФИО и группу');return;}
+  KEY=EDN+(n+'_'+g).toLowerCase();
+  const old=JSON.parse(localStorage.getItem(KEY)||'null');
+  if(old&&(old.locked||old.done)){
+    S=old;$('start').hidden=true;showResult();
+    if(old.locked)$('lockBox').hidden=false;
+    return;
+  }
+  if(old){S=old;beginTest();return;}
+  if(getDev().locked){alert('С этого устройства тест заблокирован из-за нарушений.');return;}
+  PEND={mode:'new',n:n,g:g};
+  showPrep();
+}
+
+function showPrep(){
+  $('start').hidden=true;$('result').hidden=true;$('prep').hidden=false;
+  window.scrollTo(0,0);
+}
+
+function ackDone(){
+  if(!PEND)return;
+  if(PEND.mode==='new'){
+    S={name:PEND.n,group:PEND.g,ans:{},ord:{},touched:{},viol:0,locked:false,done:false,t0:Date.now(),qorder:shuf(Q.map((_,i)=>i))};
+  }
+  PEND=null;save();
+  $('prep').hidden=true;
+  beginTest();
+}
+
+function beginTest(){
+  $('start').hidden=true;$('result').hidden=true;$('test').hidden=false;
+  renderAll();
+  tmr=setInterval(tick,1000);tick();
+  enterFS();
+}
+
+function tick(){
+  if(!S||S.done)return;
+  const left=LIMIT-(Date.now()-S.t0);
+  if(left<=0){$('timer').textContent='0:00';finish(true,'Время вышло');return;}
+  const m=Math.floor(left/60000),s=Math.floor(left/1000)%60;
+  $('timer').textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
+}
+
+function viol(reason){
+  if(!S||S.done||S.locked)return;
+  const now=Date.now();
+  if(now-lastV<1500)return;
+  lastV=now;
+  S.viol++;save();
+  if(S.viol>=2){
+    S.locked=true;
+    finish(true,'Тест заблокирован: 2 нарушения (последнее: '+reason+')');
+    $('lockBox').hidden=false;
+  }else{
+    $('warnText').textContent=`Нарушение ${S.viol} из 2: ${reason}. При следующем нарушении тест будет заблокирован.`;
+    $('warnBox').hidden=false;
+  }
+}
+
+function finish(auto,reason){
+  if(!S||S.done)return;
+  if(!auto&&!confirm('Завершить тест и посмотреть результат?'))return;
+  S.done=true;S.reason=reason||'';if(!S.recorded){S.recorded=1;recordDev();}save();
+  clearInterval(tmr);
+  $('test').hidden=true;$('warnBox').hidden=true;$('start').hidden=true;
+  if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});
+  showResult();
+}
+
+function showResult(){
+  const sc=Q.reduce((s,_,i)=>s+(check(i)?1:0),0);
+  S.score=sc;save();
+  const g0=gradeOf(sc), g=finalGrade();
+  const dev=getDev();
+  let h=`<h1>Результат</h1>
+  <p><b>${S.name}</b>, группа ${S.group}${S.retake?' · пересдача':''}</p>`;
+  if(S.prev)h+=`<p>Первая попытка: ${S.prev.score} из ${Q.length}, оценка ${S.prev.grade}${S.prev.locked?' (заблокирована)':''}</p>`;
+  h+=`<p>Баллы: <b>${sc} из ${Q.length}</b> (${Math.round(sc/Q.length*100)}%)</p>
+  <p style="font-size:1.5em">Оценка: <b>${g}</b>${S.retake&&g!==g0?` <span class="warn">(пересдача: ${g0} → ${g})</span>`:''}</p>
+  <p>Нарушений: ${S.viol}${S.locked?' — <b style="color:#c53030">тест заблокирован</b>':''}</p>
+  ${S.reason?`<p class="warn">${S.reason}</p>`:''}`;
+  h+=`<p class="warn">С этого устройства пройдено тестов: ${dev.attempts.length}${dev.locked?' · устройство заблокировано':''}</p>
+  <p><button onclick="dl()">Скачать результат (.txt)</button></p>`;
+  $('result').innerHTML=h;
+  $('result').hidden=false;
+  window.scrollTo(0,0);
+}
+
+function dl(){
+  let t=`Срез знаний: Сводные таблицы\n${S.name}, группа ${S.group}${S.retake?' (пересдача)':''}\n`;
+  if(S.prev)t+=`Первая попытка: ${S.prev.score} из ${Q.length}, оценка ${S.prev.grade}\n`;
+  t+=`Баллы: ${S.score} из ${Q.length}, оценка: ${finalGrade()}\nНарушений: ${S.viol}${S.locked?' (тест заблокирован)':''}\n\n`;
+  S.qorder.forEach((qi,k)=>{
+    const a=S.ans[qi],q=Q[qi];
+    let ans=Array.isArray(a)?((q.t==='m'||q.t==='ms')?a.join(' | '):a.join(' → ')):(a||'—');
+    t+=`${k+1}. [${check(qi)?'+':'-'}] ${q.q}\n   Ответ: ${ans}\n`;
+  });
+  const u=URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'}));
+  const e=document.createElement('a');
+  e.href=u;e.download=`pivot_${S.name}_${S.group}.txt`;e.click();
+}
+
+/* ---------- Защита от списывания ---------- */
+['copy','cut','paste','contextmenu','dragstart','selectstart'].forEach(ev=>
+  document.addEventListener(ev,e=>{if(S&&!S.done)e.preventDefault();},true));
+
+document.addEventListener('keydown',e=>{
+  if(!S||S.done)return;
+  const k=e.key.toLowerCase(),ctrl=e.ctrlKey||e.metaKey;
+  if(e.key==='PrintScreen'){viol('снимок экрана');return;}
+  if(e.key==='F12'||(ctrl&&['c','v','x','a','u','s','p'].includes(k))||(ctrl&&e.shiftKey&&['i','j','c'].includes(k))){
+    e.preventDefault();e.stopPropagation();
+  }
+},true);
+
+document.addEventListener('visibilitychange',()=>{if(document.hidden)viol('переход на другую вкладку или приложение');});
+window.addEventListener('blur',()=>viol('окно потеряло фокус'));
+document.addEventListener('fullscreenchange',()=>{
+  if(document.fullscreenEnabled&&!document.fullscreenElement)viol('выход из полноэкранного режима');
+});
+window.addEventListener('beforeunload',e=>{if(S&&!S.done){e.preventDefault();e.returnValue='';}});
+</script>
+</body>
+</html>

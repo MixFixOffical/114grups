@@ -1,10 +1,10 @@
 /* =====================================================================
    ПОДКЛЮЧЕНИЕ К FIREBASE — единственный файл, где нужно что-то менять.
-   Вставьте конфиг из Firebase Console → Project settings → Your apps → Web app.
+   Storage НЕ используется: PDF хранится в Firestore (поле pdfBase64).
    ===================================================================== */
 
 const firebaseConfig = {
-   apiKey: "AIzaSyA_TA5KIOH5GQxBw6ThLCP56PgDJtRWR6I",
+  apiKey: "AIzaSyA_TA5KIOH5GQxBw6ThLCP56PgDJtRWR6I",
   authDomain: "mixfixbank1.firebaseapp.com",
   databaseURL: "https://mixfixbank1-default-rtdb.firebaseio.com",
   projectId: "mixfixbank1",
@@ -16,13 +16,12 @@ const firebaseConfig = {
 
 (function () {
   const configured = !firebaseConfig.apiKey.startsWith("YOUR");
-  let auth = null, db = null, storage = null;
+  let auth = null, db = null;
 
   try {
     firebase.initializeApp(firebaseConfig);
     auth = firebase.auth();
     db = firebase.firestore();
-    storage = firebase.storage();
   } catch (e) {
     console.error("Firebase не инициализирован:", e);
   }
@@ -31,10 +30,8 @@ const firebaseConfig = {
     configured,
     auth,
     db,
-    storage,
     serverTimestamp: () => firebase.firestore.FieldValue.serverTimestamp(),
 
-    /** callback(user) вызывается после входа; если пользователя нет — входим анонимно. */
     onUser(callback, onError) {
       auth.onAuthStateChanged(user => {
         if (user) callback(user);
@@ -45,42 +42,37 @@ const firebaseConfig = {
 })();
 
 /*
- * ПРАВИЛА БЕЗОПАСНОСТИ (скопировать в консоль Firebase)
- *
- * Firestore Database → Rules:
+ * =====================================================================
+ * ПРАВИЛА FIRESTORE — скопировать в Firestore Database → Rules → Publish
+ * =====================================================================
  *
  * rules_version = '2';
  * service cloud.firestore {
  *   match /databases/{database}/documents {
+ *
  *     match /works/{workId} {
  *       allow read, update, delete: if request.auth != null
  *         && resource.data.ownerId == request.auth.uid;
  *       allow create: if request.auth != null
  *         && request.resource.data.ownerId == request.auth.uid;
  *     }
+ *
  *     match /certificates/{certId} {
  *       allow read, update, delete: if request.auth != null
  *         && resource.data.ownerId == request.auth.uid;
  *       allow create: if request.auth != null
  *         && request.resource.data.ownerId == request.auth.uid;
  *     }
- *   }
- * }
  *
- * Storage → Rules:
- *
- * rules_version = '2';
- * service firebase.storage {
- *   match /b/{bucket}/o {
- *     match /certificates/{uid}/{file=**} {
- *       allow read, delete: if request.auth != null && request.auth.uid == uid;
- *       allow create, update: if request.auth != null
- *         && request.auth.uid == uid
- *         && request.resource.contentType == 'application/pdf'
- *         && request.resource.size < 10 * 1024 * 1024;
+ *     match /{document=**} {
+ *       allow read, write: if false;
  *     }
  *   }
  * }
  *
- * Authentication → Sign-in method → включить «Anonymous».
+ * ── Authentication → Sign-in method ────────────────────────────────
+ * Включить «Anonymous».
+ *
+ * ── Storage → Rules ────────────────────────────────────────────────
+ * Не нужны: Storage не используется.
  */

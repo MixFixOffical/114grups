@@ -158,6 +158,8 @@ details .form { margin-top: 10px; }
 <script src="js/firebase-config.js"></script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<!-- ✅ jsPDF для генерации настоящего PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <style>
 .acc { border: 1px solid #e5e7eb; border-radius: 14px; margin-top: 12px; background: #fff; }
@@ -237,7 +239,7 @@ details .form { margin-top: 10px; }
 
   <section id="history" class="card section">
     <h2>Сертификаты</h2>
-    <p class="muted">Все созданные сертификаты. Скачивание доступно после ввода имени преподавателя.</p>
+    <p class="muted">Все созданные сертификаты (PDF). Скачивание доступно после ввода имени преподавателя.</p>
     <div id="historyList"></div>
   </section>
 
@@ -258,7 +260,10 @@ details .form { margin-top: 10px; }
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
   const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   const fmtDate = iso => { if (!iso) return ""; const [y, m, d] = iso.split("-"); return `${d}.${m}.${y}`; };
-  const MAX_BASE64 = 900000;
+
+  // PDF-base64 тяжелее JPEG, но Firestore держит до 1 MiB на документ — берём запас
+  const MAX_BASE64 = 950000;
+
   const OLD_WORK_KEY = "certgen.workId";
   const FIELDS = "input[data-field=var], input[data-field=grade]";
 
@@ -274,9 +279,9 @@ details .form { margin-top: 10px; }
 
   const { db } = window.FB;
   let user = null;
-  let state = { teacher: "", groups: [] };  // groups[].subjects[].marks[studentId] = {grade, variant}
-  let certs = {};                           // docId -> метаданные сертификата (без PDF)
-  const openG = new Set();                  // раскрытые группы (сохраняются при перерисовке)
+  let state = { teacher: "", groups: [] };
+  let certs = {};
+  const openG = new Set();
 
   /* ================= Базовые утилиты ================= */
   function toast(msg) {
@@ -299,14 +304,12 @@ details .form { margin-top: 10px; }
   const findSubject = (g, sid) => g && g.subjects.find(s => s.id === sid);
   const docKey = (sid, stid) => `${user.uid}_${sid}_${stid}`;
 
-  // "5/3", "5 / 3", "4,5/5", "5" → строка; "" → пусто; иначе null
   function normalizeGrade(value) {
     const t = String(value ?? "").trim().replace(/\s+/g, "").replace(",", ".");
     if (!t) return "";
     return /^\d+(\.\d+)?(\/\d+(\.\d+)?)?$/.test(t) ? t : null;
   }
 
-  // Номер варианта → тема из списка предмета; текст → как есть; пусто → тема работы
   function topicFor(s, raw) {
     const v = String(raw ?? "").trim();
     if (!v) return { topic: s.work, label: "" };
@@ -332,7 +335,6 @@ details .form { margin-top: 10px; }
     }
   }
 
-  // Переносим старую единственную «работу» в новую структуру: группа → предмет
   async function migrateOld() {
     const id = localStorage.getItem(OLD_WORK_KEY);
     if (!id) return false;
@@ -430,7 +432,6 @@ details .form { margin-top: 10px; }
       `Групп: <b>${state.groups.length}</b> · предметов: <b>${subj}</b> · студентов: <b>${stud}</b> · сертификатов: <b>${Object.keys(certs).length}</b>${warn}`;
   }
 
-  // Раздел «Группы»: список названий, по нажатию — предметы и студенты
   function renderGroups() {
     const box = $("#groupsList");
     if (!state.groups.length) {
@@ -462,7 +463,7 @@ details .form { margin-top: 10px; }
           <div class="add-box">
             <h3>Новый предмет</h3>
             <div class="grid2">
-              <label>Предмет <input data-new="subject" placeholder="Информационные технологии (Пример)"></label>
+              <label>Предмет <input data-new="subject" placeholder="Информационные технологии"></label>
               <label>Вид работы <input data-new="work" placeholder="Лабораторная работа №1"></label>
             </div>
             <div class="row">
@@ -487,7 +488,6 @@ details .form { margin-top: 10px; }
       </details>`).join("");
   }
 
-  // Раздел «Оценки»: группа → предмет → дата → таблица студентов с оценками и сертификатами
   function renderGrades() {
     const box = $("#gradesList");
     if (!state.groups.length) {
@@ -539,406 +539,54 @@ details .form { margin-top: 10px; }
         </div>
         <details>
           <summary>Вставить оценки списком</summary>
-          <textarea data-field="paste" rows="4" placeholder="Иванов Иван Иванович 5/3&#10;Петрова Анна Сергеевна 4"></textarea>
-          <div class="actions"><button class="btn small" data-act="apply-paste">Применить</button></div>
-        </details>
-        <table class="grades-table" style="margin-top:10px">
-          <thead><tr><th>#</th><th>ФИО</th><th>Вариант / тема</th><th>Оценка</th><th>Сертификат</th></tr></thead>
-          <tbody>${rows || `<tr><td colspan="5" class="muted">В группе нет студентов</td></tr>`}</tbody>
-        </table>
-        <div class="actions">
-          <button class="btn" data-act="save-marks">Сохранить оценки</button>
-          <button class="btn primary" data-act="gen-subject">Создать сертификаты</button>
-          <button class="btn ghost" data-act="download-all" ${hasAny ? "" : "disabled"}>⬇ Скачать все</button>
-        </div>
-      </div>`;
-  }
+          rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
 
-  // Раздел «Сертификаты»: все созданные, со скачиванием и удалением
-  function renderHistory() {
-    const list = $("#historyList");
-    const items = Object.entries(certs).map(([id, d]) => ({ id, ...d }));
-    if (!items.length) { list.innerHTML = `<p class="muted">Сертификатов пока нет.</p>`; return; }
-    const time = x => (x && x.toMillis) ? x.toMillis() : Date.now();
-    items.sort((a, b) => time(b.createdAt) - time(a.createdAt));
-    list.innerHTML = `
-      <table class="grades-table">
-        <thead><tr><th>Студент</th><th>Группа</th><th>Предмет</th><th>Тема</th><th>Оценка</th><th>Дата</th><th></th></tr></thead>
-        <tbody>
-          ${items.map(it => `
-            <tr>
-              <td>${esc(it.studentName)}</td>
-              <td>${esc(it.groupName)}</td>
-              <td>${esc(it.subjectName || "")}</td>
-              <td>${esc((it.variantLabel ? it.variantLabel + " — " : "") + (it.topic || it.workTitle || ""))}</td>
-              <td><b>${esc(it.grade)}</b></td>
-              <td>${esc(it.date || "")}</td>
-              <td style="white-space:nowrap">
-                <button class="btn small" data-act="download" data-key="${esc(it.id)}">⬇ PDF</button>
-                <button class="btn small danger" data-act="delete" data-key="${esc(it.id)}">Удалить</button>
-              </td>
-            </tr>`).join("")}
-        </tbody>
-      </table>`;
-  }
-
-  /* ================= Раскрытие групп (сохраняем состояние) ================= */
-  document.addEventListener("toggle", e => {
-    const d = e.target;
-    if (d.matches && d.matches("details[data-gid]")) {
-      d.open ? openG.add(d.dataset.gid) : openG.delete(d.dataset.gid);
-    }
-  }, true);
-
-  /* ================= Главная: имя преподавателя ================= */
-  $("#teacherForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    if (!user) return toast("Подождите, идёт подключение…");
-    const v = $("#teacherName").value.trim();
-    if (!v) return toast("Введите имя преподавателя");
-    state.teacher = v;
-    await commit("Имя преподавателя сохранено");
-  });
-
-  /* ================= Группы ================= */
-  $("#groupForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    if (!user) return toast("Подождите, идёт подключение…");
-    const name = $("#groupName").value.trim();
-    const students = $("#studentsInput").value.split("\n")
-      .map(s => s.trim()).filter(Boolean).map(n => ({ id: uid(), name: n }));
-    if (!name) return toast("Введите название группы");
-    const g = { id: uid(), name, students, subjects: [] };
-    state.groups.push(g);
-    openG.add(g.id);
-    if (await commit(`Группа «${name}» создана`)) {
-      e.target.reset();
-      $("#groupAdd").open = false;
-    }
-  });
-
-  $("#groupsList").addEventListener("click", async e => {
-    const b = e.target.closest("[data-act]");
-    if (!b) return;
-    const g = findGroup(b.dataset.gid);
-    if (!g) return;
-    const scope = b.closest(".acc-body");
-    const q = sel => scope.querySelector(sel);
-    const act = b.dataset.act;
-
-    if (act === "del-group") {
-      if (!confirm(`Удалить группу «${g.name}» со студентами и оценками?`)) return;
-      state.groups = state.groups.filter(x => x !== g);
-      openG.delete(g.id);
-    } else if (act === "add-subject") {
-      const name = q("[data-new=subject]").value.trim();
-      if (!name) return toast("Введите название предмета");
-      g.subjects.push({
-        id: uid(), name,
-        work: q("[data-new=work]").value.trim(),
-        date: q("[data-new=date]").value || todayISO(),
-        variants: [], marks: {}
-      });
-    } else if (act === "del-subject") {
-      if (!confirm("Удалить предмет и его оценки?")) return;
-      g.subjects = g.subjects.filter(s => s.id !== b.dataset.sid);
-    } else if (act === "save-variants") {
-      const s = findSubject(g, b.dataset.sid);
-      const lines = q("[data-field=variants-text]").value.split("\n").map(x => x.trim()).filter(Boolean);
-      s.variants = lines.map((topic, i) => ({ num: i + 1, topic }));
-    } else if (act === "add-student") {
-      const name = q("[data-new=student]").value.trim();
-      if (!name) return toast("Введите ФИО студента");
-      g.students.push({ id: uid(), name });
-    } else if (act === "del-student") {
-      g.students = g.students.filter(x => x.id !== b.dataset.stid);
-    } else {
-      return;
-    }
-    await commit();
-  });
-
-  /* ================= Оценки ================= */
-  // Читает оценки и варианты карточки предмета. Возвращает неверное значение или null.
-  function readMarks(card, s) {
-    let bad = null;
-    card.querySelectorAll("input[data-field=grade]").forEach(inp => {
-      if (normalizeGrade(inp.value) === null) bad = bad || inp.value;
-    });
-    if (bad) return bad;
-    card.querySelectorAll("input[data-field=grade]").forEach(inp => {
-      const m = s.marks[inp.dataset.stid] || (s.marks[inp.dataset.stid] = {});
-      m.grade = normalizeGrade(inp.value);
-    });
-    card.querySelectorAll("input[data-field=var]").forEach(inp => {
-      const m = s.marks[inp.dataset.stid] || (s.marks[inp.dataset.stid] = {});
-      m.variant = inp.value.trim();
-    });
-    return null;
-  }
-
-  // Вставка списком: «Фамилия Имя Отчество 5/3», «Фамилия Имя<TAB>5» или «Фамилия Имя;5»
-  function applyPaste(card, g, s) {
-    const text = card.querySelector("textarea[data-field=paste]").value;
-    let ok = 0;
-    const miss = [];
-    text.split("\n").map(l => l.trim()).filter(Boolean).forEach(line => {
-      let name, grade;
-      if (line.includes("\t")) [name, grade] = line.split("\t");
-      else if (line.includes(";")) [name, grade] = line.split(";");
-      else {
-        const i = line.lastIndexOf(" ");
-        if (i < 0) { miss.push(line); return; }
-        name = line.slice(0, i);
-        grade = line.slice(i + 1);
-      }
-      const st = g.students.find(x => x.name.trim().toLowerCase() === (name || "").trim().toLowerCase());
-      const v = normalizeGrade((grade || "").trim());
-      if (!st || v === null) { miss.push(line); return; }
-      const m = s.marks[st.id] || (s.marks[st.id] = {});
-      m.grade = v;
-      ok++;
-    });
-    commit(`Вставлено оценок: ${ok}` + (miss.length ? `, не найдено: ${miss.length}` : ""));
-  }
-
-  $("#gradesList").addEventListener("click", async e => {
-    const b = e.target.closest("[data-act]");
-    if (!b) return;
-    const act = b.dataset.act;
-
-    if (act === "download") return downloadBtn(b);
-
-    const card = b.closest("[data-card]");
-    const g = findGroup(card.dataset.gid);
-    const s = findSubject(g, card.dataset.sid);
-    if (!s) return;
-
-    if (act === "save-marks") {
-      const bad = readMarks(card, s);
-      if (bad) return toast("Неверный формат оценки: " + bad);
-      await commit("Оценки сохранены");
-    } else if (act === "apply-paste") {
-      applyPaste(card, g, s);
-    } else if (act === "gen-subject") {
-      await generate(card, g, s);
-    } else if (act === "download-all") {
-      await downloadAll(g, s);
-    }
-  });
-
-  // Дата сохраняется сразу, без перерисовки — не теряем введённые оценки
-  $("#gradesList").addEventListener("change", async e => {
-    if (!e.target.matches("input[data-field=date]")) return;
-    const card = e.target.closest("[data-card]");
-    const s = findSubject(findGroup(card.dataset.gid), card.dataset.sid);
-    s.date = e.target.value;
-    try { await saveState(); } catch (err) { toast("Ошибка: " + err.message); }
-  });
-
-  // Enter — к следующей ячейке; после последней — сохранить оценки
-  $("#gradesList").addEventListener("keydown", e => {
-    if (e.key !== "Enter" || !e.target.matches(FIELDS)) return;
-    e.preventDefault();
-    const card = e.target.closest("[data-card]");
-    const fields = [...card.querySelectorAll(FIELDS)];
-    const next = fields[fields.indexOf(e.target) + 1];
-    if (next) next.focus();
-    else card.querySelector("[data-act=save-marks]").click();
-  });
-
-  // При фокусе значение выделяется — можно сразу печатать новую оценку
-  $("#gradesList").addEventListener("focusin", e => {
-    if (e.target.matches(FIELDS)) e.target.select();
-  });
-
-  /* ================= Сертификаты: создание ================= */
-  function log(msg) {
-    const el = $("#genLog");
-    el.innerHTML += `<div>${esc(msg)}</div>`;
-    el.scrollTop = el.scrollHeight;
-  }
-
-  async function generate(card, g, s) {
-    if (!needTeacher()) return;
-    const bad = readMarks(card, s);
-    if (bad) return toast("Неверный формат оценки: " + bad);
-
-    const btn = card.querySelector("[data-act=gen-subject]");
-    $("#genLog").innerHTML = "";
-    const items = [];
-    g.students.forEach(st => {
-      const m = s.marks[st.id];
-      if (!m || !m.grade) return;
-      const t = topicFor(s, m.variant);
-      if (!t) log(`✖ ${st.name}: нет варианта «${m.variant}»`);
-      else items.push({ st, m, t });
-    });
-    if (!items.length) return toast("Нет студентов с оценками и корректными вариантами");
-
-    try { await saveState(); } catch (err) { return toast("Ошибка: " + err.message); }
-
-    btn.disabled = true;
-    $("#progress").classList.remove("hidden");
-    $("#progressBar").style.width = "0%";
-    const teacher = state.teacher.trim();
-    const date = fmtDate(s.date) || fmtDate(todayISO());
-
-    let done = 0, saved = 0;
-    for (const { st, m, t } of items) {
-      try {
-        const docId = docKey(s.id, st.id);
-        const number = uid().replace(/-/g, "").slice(0, 8).toUpperCase();
-        const jpg = await renderCertificateImage({
-          studentName: st.name, groupName: g.name, grade: m.grade,
-          workTitle: s.work, subject: s.name, topic: t.topic, variantLabel: t.label,
-          date, number, teacher
-        });
-        if (jpg.length > MAX_BASE64) {
-          throw new Error(`файл слишком большой (${Math.round(jpg.length / 1024)} КБ)`);
-        }
-        const meta = {
-          ownerId: user.uid, subjectId: s.id, studentId: st.id,
-          groupName: g.name, subjectName: s.name, workTitle: s.work,
-          studentName: st.name, grade: m.grade, topic: t.topic, variantLabel: t.label,
-          date, teacher, number
-        };
-        await db.collection("certificates").doc(docId).set({
-          ...meta, pdfBase64: jpg, createdAt: window.FB.serverTimestamp()
-        });
-        certs[docId] = meta;
-        saved++;
-        log(`✔ ${st.name} — ${m.grade}`);
-      } catch (err) {
-        log(`✖ ${st.name}: ${err.message}`);
-      }
-      done++;
-      $("#progressBar").style.width = `${(done / items.length) * 100}%`;
+    // ===== Состояние приложения: группы, предметы, оценки, имя преподавателя =====
+    match /appState/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow create, update: if request.auth != null
+        && request.auth.uid == userId
+        && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if request.auth != null && request.auth.uid == userId;
     }
 
-    btn.disabled = false;
-    toast(`Сертификатов создано: ${saved} из ${items.length}`);
-    renderAll();
-  }
+    // ===== Сертификаты (PDF-base64 + метаданные) =====
+    match /certificates/{certId} {
+      allow read, update, delete: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+    }
 
-  /* ================= Сертификаты: скачивание ================= */
-  async function downloadCert(docId) {
-    if (!needTeacher()) return false;
-    const snap = await db.collection("certificates").doc(docId).get();
-    if (!snap.exists) throw new Error("сертификат не найден");
-    const d = snap.data();
-    if (!d.pdfBase64) throw new Error("файл не сохранён");
-    const a = document.createElement("a");
-    a.href = d.pdfBase64;
-    a.download = `Сертификат — ${d.studentName || "студент"}.jpg`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    return true;
-  }
+    // ===== Устаревшая коллекция works (для миграции) =====
+    match /works/{workId} {
+      allow read, update, delete: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+    }
 
-  async function downloadBtn(b) {
-    b.disabled = true;
-    try { await downloadCert(b.dataset.key); }
-    catch (err) { toast("Ошибка: " + err.message); }
-    finally { b.disabled = false; }
-  }
+    // ===== Пользователи =====
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
 
-  async function downloadAll(g, s) {
-    if (!needTeacher()) return;
-    const keys = g.students.map(st => docKey(s.id, st.id)).filter(k => certs[k]);
-    for (const k of keys) {
-      try {
-        await downloadCert(k);
-        await new Promise(r => setTimeout(r, 400));
-      } catch (err) {
-        toast("Ошибка: " + err.message);
-        break;
-      }
+    // ===== Транзакции =====
+    match /transactions/{transactionId} {
+      allow read: if request.auth != null
+        && resource.data.ownerId == request.auth.uid;
+      allow create: if request.auth != null
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ===== Админ-действия =====
+    match /admin_actions/{actionId} {
+      allow read, write: if request.auth != null
+        && request.auth.token.admin == true;
     }
   }
-
-  $("#historyList").addEventListener("click", async e => {
-    const b = e.target.closest("[data-act]");
-    if (!b) return;
-    if (b.dataset.act === "download") return downloadBtn(b);
-    if (b.dataset.act === "delete") {
-      if (!confirm("Удалить сертификат?")) return;
-      try {
-        await db.collection("certificates").doc(b.dataset.key).delete();
-        delete certs[b.dataset.key];
-        toast("Сертификат удалён");
-        renderAll();
-      } catch (err) { toast("Ошибка: " + err.message); }
-    }
-  });
-
-  /* ================= PDF-сертификат ================= */
-  function certificateHTML(d) {
-    return `
-    <div class="cert">
-      <div class="cert-frame">
-        <div class="cert-inner">
-          <div class="corner tl"></div><div class="corner tr"></div>
-          <div class="corner bl"></div><div class="corner br"></div>
-
-          <div class="cert-badge">★</div>
-          <h1 class="cert-title">Сертификат</h1>
-          <div class="cert-sub">о выполнении учебной работы</div>
-
-          <p class="cert-text" style="margin-top:18px">Настоящим подтверждается, что</p>
-          <div class="cert-name">${esc(d.studentName)}</div>
-          <p class="cert-text">студент(ка) группы <b>${esc(d.groupName)}</b> успешно выполнил(а) работу</p>
-          <div class="cert-work">«${esc(d.workTitle)}»</div>
-          <p class="cert-topic">${d.variantLabel ? esc(d.variantLabel) + ": " : ""}${esc(d.topic)}</p>
-          <p class="cert-text">по предмету <b>${esc(d.subject)}</b></p>
-
-          <div class="cert-grade-label">Оценка</div>
-          <div class="cert-grade">${esc(d.grade)}</div>
-
-          <div class="cert-footer">
-            <div class="sig"><div class="sig-name">${esc(d.teacher)}</div><div class="sig-line"></div>Преподаватель</div>
-            <div class="seal"><span>CERT</span></div>
-            <div class="sig"><div class="sig-line"></div>Дата: ${esc(d.date)}</div>
-          </div>
-          <div class="cert-number">№ ${esc(d.number)}</div>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  // Рендерит сертификат в JPEG (data URL). scale 1.5 и качество 0.85 — чтобы уложиться в лимит Firestore.
-  async function renderCertificateImage(data) {
-    const stage = $("#certStage");
-    const overlay = $("#renderOverlay");
-    stage.innerHTML = certificateHTML(data);
-    stage.classList.add("on");
-    overlay.classList.add("on");
-    window.scrollTo(0, 0);
-
-    try {
-      await Promise.all([
-        document.fonts.load('700 60px "Playfair Display"'),
-        document.fonts.load('italic 400 28px "Playfair Display"'),
-        document.fonts.load('400 20px "Montserrat"'),
-        document.fonts.load('700 20px "Montserrat"')
-      ]);
-      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-      const canvas = await window.html2canvas(stage.querySelector(".cert"), {
-        scale: 1.5, backgroundColor: "#fffdf7", useCORS: true, logging: false,
-        width: 1123, height: 794, windowWidth: 1123, windowHeight: 794,
-        x: 0, y: 0, scrollX: 0, scrollY: 0
-      });
-      return canvas.toDataURL("image/jpeg", 0.85);
-    } finally {
-      stage.innerHTML = "";
-      stage.classList.remove("on");
-      overlay.classList.remove("on");
-    }
-  }
-
-  if (!window.FB.configured) show("home");
-})();
-</script>
-</body>
-</html>
+}

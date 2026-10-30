@@ -1,21 +1,9 @@
-// =====================================================================
-//  ПОДКЛЮЧЕНИЕ К FIREBASE — единственный файл, где нужно что-то менять
-//  Вставьте конфиг из Firebase Console → Project settings → Your apps
-// =====================================================================
+/* =====================================================================
+   ПОДКЛЮЧЕНИЕ К FIREBASE — единственный файл, где нужно что-то менять.
+   Вставьте конфиг из Firebase Console → Project settings → Your apps → Web app.
+   ===================================================================== */
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-  getAuth, signInAnonymously, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
-  getFirestore, collection, doc, setDoc, getDoc, updateDoc, getDocs, deleteDoc,
-  query, where, serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {
-  getStorage, ref, uploadBytes, getDownloadURL, deleteObject
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
-
-export const firebaseConfig = {
+const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
   authDomain: "your-project.firebaseapp.com",
   projectId: "your-project",
@@ -24,27 +12,35 @@ export const firebaseConfig = {
   appId: "1:000000000000:web:xxxxxxxxxxxx"
 };
 
-export const isConfigured = !firebaseConfig.apiKey.startsWith("YOUR");
+(function () {
+  const configured = !firebaseConfig.apiKey.startsWith("YOUR");
+  let auth = null, db = null, storage = null;
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+  try {
+    firebase.initializeApp(firebaseConfig);
+    auth = firebase.auth();
+    db = firebase.firestore();
+    storage = firebase.storage();
+  } catch (e) {
+    console.error("Firebase не инициализирован:", e);
+  }
 
-// Реэкспорт функций, чтобы index.html импортировал всё из одного файла
-export {
-  collection, doc, setDoc, getDoc, updateDoc, getDocs, deleteDoc,
-  query, where, serverTimestamp,
-  ref, uploadBytes, getDownloadURL, deleteObject
-};
+  window.FB = {
+    configured,
+    auth,
+    db,
+    storage,
+    serverTimestamp: () => firebase.firestore.FieldValue.serverTimestamp(),
 
-/** Вызывает callback(user) после входа. Если пользователя нет — входит анонимно. */
-export function onUser(callback) {
-  onAuthStateChanged(auth, user => {
-    if (user) callback(user);
-    else signInAnonymously(auth).catch(err => console.error("Ошибка входа:", err));
-  });
-}
+    /** callback(user) вызывается после входа; если пользователя нет — входим анонимно. */
+    onUser(callback, onError) {
+      auth.onAuthStateChanged(user => {
+        if (user) callback(user);
+        else auth.signInAnonymously().catch(err => onError && onError(err));
+      });
+    }
+  };
+})();
 
 /*
  * ПРАВИЛА БЕЗОПАСНОСТИ (скопировать в консоль Firebase)

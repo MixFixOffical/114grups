@@ -15,8 +15,6 @@ body {
   margin: 0; font-family: "Montserrat", system-ui, sans-serif; color: #1f2330;
   background: linear-gradient(135deg, #eef2ff 0%, #fdf6e9 100%); min-height: 100vh;
 }
-
-/* ---------- Верхняя панель ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap;
   align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px;
@@ -28,7 +26,6 @@ body {
 .nav-link.active, .nav-link:hover { background: #1f2330; color: #fff; }
 .status { font-size: 13px; color: #6b7280; }
 
-/* ---------- Общие элементы ---------- */
 main { max-width: 980px; margin: 24px auto; padding: 0 16px; }
 .section { display: none; }
 .section.active { display: block; }
@@ -73,7 +70,6 @@ input:focus, textarea:focus { outline: none; border-color: #6366f1; box-shadow: 
 #progressBar { height: 100%; width: 0; background: linear-gradient(90deg, #6366f1, #d4a84b); transition: width .3s; }
 .log { margin-top: 12px; font-size: 13px; line-height: 1.7; max-height: 180px; overflow: auto; }
 
-/* ---------- Варианты ---------- */
 .variants-box { margin-top: 26px; border-top: 1px solid #eef0f4; padding-top: 18px; }
 .variants-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 12px; }
 .variant-item {
@@ -103,7 +99,6 @@ details .form { margin-top: 10px; }
   .grades-table { font-size: 13px; }
 }
 
-/* ---------- Рендер PDF: затемнение и сцена сертификата ---------- */
 #renderOverlay {
   position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center;
   background: rgba(15,18,30,.75); color: #fff; font-size: 18px; font-weight: 600;
@@ -112,7 +107,6 @@ details .form { margin-top: 10px; }
 #certStage { position: fixed; left: 0; top: 0; width: 1123px; height: 794px; z-index: 9500; display: none; }
 #certStage.on { display: block; }
 
-/* ---------- Сертификат (A4 альбом, 96dpi) ---------- */
 .cert {
   position: relative; width: 1123px; height: 794px; overflow: hidden; text-align: center;
   background:
@@ -158,16 +152,12 @@ details .form { margin-top: 10px; }
 .cert-number { position: absolute; right: 60px; bottom: 40px; font-size: 12px; color: #9ca3af; }
 </style>
 
-<!-- Firebase (обычные скрипты: работают и при открытии файла, и через сервер) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
 <script src="js/firebase-config.js"></script>
 
-<!-- Генерация PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -184,7 +174,6 @@ details .form { margin-top: 10px; }
 
 <main>
 
-  <!-- ГЛАВНАЯ -->
   <section id="home" class="card section active">
     <h1>Новая работа</h1>
     <p class="muted">Укажите тему и предмет, затем нажмите «Настроить».</p>
@@ -220,7 +209,6 @@ details .form { margin-top: 10px; }
     </div>
   </section>
 
-  <!-- ГРУППЫ -->
   <section id="groups" class="card section">
     <h2>Группы и студенты</h2>
     <form id="groupForm" class="form">
@@ -235,7 +223,6 @@ details .form { margin-top: 10px; }
     <div id="groupsList"></div>
   </section>
 
-  <!-- ОЦЕНКИ -->
   <section id="grades" class="card section">
     <h2>Оценки</h2>
     <p class="muted">Формат оценки: <b>5/3</b> (или просто <b>5</b>). Пустое поле — студент в сертификат не попадёт.</p>
@@ -248,10 +235,9 @@ details .form { margin-top: 10px; }
     <div id="genLog" class="log"></div>
   </section>
 
-  <!-- ИСТОРИЯ -->
   <section id="history" class="card section">
     <h2>История сертификатов</h2>
-    <p class="muted">PDF хранятся в Firebase Storage и доступны для скачивания в любое время.</p>
+    <p class="muted">PDF хранятся в Firestore (поле <code>pdfBase64</code>) и доступны для скачивания в любое время.</p>
     <div id="historyList"></div>
   </section>
 
@@ -265,15 +251,25 @@ details .form { margin-top: 10px; }
 (function () {
   "use strict";
 
-  /* ================= Помощники ================= */
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const WORK_KEY = "certgen.workId";
-  const { db, storage } = window.FB;
 
+  window.addEventListener("unhandledrejection", e => {
+    const msg = e?.reason?.message || String(e?.reason || "");
+    if (/permission|insufficient/i.test(msg)) {
+      toast("Нет прав доступа. Проверьте правила Firestore.");
+    }
+  });
+
+  if (!window.FB || !window.FB.configured) {
+    document.getElementById("userStatus").textContent = "Нет конфига Firebase";
+    return;
+  }
+
+  const { db } = window.FB;
   let user = null;
-  // work = { id, title, subject, variants: [{num, topic}], groups: [{id, name, students: [{id, name, variant, grade}]}] }
   let work = null;
 
   function toast(msg) {
@@ -281,7 +277,7 @@ details .form { margin-top: 10px; }
     t.textContent = msg;
     t.classList.add("show");
     clearTimeout(toast.timer);
-    toast.timer = setTimeout(() => t.classList.remove("show"), 3000);
+    toast.timer = setTimeout(() => t.classList.remove("show"), 3500);
   }
 
   function show(id) {
@@ -296,7 +292,6 @@ details .form { margin-top: 10px; }
   document.querySelectorAll(".nav-link").forEach(a =>
     a.addEventListener("click", e => { e.preventDefault(); show(a.dataset.target); }));
 
-  /** Тема студента: номер варианта → тема варианта; текст → тема вручную; пусто → тема работы. */
   function topicFor(s) {
     const v = (s.variant ?? "").trim();
     if (!v) return { topic: work.title, label: "" };
@@ -380,23 +375,18 @@ details .form { margin-top: 10px; }
       </div>`).join("") || `<p class="muted">Сначала добавьте группы.</p>`;
   }
 
-  /* ================= Firebase: вход и работа ================= */
-  if (!window.FB.configured) {
-    toast("Заполните конфиг в js/firebase-config.js");
-    $("#userStatus").textContent = "Нет конфига Firebase";
-  } else {
-    window.FB.onUser(async u => {
-      user = u;
-      $("#userStatus").textContent = "Подключено ✓";
-      await loadWork();
-      renderAll();
-      loadHistory();
-      show(location.hash.slice(1) || "home");
-    }, err => {
-      $("#userStatus").textContent = "Ошибка входа";
-      toast("Включите Anonymous в Authentication: " + err.message);
-    });
-  }
+  /* ================= Вход ================= */
+  window.FB.onUser(async u => {
+    user = u;
+    $("#userStatus").textContent = "Подключено ✓";
+    await loadWork();
+    renderAll();
+    loadHistory();
+    show(location.hash.slice(1) || "home");
+  }, err => {
+    $("#userStatus").textContent = "Ошибка входа";
+    toast("Включите Anonymous в Authentication: " + err.message);
+  });
 
   async function loadWork() {
     work = null;
@@ -413,33 +403,35 @@ details .form { margin-top: 10px; }
         localStorage.removeItem(WORK_KEY);
       }
     } catch (e) {
-      toast("Не удалось загрузить работу: " + e.message);
+      toast(/permission/i.test(e.message)
+        ? "Нет прав на чтение работы. Проверьте правила Firestore."
+        : "Не удалось загрузить работу: " + e.message);
     }
   }
 
   async function saveWork() {
-    await db.collection("works").doc(work.id).update({
+    await db.collection("works").doc(work.id).set({
+      ownerId: user.uid,
       title: work.title,
       subject: work.subject,
       variants: work.variants,
       groups: work.groups,
       updatedAt: FB.serverTimestamp()
-    });
+    }, { merge: true });
   }
 
-  /* ================= Главная: работа и варианты ================= */
+  /* ================= Главная ================= */
   $("#workForm").addEventListener("submit", async e => {
     e.preventDefault();
     if (!user) return toast("Подождите, идёт подключение…");
     const title = $("#workTitle").value.trim();
     const subject = $("#workSubject").value.trim();
+    if (!title || !subject) return toast("Заполните тему и предмет");
     try {
       if (!work) {
         const id = db.collection("works").doc().id;
         work = { id, title, subject, variants: [], groups: [] };
-        await db.collection("works").doc(id).set({
-          ownerId: user.uid, title, subject, variants: [], groups: [], createdAt: FB.serverTimestamp()
-        });
+        await saveWork();
         localStorage.setItem(WORK_KEY, id);
       } else {
         work.title = title;
@@ -498,7 +490,7 @@ details .form { margin-top: 10px; }
     renderAll();
   });
 
-  /* ================= Группы и студенты ================= */
+  /* ================= Группы ================= */
   function parseStudentLine(line) {
     const [name, variant = ""] = line.split("|").map(s => s.trim());
     return { id: crypto.randomUUID(), name, variant, grade: "" };
@@ -527,7 +519,7 @@ details .form { margin-top: 10px; }
     if (!b) return;
     const gi = +b.dataset.gi, si = +b.dataset.si, act = b.dataset.action;
 
-    if (act === "del-group") {
+        if (act === "del-group") {
       if (!confirm("Удалить группу вместе со студентами?")) return;
       work.groups.splice(gi, 1);
     } else if (act === "del-student") {
@@ -609,7 +601,12 @@ details .form { margin-top: 10px; }
     </div>`;
   }
 
-  async function renderCertificatePdf(data) {
+  /**
+   * Рендерит сертификат в JPEG dataURL (base64).
+   * Возвращает строку вида "data:image/jpeg;base64,...."
+   * scale: 1.5 и качество 0.85 — чтобы base64 укладывался в лимит Firestore (1 МБ).
+   */
+  async function renderCertificateImage(data) {
     const stage = $("#certStage");
     const overlay = $("#renderOverlay");
     stage.innerHTML = certificateHTML(data);
@@ -629,14 +626,11 @@ details .form { margin-top: 10px; }
 
       const node = stage.querySelector(".cert");
       const canvas = await window.html2canvas(node, {
-        scale: 2, backgroundColor: "#fffdf7", useCORS: true, logging: false,
-        width: 1123, height: 794, windowWidth: 1123, windowHeight: 794, x: 0, y: 0, scrollX: 0, scrollY: 0
+        scale: 1.5, backgroundColor: "#fffdf7", useCORS: true, logging: false,
+        width: 1123, height: 794, windowWidth: 1123, windowHeight: 794,
+        x: 0, y: 0, scrollX: 0, scrollY: 0
       });
-
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1123, 794] });
-      pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, 1123, 794);
-      return pdf.output("blob");
+      return canvas.toDataURL("image/jpeg", 0.85);
     } finally {
       stage.innerHTML = "";
       stage.classList.remove("on");
@@ -644,12 +638,15 @@ details .form { margin-top: 10px; }
     }
   }
 
-  /* ================= Генерация и сохранение ================= */
+  /* ================= Генерация и сохранение в Firestore ================= */
   function log(msg) {
     const el = $("#genLog");
     el.innerHTML += `<div>${esc(msg)}</div>`;
     el.scrollTop = el.scrollHeight;
   }
+
+  // Лимит Firestore на документ — 1 МиБ. Оставляем запас под остальные поля.
+  const MAX_BASE64 = 900_000;
 
   $("#generateBtn").addEventListener("click", async () => {
     if (!user) return toast("Подождите, идёт подключение…");
@@ -672,29 +669,38 @@ details .form { margin-top: 10px; }
     $("#progressBar").style.width = "0%";
     $("#genLog").innerHTML = "";
 
-    let done = 0;
+    let done = 0, saved = 0;
     for (const { group, student, t } of items) {
       try {
         const certId = db.collection("certificates").doc().id;
         const number = certId.slice(0, 8).toUpperCase();
         const date = new Date().toLocaleDateString("ru-RU");
 
-        const blob = await renderCertificatePdf({
+        const pdfBase64 = await renderCertificateImage({
           studentName: student.name, groupName: group.name, grade: student.grade,
           workTitle: work.title, subject: work.subject,
           topic: t.topic, variantLabel: t.label, date, number
         });
 
-        const path = `certificates/${user.uid}/${certId}.pdf`;
-        await storage.ref(path).put(blob, { contentType: "application/pdf" });
-        const url = await storage.ref(path).getDownloadURL();
+        if (pdfBase64.length > MAX_BASE64) {
+          throw new Error(`файл слишком большой (${Math.round(pdfBase64.length / 1024)} КБ base64). Уменьшите scale/качество.`);
+        }
 
         await db.collection("certificates").doc(certId).set({
-          ownerId: user.uid, workId: work.id, workTitle: work.title, subject: work.subject,
-          groupName: group.name, studentName: student.name, grade: student.grade,
-          topic: t.topic, variantLabel: t.label, number,
-          storagePath: path, pdfUrl: url, createdAt: FB.serverTimestamp()
+          ownerId: user.uid,
+          workId: work.id,
+          workTitle: work.title,
+          subject: work.subject,
+          groupName: group.name,
+          studentName: student.name,
+          grade: student.grade,
+          topic: t.topic,
+          variantLabel: t.label,
+          number,
+          pdfBase64,
+          createdAt: FB.serverTimestamp()
         });
+        saved++;
         log(`✔ ${student.name} — ${student.grade}`);
       } catch (err) {
         log(`✖ ${student.name}: ${err.message}`);
@@ -704,7 +710,7 @@ details .form { margin-top: 10px; }
     }
 
     btn.disabled = false;
-    toast(`Готово: ${done} из ${items.length}`);
+    toast(`Готово: ${saved} из ${items.length}`);
     loadHistory();
   });
 
@@ -732,8 +738,8 @@ details .form { margin-top: 10px; }
                 <td><b>${esc(it.grade)}</b></td>
                 <td>${it.createdAt && it.createdAt.toDate ? it.createdAt.toDate().toLocaleDateString("ru-RU") : "сейчас"}</td>
                 <td style="white-space:nowrap">
-                  <button class="btn small" data-action="download" data-path="${esc(it.storagePath)}" data-name="${esc(it.studentName)}">⬇ PDF</button>
-                  <button class="btn small danger" data-action="delete" data-id="${esc(it.id)}" data-path="${esc(it.storagePath)}">Удалить</button>
+                  <button class="btn small" data-action="download" data-id="${esc(it.id)}" data-name="${esc(it.studentName)}">⬇ PDF</button>
+                  <button class="btn small danger" data-action="delete" data-id="${esc(it.id)}">Удалить</button>
                 </td>
               </tr>`).join("")}
           </tbody>
@@ -746,24 +752,24 @@ details .form { margin-top: 10px; }
   $("#historyList").addEventListener("click", async e => {
     const b = e.target.closest("[data-action]");
     if (!b) return;
-    const { path, name } = b.dataset;
     const id = b.dataset.id;
     b.disabled = true;
     try {
       if (b.dataset.action === "download") {
-        // Ссылка запрашивается заново по пути в Storage — работает и через полгода
-        const url = await storage.ref(path).getDownloadURL();
-        const blob = await (await fetch(url)).blob();
+        // Загружаем документ ещё раз — pdfBase64 актуален на момент скачивания
+        const snap = await db.collection("certificates").doc(id).get();
+        if (!snap.exists) throw new Error("сертификат не найден");
+        const data = snap.data();
+        if (!data.pdfBase64) throw new Error("PDF не сохранён в документе");
+
         const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = `Сертификат — ${name}.pdf`;
+        a.href = data.pdfBase64;
+        a.download = `Сертификат — ${b.dataset.name || "студент"}.jpg`;
         document.body.appendChild(a);
         a.click();
         a.remove();
-        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
       } else if (b.dataset.action === "delete") {
         if (!confirm("Удалить сертификат?")) return;
-        await storage.ref(path).delete().catch(() => {});
         await db.collection("certificates").doc(id).delete();
         toast("Сертификат удалён");
         loadHistory();
@@ -775,7 +781,7 @@ details .form { margin-top: 10px; }
     }
   });
 
-  // Без конфига экран не выставляется после входа — покажем главную
+  // Если конфиг не задан — показываем главную
   if (!window.FB.configured) show("home");
 })();
 </script>

@@ -3,307 +3,172 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Генератор сертификатов</title>
-
+<title>Сертификаты</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-
-<style>
-* { box-sizing: border-box; }
-body {
-  margin: 0; font-family: "Montserrat", system-ui, sans-serif; color: #1f2330;
-  background: linear-gradient(135deg, #eef2ff 0%, #fdf6e9 100%); min-height: 100vh;
-}
-.topbar {
-  position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap;
-  align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px;
-  background: rgba(255,255,255,.9); backdrop-filter: blur(8px); border-bottom: 1px solid #e3e6ee;
-}
-.brand { font-family: "Playfair Display", serif; font-weight: 700; font-size: 22px; }
-.topbar nav { display: flex; gap: 6px; flex-wrap: wrap; }
-.nav-link { padding: 8px 14px; border-radius: 10px; text-decoration: none; color: #4a5068; font-weight: 600; font-size: 14px; }
-.nav-link.active, .nav-link:hover { background: #1f2330; color: #fff; }
-.status { font-size: 13px; color: #6b7280; }
-
-main { max-width: 980px; margin: 24px auto; padding: 0 16px; }
-.section { display: none; }
-.section.active { display: block; }
-.card { background: #fff; border-radius: 18px; padding: 28px; box-shadow: 0 10px 30px rgba(31,35,48,.08); margin-bottom: 20px; }
-h1 { font-family: "Playfair Display", serif; margin: 0 0 6px; }
-h2 { font-family: "Playfair Display", serif; margin: 0 0 14px; }
-h3 { margin: 0 0 10px; font-size: 17px; }
-.muted { color: #6b7280; font-size: 14px; }
-.danger-text { color: #b91c1c; }
-.hidden { display: none !important; }
-.form { display: grid; gap: 14px; margin-top: 16px; }
-label { display: grid; gap: 6px; font-size: 14px; font-weight: 600; color: #374151; }
-input, textarea {
-  font: inherit; font-weight: 400; padding: 11px 13px; border: 1px solid #d1d5db;
-  border-radius: 10px; background: #fafbfd; width: 100%;
-}
-input:focus, textarea:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
-.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
-.row { display: flex; gap: 8px; align-items: center; }
-.row input { flex: 1; }
-.btn {
-  border: none; cursor: pointer; padding: 11px 18px; border-radius: 10px; font: inherit; font-weight: 600;
-  background: #e5e7eb; color: #1f2330; transition: transform .1s, opacity .2s; white-space: nowrap;
-}
-.btn:hover { transform: translateY(-1px); }
-.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
-.btn.primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; }
-.btn.ghost { background: transparent; border: 1px solid #d1d5db; }
-.btn.danger { background: #fee2e2; color: #b91c1c; }
-.btn.small { padding: 6px 12px; font-size: 13px; }
-.link { background: none; border: none; cursor: pointer; color: #b91c1c; font-size: 15px; padding: 4px; }
-.info { margin-top: 18px; padding: 12px 14px; border-radius: 10px; background: #eef2ff; color: #3730a3; font-size: 14px; }
-.group-card { border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px; margin-top: 16px; }
-.group-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.stu-row { display: grid; grid-template-columns: 1fr 200px auto auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px dashed #eef0f4; }
-.stu-name { font-size: 14px; }
-.grades-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-.grades-table th, .grades-table td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #eef0f4; vertical-align: middle; }
-.grades-table th { color: #6b7280; font-weight: 600; font-size: 13px; }
-.grade-input { width: 130px; }
-.progress { margin-top: 16px; height: 10px; background: #e5e7eb; border-radius: 99px; overflow: hidden; }
-#progressBar { height: 100%; width: 0; background: linear-gradient(90deg, #6366f1, #d4a84b); transition: width .3s; }
-.log { margin-top: 12px; font-size: 13px; line-height: 1.7; max-height: 180px; overflow: auto; }
-
-.variants-box { margin-top: 26px; border-top: 1px solid #eef0f4; padding-top: 18px; }
-.variants-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 12px; }
-.variant-item {
-  display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 12px;
-  background: #f8f7ff; border: 1px solid #e0e7ff; font-size: 14px;
-}
-.variant-num {
-  flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; display: flex;
-  align-items: center; justify-content: center; font-weight: 700; color: #fff;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6);
-}
-.variant-topic { flex: 1; line-height: 1.4; }
-details summary { cursor: pointer; font-weight: 600; font-size: 14px; color: #4f46e5; margin-top: 12px; }
-details .form { margin-top: 10px; }
-
-.toast {
-  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(120px);
-  background: #1f2330; color: #fff; padding: 12px 18px; border-radius: 10px; font-size: 14px;
-  transition: transform .3s; z-index: 100; max-width: 90vw;
-}
-.toast.show { transform: translateX(-50%) translateY(0); }
-
-@media (max-width: 680px) {
-  .card { padding: 18px; }
-  .stu-row { grid-template-columns: 1fr; }
-  .grade-input { width: 100%; }
-  .grades-table { font-size: 13px; }
-}
-
-#renderOverlay {
-  position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center;
-  background: rgba(15,18,30,.75); color: #fff; font-size: 18px; font-weight: 600;
-}
-#renderOverlay.on { display: flex; }
-#certStage { position: fixed; left: 0; top: 0; width: 1123px; height: 794px; z-index: 9500; display: none; }
-#certStage.on { display: block; }
-
-.cert {
-  position: relative; width: 1123px; height: 794px; overflow: hidden; text-align: center;
-  background:
-    radial-gradient(circle at 15% 15%, rgba(212,168,75,.12), transparent 40%),
-    radial-gradient(circle at 85% 85%, rgba(99,102,241,.10), transparent 40%),
-    #fffdf7;
-  color: #1f2330; font-family: "Montserrat", sans-serif;
-}
-.cert-frame {
-  position: absolute; inset: 24px; border: 3px solid #b8913b; padding: 30px 70px;
-  box-shadow: inset 0 0 0 7px #fffdf7, inset 0 0 0 9px #d9b768;
-}
-.cert-inner { position: relative; height: 100%; display: flex; flex-direction: column; justify-content: center; }
-.corner { position: absolute; width: 60px; height: 60px; border: 3px solid #b8913b; }
-.corner.tl { top: -14px; left: -14px; border-right: none; border-bottom: none; }
-.corner.tr { top: -14px; right: -14px; border-left: none; border-bottom: none; }
-.corner.bl { bottom: -14px; left: -14px; border-right: none; border-top: none; }
-.corner.br { bottom: -14px; right: -14px; border-left: none; border-top: none; }
-.cert-badge {
-  width: 48px; height: 48px; margin: 0 auto 6px; border-radius: 50%; color: #fff; font-size: 22px;
-  background: linear-gradient(135deg, #d4a84b, #f3d98b); display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 12px rgba(184,145,59,.4);
-}
-.cert-title { font-family: "Playfair Display", serif; font-size: 62px; font-weight: 700; letter-spacing: 6px; margin: 0; text-transform: uppercase; }
-.cert-sub { font-size: 15px; letter-spacing: 3px; text-transform: uppercase; color: #8a6d2b; margin-top: 4px; }
-.cert-text { font-size: 17px; margin: 8px 0; color: #374151; }
-.cert-name {
-  font-family: "Playfair Display", serif; font-size: 50px; font-weight: 700; margin: 6px 0 4px;
-  border-bottom: 2px solid #d9b768; display: inline-block; align-self: center; padding: 0 40px 6px;
-}
-.cert-work { font-family: "Playfair Display", serif; font-style: italic; font-size: 28px; color: #3730a3; margin: 6px 0 2px; }
-.cert-topic { font-size: 18px; color: #374151; margin: 0 0 10px; }
-.cert-grade-label { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: #8a6d2b; margin-top: 8px; }
-.cert-grade { font-family: "Playfair Display", serif; font-size: 56px; font-weight: 700; color: #b8913b; line-height: 1.1; }
-.cert-footer { display: flex; justify-content: space-between; align-items: flex-end; margin: 22px 40px 0; font-size: 14px; color: #374151; }
-.sig { width: 240px; }
-.sig-line { border-top: 1px solid #1f2330; margin-bottom: 6px; }
-.seal {
-  width: 92px; height: 92px; border-radius: 50%; color: #fff; font-family: "Playfair Display", serif;
-  font-weight: 700; letter-spacing: 2px; display: flex; align-items: center; justify-content: center;
-  background: radial-gradient(circle, #f6e3a6, #d4a84b 70%, #b8913b); box-shadow: 0 0 0 4px #fffdf7, 0 0 0 6px #d9b768;
-}
-.cert-number { position: absolute; right: 60px; bottom: 40px; font-size: 12px; color: #9ca3af; }
-</style>
-
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="js/firebase-config.js"></script>
-
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<!-- ✅ jsPDF для генерации настоящего PDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-</head>
 <style>
-.acc { border: 1px solid #e5e7eb; border-radius: 14px; margin-top: 12px; background: #fff; }
-.acc > summary { list-style: none; display: flex; align-items: center; gap: 12px; padding: 16px 18px; cursor: pointer; flex-wrap: wrap; }
-.acc > summary::-webkit-details-marker { display: none; }
-.acc > summary::after { content: "▾"; margin-left: auto; color: #6b7280; }
-.acc[open] > summary::after { content: "▴"; }
-.acc-title { font-weight: 700; font-size: 16px; }
-.acc-body { padding: 0 18px 18px; }
-.subj-card { border: 1px solid #eef0f4; border-radius: 12px; padding: 14px; margin-top: 12px; }
-.subj-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
-.add-box { margin-top: 14px; padding: 14px; background: #f8f9fc; border-radius: 12px; }
-.add-box > summary { margin-top: 0; }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
-.inline { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #374151; }
-.inline input { width: auto; }
-.stu-line { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px dashed #eef0f4; font-size: 14px; }
-.var-input { min-width: 140px; }
-.grade-input { width: 110px; }
-.hint { font-size: 12px; color: #6b7280; margin-top: 4px; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; color: #1d2430; background: #f4f5f7; }
+button, input, select, textarea { font: inherit; color: inherit; }
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; padding: 12px 24px; background: #1f3a5f; color: #fff; }
+.brand { font-weight: 700; font-size: 16px; margin-right: auto; }
+.top label { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.top input { padding: 6px 10px; border: 1px solid #3d5a80; border-radius: 6px; background: #2b4a73; color: #fff; width: 260px; }
+.top input::placeholder { color: #9fb3cc; }
+#status { font-size: 12px; opacity: .8; }
+main { max-width: 1040px; margin: 20px auto; padding: 0 16px; }
+.panel { background: #fff; border: 1px solid #e2e5eb; border-radius: 8px; padding: 20px; margin-bottom: 16px; }
+.bar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; }
+.sel { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; background: #fff; border: 1px solid #e2e5eb; border-radius: 8px; padding: 10px 12px; }
+.sel label { font-size: 12px; color: #6b7280; width: 58px; }
+.sel select { padding: 6px 8px; border: 1px solid #cfd4dc; border-radius: 6px; min-width: 200px; background: #fff; }
+.subj-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; }
+.subj-head h2 { margin: 0; font-size: 17px; }
+.muted { color: #6b7280; font-size: 13px; }
+.warn { color: #b45309; font-size: 13px; }
+.btn { padding: 8px 14px; border: 1px solid #cfd4dc; border-radius: 6px; background: #fff; cursor: pointer; font-weight: 600; font-size: 13px; }
+.btn:hover { background: #f1f3f6; }
+.btn:disabled { opacity: .5; cursor: default; }
+.btn.primary { background: #1f3a5f; border-color: #1f3a5f; color: #fff; }
+.btn.primary:hover { background: #2a4d7c; }
+.btn.ghost { border-color: transparent; background: transparent; color: #6b7280; }
+.btn.sm { padding: 5px 10px; font-size: 12px; }
+.btn.danger { color: #b91c1c; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eef0f3; vertical-align: middle; }
+th { font-size: 12px; color: #6b7280; font-weight: 600; }
+td.r { text-align: right; white-space: nowrap; }
+td input { padding: 6px 8px; border: 1px solid #cfd4dc; border-radius: 6px; width: 100%; }
+td input.gr { width: 90px; }
+.hint { font-size: 12px; color: #6b7280; margin-top: 3px; }
+.x { border: none; background: none; color: #9ca3af; cursor: pointer; font-size: 14px; padding: 4px 6px; }
+.x:hover { color: #b91c1c; }
+.row-add { margin-top: 12px; }
+details.paste { margin-top: 14px; }
+details.paste summary { cursor: pointer; color: #1f3a5f; font-weight: 600; font-size: 13px; }
+details.paste textarea { width: 100%; margin: 8px 0; padding: 8px; border: 1px solid #cfd4dc; border-radius: 6px; }
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid #eef0f3; }
+#dlg { border: none; border-radius: 10px; padding: 0; width: min(460px, 92vw); box-shadow: 0 20px 50px rgba(0,0,0,.2); }
+#dlg::backdrop { background: rgba(15,20,30,.4); }
+.dlg { padding: 22px; display: grid; gap: 12px; }
+.dlg h3 { margin: 0; font-size: 16px; }
+.dlg label { display: grid; gap: 4px; font-size: 13px; font-weight: 600; }
+.dlg input, .dlg textarea { padding: 8px 10px; border: 1px solid #cfd4dc; border-radius: 6px; }
+.dlg .act { display: flex; justify-content: flex-end; gap: 8px; }
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: #1d2430; color: #fff; padding: 10px 16px; border-radius: 6px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+#toast.show { opacity: 1; }
+/* Сертификат (рендер в PDF, вне экрана) */
+#certStage { position: fixed; left: -10000px; top: 0; width: 1123px; height: 794px; }
+.cert { position: relative; width: 1123px; height: 794px; overflow: hidden; text-align: center; background: #fffdf7; color: #1f2330; font-family: "Montserrat", sans-serif; }
+.cert-frame { position: absolute; inset: 24px; border: 3px solid #b8913b; padding: 30px 70px; box-shadow: inset 0 0 0 7px #fffdf7, inset 0 0 0 9px #d9b768; }
+.cert-inner { height: 100%; display: flex; flex-direction: column; justify-content: center; }
+.cert-title { font-family: "Playfair Display", serif; font-size: 60px; font-weight: 700; letter-spacing: 6px; margin: 0; text-transform: uppercase; }
+.cert-sub { font-size: 14px; letter-spacing: 3px; text-transform: uppercase; color: #8a6d2b; margin-top: 4px; }
+.cert-text { font-size: 17px; margin: 8px 0; color: #374151; }
+.cert-name { font-family: "Playfair Display", serif; font-size: 48px; font-weight: 700; margin: 6px 0 4px; border-bottom: 2px solid #d9b768; display: inline-block; align-self: center; padding: 0 40px 6px; }
+.cert-work { font-family: "Playfair Display", serif; font-style: italic; font-size: 26px; color: #3730a3; margin: 6px 0 2px; }
+.cert-topic { font-size: 18px; color: #374151; margin: 0 0 10px; }
+.cert-grade-label { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: #8a6d2b; margin-top: 8px; }
+.cert-grade { font-family: "Playfair Display", serif; font-size: 54px; font-weight: 700; color: #b8913b; line-height: 1.1; }
+.cert-footer { display: flex; justify-content: space-between; align-items: flex-end; margin: 22px 40px 0; font-size: 14px; color: #374151; }
+.sig { width: 240px; }
 .sig-name { font-family: "Playfair Display", serif; font-size: 19px; font-weight: 700; margin-bottom: 4px; }
-@media (max-width: 680px) { .grid2 { grid-template-columns: 1fr; } }
+.sig-line { border-top: 1px solid #1f2330; margin-bottom: 6px; }
+.seal { width: 90px; height: 90px; border-radius: 50%; color: #fff; font-family: "Playfair Display", serif; font-weight: 700; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #f6e3a6, #d4a84b 70%, #b8913b); }
+.cert-number { position: absolute; right: 60px; bottom: 40px; font-size: 12px; color: #9ca3af; }
 </style>
-
+</head>
 <body>
 
-<header class="topbar">
-  <div class="brand">🎓 CertGen</div>
-  <nav>
-    <a href="#home" class="nav-link active" data-target="home">Главная</a>
-    <a href="#groups" class="nav-link" data-target="groups">Группы</a>
-    <a href="#grades" class="nav-link" data-target="grades">Оценки</a>
-    <a href="#history" class="nav-link" data-target="history">Сертификаты</a>
-  </nav>
-  <div id="userStatus" class="status">Подключение…</div>
+<header class="top">
+  <div class="brand">Сертификаты</div>
+  <label>Преподаватель <input id="teacher" placeholder="Петрова Анна Сергеевна"></label>
+  <span id="status">Подключение…</span>
 </header>
 
 <main>
+  <div class="bar">
+    <div class="sel">
+      <label>Группа</label>
+      <select id="gSel"></select>
+      <button class="btn sm" id="gNew">+ Группа</button>
+      <button class="btn sm ghost danger" id="gDel">Удалить</button>
+    </div>
+    <div class="sel">
+      <label>Предмет</label>
+      <select id="sSel"></select>
+      <button class="btn sm" id="sNew">+ Предмет</button>
+      <button class="btn sm ghost" id="sVar">Варианты</button>
+      <button class="btn sm ghost danger" id="sDel">Удалить</button>
+    </div>
+  </div>
 
-  <section id="home" class="card section active">
-    <h1>Главная</h1>
-    <p class="muted">Имя преподавателя печатается в подписи сертификата. Без него нельзя создавать и скачивать сертификаты.</p>
-    <form id="teacherForm" class="form">
-      <label>Имя преподавателя
-        <input id="teacherName" required placeholder="Например: Петрова Анна Сергеевна">
-      </label>
-      <div class="actions"><button type="submit" class="btn primary">Сохранить</button></div>
-    </form>
-    <div id="homeStats" class="info"></div>
-  </section>
-
-  <section id="groups" class="card section">
-    <h2>Группы</h2>
-    <p class="muted">Нажмите на группу, чтобы увидеть её предметы и студентов.</p>
-    <details id="groupAdd" class="add-box">
-      <summary>+ Новая группа</summary>
-      <form id="groupForm" class="form">
-        <label>Название группы
-          <input id="groupName" required placeholder="Например: ИС-21">
-        </label>
-        <label>Студенты (каждый с новой строки)
-          <textarea id="studentsInput" rows="6" placeholder="Иванов Иван Иванович&#10;Петрова Анна Сергеевна"></textarea>
-        </label>
-        <div><button type="submit" class="btn primary">Создать группу</button></div>
-      </form>
+  <div class="panel">
+    <div class="subj-head" id="subjHead"></div>
+    <table id="tbl"></table>
+    <div class="row-add"><button class="btn sm" id="stAdd">+ Студент в группу</button></div>
+    <details class="paste">
+      <summary>Вставить оценки списком</summary>
+      <textarea id="paste" rows="4" placeholder="Иванов Иван Иванович 5/3&#10;Петрова Анна Сергеевна 4"></textarea>
+      <button class="btn sm" id="pasteBtn">Применить</button>
     </details>
-    <div id="groupsList"></div>
-  </section>
-
-  <section id="grades" class="card section">
-    <h2>Оценки</h2>
-    <p class="muted">Группа → предмет → дата → сертификаты. Оценка: <b>5/3</b> или <b>5</b>. Enter переводит к следующей строке, пустая оценка — студент в сертификат не попадёт.</p>
-    <div id="gradesList"></div>
-    <div id="progress" class="progress hidden"><div id="progressBar"></div></div>
-    <div id="genLog" class="log"></div>
-  </section>
-
-  <section id="history" class="card section">
-    <h2>Сертификаты</h2>
-    <p class="muted">Все созданные сертификаты (PDF). Скачивание доступно после ввода имени преподавателя.</p>
-    <div id="historyList"></div>
-  </section>
-
+    <div class="actions">
+      <button class="btn primary" id="save">Сохранить и создать сертификаты</button>
+      <button class="btn" id="dlAll">Скачать PDF по предмету</button>
+    </div>
+  </div>
 </main>
 
-<div id="renderOverlay">Создаём PDF…</div>
-<div id="certStage" aria-hidden="true"></div>
-<div id="toast" class="toast"></div>
+<dialog id="dlg"></dialog>
+<div id="certStage"></div>
+<div id="toast"></div>
 
 <script>
 (function () {
   "use strict";
-
   const $ = s => document.querySelector(s);
-  const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const pad = n => String(n).padStart(2, "0");
   const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const newNum = () => uid().replace(/-/g, "").slice(0, 8).toUpperCase();
   const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   const fmtDate = iso => { if (!iso) return ""; const [y, m, d] = iso.split("-"); return `${d}.${m}.${y}`; };
-  // PDF-base64 тяжелее JPEG, держим запас под лимит Firestore (1 MiB на документ)
-  const MAX_BASE64 = 950000;
-  const OLD_WORK_KEY = "certgen.workId";
-  const FIELDS = "input[data-field=var], input[data-field=grade]";
+  const CERT_W = 1123, CERT_H = 794;
 
-  window.addEventListener("unhandledrejection", e => {
-    const msg = e?.reason?.message || String(e?.reason || "");
-    if (/permission|insufficient/i.test(msg)) toast("Нет прав доступа. Проверьте правила Firestore.");
-  });
-
-  if (!window.FB || !window.FB.configured) {
-    $("#userStatus").textContent = "Нет конфига Firebase";
-    return;
-  }
-
+  if (!window.FB || !window.FB.configured) { $("#status").textContent = "Нет конфига Firebase"; return; }
   const { db } = window.FB;
   let user = null;
   let state = { teacher: "", groups: [] };
-  let certs = {};
-  const openG = new Set();
+  let ui = { gid: null, sid: null };
 
-  /* ================= Базовые утилиты ================= */
+  /* ---------- утилиты ---------- */
   function toast(msg) {
     const t = $("#toast");
     t.textContent = msg;
     t.classList.add("show");
     clearTimeout(toast.timer);
-    toast.timer = setTimeout(() => t.classList.remove("show"), 3500);
+    toast.timer = setTimeout(() => t.classList.remove("show"), 3000);
   }
 
-  function show(id) {
-    document.querySelectorAll(".section").forEach(s => s.classList.toggle("active", s.id === id));
-    document.querySelectorAll(".nav-link").forEach(a => a.classList.toggle("active", a.dataset.target === id));
-    history.replaceState(null, "", "#" + id);
+  function ask(title, html, onOk) {
+    const d = $("#dlg");
+    d.innerHTML = `<form method="dialog" class="dlg"><h3>${esc(title)}</h3>${html}
+      <div class="act"><button class="btn" value="cancel">Отмена</button><button class="btn primary" value="ok">Сохранить</button></div></form>`;
+    const f = d.querySelector("form");
+    d.onclose = () => { if (d.returnValue === "ok") onOk(new FormData(f)); };
+    d.showModal();
+    f.querySelector("input, textarea")?.focus();
   }
-  document.querySelectorAll(".nav-link").forEach(a =>
-    a.addEventListener("click", e => { e.preventDefault(); show(a.dataset.target); }));
 
-  const findGroup = gid => state.groups.find(g => g.id === gid);
-  const findSubject = (g, sid) => g && g.subjects.find(s => s.id === sid);
-  const docKey = (sid, stid) => `${user.uid}_${sid}_${stid}`;
-
-  function normalizeGrade(value) {
-    const t = String(value ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+  function normalizeGrade(v) {
+    const t = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
     if (!t) return "";
     return /^\d+(\.\d+)?(\/\d+(\.\d+)?)?$/.test(t) ? t : null;
   }
@@ -318,366 +183,255 @@ details .form { margin-top: 10px; }
     return { topic: v, label: "" };
   }
 
-  /* ================= Хранение ================= */
-  async function loadState() {
-    const snap = await db.collection("appState").doc(user.uid).get();
-    if (snap.exists) {
-      const d = snap.data();
-      state = { teacher: d.teacher || "", groups: d.groups || [] };
-      return;
-    }
-    state = { teacher: "", groups: [] };
-    if (await migrateOld()) {
-      await saveState();
-      toast("Данные из прежней версии перенесены");
-    }
-  }
+  const curGroup = () => state.groups.find(g => g.id === ui.gid);
+  const curSubject = () => { const g = curGroup(); return g && g.subjects.find(s => s.id === ui.sid); };
 
-  async function migrateOld() {
-    const id = localStorage.getItem(OLD_WORK_KEY);
-    if (!id) return false;
-    const snap = await db.collection("works").doc(id).get();
-    if (!snap.exists || snap.data().ownerId !== user.uid) return false;
-    const w = snap.data();
-    state.groups = (w.groups || []).map(g => ({
-      id: g.id || uid(),
-      name: g.name,
-      students: (g.students || []).map(s => ({ id: s.id || uid(), name: s.name })),
-      subjects: [{
-        id: uid(), name: w.subject || "Предмет", work: w.title || "", date: todayISO(),
-        variants: w.variants || [],
-        marks: Object.fromEntries((g.students || []).map(s =>
-          [s.id, { grade: s.grade || "", variant: s.variant || "" }]))
-      }]
-    }));
-    return true;
-  }
-
-  async function saveState() {
+  /* ---------- хранение ---------- */
+  async function persist() {
     await db.collection("appState").doc(user.uid).set({
-      ownerId: user.uid,
-      teacher: state.teacher,
-      groups: state.groups,
+      ownerId: user.uid, teacher: state.teacher, groups: state.groups,
       updatedAt: window.FB.serverTimestamp()
     }, { merge: true });
   }
 
-  async function commit(msg) {
+  async function save(msg) {
     try {
-      await saveState();
-      renderAll();
+      await persist();
+      render();
       if (msg) toast(msg);
-      return true;
     } catch (err) {
       toast("Ошибка сохранения: " + err.message);
-      return false;
     }
   }
 
-  async function loadCerts() {
-    const snap = await db.collection("certificates").where("ownerId", "==", user.uid)
-      .select("subjectId", "studentId", "groupName", "subjectName", "workTitle", "topic", "variantLabel",
-              "studentName", "grade", "date", "teacher", "number", "createdAt")
-      .get();
-    certs = {};
-    snap.docs.forEach(d => { certs[d.id] = d.data(); });
+  // Номер сертификата присваивается при первой оценке с корректным вариантом
+  function assignCerts(g, s) {
+    g.students.forEach(st => {
+      const m = s.marks[st.id];
+      if (!m) return;
+      if (!m.grade) { delete m.num; return; }
+      if (!m.num && topicFor(s, m.variant)) m.num = newNum();
+    });
   }
 
-  /* ================= Вход ================= */
+  function countCerts(g, s) {
+    return g.students.filter(st => {
+      const m = s.marks[st.id];
+      return m && m.grade && m.num && topicFor(s, m.variant);
+    }).length;
+  }
+
+  /* ---------- вход ---------- */
   window.FB.onUser(async u => {
     user = u;
-    $("#userStatus").textContent = "Подключено ✓";
+    $("#status").textContent = "Подключено ✓";
     try {
-      await loadState();
-      await loadCerts();
+      const snap = await db.collection("appState").doc(user.uid).get();
+      const d = snap.exists ? snap.data() : {};
+      state = { teacher: d.teacher || "", groups: d.groups || [] };
     } catch (e) {
-      toast(/permission/i.test(e.message)
-        ? "Нет прав доступа. Проверьте правила Firestore."
-        : "Ошибка загрузки: " + e.message);
+      toast(/permission/i.test(e.message) ? "Нет прав доступа к Firestore" : "Ошибка загрузки: " + e.message);
     }
-    $("#teacherName").value = state.teacher;
-    renderAll();
-    show(location.hash.slice(1) || "home");
-    if (!state.teacher.trim()) toast("Укажите имя преподавателя — без него сертификаты не скачаются");
+    $("#teacher").value = state.teacher;
+    render();
   }, err => {
-    $("#userStatus").textContent = "Ошибка входа";
+    $("#status").textContent = "Ошибка входа";
     toast("Включите Anonymous в Authentication: " + err.message);
   });
 
-  function needTeacher() {
-    if (state.teacher.trim()) return true;
-    toast("Сначала введите имя преподавателя на главной");
-    show("home");
-    $("#teacherName").focus();
-    return false;
-  }
-
-  /* ================= Рендер ================= */
-  function renderAll() {
+  /* ---------- рендер ---------- */
+  function render() {
     if (!user) return;
-    renderHome();
-    renderGroups();
-    renderGrades();
-    renderHistory();
-  }
+    if (!curGroup()) ui.gid = state.groups[0]?.id || null;
+    const g = curGroup();
+    if (!g || !g.subjects.some(s => s.id === ui.sid)) ui.sid = g?.subjects[0]?.id || null;
+    const s = curSubject();
 
-  function renderHome() {
-    const subj = state.groups.reduce((n, g) => n + g.subjects.length, 0);
-    const stud = state.groups.reduce((n, g) => n + g.students.length, 0);
-    const warn = state.teacher.trim() ? "" :
-      `<br><span class="danger-text">Имя преподавателя не указано: создание и скачивание заблокированы</span>`;
-    $("#homeStats").innerHTML =
-      `Групп: <b>${state.groups.length}</b> · предметов: <b>${subj}</b> · студентов: <b>${stud}</b> · сертификатов: <b>${Object.keys(certs).length}</b>${warn}`;
-  }
+    $("#gSel").innerHTML = state.groups.map(x =>
+      `<option value="${x.id}" ${x.id === ui.gid ? "selected" : ""}>${esc(x.name)}</option>`).join("") || `<option>Нет групп</option>`;
+    $("#sSel").innerHTML = g ? (g.subjects.map(x =>
+      `<option value="${x.id}" ${x.id === ui.sid ? "selected" : ""}>${esc(x.name)}</option>`).join("") || `<option>Нет предметов</option>`)
+      : `<option>—</option>`;
 
-  function renderGroups() {
-    const box = $("#groupsList");
-    if (!state.groups.length) {
-      box.innerHTML = `<p class="muted">Групп пока нет. Откройте «+ Новая группа» выше.</p>`;
+    ["#gDel", "#sNew", "#stAdd"].forEach(id => $(id).disabled = !g);
+    ["#sVar", "#sDel", "#save", "#dlAll", "#pasteBtn"].forEach(id => $(id).disabled = !s);
+
+    if (!g) {
+      $("#subjHead").innerHTML = `<span class="muted">Создайте группу кнопкой «+ Группа»</span>`;
+      $("#tbl").innerHTML = "";
       return;
     }
-    const today = todayISO();
-    box.innerHTML = state.groups.map(g => `
-      <details class="acc" data-gid="${g.id}" ${openG.has(g.id) ? "open" : ""}>
-        <summary>
-          <span class="acc-title">${esc(g.name)}</span>
-          <span class="muted">предметов: ${g.subjects.length} · студентов: ${g.students.length}</span>
-        </summary>
-        <div class="acc-body">
-          <h3>Предметы</h3>
-          ${g.subjects.length ? g.subjects.map(s => `
-            <div class="subj-card">
-              <div class="subj-head">
-                <div><b>${esc(s.name)}</b><div class="muted">${esc(s.work)} · ${fmtDate(s.date)}</div></div>
-                <button class="link" data-act="del-subject" data-gid="${g.id}" data-sid="${s.id}" title="Удалить предмет">✕</button>
-              </div>
-              <details>
-                <summary>Варианты (${s.variants.length})</summary>
-                <textarea rows="4" data-field="variants-text" placeholder="Каждая тема с новой строки">${esc(s.variants.map(v => v.topic).join("\n"))}</textarea>
-                <div class="actions"><button class="btn small" data-act="save-variants" data-gid="${g.id}" data-sid="${s.id}">Сохранить варианты</button></div>
-              </details>
-            </div>`).join("") : `<p class="muted">Предметов пока нет.</p>`}
-
-          <div class="add-box">
-            <h3>Новый предмет</h3>
-            <div class="grid2">
-              <label>Предмет <input data-new="subject" placeholder="Информационные технологии (Пример)"></label>
-              <label>Вид работы <input data-new="work" placeholder="Лабораторная работа №1"></label>
-            </div>
-            <div class="row">
-              <input type="date" data-new="date" value="${today}" style="max-width:200px">
-              <button class="btn small primary" data-act="add-subject" data-gid="${g.id}">+ Добавить предмет</button>
-            </div>
-          </div>
-
-          <h3 style="margin-top:18px">Студенты (${g.students.length})</h3>
-          ${g.students.map((st, i) => `
-            <div class="stu-line">
-              <span>${i + 1}. ${esc(st.name)}</span>
-              <button class="link" data-act="del-student" data-gid="${g.id}" data-stid="${st.id}" title="Удалить">✕</button>
-            </div>`).join("")}
-          <div class="row" style="margin-top:10px">
-            <input data-new="student" placeholder="Новый студент: ФИО">
-            <button class="btn small" data-act="add-student" data-gid="${g.id}">+ Добавить</button>
-          </div>
-
-          <div class="actions"><button class="btn small danger" data-act="del-group" data-gid="${g.id}">Удалить группу</button></div>
-        </div>
-      </details>`).join("");
-  }
-
-  function renderGrades() {
-    const box = $("#gradesList");
-    if (!state.groups.length) {
-      box.innerHTML = `<p class="muted">Сначала создайте группу и предмет в разделе «Группы».</p>`;
+    if (!s) {
+      $("#subjHead").innerHTML = `<span class="muted">В группе «${esc(g.name)}» нет предметов. Добавьте предмет.</span>`;
+      $("#tbl").innerHTML = "";
       return;
     }
-    box.innerHTML = state.groups.map(g => `
-      <details class="acc" data-gid="${g.id}" ${openG.has(g.id) ? "open" : ""}>
-        <summary>
-          <span class="acc-title">${esc(g.name)}</span>
-          <span class="muted">предметов: ${g.subjects.length}</span>
-        </summary>
-        <div class="acc-body">
-          ${g.subjects.length ? g.subjects.map(s => subjectGradesHTML(g, s)).join("")
-            : `<p class="muted">В этой группе пока нет предметов.</p>`}
-        </div>
-      </details>`).join("");
-  }
 
-  function subjectGradesHTML(g, s) {
-    const hasAny = g.students.some(st => certs[docKey(s.id, st.id)]);
+    $("#subjHead").innerHTML = `
+      <div><h2>${esc(s.name)}</h2><div class="muted">${esc(s.work || "Вид работы не указан")} · ${esc(g.name)} · сертификатов: ${countCerts(g, s)} из ${g.students.length}</div></div>
+      <label class="muted">Дата работы <input type="date" id="sDate" value="${esc(s.date || "")}"></label>`;
+
+    if (!g.students.length) {
+      $("#tbl").innerHTML = `<tr><td class="muted">В группе нет студентов. Добавьте их кнопкой ниже.</td></tr>`;
+      return;
+    }
     const rows = g.students.map((st, i) => {
       const m = s.marks[st.id] || {};
       const t = topicFor(s, m.variant);
-      const key = docKey(s.id, st.id);
-      return `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${esc(st.name)}</td>
-          <td>
-            <input data-field="var" data-stid="${st.id}" value="${esc(m.variant || "")}" placeholder="№ или тема" class="var-input">
-            <div class="hint">${t ? esc((t.label ? t.label + " — " : "") + t.topic)
-              : `<span class="danger-text">⚠ нет такого варианта</span>`}</div>
-          </td>
-          <td><input data-field="grade" data-stid="${st.id}" value="${esc(m.grade || "")}" placeholder="5/3" class="grade-input"></td>
-          <td>${certs[key]
-            ? `<button class="btn small" data-act="download" data-key="${key}">⬇ PDF</button>`
-            : `<span class="muted">не создан</span>`}</td>
-        </tr>`;
+      let status = `<span class="muted">—</span>`;
+      if (m.grade && !t) status = `<span class="warn">нет такого варианта</span>`;
+      else if (m.grade && m.num) status = `<span class="muted">№ ${esc(m.num)}</span>`;
+      return `<tr data-stid="${st.id}">
+        <td>${i + 1}</td>
+        <td>${esc(st.name)}</td>
+        <td><input class="va" value="${esc(m.variant || "")}" placeholder="№ или тема">
+            <div class="hint">${t ? esc((t.label ? t.label + " — " : "") + t.topic) : ""}</div></td>
+        <td><input class="gr" value="${esc(m.grade || "")}" placeholder="5/3"></td>
+        <td>${status}</td>
+        <td class="r">${m.grade && m.num && t ? `<button class="btn sm" data-act="one" data-stid="${st.id}">PDF</button>` : ""}
+            <button class="x" data-act="rm" data-stid="${st.id}" title="Удалить студента">✕</button></td>
+      </tr>`;
     }).join("");
-
-    return `
-      <div class="subj-card" data-card data-gid="${g.id}" data-sid="${s.id}">
-        <div class="subj-head">
-          <div><b>${esc(s.name)}</b><div class="muted">${esc(s.work)}</div></div>
-          <label class="inline">Дата
-            <input type="date" data-field="date" value="${esc(s.date || "")}">
-          </label>
-        </div>
-        <details>
-          <summary>Вставить оценки списком</summary>
-          <textarea data-field="paste" rows="4" placeholder="Иванов Иван Иванович 5/3&#10;Петрова Анна Сергеевна 4"></textarea>
-          <div class="actions"><button class="btn small" data-act="apply-paste">Применить</button></div>
-        </details>
-        <table class="grades-table" style="margin-top:10px">
-                    <thead><tr><th>#</th><th>ФИО</th><th>Вариант / тема</th><th>Оценка</th><th>Сертификат</th></tr></thead>
-          <tbody>${rows || `<tr><td colspan="5" class="muted">В группе нет студентов</td></tr>`}</tbody>
-        </table>
-        <div class="actions">
-          <button class="btn" data-act="save-marks">Сохранить оценки</button>
-          <button class="btn primary" data-act="gen-subject">Создать сертификаты (PDF)</button>
-          <button class="btn ghost" data-act="download-all" ${hasAny ? "" : "disabled"}>⬇ Скачать все PDF</button>
-        </div>
-      </div>`;
+    $("#tbl").innerHTML = `<thead><tr><th>#</th><th>ФИО</th><th>Вариант / тема</th><th>Оценка</th><th>Сертификат</th><th></th></tr></thead><tbody>${rows}</tbody>`;
   }
 
-  function renderHistory() {
-    const list = $("#historyList");
-    const items = Object.entries(certs).map(([id, d]) => ({ id, ...d }));
-    if (!items.length) { list.innerHTML = `<p class="muted">Сертификатов пока нет.</p>`; return; }
-    const time = x => (x && x.toMillis) ? x.toMillis() : Date.now();
-    items.sort((a, b) => time(b.createdAt) - time(a.createdAt));
-    list.innerHTML = `
-      <table class="grades-table">
-        <thead><tr><th>Студент</th><th>Группа</th><th>Предмет</th><th>Тема</th><th>Оценка</th><th>Дата</th><th></th></tr></thead>
-        <tbody>
-          ${items.map(it => `
-            <tr>
-              <td>${esc(it.studentName)}</td>
-              <td>${esc(it.groupName)}</td>
-              <td>${esc(it.subjectName || "")}</td>
-              <td>${esc((it.variantLabel ? it.variantLabel + " — " : "") + (it.topic || it.workTitle || ""))}</td>
-              <td><b>${esc(it.grade)}</b></td>
-              <td>${esc(it.date || "")}</td>
-              <td style="white-space:nowrap">
-                <button class="btn small" data-act="download" data-key="${esc(it.id)}">⬇ PDF</button>
-                <button class="btn small danger" data-act="delete" data-key="${esc(it.id)}">Удалить</button>
-              </td>
-            </tr>`).join("")}
-        </tbody>
-      </table>`;
-  }
+  /* ---------- группы, предметы, студенты ---------- */
+  $("#gSel").addEventListener("change", e => { ui.gid = e.target.value; ui.sid = null; render(); });
+  $("#sSel").addEventListener("change", e => { ui.sid = e.target.value; render(); });
 
-  /* ================= Раскрытие групп ================= */
-  document.addEventListener("toggle", e => {
-    const d = e.target;
-    if (d.matches && d.matches("details[data-gid]")) {
-      d.open ? openG.add(d.dataset.gid) : openG.delete(d.dataset.gid);
-    }
-  }, true);
-
-  /* ================= Главная ================= */
-  $("#teacherForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    if (!user) return toast("Подождите, идёт подключение…");
-    const v = $("#teacherName").value.trim();
-    if (!v) return toast("Введите имя преподавателя");
-    state.teacher = v;
-    await commit("Имя преподавателя сохранено");
+  $("#teacher").addEventListener("change", async e => {
+    state.teacher = e.target.value.trim();
+    await save(state.teacher ? "Преподаватель сохранён" : "Укажите преподавателя, без него PDF не скачается");
   });
 
-  /* ================= Группы ================= */
-  $("#groupForm").addEventListener("submit", async e => {
-    e.preventDefault();
-    if (!user) return toast("Подождите, идёт подключение…");
-    const name = $("#groupName").value.trim();
-    const students = $("#studentsInput").value.split("\n")
-      .map(s => s.trim()).filter(Boolean).map(n => ({ id: uid(), name: n }));
-    if (!name) return toast("Введите название группы");
-    const g = { id: uid(), name, students, subjects: [] };
-    state.groups.push(g);
-    openG.add(g.id);
-    if (await commit(`Группа «${name}» создана`)) {
-      e.target.reset();
-      $("#groupAdd").open = false;
-    }
+  $("#gNew").addEventListener("click", () => ask("Новая группа", `
+    <label>Название группы <input name="name" required placeholder="ИС-21"></label>
+    <label>Студенты (каждый с новой строки)<textarea name="students" rows="6" placeholder="Иванов Иван Иванович"></textarea></label>`,
+    fd => {
+      const name = String(fd.get("name")).trim();
+      if (!name) return toast("Введите название группы");
+      const students = String(fd.get("students")).split("\n").map(x => x.trim()).filter(Boolean).map(n => ({ id: uid(), name: n }));
+      const g = { id: uid(), name, students, subjects: [] };
+      state.groups.push(g);
+      ui = { gid: g.id, sid: null };
+      save(`Группа «${name}» создана`);
+    }));
+
+  $("#gDel").addEventListener("click", () => {
+    const g = curGroup();
+    if (!g || !confirm(`Удалить группу «${g.name}» со всеми предметами и оценками?`)) return;
+    state.groups = state.groups.filter(x => x !== g);
+    ui = { gid: null, sid: null };
+    save("Группа удалена");
   });
 
-  $("#groupsList").addEventListener("click", async e => {
+  $("#sNew").addEventListener("click", () => ask("Новый предмет", `
+    <label>Предмет <input name="name" required placeholder="Информационные технологии"></label>
+    <label>Вид работы <input name="work" placeholder="Лабораторная работа №1"></label>
+    <label>Дата работы <input name="date" type="date" value="${todayISO()}"></label>
+    <label>Варианты (каждая тема с новой строки, необязательно)<textarea name="variants" rows="4"></textarea></label>`,
+    fd => {
+      const name = String(fd.get("name")).trim();
+      if (!name) return toast("Введите название предмета");
+      const g = curGroup();
+      const variants = String(fd.get("variants")).split("\n").map(x => x.trim()).filter(Boolean).map((topic, i) => ({ num: i + 1, topic }));
+      const s = { id: uid(), name, work: String(fd.get("work")).trim(), date: fd.get("date") || todayISO(), variants, marks: {} };
+      g.subjects.push(s);
+      ui.sid = s.id;
+      save(`Предмет «${name}» добавлен`);
+    }));
+
+  $("#sVar").addEventListener("click", () => {
+    const s = curSubject();
+    ask(`Варианты: ${s.name}`, `
+      <label>Темы вариантов (каждая с новой строки, номер = порядок)
+        <textarea name="v" rows="8">${esc(s.variants.map(v => v.topic).join("\n"))}</textarea></label>`,
+      fd => {
+        s.variants = String(fd.get("v")).split("\n").map(x => x.trim()).filter(Boolean).map((topic, i) => ({ num: i + 1, topic }));
+        save("Варианты сохранены");
+      });
+  });
+
+  $("#sDel").addEventListener("click", () => {
+    const g = curGroup(), s = curSubject();
+    if (!s || !confirm(`Удалить предмет «${s.name}» и его оценки?`)) return;
+    g.subjects = g.subjects.filter(x => x !== s);
+    ui.sid = null;
+    save("Предмет удалён");
+  });
+
+  $("#stAdd").addEventListener("click", () => ask("Новый студент", `
+    <label>ФИО <input name="name" required placeholder="Иванов Иван Иванович"></label>`,
+    fd => {
+      const name = String(fd.get("name")).trim();
+      if (!name) return toast("Введите ФИО");
+      curGroup().students.push({ id: uid(), name });
+      save("Студент добавлен");
+    }));
+
+  $("#subjHead").addEventListener("change", e => {
+    if (e.target.id !== "sDate") return;
+    curSubject().date = e.target.value;
+    save();
+  });
+
+  $("#tbl").addEventListener("click", e => {
     const b = e.target.closest("[data-act]");
     if (!b) return;
-    const g = findGroup(b.dataset.gid);
-    if (!g) return;
-    const scope = b.closest(".acc-body");
-    const q = sel => scope.querySelector(sel);
-    const act = b.dataset.act;
-
-    if (act === "del-group") {
-      if (!confirm(`Удалить группу «${g.name}» со студентами и оценками?`)) return;
-      state.groups = state.groups.filter(x => x !== g);
-      openG.delete(g.id);
-    } else if (act === "add-subject") {
-      const name = q("[data-new=subject]").value.trim();
-      if (!name) return toast("Введите название предмета");
-      g.subjects.push({
-        id: uid(), name,
-        work: q("[data-new=work]").value.trim(),
-        date: q("[data-new=date]").value || todayISO(),
-        variants: [], marks: {}
-      });
-    } else if (act === "del-subject") {
-      if (!confirm("Удалить предмет и его оценки?")) return;
-      g.subjects = g.subjects.filter(s => s.id !== b.dataset.sid);
-    } else if (act === "save-variants") {
-      const s = findSubject(g, b.dataset.sid);
-      const lines = q("[data-field=variants-text]").value.split("\n").map(x => x.trim()).filter(Boolean);
-      s.variants = lines.map((topic, i) => ({ num: i + 1, topic }));
-    } else if (act === "add-student") {
-      const name = q("[data-new=student]").value.trim();
-      if (!name) return toast("Введите ФИО студента");
-      g.students.push({ id: uid(), name });
-    } else if (act === "del-student") {
-      g.students = g.students.filter(x => x.id !== b.dataset.stid);
-    } else {
-      return;
+    const g = curGroup(), s = curSubject();
+    if (b.dataset.act === "one") {
+      const st = g.students.find(x => x.id === b.dataset.stid);
+      return downloadPdf(certList(g, s, st.id), `Сертификат — ${st.name}.pdf`, b);
     }
-    await commit();
+    if (b.dataset.act === "rm") {
+      const st = g.students.find(x => x.id === b.dataset.stid);
+      if (!confirm(`Удалить студента «${st.name}» из группы?`)) return;
+      g.students = g.students.filter(x => x !== st);
+      save("Студент удалён");
+    }
   });
 
-  /* ================= Оценки ================= */
-  function readMarks(card, s) {
-    let bad = null;
-    card.querySelectorAll("input[data-field=grade]").forEach(inp => {
-      if (normalizeGrade(inp.value) === null) bad = bad || inp.value;
-    });
-    if (bad) return bad;
-    card.querySelectorAll("input[data-field=grade]").forEach(inp => {
-      const m = s.marks[inp.dataset.stid] || (s.marks[inp.dataset.stid] = {});
-      m.grade = normalizeGrade(inp.value);
-    });
-    card.querySelectorAll("input[data-field=var]").forEach(inp => {
-      const m = s.marks[inp.dataset.stid] || (s.marks[inp.dataset.stid] = {});
-      m.variant = inp.value.trim();
-    });
-    return null;
+  /* ---------- оценки ---------- */
+  // Читает оценки и варианты из таблицы; возвращает либо строки, либо ошибку
+  function readRows(g) {
+    const rows = [];
+    for (const tr of $("#tbl").querySelectorAll("tr[data-stid]")) {
+      const grInp = tr.querySelector(".gr");
+      const grade = normalizeGrade(grInp.value);
+      if (grade === null) return { error: grInp.value };
+      rows.push({ stid: tr.dataset.stid, grade, variant: tr.querySelector(".va").value.trim() });
+    }
+    return { rows };
   }
 
-  function applyPaste(card, g, s) {
-    const text = card.querySelector("textarea[data-field=paste]").value;
+  $("#save").addEventListener("click", () => {
+    const g = curGroup(), s = curSubject();
+    const r = readRows(g);
+    if (r.error !== undefined) return toast(`Неверная оценка: ${r.error}`);
+    r.rows.forEach(x => {
+      const m = s.marks[x.stid] || (s.marks[x.stid] = {});
+      m.grade = x.grade;
+      m.variant = x.variant;
+    });
+    assignCerts(g, s);
+    const n = countCerts(g, s);
+    save(`Сохранено. Сертификатов по предмету: ${n}` + (state.teacher ? "" : " (укажите преподавателя для PDF)"));
+  });
+
+  $("#tbl").addEventListener("keydown", e => {
+    if (e.key !== "Enter" || !e.target.matches("input")) return;
+    e.preventDefault();
+    const inputs = [...$("#tbl").querySelectorAll("input")];
+    const next = inputs[inputs.indexOf(e.target) + 1];
+    if (next) next.focus(); else $("#save").click();
+  });
+  $("#tbl").addEventListener("focusin", e => { if (e.target.matches("input")) e.target.select(); });
+
+  $("#pasteBtn").addEventListener("click", () => {
+    const g = curGroup(), s = curSubject();
     let ok = 0;
     const miss = [];
-    text.split("\n").map(l => l.trim()).filter(Boolean).forEach(line => {
+    $("#paste").value.split("\n").map(l => l.trim()).filter(Boolean).forEach(line => {
       let name, grade;
       if (line.includes("\t")) [name, grade] = line.split("\t");
       else if (line.includes(";")) [name, grade] = line.split(";");
@@ -689,278 +443,102 @@ details .form { margin-top: 10px; }
       }
       const st = g.students.find(x => x.name.trim().toLowerCase() === (name || "").trim().toLowerCase());
       const v = normalizeGrade((grade || "").trim());
-      if (!st || v === null) { miss.push(line); return; }
-      const m = s.marks[st.id] || (s.marks[st.id] = {});
-      m.grade = v;
+      if (!st || !v) { miss.push(line); return; }
+      (s.marks[st.id] || (s.marks[st.id] = {})).grade = v;
       ok++;
     });
-    commit(`Вставлено оценок: ${ok}` + (miss.length ? `, не найдено: ${miss.length}` : ""));
-  }
-
-  $("#gradesList").addEventListener("click", async e => {
-    const b = e.target.closest("[data-act]");
-    if (!b) return;
-    const act = b.dataset.act;
-
-    if (act === "download") return downloadBtn(b);
-
-    const card = b.closest("[data-card]");
-    const g = findGroup(card.dataset.gid);
-    const s = findSubject(g, card.dataset.sid);
-    if (!s) return;
-
-    if (act === "save-marks") {
-      const bad = readMarks(card, s);
-      if (bad) return toast("Неверный формат оценки: " + bad);
-      await commit("Оценки сохранены");
-    } else if (act === "apply-paste") {
-      applyPaste(card, g, s);
-    } else if (act === "gen-subject") {
-      await generate(card, g, s);
-    } else if (act === "download-all") {
-      await downloadAll(g, s);
-    }
+    assignCerts(g, s);
+    $("#paste").value = "";
+    save(`Вставлено оценок: ${ok}` + (miss.length ? `, не найдено: ${miss.length}` : ""));
   });
 
-  $("#gradesList").addEventListener("change", async e => {
-    if (!e.target.matches("input[data-field=date]")) return;
-    const card = e.target.closest("[data-card]");
-    const s = findSubject(findGroup(card.dataset.gid), card.dataset.sid);
-    s.date = e.target.value;
-    try { await saveState(); } catch (err) { toast("Ошибка: " + err.message); }
-  });
-
-  $("#gradesList").addEventListener("keydown", e => {
-    if (e.key !== "Enter" || !e.target.matches(FIELDS)) return;
-    e.preventDefault();
-    const card = e.target.closest("[data-card]");
-    const fields = [...card.querySelectorAll(FIELDS)];
-    const next = fields[fields.indexOf(e.target) + 1];
-    if (next) next.focus();
-    else card.querySelector("[data-act=save-marks]").click();
-  });
-
-  $("#gradesList").addEventListener("focusin", e => {
-    if (e.target.matches(FIELDS)) e.target.select();
-  });
-
-  /* ================= Создание сертификатов ================= */
-  function log(msg) {
-    const el = $("#genLog");
-    el.innerHTML += `<div>${esc(msg)}</div>`;
-    el.scrollTop = el.scrollHeight;
-  }
-
-  async function generate(card, g, s) {
-    if (!needTeacher()) return;
-    const bad = readMarks(card, s);
-    if (bad) return toast("Неверный формат оценки: " + bad);
-
-    const btn = card.querySelector("[data-act=gen-subject]");
-    $("#genLog").innerHTML = "";
-    const items = [];
-    g.students.forEach(st => {
-      const m = s.marks[st.id];
-      if (!m || !m.grade) return;
-      const t = topicFor(s, m.variant);
-      if (!t) log(`✖ ${st.name}: нет варианта «${m.variant}»`);
-      else items.push({ st, m, t });
-    });
-    if (!items.length) return toast("Нет студентов с оценками и корректными вариантами");
-
-    try { await saveState(); } catch (err) { return toast("Ошибка: " + err.message); }
-
-    btn.disabled = true;
-    $("#progress").classList.remove("hidden");
-    $("#progressBar").style.width = "0%";
-    const teacher = state.teacher.trim();
-    const date = fmtDate(s.date) || fmtDate(todayISO());
-
-    let done = 0, saved = 0;
-    for (const { st, m, t } of items) {
-      try {
-        const docId = docKey(s.id, st.id);
-        const number = uid().replace(/-/g, "").slice(0, 8).toUpperCase();
-
-        // ✅ Генерируем настоящий PDF
-        const pdfDataUri = await renderCertificatePdf({
+  /* ---------- PDF ---------- */
+  // Сертификат собирается из текущих данных: группа, предмет, дата, преподаватель, оценка, номер
+  function certList(g, s, onlyId) {
+    return g.students
+      .filter(st => !onlyId || st.id === onlyId)
+      .map(st => {
+        const m = s.marks[st.id];
+        const t = m && m.grade && m.num ? topicFor(s, m.variant) : null;
+        if (!t) return null;
+        return {
           studentName: st.name, groupName: g.name, grade: m.grade,
           workTitle: s.work, subject: s.name, topic: t.topic, variantLabel: t.label,
-          date, number, teacher
-        });
-
-        if (pdfDataUri.length > MAX_BASE64) {
-          throw new Error(`PDF слишком большой (${Math.round(pdfDataUri.length / 1024)} КБ)`);
-        }
-
-        const meta = {
-          ownerId: user.uid, subjectId: s.id, studentId: st.id,
-          groupName: g.name, subjectName: s.name, workTitle: s.work,
-          studentName: st.name, grade: m.grade, topic: t.topic, variantLabel: t.label,
-          date, teacher, number, format: "pdf"
+          date: fmtDate(s.date) || fmtDate(todayISO()), teacher: state.teacher.trim(), number: m.num
         };
-        await db.collection("certificates").doc(docId).set({
-          ...meta, pdfBase64: pdfDataUri, createdAt: window.FB.serverTimestamp()
-        });
-        certs[docId] = meta;
-        saved++;
-        log(`✔ ${st.name} — ${m.grade}`);
-      } catch (err) {
-        log(`✖ ${st.name}: ${err.message}`);
+      })
+      .filter(Boolean);
+  }
+
+  async function downloadPdf(list, fileName, btn) {
+    if (!state.teacher.trim()) return toast("Укажите имя преподавателя вверху страницы");
+    if (!list.length) return toast("Нет сертификатов для скачивания");
+    const label = btn ? btn.textContent : null;
+    if (btn) { btn.disabled = true; btn.textContent = "…"; }
+    try {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [CERT_W, CERT_H], compress: true });
+      for (let i = 0; i < list.length; i++) {
+        const canvas = await renderCanvas(list[i]);
+        if (i > 0) pdf.addPage([CERT_W, CERT_H], "landscape");
+        pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, CERT_W, CERT_H, undefined, "FAST");
       }
-      done++;
-      $("#progressBar").style.width = `${(done / items.length) * 100}%`;
-    }
-
-    btn.disabled = false;
-    toast(`Сертификатов создано: ${saved} из ${items.length}`);
-    renderAll();
-  }
-
-  /* ================= Скачивание PDF ================= */
-  async function downloadCert(docId) {
-    if (!needTeacher()) return false;
-    const snap = await db.collection("certificates").doc(docId).get();
-    if (!snap.exists) throw new Error("сертификат не найден");
-    const d = snap.data();
-    if (!d.pdfBase64) throw new Error("файл не сохранён");
-
-    // Поддерживаем и «сырой» base64, и полный data URL
-    const href = String(d.pdfBase64).startsWith("data:")
-      ? d.pdfBase64
-      : "data:application/pdf;base64," + d.pdfBase64;
-
-    const a = document.createElement("a");
-    a.href = href;
-    a.download = `Сертификат — ${d.studentName || "студент"}.pdf`; // ✅ .pdf
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    return true;
-  }
-
-  async function downloadBtn(b) {
-    b.disabled = true;
-    try { await downloadCert(b.dataset.key); }
-    catch (err) { toast("Ошибка: " + err.message); }
-    finally { b.disabled = false; }
-  }
-
-  async function downloadAll(g, s) {
-    if (!needTeacher()) return;
-    const keys = g.students.map(st => docKey(s.id, st.id)).filter(k => certs[k]);
-    for (const k of keys) {
-      try {
-        await downloadCert(k);
-        await new Promise(r => setTimeout(r, 400));
-      } catch (err) {
-        toast("Ошибка: " + err.message);
-        break;
-      }
+      pdf.save(fileName);
+    } catch (err) {
+      toast("Ошибка PDF: " + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
     }
   }
 
-  $("#historyList").addEventListener("click", async e => {
-    const b = e.target.closest("[data-act]");
-    if (!b) return;
-    if (b.dataset.act === "download") return downloadBtn(b);
-    if (b.dataset.act === "delete") {
-      if (!confirm("Удалить сертификат?")) return;
-      try {
-        await db.collection("certificates").doc(b.dataset.key).delete();
-        delete certs[b.dataset.key];
-        toast("Сертификат удалён");
-        renderAll();
-      } catch (err) { toast("Ошибка: " + err.message); }
-    }
-  });
-
-  /* ================= HTML-шаблон сертификата ================= */
-  function certificateHTML(d) {
-    return `
-    <div class="cert">
-      <div class="cert-frame">
-        <div class="cert-inner">
-          <div class="corner tl"></div><div class="corner tr"></div>
-          <div class="corner bl"></div><div class="corner br"></div>
-
-          <div class="cert-badge">★</div>
-          <h1 class="cert-title">Сертификат</h1>
-          <div class="cert-sub">о выполнении учебной работы</div>
-
-          <p class="cert-text" style="margin-top:18px">Настоящим подтверждается, что</p>
-          <div class="cert-name">${esc(d.studentName)}</div>
-          <p class="cert-text">студент(ка) группы <b>${esc(d.groupName)}</b> успешно выполнил(а) работу</p>
-          <div class="cert-work">«${esc(d.workTitle)}»</div>
-          <p class="cert-topic">${d.variantLabel ? esc(d.variantLabel) + ": " : ""}${esc(d.topic)}</p>
-          <p class="cert-text">по предмету <b>${esc(d.subject)}</b></p>
-
-          <div class="cert-grade-label">Оценка</div>
-          <div class="cert-grade">${esc(d.grade)}</div>
-
-          <div class="cert-footer">
-            <div class="sig"><div class="sig-name">${esc(d.teacher)}</div><div class="sig-line"></div>Преподаватель</div>
-            <div class="seal"><span>CERT</span></div>
-            <div class="sig"><div class="sig-line"></div>Дата: ${esc(d.date)}</div>
-          </div>
-          <div class="cert-number">№ ${esc(d.number)}</div>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  /* ✅ Рендер настоящего PDF: html2canvas → canvas → jsPDF (A4 landscape) */
-  async function renderCertificatePdf(data) {
+  async function renderCanvas(d) {
     const stage = $("#certStage");
-    const overlay = $("#renderOverlay");
-    stage.innerHTML = certificateHTML(data);
-    stage.classList.add("on");
-    overlay.classList.add("on");
-    window.scrollTo(0, 0);
-
+    stage.innerHTML = certificateHTML(d);
     try {
       await Promise.all([
         document.fonts.load('700 60px "Playfair Display"'),
-        document.fonts.load('italic 400 28px "Playfair Display"'),
         document.fonts.load('400 20px "Montserrat"'),
         document.fonts.load('700 20px "Montserrat"')
       ]);
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-
-      const W = 1123, H = 794;
-
-      // 1) Растеризуем DOM-шаблон
-      const canvas = await window.html2canvas(stage.querySelector(".cert"), {
-        scale: 2,
-        backgroundColor: "#fffdf7",
-        useCORS: true,
-        logging: false,
-        width: W, height: H,
-        windowWidth: W, windowHeight: H,
+      return await window.html2canvas(stage.querySelector(".cert"), {
+        scale: 2, backgroundColor: "#fffdf7", useCORS: true, logging: false,
+        width: CERT_W, height: CERT_H, windowWidth: CERT_W, windowHeight: CERT_H,
         x: 0, y: 0, scrollX: 0, scrollY: 0
       });
-
-      // 2) Заворачиваем в PDF
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({
-        orientation: "landscape",
-        unit: "px",
-        format: [W, H],
-        compress: true
-      });
-      const imgData = canvas.toDataURL("image/jpeg", 0.92);
-      pdf.addImage(imgData, "JPEG", 0, 0, W, H, undefined, "FAST");
-
-      // 3) data URL PDF
-      return pdf.output("datauristring");
     } finally {
       stage.innerHTML = "";
-      stage.classList.remove("on");
-      overlay.classList.remove("on");
     }
   }
 
-  if (!window.FB.configured) show("home");
+  $("#dlAll").addEventListener("click", () => {
+    const g = curGroup(), s = curSubject();
+    downloadPdf(certList(g, s), `Сертификаты — ${g.name} — ${s.name}.pdf`, $("#dlAll"));
+  });
+
+  function certificateHTML(d) {
+    return `
+    <div class="cert">
+      <div class="cert-frame"><div class="cert-inner">
+        <h1 class="cert-title">Сертификат</h1>
+        <div class="cert-sub">о выполнении учебной работы</div>
+        <p class="cert-text" style="margin-top:18px">Настоящим подтверждается, что</p>
+        <div class="cert-name">${esc(d.studentName)}</div>
+        <p class="cert-text">студент(ка) группы <b>${esc(d.groupName)}</b> успешно выполнил(а) работу</p>
+        <div class="cert-work">«${esc(d.workTitle)}»</div>
+        <p class="cert-topic">${d.variantLabel ? esc(d.variantLabel) + ": " : ""}${esc(d.topic)}</p>
+        <p class="cert-text">по предмету <b>${esc(d.subject)}</b></p>
+        <div class="cert-grade-label">Оценка</div>
+        <div class="cert-grade">${esc(d.grade)}</div>
+        <div class="cert-footer">
+          <div class="sig"><div class="sig-name">${esc(d.teacher)}</div><div class="sig-line"></div>Преподаватель</div>
+          <div class="seal"><span>CERT</span></div>
+          <div class="sig"><div class="sig-line"></div>Дата: ${esc(d.date)}</div>
+        </div>
+        <div class="cert-number">№ ${esc(d.number)}</div>
+      </div></div>
+    </div>`;
+  }
 })();
 </script>
 </body>

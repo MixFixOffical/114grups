@@ -4,12 +4,14 @@
    ===================================================================== */
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project",
-  storageBucket: "your-project.firebasestorage.app",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:xxxxxxxxxxxx"
+  apiKey: "AIzaSyDwxW6rG5Rc2mdMCZ3555j_oMSK1oS2g-s",
+  authDomain: "mixfixbank1.firebaseapp.com",
+  databaseURL: "https://mixfixbank1-default-rtdb.firebaseio.com",
+  projectId: "mixfixbank1",
+  storageBucket: "mixfixbank1.firebasestorage.app",
+  messagingSenderId: "82594956649",
+  appId: "1:82594956649:web:bbd6d3b000c1f9001069f8",
+  measurementId: "G-7Y83HXGBXG"
 };
 
 (function () {

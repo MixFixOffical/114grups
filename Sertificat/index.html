@@ -4,11 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Генератор сертификатов</title>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 * { box-sizing: border-box; }
@@ -16,11 +15,12 @@ body {
   margin: 0; font-family: "Montserrat", system-ui, sans-serif; color: #1f2330;
   background: linear-gradient(135deg, #eef2ff 0%, #fdf6e9 100%); min-height: 100vh;
 }
+
 /* ---------- Верхняя панель ---------- */
 .topbar {
-  position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap;
+  position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap;
   align-items: center; justify-content: space-between; gap: 12px; padding: 12px 24px;
-  background: rgba(255,255,255,.88); backdrop-filter: blur(8px); border-bottom: 1px solid #e3e6ee;
+  background: rgba(255,255,255,.9); backdrop-filter: blur(8px); border-bottom: 1px solid #e3e6ee;
 }
 .brand { font-family: "Playfair Display", serif; font-weight: 700; font-size: 22px; }
 .topbar nav { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -36,7 +36,6 @@ main { max-width: 980px; margin: 24px auto; padding: 0 16px; }
 h1 { font-family: "Playfair Display", serif; margin: 0 0 6px; }
 h2 { font-family: "Playfair Display", serif; margin: 0 0 14px; }
 h3 { margin: 0 0 10px; font-size: 17px; }
-h4 { margin: 22px 0 8px; font-size: 15px; }
 .muted { color: #6b7280; font-size: 14px; }
 .danger-text { color: #b91c1c; }
 .hidden { display: none !important; }
@@ -104,8 +103,14 @@ details .form { margin-top: 10px; }
   .grades-table { font-size: 13px; }
 }
 
-/* ---------- Скрытая сцена для PDF ---------- */
-#certStage { position: absolute; left: -10000px; top: 0; width: 1123px; height: 794px; pointer-events: none; }
+/* ---------- Рендер PDF: затемнение и сцена сертификата ---------- */
+#renderOverlay {
+  position: fixed; inset: 0; z-index: 9000; display: none; align-items: center; justify-content: center;
+  background: rgba(15,18,30,.75); color: #fff; font-size: 18px; font-weight: 600;
+}
+#renderOverlay.on { display: flex; }
+#certStage { position: fixed; left: 0; top: 0; width: 1123px; height: 794px; z-index: 9500; display: none; }
+#certStage.on { display: block; }
 
 /* ---------- Сертификат (A4 альбом, 96dpi) ---------- */
 .cert {
@@ -152,6 +157,17 @@ details .form { margin-top: 10px; }
 }
 .cert-number { position: absolute; right: 60px; bottom: 40px; font-size: 12px; color: #9ca3af; }
 </style>
+
+<!-- Firebase (обычные скрипты: работают и при открытии файла, и через сервер) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-storage-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+
+<!-- Генерация PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -241,498 +257,527 @@ details .form { margin-top: 10px; }
 
 </main>
 
+<div id="renderOverlay">Создаём PDF…</div>
 <div id="certStage" aria-hidden="true"></div>
 <div id="toast" class="toast"></div>
 
-<script type="module">
-import {
-  db, storage, isConfigured, onUser,
-  collection, doc, setDoc, getDoc, updateDoc, getDocs, deleteDoc, query, where, serverTimestamp,
-  ref, uploadBytes, getDownloadURL, deleteObject
-} from "./js/firebase-config.js";
+<script>
+(function () {
+  "use strict";
 
-/* ================= Помощники ================= */
-const $ = s => document.querySelector(s);
-const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
-  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const WORK_KEY = "certgen.workId";
+  /* ================= Помощники ================= */
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const WORK_KEY = "certgen.workId";
+  const { db, storage } = window.FB;
 
-let user = null;
-// work = { id, title, subject, variants: [{num, topic}], groups: [{id, name, students: [{id, name, variant, grade}]}] }
-let work = null;
+  let user = null;
+  // work = { id, title, subject, variants: [{num, topic}], groups: [{id, name, students: [{id, name, variant, grade}]}] }
+  let work = null;
 
-function toast(msg) {
-  const t = $("#toast");
-  t.textContent = msg;
-  t.classList.add("show");
-  clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => t.classList.remove("show"), 3000);
-}
-
-function show(id) {
-  if (["groups", "grades"].includes(id) && !work) {
-    toast("Сначала укажите тему и предмет на главной");
-    id = "home";
+  function toast(msg) {
+    const t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => t.classList.remove("show"), 3000);
   }
-  document.querySelectorAll(".section").forEach(s => s.classList.toggle("active", s.id === id));
-  document.querySelectorAll(".nav-link").forEach(a => a.classList.toggle("active", a.dataset.target === id));
-  history.replaceState(null, "", "#" + id);
-}
-document.querySelectorAll(".nav-link").forEach(a =>
-  a.addEventListener("click", e => { e.preventDefault(); show(a.dataset.target); }));
 
-/** Определяет тему студента: номер варианта → тема варианта; текст → тема вручную; пусто → тема работы. */
-function topicFor(s) {
-  const v = (s.variant ?? "").trim();
-  if (!v) return { topic: work.title, label: "" };
-  if (/^\d+$/.test(v)) {
-    const found = work.variants.find(x => x.num === +v);
-    return found ? { topic: found.topic, label: `Вариант ${found.num}` } : null;
-  }
-  return { topic: v, label: "" };
-}
-
-/* ================= Рендер ================= */
-function renderAll() {
-  const info = $("#currentWorkInfo");
-  if (!work) info.classList.add("hidden");
-  else {
-    info.classList.remove("hidden");
-    info.innerHTML = `Текущая работа: <b>${esc(work.title)}</b> · ${esc(work.subject)} · вариантов: ${work.variants.length}`;
-  }
-  renderVariants();
-  renderGroups();
-  renderGrades();
-}
-
-function renderVariants() {
-  if (!work) { $("#variantsList").innerHTML = ""; return; }
-  $("#variantsList").innerHTML = work.variants.length
-    ? work.variants.map(v => `
-        <div class="variant-item">
-          <div class="variant-num">${v.num}</div>
-          <div class="variant-topic">${esc(v.topic)}</div>
-          <button class="link" data-del-variant="${v.num}" title="Удалить">✕</button>
-        </div>`).join("")
-    : `<p class="muted">Вариантов пока нет.</p>`;
-}
-
-function renderGroups() {
-  if (!work) return;
-  $("#groupsList").innerHTML = work.groups.map((g, gi) => `
-    <div class="group-card">
-      <div class="group-head">
-        <h3>${esc(g.name)} <span class="muted">(${g.students.length})</span></h3>
-        <button class="btn small danger" data-action="del-group" data-gi="${gi}">Удалить группу</button>
-      </div>
-      ${g.students.map((s, si) => `
-        <div class="stu-row">
-          <span class="stu-name">${si + 1}. ${esc(s.name)}</span>
-          <input data-key="${gi}-${si}" value="${esc(s.variant || "")}" placeholder="№ варианта или тема">
-          <button class="btn small" data-action="set-var" data-gi="${gi}" data-si="${si}">✓</button>
-          <button class="link" data-action="del-student" data-gi="${gi}" data-si="${si}">✕</button>
-        </div>`).join("")}
-      <div class="row" style="margin-top:12px">
-        <input data-add-input="${gi}" placeholder="Новый студент: ФИО | вариант">
-        <button class="btn small" data-action="add-student" data-gi="${gi}">+ Добавить</button>
-      </div>
-    </div>`).join("") || `<p class="muted">Групп пока нет. Добавьте первую группу выше.</p>`;
-}
-
-function renderGrades() {
-  if (!work) return;
-  $("#gradesList").innerHTML = work.groups.map((g, gi) => `
-    <div class="group-card">
-      <h3>${esc(g.name)}</h3>
-      <table class="grades-table">
-        <thead><tr><th>#</th><th>ФИО</th><th>Вариант / тема</th><th>Оценка</th></tr></thead>
-        <tbody>
-          ${g.students.map((s, si) => {
-            const t = topicFor(s);
-            const topicCell = t
-              ? esc((t.label ? t.label + " — " : "") + t.topic)
-              : `<span class="danger-text">⚠ нет варианта ${esc(s.variant)}</span>`;
-            return `
-            <tr>
-              <td>${si + 1}</td>
-              <td>${esc(s.name)}</td>
-              <td>${topicCell}</td>
-              <td><input class="grade-input" data-gi="${gi}" data-si="${si}" value="${esc(s.grade)}" placeholder="5/3"></td>
-            </tr>`;
-          }).join("")}
-        </tbody>
-      </table>
-    </div>`).join("") || `<p class="muted">Сначала добавьте группы.</p>`;
-}
-
-/* ================= Firebase: авторизация ================= */
-if (!isConfigured) toast("Заполните конфиг в js/firebase-config.js");
-
-onUser(async u => {
-  user = u;
-  $("#userStatus").textContent = "Подключено ✓";
-  await loadWork();
-  renderAll();
-  loadHistory();
-  show(location.hash.slice(1) || "home");
-});
-
-async function loadWork() {
-  work = null;
-  const id = localStorage.getItem(WORK_KEY);
-  if (!id) return;
-  try {
-    const snap = await getDoc(doc(db, "works", id));
-    if (snap.exists() && snap.data().ownerId === user.uid) {
-      const d = snap.data();
-      work = { id, title: d.title, subject: d.subject, variants: d.variants || [], groups: d.groups || [] };
-      $("#workTitle").value = work.title;
-      $("#workSubject").value = work.subject;
-    } else {
-      localStorage.removeItem(WORK_KEY);
+  function show(id) {
+    if (["groups", "grades"].includes(id) && !work) {
+      toast("Сначала укажите тему и предмет на главной");
+      id = "home";
     }
-  } catch (e) {
-    toast("Не удалось загрузить работу: " + e.message);
+    document.querySelectorAll(".section").forEach(s => s.classList.toggle("active", s.id === id));
+    document.querySelectorAll(".nav-link").forEach(a => a.classList.toggle("active", a.dataset.target === id));
+    history.replaceState(null, "", "#" + id);
   }
-}
+  document.querySelectorAll(".nav-link").forEach(a =>
+    a.addEventListener("click", e => { e.preventDefault(); show(a.dataset.target); }));
 
-async function saveWork() {
-  await updateDoc(doc(db, "works", work.id), {
-    title: work.title, subject: work.subject,
-    variants: work.variants, groups: work.groups, updatedAt: serverTimestamp()
-  });
-}
-
-/* ================= Главная: работа и варианты ================= */
-$("#workForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  const title = $("#workTitle").value.trim();
-  const subject = $("#workSubject").value.trim();
-  try {
-    if (!work) {
-      const wref = doc(collection(db, "works"));
-      work = { id: wref.id, title, subject, variants: [], groups: [] };
-      await setDoc(wref, {
-        ownerId: user.uid, title, subject, variants: [], groups: [], createdAt: serverTimestamp()
-      });
-      localStorage.setItem(WORK_KEY, work.id);
-    } else {
-      work.title = title;
-      work.subject = subject;
-      await saveWork();
+  /** Тема студента: номер варианта → тема варианта; текст → тема вручную; пусто → тема работы. */
+  function topicFor(s) {
+    const v = (s.variant ?? "").trim();
+    if (!v) return { topic: work.title, label: "" };
+    if (/^\d+$/.test(v)) {
+      const found = work.variants.find(x => x.num === +v);
+      return found ? { topic: found.topic, label: `Вариант ${found.num}` } : null;
     }
-    renderAll();
-    show("groups");
-    toast("Работа сохранена");
-  } catch (err) {
-    toast("Ошибка сохранения: " + err.message);
+    return { topic: v, label: "" };
   }
-});
 
-$("#newWorkBtn").addEventListener("click", () => {
-  work = null;
-  localStorage.removeItem(WORK_KEY);
-  $("#workForm").reset();
-  renderAll();
-  toast("Заполните данные новой работы");
-});
-
-async function addVariants(topics) {
-  if (!work) return toast("Сначала нажмите «Настроить»");
-  let next = work.variants.reduce((m, v) => Math.max(m, v.num), 0) + 1;
-  topics.forEach(t => work.variants.push({ num: next++, topic: t }));
-  try {
-    await saveWork();
-    renderAll();
-    toast(`Добавлено вариантов: ${topics.length}`);
-  } catch (err) {
-    toast("Ошибка: " + err.message);
+  /* ================= Рендер ================= */
+  function renderAll() {
+    const info = $("#currentWorkInfo");
+    if (!work) info.classList.add("hidden");
+    else {
+      info.classList.remove("hidden");
+      info.innerHTML = `Текущая работа: <b>${esc(work.title)}</b> · ${esc(work.subject)} · вариантов: ${work.variants.length}`;
+    }
+    renderVariants();
+    renderGroups();
+    renderGrades();
   }
-}
 
-$("#variantForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  const t = $("#variantTopic").value.trim();
-  if (!t) return;
-  await addVariants([t]);
-  e.target.reset();
-});
-
-$("#bulkBtn").addEventListener("click", async () => {
-  const list = $("#variantBulk").value.split("\n").map(s => s.trim()).filter(Boolean);
-  if (!list.length) return toast("Введите хотя бы одну тему");
-  await addVariants(list);
-  $("#variantBulk").value = "";
-});
-
-$("#variantsList").addEventListener("click", async e => {
-  const b = e.target.closest("[data-del-variant]");
-  if (!b) return;
-  work.variants = work.variants.filter(v => v.num !== +b.dataset.delVariant);
-  await saveWork().catch(err => toast(err.message));
-  renderAll();
-});
-
-/* ================= Группы и студенты ================= */
-function parseStudentLine(line) {
-  const [name, variant = ""] = line.split("|").map(s => s.trim());
-  return { id: crypto.randomUUID(), name, variant, grade: "" };
-}
-
-$("#groupForm").addEventListener("submit", async e => {
-  e.preventDefault();
-  if (!work) return toast("Сначала нажмите «Настроить» на главной");
-  const name = $("#groupName").value.trim();
-  const students = $("#studentsInput").value.split("\n").map(s => s.trim()).filter(Boolean).map(parseStudentLine);
-  if (!students.length) return toast("Добавьте хотя бы одного студента");
-  work.groups.push({ id: crypto.randomUUID(), name, students });
-  try {
-    await saveWork();
-    e.target.reset();
-    renderAll();
-    toast(`Группа «${name}» добавлена`);
-  } catch (err) {
-    toast("Ошибка: " + err.message);
+  function renderVariants() {
+    if (!work) { $("#variantsList").innerHTML = ""; return; }
+    $("#variantsList").innerHTML = work.variants.length
+      ? work.variants.map(v => `
+          <div class="variant-item">
+            <div class="variant-num">${v.num}</div>
+            <div class="variant-topic">${esc(v.topic)}</div>
+            <button class="link" data-del-variant="${v.num}" title="Удалить">✕</button>
+          </div>`).join("")
+      : `<p class="muted">Вариантов пока нет.</p>`;
   }
-});
 
-$("#groupsList").addEventListener("click", async e => {
-  const b = e.target.closest("[data-action]");
-  if (!b) return;
-  const gi = +b.dataset.gi, si = +b.dataset.si, act = b.dataset.action;
-
-  if (act === "del-group") {
-    if (!confirm("Удалить группу вместе со студентами?")) return;
-    work.groups.splice(gi, 1);
-  } else if (act === "del-student") {
-    work.groups[gi].students.splice(si, 1);
-  } else if (act === "set-var") {
-    work.groups[gi].students[si].variant = $(`[data-key="${gi}-${si}"]`).value.trim();
-  } else if (act === "add-student") {
-    const input = $(`[data-add-input="${gi}"]`);
-    const s = parseStudentLine(input.value.trim());
-    if (!s.name) return;
-    work.groups[gi].students.push(s);
-  } else {
-    return;
-  }
-  try {
-    await saveWork();
-    renderAll();
-  } catch (err) {
-    toast("Ошибка: " + err.message);
-  }
-});
-
-/* ================= Оценки ================= */
-// "5/3", "5 / 3", "4,5/5", "5" → строка; "" → пусто; иначе null (ошибка)
-function normalizeGrade(value) {
-  const t = value.trim().replace(/\s+/g, "").replace(",", ".");
-  if (!t) return "";
-  return /^\d+(\.\d+)?(\/\d+(\.\d+)?)?$/.test(t) ? t : null;
-}
-
-function collectGrades() {
-  let bad = null;
-  document.querySelectorAll(".grade-input").forEach(inp => {
-    const gi = +inp.dataset.gi, si = +inp.dataset.si;
-    const g = normalizeGrade(inp.value);
-    if (g === null) bad ??= `${work.groups[gi].students[si].name} («${inp.value}»)`;
-    else work.groups[gi].students[si].grade = g;
-  });
-  return bad;
-}
-
-async function saveGrades() {
-  if (!work) return false;
-  const bad = collectGrades();
-  if (bad) { toast("Неверный формат оценки: " + bad); return false; }
-  await saveWork();
-  toast("Оценки сохранены");
-  return true;
-}
-
-$("#saveGradesBtn").addEventListener("click", () => saveGrades().catch(e => toast(e.message)));
-
-/* ================= PDF-сертификат ================= */
-function certificateHTML(d) {
-  return `
-  <div class="cert">
-    <div class="cert-frame">
-      <div class="cert-inner">
-        <div class="corner tl"></div><div class="corner tr"></div>
-        <div class="corner bl"></div><div class="corner br"></div>
-
-        <div class="cert-badge">★</div>
-        <h1 class="cert-title">Сертификат</h1>
-        <div class="cert-sub">о выполнении учебной работы</div>
-
-        <p class="cert-text" style="margin-top:18px">Настоящим подтверждается, что</p>
-        <div class="cert-name">${esc(d.studentName)}</div>
-        <p class="cert-text">студент(ка) группы <b>${esc(d.groupName)}</b> успешно выполнил(а) работу</p>
-        <div class="cert-work">«${esc(d.workTitle)}»</div>
-        <p class="cert-topic">${d.variantLabel ? esc(d.variantLabel) + ": " : ""}${esc(d.topic)}</p>
-        <p class="cert-text">по предмету <b>${esc(d.subject)}</b></p>
-
-        <div class="cert-grade-label">Оценка</div>
-        <div class="cert-grade">${esc(d.grade)}</div>
-
-        <div class="cert-footer">
-          <div class="sig"><div class="sig-line"></div>Преподаватель</div>
-          <div class="seal"><span>CERT</span></div>
-          <div class="sig"><div class="sig-line"></div>Дата: ${esc(d.date)}</div>
+  function renderGroups() {
+    if (!work) return;
+    $("#groupsList").innerHTML = work.groups.map((g, gi) => `
+      <div class="group-card">
+        <div class="group-head">
+          <h3>${esc(g.name)} <span class="muted">(${g.students.length})</span></h3>
+          <button class="btn small danger" data-action="del-group" data-gi="${gi}">Удалить группу</button>
         </div>
-        <div class="cert-number">№ ${esc(d.number)}</div>
-      </div>
-    </div>
-  </div>`;
-}
-
-async function renderCertificatePdf(data) {
-  const stage = $("#certStage");
-  stage.innerHTML = certificateHTML(data);
-  const node = stage.querySelector(".cert");
-  await Promise.all([
-    document.fonts.load('700 60px "Playfair Display"'),
-    document.fonts.load('italic 400 28px "Playfair Display"'),
-    document.fonts.load('400 20px "Montserrat"'),
-    document.fonts.load('700 20px "Montserrat"')
-  ]);
-  const canvas = await window.html2canvas(node, { scale: 2, backgroundColor: "#fffdf7", useCORS: true, logging: false });
-  stage.innerHTML = "";
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1123, 794] });
-  pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, 1123, 794);
-  return pdf.output("blob");
-}
-
-/* ================= Генерация и сохранение ================= */
-function log(msg) {
-  const el = $("#genLog");
-  el.innerHTML += `<div>${esc(msg)}</div>`;
-  el.scrollTop = el.scrollHeight;
-}
-
-$("#generateBtn").addEventListener("click", async () => {
-  if (!(await saveGrades().catch(() => false))) return;
-
-  const items = [];
-  work.groups.forEach(g => g.students.forEach(s => {
-    if (!s.grade) return;
-    const t = topicFor(s);
-    if (!t) log(`✖ ${s.name}: нет варианта «${s.variant}»`);
-    else items.push({ group: g, student: s, t });
-  }));
-  if (!items.length) return toast("Нет студентов с оценками и корректными вариантами");
-
-  const btn = $("#generateBtn");
-  btn.disabled = true;
-  $("#progress").classList.remove("hidden");
-  $("#progressBar").style.width = "0%";
-  $("#genLog").innerHTML = "";
-
-  let done = 0;
-  for (const { group, student, t } of items) {
-    try {
-      const certRef = doc(collection(db, "certificates"));
-      const certId = certRef.id;
-      const number = certId.slice(0, 8).toUpperCase();
-      const date = new Date().toLocaleDateString("ru-RU");
-
-      const blob = await renderCertificatePdf({
-        studentName: student.name, groupName: group.name, grade: student.grade,
-        workTitle: work.title, subject: work.subject,
-        topic: t.topic, variantLabel: t.label, date, number
-      });
-
-      const path = `certificates/${user.uid}/${certId}.pdf`;
-      await uploadBytes(ref(storage, path), blob, { contentType: "application/pdf" });
-      const url = await getDownloadURL(ref(storage, path));
-
-      await setDoc(certRef, {
-        ownerId: user.uid, workId: work.id, workTitle: work.title, subject: work.subject,
-        groupName: group.name, studentName: student.name, grade: student.grade,
-        topic: t.topic, variantLabel: t.label, number,
-        storagePath: path, pdfUrl: url, createdAt: serverTimestamp()
-      });
-      log(`✔ ${student.name} — ${student.grade}`);
-    } catch (err) {
-      log(`✖ ${student.name}: ${err.message}`);
-    }
-    done++;
-    $("#progressBar").style.width = `${(done / items.length) * 100}%`;
+        ${g.students.map((s, si) => `
+          <div class="stu-row">
+            <span class="stu-name">${si + 1}. ${esc(s.name)}</span>
+            <input data-key="${gi}-${si}" value="${esc(s.variant || "")}" placeholder="№ варианта или тема">
+            <button class="btn small" data-action="set-var" data-gi="${gi}" data-si="${si}">✓</button>
+            <button class="link" data-action="del-student" data-gi="${gi}" data-si="${si}">✕</button>
+          </div>`).join("")}
+        <div class="row" style="margin-top:12px">
+          <input data-add-input="${gi}" placeholder="Новый студент: ФИО | вариант">
+          <button class="btn small" data-action="add-student" data-gi="${gi}">+ Добавить</button>
+        </div>
+      </div>`).join("") || `<p class="muted">Групп пока нет. Добавьте первую группу выше.</p>`;
   }
 
-  btn.disabled = false;
-  toast(`Готово: ${done} из ${items.length}`);
-  loadHistory();
-});
-
-/* ================= История ================= */
-async function loadHistory() {
-  if (!user) return;
-  const list = $("#historyList");
-  try {
-    const snap = await getDocs(query(collection(db, "certificates"), where("ownerId", "==", user.uid)));
-    const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    const time = x => x?.toMillis?.() ?? Date.now();
-    items.sort((a, b) => time(b.createdAt) - time(a.createdAt));
-
-    if (!items.length) { list.innerHTML = `<p class="muted">Сертификатов пока нет.</p>`; return; }
-
-    list.innerHTML = `
-      <table class="grades-table">
-        <thead><tr><th>Студент</th><th>Группа</th><th>Вариант / тема</th><th>Оценка</th><th>Дата</th><th></th></tr></thead>
-        <tbody>
-          ${items.map(it => `
-            <tr>
-              <td>${esc(it.studentName)}</td>
-              <td>${esc(it.groupName)}</td>
-              <td>${esc((it.variantLabel ? it.variantLabel + " — " : "") + (it.topic || it.workTitle))}</td>
-              <td><b>${esc(it.grade)}</b></td>
-              <td>${it.createdAt?.toDate ? it.createdAt.toDate().toLocaleDateString("ru-RU") : "сейчас"}</td>
-              <td style="white-space:nowrap">
-                <button class="btn small" data-action="download" data-path="${esc(it.storagePath)}" data-name="${esc(it.studentName)}">⬇ PDF</button>
-                <button class="btn small danger" data-action="delete" data-id="${esc(it.id)}" data-path="${esc(it.storagePath)}">Удалить</button>
-              </td>
-            </tr>`).join("")}
-        </tbody>
-      </table>`;
-  } catch (err) {
-    list.innerHTML = `<p class="muted">Ошибка загрузки истории: ${esc(err.message)}</p>`;
+  function renderGrades() {
+    if (!work) return;
+    $("#gradesList").innerHTML = work.groups.map((g, gi) => `
+      <div class="group-card">
+        <h3>${esc(g.name)}</h3>
+        <table class="grades-table">
+          <thead><tr><th>#</th><th>ФИО</th><th>Вариант / тема</th><th>Оценка</th></tr></thead>
+          <tbody>
+            ${g.students.map((s, si) => {
+              const t = topicFor(s);
+              const topicCell = t
+                ? esc((t.label ? t.label + " — " : "") + t.topic)
+                : `<span class="danger-text">⚠ нет варианта ${esc(s.variant)}</span>`;
+              return `
+              <tr>
+                <td>${si + 1}</td>
+                <td>${esc(s.name)}</td>
+                <td>${topicCell}</td>
+                <td><input class="grade-input" data-gi="${gi}" data-si="${si}" value="${esc(s.grade)}" placeholder="5/3"></td>
+              </tr>`;
+            }).join("")}
+          </tbody>
+        </table>
+      </div>`).join("") || `<p class="muted">Сначала добавьте группы.</p>`;
   }
-}
 
-$("#historyList").addEventListener("click", async e => {
-  const b = e.target.closest("[data-action]");
-  if (!b) return;
-  const { id, path, name } = b.dataset;
-  b.disabled = true;
-  try {
-    if (b.dataset.action === "download") {
-      // Ссылка запрашивается заново по пути в Storage — работает и через полгода
-      const url = await getDownloadURL(ref(storage, path));
-      const blob = await (await fetch(url)).blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `Сертификат — ${name}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
-    } else if (b.dataset.action === "delete") {
-      if (!confirm("Удалить сертификат?")) return;
-      await deleteObject(ref(storage, path)).catch(() => {});
-      await deleteDoc(doc(db, "certificates", id));
-      toast("Сертификат удалён");
+  /* ================= Firebase: вход и работа ================= */
+  if (!window.FB.configured) {
+    toast("Заполните конфиг в js/firebase-config.js");
+    $("#userStatus").textContent = "Нет конфига Firebase";
+  } else {
+    window.FB.onUser(async u => {
+      user = u;
+      $("#userStatus").textContent = "Подключено ✓";
+      await loadWork();
+      renderAll();
       loadHistory();
-    }
-  } catch (err) {
-    toast("Ошибка: " + err.message);
-  } finally {
-    b.disabled = false;
+      show(location.hash.slice(1) || "home");
+    }, err => {
+      $("#userStatus").textContent = "Ошибка входа";
+      toast("Включите Anonymous в Authentication: " + err.message);
+    });
   }
-});
+
+  async function loadWork() {
+    work = null;
+    const id = localStorage.getItem(WORK_KEY);
+    if (!id) return;
+    try {
+      const snap = await db.collection("works").doc(id).get();
+      if (snap.exists && snap.data().ownerId === user.uid) {
+        const d = snap.data();
+        work = { id, title: d.title, subject: d.subject, variants: d.variants || [], groups: d.groups || [] };
+        $("#workTitle").value = work.title;
+        $("#workSubject").value = work.subject;
+      } else {
+        localStorage.removeItem(WORK_KEY);
+      }
+    } catch (e) {
+      toast("Не удалось загрузить работу: " + e.message);
+    }
+  }
+
+  async function saveWork() {
+    await db.collection("works").doc(work.id).update({
+      title: work.title,
+      subject: work.subject,
+      variants: work.variants,
+      groups: work.groups,
+      updatedAt: FB.serverTimestamp()
+    });
+  }
+
+  /* ================= Главная: работа и варианты ================= */
+  $("#workForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!user) return toast("Подождите, идёт подключение…");
+    const title = $("#workTitle").value.trim();
+    const subject = $("#workSubject").value.trim();
+    try {
+      if (!work) {
+        const id = db.collection("works").doc().id;
+        work = { id, title, subject, variants: [], groups: [] };
+        await db.collection("works").doc(id).set({
+          ownerId: user.uid, title, subject, variants: [], groups: [], createdAt: FB.serverTimestamp()
+        });
+        localStorage.setItem(WORK_KEY, id);
+      } else {
+        work.title = title;
+        work.subject = subject;
+        await saveWork();
+      }
+      renderAll();
+      show("groups");
+      toast("Работа сохранена");
+    } catch (err) {
+      toast("Ошибка сохранения: " + err.message);
+    }
+  });
+
+  $("#newWorkBtn").addEventListener("click", () => {
+    work = null;
+    localStorage.removeItem(WORK_KEY);
+    $("#workForm").reset();
+    renderAll();
+    toast("Заполните данные новой работы");
+  });
+
+  async function addVariants(topics) {
+    if (!work) return toast("Сначала нажмите «Настроить»");
+    let next = work.variants.reduce((m, v) => Math.max(m, v.num), 0) + 1;
+    topics.forEach(t => work.variants.push({ num: next++, topic: t }));
+    try {
+      await saveWork();
+      renderAll();
+      toast(`Добавлено вариантов: ${topics.length}`);
+    } catch (err) {
+      toast("Ошибка: " + err.message);
+    }
+  }
+
+  $("#variantForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const t = $("#variantTopic").value.trim();
+    if (!t) return;
+    await addVariants([t]);
+    e.target.reset();
+  });
+
+  $("#bulkBtn").addEventListener("click", async () => {
+    const list = $("#variantBulk").value.split("\n").map(s => s.trim()).filter(Boolean);
+    if (!list.length) return toast("Введите хотя бы одну тему");
+    await addVariants(list);
+    $("#variantBulk").value = "";
+  });
+
+  $("#variantsList").addEventListener("click", async e => {
+    const b = e.target.closest("[data-del-variant]");
+    if (!b) return;
+    work.variants = work.variants.filter(v => v.num !== +b.dataset.delVariant);
+    try { await saveWork(); } catch (err) { toast(err.message); }
+    renderAll();
+  });
+
+  /* ================= Группы и студенты ================= */
+  function parseStudentLine(line) {
+    const [name, variant = ""] = line.split("|").map(s => s.trim());
+    return { id: crypto.randomUUID(), name, variant, grade: "" };
+  }
+
+  $("#groupForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    if (!work) return toast("Сначала нажмите «Настроить» на главной");
+    const name = $("#groupName").value.trim();
+    const students = $("#studentsInput").value.split("\n")
+      .map(s => s.trim()).filter(Boolean).map(parseStudentLine).filter(s => s.name);
+    if (!students.length) return toast("Добавьте хотя бы одного студента");
+    work.groups.push({ id: crypto.randomUUID(), name, students });
+    try {
+      await saveWork();
+      e.target.reset();
+      renderAll();
+      toast(`Группа «${name}» добавлена`);
+    } catch (err) {
+      toast("Ошибка: " + err.message);
+    }
+  });
+
+  $("#groupsList").addEventListener("click", async e => {
+    const b = e.target.closest("[data-action]");
+    if (!b) return;
+    const gi = +b.dataset.gi, si = +b.dataset.si, act = b.dataset.action;
+
+    if (act === "del-group") {
+      if (!confirm("Удалить группу вместе со студентами?")) return;
+      work.groups.splice(gi, 1);
+    } else if (act === "del-student") {
+      work.groups[gi].students.splice(si, 1);
+    } else if (act === "set-var") {
+      work.groups[gi].students[si].variant = $(`[data-key="${gi}-${si}"]`).value.trim();
+    } else if (act === "add-student") {
+      const s = parseStudentLine($(`[data-add-input="${gi}"]`).value.trim());
+      if (!s.name) return;
+      work.groups[gi].students.push(s);
+    } else {
+      return;
+    }
+    try { await saveWork(); } catch (err) { toast("Ошибка: " + err.message); }
+    renderAll();
+  });
+
+  /* ================= Оценки ================= */
+  // "5/3", "5 / 3", "4,5/5", "5" → строка; "" → пусто; иначе null (ошибка)
+  function normalizeGrade(value) {
+    const t = value.trim().replace(/\s+/g, "").replace(",", ".");
+    if (!t) return "";
+    return /^\d+(\.\d+)?(\/\d+(\.\d+)?)?$/.test(t) ? t : null;
+  }
+
+  function collectGrades() {
+    let bad = null;
+    document.querySelectorAll(".grade-input").forEach(inp => {
+      const gi = +inp.dataset.gi, si = +inp.dataset.si;
+      const g = normalizeGrade(inp.value);
+      if (g === null) bad = bad || `${work.groups[gi].students[si].name} («${inp.value}»)`;
+      else work.groups[gi].students[si].grade = g;
+    });
+    return bad;
+  }
+
+  async function saveGrades() {
+    if (!work) return false;
+    const bad = collectGrades();
+    if (bad) { toast("Неверный формат оценки: " + bad); return false; }
+    await saveWork();
+    toast("Оценки сохранены");
+    return true;
+  }
+
+  $("#saveGradesBtn").addEventListener("click", () => saveGrades().catch(e => toast(e.message)));
+
+  /* ================= PDF-сертификат ================= */
+  function certificateHTML(d) {
+    return `
+    <div class="cert">
+      <div class="cert-frame">
+        <div class="cert-inner">
+          <div class="corner tl"></div><div class="corner tr"></div>
+          <div class="corner bl"></div><div class="corner br"></div>
+
+          <div class="cert-badge">★</div>
+          <h1 class="cert-title">Сертификат</h1>
+          <div class="cert-sub">о выполнении учебной работы</div>
+
+          <p class="cert-text" style="margin-top:18px">Настоящим подтверждается, что</p>
+          <div class="cert-name">${esc(d.studentName)}</div>
+          <p class="cert-text">студент(ка) группы <b>${esc(d.groupName)}</b> успешно выполнил(а) работу</p>
+          <div class="cert-work">«${esc(d.workTitle)}»</div>
+          <p class="cert-topic">${d.variantLabel ? esc(d.variantLabel) + ": " : ""}${esc(d.topic)}</p>
+          <p class="cert-text">по предмету <b>${esc(d.subject)}</b></p>
+
+          <div class="cert-grade-label">Оценка</div>
+          <div class="cert-grade">${esc(d.grade)}</div>
+
+          <div class="cert-footer">
+            <div class="sig"><div class="sig-line"></div>Преподаватель</div>
+            <div class="seal"><span>CERT</span></div>
+            <div class="sig"><div class="sig-line"></div>Дата: ${esc(d.date)}</div>
+          </div>
+          <div class="cert-number">№ ${esc(d.number)}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  async function renderCertificatePdf(data) {
+    const stage = $("#certStage");
+    const overlay = $("#renderOverlay");
+    stage.innerHTML = certificateHTML(data);
+    stage.classList.add("on");
+    overlay.classList.add("on");
+    window.scrollTo(0, 0);
+
+    try {
+      await Promise.all([
+        document.fonts.load('700 60px "Playfair Display"'),
+        document.fonts.load('italic 400 28px "Playfair Display"'),
+        document.fonts.load('400 20px "Montserrat"'),
+        document.fonts.load('700 20px "Montserrat"')
+      ]);
+      // Два кадра, чтобы браузер отрисовал сцену до съёмки
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+      const node = stage.querySelector(".cert");
+      const canvas = await window.html2canvas(node, {
+        scale: 2, backgroundColor: "#fffdf7", useCORS: true, logging: false,
+        width: 1123, height: 794, windowWidth: 1123, windowHeight: 794, x: 0, y: 0, scrollX: 0, scrollY: 0
+      });
+
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [1123, 794] });
+      pdf.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, 1123, 794);
+      return pdf.output("blob");
+    } finally {
+      stage.innerHTML = "";
+      stage.classList.remove("on");
+      overlay.classList.remove("on");
+    }
+  }
+
+  /* ================= Генерация и сохранение ================= */
+  function log(msg) {
+    const el = $("#genLog");
+    el.innerHTML += `<div>${esc(msg)}</div>`;
+    el.scrollTop = el.scrollHeight;
+  }
+
+  $("#generateBtn").addEventListener("click", async () => {
+    if (!user) return toast("Подождите, идёт подключение…");
+    let ok = false;
+    try { ok = await saveGrades(); } catch (e) { toast(e.message); }
+    if (!ok) return;
+
+    const items = [];
+    work.groups.forEach(g => g.students.forEach(s => {
+      if (!s.grade) return;
+      const t = topicFor(s);
+      if (!t) log(`✖ ${s.name}: нет варианта «${s.variant}»`);
+      else items.push({ group: g, student: s, t });
+    }));
+    if (!items.length) return toast("Нет студентов с оценками и корректными вариантами");
+
+    const btn = $("#generateBtn");
+    btn.disabled = true;
+    $("#progress").classList.remove("hidden");
+    $("#progressBar").style.width = "0%";
+    $("#genLog").innerHTML = "";
+
+    let done = 0;
+    for (const { group, student, t } of items) {
+      try {
+        const certId = db.collection("certificates").doc().id;
+        const number = certId.slice(0, 8).toUpperCase();
+        const date = new Date().toLocaleDateString("ru-RU");
+
+        const blob = await renderCertificatePdf({
+          studentName: student.name, groupName: group.name, grade: student.grade,
+          workTitle: work.title, subject: work.subject,
+          topic: t.topic, variantLabel: t.label, date, number
+        });
+
+        const path = `certificates/${user.uid}/${certId}.pdf`;
+        await storage.ref(path).put(blob, { contentType: "application/pdf" });
+        const url = await storage.ref(path).getDownloadURL();
+
+        await db.collection("certificates").doc(certId).set({
+          ownerId: user.uid, workId: work.id, workTitle: work.title, subject: work.subject,
+          groupName: group.name, studentName: student.name, grade: student.grade,
+          topic: t.topic, variantLabel: t.label, number,
+          storagePath: path, pdfUrl: url, createdAt: FB.serverTimestamp()
+        });
+        log(`✔ ${student.name} — ${student.grade}`);
+      } catch (err) {
+        log(`✖ ${student.name}: ${err.message}`);
+      }
+      done++;
+      $("#progressBar").style.width = `${(done / items.length) * 100}%`;
+    }
+
+    btn.disabled = false;
+    toast(`Готово: ${done} из ${items.length}`);
+    loadHistory();
+  });
+
+  /* ================= История ================= */
+  async function loadHistory() {
+    if (!user) return;
+    const list = $("#historyList");
+    try {
+      const snap = await db.collection("certificates").where("ownerId", "==", user.uid).get();
+      const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const time = x => (x && x.toMillis) ? x.toMillis() : Date.now();
+      items.sort((a, b) => time(b.createdAt) - time(a.createdAt));
+
+      if (!items.length) { list.innerHTML = `<p class="muted">Сертификатов пока нет.</p>`; return; }
+
+      list.innerHTML = `
+        <table class="grades-table">
+          <thead><tr><th>Студент</th><th>Группа</th><th>Вариант / тема</th><th>Оценка</th><th>Дата</th><th></th></tr></thead>
+          <tbody>
+            ${items.map(it => `
+              <tr>
+                <td>${esc(it.studentName)}</td>
+                <td>${esc(it.groupName)}</td>
+                <td>${esc((it.variantLabel ? it.variantLabel + " — " : "") + (it.topic || it.workTitle))}</td>
+                <td><b>${esc(it.grade)}</b></td>
+                <td>${it.createdAt && it.createdAt.toDate ? it.createdAt.toDate().toLocaleDateString("ru-RU") : "сейчас"}</td>
+                <td style="white-space:nowrap">
+                  <button class="btn small" data-action="download" data-path="${esc(it.storagePath)}" data-name="${esc(it.studentName)}">⬇ PDF</button>
+                  <button class="btn small danger" data-action="delete" data-id="${esc(it.id)}" data-path="${esc(it.storagePath)}">Удалить</button>
+                </td>
+              </tr>`).join("")}
+          </tbody>
+        </table>`;
+    } catch (err) {
+      list.innerHTML = `<p class="muted">Ошибка загрузки истории: ${esc(err.message)}</p>`;
+    }
+  }
+
+  $("#historyList").addEventListener("click", async e => {
+    const b = e.target.closest("[data-action]");
+    if (!b) return;
+    const { path, name } = b.dataset;
+    const id = b.dataset.id;
+    b.disabled = true;
+    try {
+      if (b.dataset.action === "download") {
+        // Ссылка запрашивается заново по пути в Storage — работает и через полгода
+        const url = await storage.ref(path).getDownloadURL();
+        const blob = await (await fetch(url)).blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `Сертификат — ${name}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      } else if (b.dataset.action === "delete") {
+        if (!confirm("Удалить сертификат?")) return;
+        await storage.ref(path).delete().catch(() => {});
+        await db.collection("certificates").doc(id).delete();
+        toast("Сертификат удалён");
+        loadHistory();
+      }
+    } catch (err) {
+      toast("Ошибка: " + err.message);
+    } finally {
+      b.disabled = false;
+    }
+  });
+
+  // Без конфига экран не выставляется после входа — покажем главную
+  if (!window.FB.configured) show("home");
+})();
 </script>
 </body>
 </html>

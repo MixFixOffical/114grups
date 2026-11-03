@@ -138,12 +138,12 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
 .cert-topic { font-size: 18px; color: #374151; margin: 0 0 10px; }
 .cert-grade-label { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: #8a6d2b; margin-top: 8px; }
 .cert-grade { font-family: "Playfair Display", serif; font-size: 54px; font-weight: 700; color: #b8913b; line-height: 1.1; }
-.cert-footer { display: flex; justify-content: space-between; align-items: flex-end; margin: 22px 40px 0; font-size: 14px; color: #374151; }
+.cert-footer { display: flex; justify-content: space-between; align-items: flex-end; margin: 16px 40px 0; font-size: 14px; color: #374151; }
 .sig { width: 240px; }
 .sig-name { font-family: "Playfair Display", serif; font-size: 19px; font-weight: 700; margin-bottom: 4px; }
 .sig-line { border-top: 1px solid #1f2330; margin-bottom: 6px; }
 .seal { width: 90px; height: 90px; border-radius: 50%; color: #fff; font-family: "Playfair Display", serif; font-weight: 700; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #f6e3a6, #d4a84b 70%, #b8913b); }
-.cert-number { position: absolute; right: 60px; bottom: 40px; font-size: 12px; color: #9ca3af; }
+.cert-number { margin-top: 14px; font-size: 13px; color: #6b7280; letter-spacing: 1px; }
 </style>
 </head>
 <body>
@@ -159,8 +159,8 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
     <div class="step-head">
       <span class="step-num">1</span>
       <div>
-        <h2>Выберите группу и предмет</h2>
-        <p class="muted">Сначала выберите группу, затем предмет. Если их ещё нет, создайте новые.</p>
+        <h2>Выберите группу и дисциплину</h2>
+        <p class="muted">Сначала выберите группу, затем дисциплину. Если их ещё нет, создайте новые.</p>
       </div>
     </div>
     <div class="pick">
@@ -174,12 +174,11 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
         </div>
       </div>
       <div class="field">
-        <label for="sSel">Предмет</label>
+        <label for="sSel">Дисциплина</label>
         <div class="field-row">
           <select id="sSel"></select>
-          <button class="btn sm" id="sNew">Новый предмет</button>
-          <button class="btn sm ghost" id="sVar">Темы вариантов</button>
-          <button class="btn sm ghost danger" id="sDel">Удалить предмет</button>
+          <button class="btn sm" id="sNew">Новая дисциплина</button>
+          <button class="btn sm ghost danger" id="sDel">Удалить дисциплину</button>
         </div>
       </div>
     </div>
@@ -189,12 +188,22 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
     <div class="step-head">
       <span class="step-num">2</span>
       <div>
-        <h2>Введите оценки</h2>
-        <p class="muted">Оценка пишется как 5 или 4/3. В поле «Вариант» укажите номер темы или саму тему.</p>
+        <h2>Выберите тему и поставьте оценки</h2>
+        <p class="muted">Темы создаёте сами. Оценки ставятся отдельно для каждой темы. Оценка пишется как 5 или 4/3.</p>
       </div>
     </div>
 
-    <div id="subjHead"></div>
+    <div class="field">
+      <label for="tSel">Тема</label>
+      <div class="field-row">
+        <select id="tSel"></select>
+        <button class="btn sm" id="tNew">Новая тема</button>
+        <button class="btn sm ghost" id="tEdit">Изменить тему</button>
+        <button class="btn sm ghost danger" id="tDel">Удалить тему</button>
+      </div>
+    </div>
+
+    <div id="subjHead" style="margin-top:16px"></div>
 
     <div class="table-wrap"><table id="tbl"></table></div>
 
@@ -220,9 +229,9 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
     </div>
     <div class="actions">
       <button class="btn primary" id="save">Сохранить и создать сертификаты</button>
-      <button class="btn" id="dlAll">Скачать все PDF по предмету</button>
+      <button class="btn" id="dlAll">Скачать все PDF по теме</button>
     </div>
-    <p class="muted step-foot">Номер сертификата появляется, когда у студента есть оценка и верный вариант.</p>
+    <p class="muted step-foot">Номер сертификата появляется, когда у студента есть оценка.</p>
   </section>
 </main>
 
@@ -240,13 +249,14 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
   const newNum = () => uid().replace(/-/g, "").slice(0, 8).toUpperCase();
   const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
   const fmtDate = iso => { if (!iso) return ""; const [y, m, d] = iso.split("-"); return `${d}.${m}.${y}`; };
+  const lines = v => String(v ?? "").split("\n").map(x => x.trim()).filter(Boolean);
   const CERT_W = 1123, CERT_H = 794;
 
   if (!window.FB || !window.FB.configured) { $("#status").textContent = "Нет конфига Firebase"; return; }
   const { db } = window.FB;
   let user = null;
   let state = { teacher: "", groups: [] };
-  let ui = { gid: null, sid: null };
+  let ui = { gid: null, sid: null, tid: null };
 
   /* ---------- утилиты ---------- */
   function toast(msg) {
@@ -273,18 +283,11 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
     return /^\d+(\.\d+)?(\/\d+(\.\d+)?)?$/.test(t) ? t : null;
   }
 
-  function topicFor(s, raw) {
-    const v = String(raw ?? "").trim();
-    if (!v) return { topic: s.work, label: "" };
-    if (/^\d+$/.test(v)) {
-      const f = s.variants.find(x => x.num === +v);
-      return f ? { topic: f.topic, label: `Вариант ${f.num}` } : null;
-    }
-    return { topic: v, label: "" };
-  }
-
   const curGroup = () => state.groups.find(g => g.id === ui.gid);
   const curSubject = () => { const g = curGroup(); return g && g.subjects.find(s => s.id === ui.sid); };
+  const curTopic = () => { const s = curSubject(); return s && s.topics.find(t => t.id === ui.tid); };
+  // Оценки хранятся по темам: marks[тема][студент] = { grade, num }
+  const marksFor = (s, tid) => s.marks[tid] || (s.marks[tid] = {});
 
   /* ---------- хранение ---------- */
   // Ключ данных — имя преподавателя без лишних пробелов, регистр не важен
@@ -297,16 +300,30 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
     }, { merge: true });
   }
 
-  // Загружает группы и предметы преподавателя сразу после ввода имени
+  // Старая структура (одна работа и варианты на предмет) переводится в темы
+  function migrate(s) {
+    if (s.topics) return;
+    const t = { id: uid(), name: s.work || "Работа", date: s.date || todayISO() };
+    const m = {};
+    Object.entries(s.marks || {}).forEach(([stid, v]) => {
+      if (v && v.grade) m[stid] = { grade: v.grade, num: v.num || newNum() };
+    });
+    s.topics = [t];
+    s.marks = { [t.id]: m };
+    delete s.work; delete s.date; delete s.variants;
+  }
+
+  // Загружает группы, дисциплины и темы преподавателя сразу после ввода имени
   async function loadTeacher(name) {
     name = name.trim().replace(/\s+/g, " ");
-    ui = { gid: null, sid: null };
+    ui = { gid: null, sid: null, tid: null };
     state = { teacher: name, groups: [] };
     if (!name) return render();
     try {
       const snap = await db.collection("teachers").doc(teacherKey(name)).get();
       const d = snap.exists ? snap.data() : {};
       state.groups = d.groups || [];
+      state.groups.forEach(g => { g.subjects = g.subjects || []; g.subjects.forEach(migrate); });
       toast(snap.exists ? `Загружено: ${name}` : `Новый преподаватель: ${name}`);
     } catch (e) {
       toast(/permission/i.test(e.message) ? "Нет прав доступа к Firestore" : "Ошибка загрузки: " + e.message);
@@ -326,21 +343,25 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
     }
   }
 
-  // Номер сертификата присваивается при первой оценке с корректным вариантом
-  function assignCerts(g, s) {
+  // Номер сертификата присваивается при первой оценке по теме
+  function assignCerts(g, s, t) {
+    const marks = marksFor(s, t.id);
     g.students.forEach(st => {
-      const m = s.marks[st.id];
+      const m = marks[st.id];
       if (!m) return;
       if (!m.grade) { delete m.num; return; }
-      if (!m.num && topicFor(s, m.variant)) m.num = newNum();
+      if (!m.num) m.num = newNum();
     });
   }
 
-  function countCerts(g, s) {
-    return g.students.filter(st => {
-      const m = s.marks[st.id];
-      return m && m.grade && m.num && topicFor(s, m.variant);
-    }).length;
+  function countCerts(g, s, t) {
+    const marks = marksFor(s, t.id);
+    return g.students.filter(st => { const m = marks[st.id]; return m && m.grade && m.num; }).length;
+  }
+
+  // При удалении студента убираем его оценки по всем темам группы
+  function dropStudent(g, stid) {
+    g.subjects.forEach(s => Object.values(s.marks).forEach(m => delete m[stid]));
   }
 
   /* ---------- вход ---------- */
@@ -362,25 +383,32 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
     if (!state.teacher) {
       $("#gSel").innerHTML = `<option>—</option>`;
       $("#sSel").innerHTML = `<option>—</option>`;
-      $("#subjHead").innerHTML = `<span class="muted">Введите имя преподавателя вверху страницы. Его группы и предметы загрузятся сами.</span>`;
+      $("#tSel").innerHTML = `<option>—</option>`;
+      $("#subjHead").innerHTML = `<span class="muted">Введите имя преподавателя вверху страницы. Его группы и дисциплины загрузятся сами.</span>`;
       $("#tbl").innerHTML = "";
-      ["#gNew", "#gEdit", "#gDel", "#sNew", "#stAdd", "#sVar", "#sDel", "#save", "#dlAll", "#pasteBtn"].forEach(id => $(id).disabled = true);
+      ["#gNew", "#gEdit", "#gDel", "#sNew", "#sDel", "#tNew", "#tEdit", "#tDel", "#stAdd", "#save", "#dlAll", "#pasteBtn"].forEach(id => $(id).disabled = true);
       return;
     }
     if (!curGroup()) ui.gid = state.groups[0]?.id || null;
     const g = curGroup();
     if (!g || !g.subjects.some(s => s.id === ui.sid)) ui.sid = g?.subjects[0]?.id || null;
     const s = curSubject();
+    if (!s || !s.topics.some(t => t.id === ui.tid)) ui.tid = s?.topics[0]?.id || null;
+    const t = curTopic();
 
     $("#gSel").innerHTML = state.groups.map(x =>
       `<option value="${x.id}" ${x.id === ui.gid ? "selected" : ""}>${esc(x.name)}</option>`).join("") || `<option>Нет групп</option>`;
     $("#sSel").innerHTML = g ? (g.subjects.map(x =>
-      `<option value="${x.id}" ${x.id === ui.sid ? "selected" : ""}>${esc(x.name)}</option>`).join("") || `<option>Нет предметов</option>`)
+      `<option value="${x.id}" ${x.id === ui.sid ? "selected" : ""}>${esc(x.name)}</option>`).join("") || `<option>Нет дисциплин</option>`)
+      : `<option>—</option>`;
+    $("#tSel").innerHTML = s ? (s.topics.map(x =>
+      `<option value="${x.id}" ${x.id === ui.tid ? "selected" : ""}>${esc(x.name)}</option>`).join("") || `<option>Нет тем</option>`)
       : `<option>—</option>`;
 
-    ["#gDel", "#gEdit", "#sNew", "#stAdd"].forEach(id => $(id).disabled = !g);
     $("#gNew").disabled = false;
-    ["#sVar", "#sDel", "#save", "#dlAll", "#pasteBtn"].forEach(id => $(id).disabled = !s);
+    ["#gDel", "#gEdit", "#sNew", "#stAdd"].forEach(id => $(id).disabled = !g);
+    ["#sDel", "#tNew"].forEach(id => $(id).disabled = !s);
+    ["#tEdit", "#tDel", "#save", "#dlAll", "#pasteBtn"].forEach(id => $(id).disabled = !t);
 
     if (!g) {
       $("#subjHead").innerHTML = `<span class="muted">Создайте группу, нажав «Новая группа»</span>`;
@@ -388,45 +416,47 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
       return;
     }
     if (!s) {
-      $("#subjHead").innerHTML = `<span class="muted">В группе «${esc(g.name)}» нет предметов. Добавьте предмет.</span>`;
+      $("#subjHead").innerHTML = `<span class="muted">В группе «${esc(g.name)}» нет дисциплин. Создайте дисциплину.</span>`;
+      $("#tbl").innerHTML = "";
+      return;
+    }
+    if (!t) {
+      $("#subjHead").innerHTML = `<div><h2>${esc(s.name)}</h2><div class="muted">${esc(g.name)} · тем пока нет</div></div>
+        <span class="muted">Создайте первую тему кнопкой «Новая тема»</span>`;
       $("#tbl").innerHTML = "";
       return;
     }
 
+    const marks = marksFor(s, t.id);
     $("#subjHead").innerHTML = `
-      <div><h2>${esc(s.name)}</h2><div class="muted">${esc(s.work || "Вид работы не указан")} · ${esc(g.name)} · сертификатов: ${countCerts(g, s)} из ${g.students.length}</div></div>
-      <label class="muted">Дата работы <input type="date" id="sDate" value="${esc(s.date || "")}"></label>`;
+      <div><h2>${esc(t.name)}</h2><div class="muted">${esc(s.name)} · ${esc(g.name)} · сертификатов: ${countCerts(g, s, t)} из ${g.students.length}</div></div>
+      <label class="muted">Дата <input type="date" id="tDate" value="${esc(t.date || "")}"></label>`;
 
     if (!g.students.length) {
-      $("#tbl").innerHTML = `<tr><td class="muted">В группе нет студентов. Добавьте их кнопкой ниже.</td></tr>`;
+      $("#tbl").innerHTML = `<tr><td class="muted">В группе нет студентов. Добавьте их кнопкой «Список студентов» или «+ Добавить студента».</td></tr>`;
       return;
     }
     const rows = g.students.map((st, i) => {
-      const m = s.marks[st.id] || {};
-      const t = topicFor(s, m.variant);
-      let status = `<span class="muted">—</span>`;
-      if (m.grade && !t) status = `<span class="warn">нет такого варианта</span>`;
-      else if (m.grade && m.num) status = `<span class="muted">№ ${esc(m.num)}</span>`;
+      const m = marks[st.id] || {};
+      const status = m.grade && m.num ? `<span class="muted">№ ${esc(m.num)}</span>` : `<span class="muted">—</span>`;
       return `<tr data-stid="${st.id}">
         <td>${i + 1}</td>
         <td>${esc(st.name)}</td>
-        <td><input class="va" value="${esc(m.variant || "")}" placeholder="№ или тема">
-            <div class="hint">${t ? esc((t.label ? t.label + " — " : "") + t.topic) : ""}</div></td>
         <td><input class="gr" value="${esc(m.grade || "")}" placeholder="5/3"></td>
         <td>${status}</td>
-        <td class="r">${m.grade && m.num && t ? `<button class="btn sm" data-act="one" data-stid="${st.id}">PDF</button>` : ""}
+        <td class="r">${m.grade && m.num ? `<button class="btn sm" data-act="one" data-stid="${st.id}">PDF</button>` : ""}
             <button class="x" data-act="rm" data-stid="${st.id}" title="Удалить студента">✕</button></td>
       </tr>`;
     }).join("");
-    $("#tbl").innerHTML = `<thead><tr><th>#</th><th>ФИО</th><th>Вариант / тема</th><th>Оценка</th><th>Сертификат</th><th></th></tr></thead><tbody>${rows}</tbody>`;
+    $("#tbl").innerHTML = `<thead><tr><th>#</th><th>ФИО</th><th>Оценка</th><th>Сертификат</th><th></th></tr></thead><tbody>${rows}</tbody>`;
   }
 
-  /* ---------- группы, предметы, студенты ---------- */
-  $("#gSel").addEventListener("change", e => { ui.gid = e.target.value; ui.sid = null; render(); });
-  $("#sSel").addEventListener("change", e => { ui.sid = e.target.value; render(); });
-
+  /* ---------- преподаватель ---------- */
   $("#teacher").addEventListener("change", e => { if (user) loadTeacher(e.target.value); });
   $("#teacher").addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
+
+  /* ---------- группы ---------- */
+  $("#gSel").addEventListener("change", e => { ui = { gid: e.target.value, sid: null, tid: null }; render(); });
 
   $("#gNew").addEventListener("click", () => ask("Новая группа", `
     <label>Название группы <input name="name" required placeholder="ИС-21"></label>
@@ -434,22 +464,13 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
     fd => {
       const name = String(fd.get("name")).trim();
       if (!name) return toast("Введите название группы");
-      const students = String(fd.get("students")).split("\n").map(x => x.trim()).filter(Boolean).map(n => ({ id: uid(), name: n }));
+      const students = lines(fd.get("students")).map(n => ({ id: uid(), name: n }));
       const g = { id: uid(), name, students, subjects: [] };
       state.groups.push(g);
-      ui = { gid: g.id, sid: null };
+      ui = { gid: g.id, sid: null, tid: null };
       save(`Группа «${name}» создана`);
     }));
 
-  $("#gDel").addEventListener("click", () => {
-    const g = curGroup();
-    if (!g || !confirm(`Удалить группу «${g.name}» со всеми предметами и оценками?`)) return;
-    state.groups = state.groups.filter(x => x !== g);
-    ui = { gid: null, sid: null };
-    save("Группа удалена");
-  });
-
-  // Список студентов принадлежит группе и общий для всех её предметов
   $("#gEdit").addEventListener("click", () => {
     const g = curGroup();
     ask(`Студенты: ${g.name}`, `
@@ -457,47 +478,97 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
         <textarea name="students" rows="10">${esc(g.students.map(s => s.name).join("\n"))}</textarea></label>`,
       fd => {
         const byName = new Map(g.students.map(s => [s.name, s]));
-        g.students = String(fd.get("students")).split("\n").map(x => x.trim()).filter(Boolean)
-          .map(n => byName.get(n) || { id: uid(), name: n });
+        const next = lines(fd.get("students")).map(n => byName.get(n) || { id: uid(), name: n });
+        g.students.filter(st => !next.includes(st)).forEach(st => dropStudent(g, st.id));
+        g.students = next;
         save("Список студентов обновлён");
       });
   });
 
-  $("#sNew").addEventListener("click", () => ask("Новый предмет", `
-    <label>Предмет <input name="name" required placeholder="Информационные технологии"></label>
-    <label>Вид работы <input name="work" placeholder="Лабораторная работа №1"></label>
-    <label>Дата работы <input name="date" type="date" value="${todayISO()}"></label>
-    <label>Варианты (каждая тема с новой строки, необязательно)<textarea name="variants" rows="4"></textarea></label>`,
+  $("#gDel").addEventListener("click", () => {
+    const g = curGroup();
+    if (!g || !confirm(`Удалить группу «${g.name}» со всеми дисциплинами и оценками?`)) return;
+    state.groups = state.groups.filter(x => x !== g);
+    ui = { gid: null, sid: null, tid: null };
+    save("Группа удалена");
+  });
+
+  /* ---------- дисциплины ---------- */
+  $("#sSel").addEventListener("change", e => { ui.sid = e.target.value; ui.tid = null; render(); });
+
+  $("#sNew").addEventListener("click", () => ask("Новая дисциплина", `
+    <label>Название дисциплины <input name="name" required placeholder="Информационные технологии"></label>
+    <label>Темы (каждая с новой строки, необязательно)<textarea name="topics" rows="4"></textarea></label>`,
     fd => {
       const name = String(fd.get("name")).trim();
-      if (!name) return toast("Введите название предмета");
+      if (!name) return toast("Введите название дисциплины");
       const g = curGroup();
-      const variants = String(fd.get("variants")).split("\n").map(x => x.trim()).filter(Boolean).map((topic, i) => ({ num: i + 1, topic }));
-      const s = { id: uid(), name, work: String(fd.get("work")).trim(), date: fd.get("date") || todayISO(), variants, marks: {} };
+      const topics = lines(fd.get("topics")).map(n => ({ id: uid(), name: n, date: todayISO() }));
+      const s = { id: uid(), name, topics, marks: {} };
+      topics.forEach(t => { s.marks[t.id] = {}; });
       g.subjects.push(s);
-      ui.sid = s.id;
-      save(`Предмет «${name}» добавлен`);
+      ui = { gid: g.id, sid: s.id, tid: topics[0]?.id || null };
+      save(`Дисциплина «${name}» добавлена`);
     }));
-
-  $("#sVar").addEventListener("click", () => {
-    const s = curSubject();
-    ask(`Варианты: ${s.name}`, `
-      <label>Темы вариантов (каждая с новой строки, номер = порядок)
-        <textarea name="v" rows="8">${esc(s.variants.map(v => v.topic).join("\n"))}</textarea></label>`,
-      fd => {
-        s.variants = String(fd.get("v")).split("\n").map(x => x.trim()).filter(Boolean).map((topic, i) => ({ num: i + 1, topic }));
-        save("Варианты сохранены");
-      });
-  });
 
   $("#sDel").addEventListener("click", () => {
     const g = curGroup(), s = curSubject();
-    if (!s || !confirm(`Удалить предмет «${s.name}» и его оценки?`)) return;
+    if (!s || !confirm(`Удалить дисциплину «${s.name}» со всеми темами и оценками?`)) return;
     g.subjects = g.subjects.filter(x => x !== s);
-    ui.sid = null;
-    save("Предмет удалён");
+    ui.sid = null; ui.tid = null;
+    save("Дисциплина удалена");
   });
 
+  /* ---------- темы ---------- */
+  $("#tSel").addEventListener("change", e => { ui.tid = e.target.value; render(); });
+
+  $("#tNew").addEventListener("click", () => ask("Новая тема", `
+    <label>Название темы <input name="name" required placeholder="Создание форм в MS Access"></label>
+    <label>Дата <input name="date" type="date" value="${todayISO()}"></label>`,
+    fd => {
+      const name = String(fd.get("name")).trim();
+      if (!name) return toast("Введите название темы");
+      const s = curSubject();
+      const t = { id: uid(), name, date: fd.get("date") || todayISO() };
+      s.topics.push(t);
+      s.marks[t.id] = {};
+      ui.tid = t.id;
+      save(`Тема «${name}» добавлена`);
+    }));
+
+  $("#tEdit").addEventListener("click", () => {
+    const t = curTopic();
+    ask("Тема", `
+      <label>Название темы <input name="name" required value="${esc(t.name)}"></label>
+      <label>Дата <input name="date" type="date" value="${esc(t.date || "")}"></label>`,
+      fd => {
+        const name = String(fd.get("name")).trim();
+        if (!name) return toast("Введите название темы");
+        t.name = name;
+        t.date = fd.get("date") || t.date;
+        save("Тема сохранена");
+      });
+  });
+
+  $("#tDel").addEventListener("click", () => {
+    const s = curSubject(), t = curTopic();
+    if (!t || !confirm(`Удалить тему «${t.name}» и все её оценки?`)) return;
+    s.topics = s.topics.filter(x => x !== t);
+    delete s.marks[t.id];
+    ui.tid = null;
+    save("Тема удалена");
+  });
+
+  // Дата темы меняется прямо в шапке
+  $("#subjHead").addEventListener("change", e => {
+    if (e.target.id !== "tDate") return;
+    const t = curTopic();
+    if (!t) return;
+    t.date = e.target.value;
+    save();
+  });
+
+  /* ---------- студенты ---------- */
   $("#stAdd").addEventListener("click", () => ask("Новый студент", `
     <label>ФИО <input name="name" required placeholder="Иванов Иван Иванович"></label>`,
     fd => {
@@ -507,53 +578,43 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
       save("Студент добавлен");
     }));
 
-  $("#subjHead").addEventListener("change", e => {
-    if (e.target.id !== "sDate") return;
-    curSubject().date = e.target.value;
-    save();
-  });
-
   $("#tbl").addEventListener("click", e => {
     const b = e.target.closest("[data-act]");
     if (!b) return;
-    const g = curGroup(), s = curSubject();
+    const g = curGroup(), s = curSubject(), t = curTopic();
+    const st = g.students.find(x => x.id === b.dataset.stid);
     if (b.dataset.act === "one") {
-      const st = g.students.find(x => x.id === b.dataset.stid);
-      return downloadPdf(certList(g, s, st.id), `Сертификат — ${st.name}.pdf`, b);
+      return downloadPdf(certList(g, s, t, st.id), `Сертификат — ${st.name}.pdf`, b);
     }
     if (b.dataset.act === "rm") {
-      const st = g.students.find(x => x.id === b.dataset.stid);
       if (!confirm(`Удалить студента «${st.name}» из группы?`)) return;
+      dropStudent(g, st.id);
       g.students = g.students.filter(x => x !== st);
       save("Студент удалён");
     }
   });
 
   /* ---------- оценки ---------- */
-  // Читает оценки и варианты из таблицы; возвращает либо строки, либо ошибку
-  function readRows(g) {
+  // Читает оценки из таблицы; возвращает либо строки, либо ошибку
+  function readRows() {
     const rows = [];
     for (const tr of $("#tbl").querySelectorAll("tr[data-stid]")) {
       const grInp = tr.querySelector(".gr");
       const grade = normalizeGrade(grInp.value);
       if (grade === null) return { error: grInp.value };
-      rows.push({ stid: tr.dataset.stid, grade, variant: tr.querySelector(".va").value.trim() });
+      rows.push({ stid: tr.dataset.stid, grade });
     }
     return { rows };
   }
 
   $("#save").addEventListener("click", () => {
-    const g = curGroup(), s = curSubject();
-    const r = readRows(g);
+    const g = curGroup(), s = curSubject(), t = curTopic();
+    const r = readRows();
     if (r.error !== undefined) return toast(`Неверная оценка: ${r.error}`);
-    r.rows.forEach(x => {
-      const m = s.marks[x.stid] || (s.marks[x.stid] = {});
-      m.grade = x.grade;
-      m.variant = x.variant;
-    });
-    assignCerts(g, s);
-    const n = countCerts(g, s);
-    save(`Сохранено. Сертификатов по предмету: ${n}` + (state.teacher ? "" : " (укажите преподавателя для PDF)"));
+    const marks = marksFor(s, t.id);
+    r.rows.forEach(x => { (marks[x.stid] || (marks[x.stid] = {})).grade = x.grade; });
+    assignCerts(g, s, t);
+    save(`Сохранено. Сертификатов по теме: ${countCerts(g, s, t)}`);
   });
 
   $("#tbl").addEventListener("keydown", e => {
@@ -566,10 +627,11 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
   $("#tbl").addEventListener("focusin", e => { if (e.target.matches("input")) e.target.select(); });
 
   $("#pasteBtn").addEventListener("click", () => {
-    const g = curGroup(), s = curSubject();
+    const g = curGroup(), s = curSubject(), t = curTopic();
+    const marks = marksFor(s, t.id);
     let ok = 0;
     const miss = [];
-    $("#paste").value.split("\n").map(l => l.trim()).filter(Boolean).forEach(line => {
+    lines($("#paste").value).forEach(line => {
       let name, grade;
       if (line.includes("\t")) [name, grade] = line.split("\t");
       else if (line.includes(";")) [name, grade] = line.split(";");
@@ -582,27 +644,28 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
       const st = g.students.find(x => x.name.trim().toLowerCase() === (name || "").trim().toLowerCase());
       const v = normalizeGrade((grade || "").trim());
       if (!st || !v) { miss.push(line); return; }
-      (s.marks[st.id] || (s.marks[st.id] = {})).grade = v;
+      (marks[st.id] || (marks[st.id] = {})).grade = v;
       ok++;
     });
-    assignCerts(g, s);
+    assignCerts(g, s, t);
     $("#paste").value = "";
     save(`Вставлено оценок: ${ok}` + (miss.length ? `, не найдено: ${miss.length}` : ""));
   });
 
   /* ---------- PDF ---------- */
-  // Сертификат собирается из текущих данных: группа, предмет, дата, преподаватель, оценка, номер
-  function certList(g, s, onlyId) {
+  // Сертификат собирается из текущих данных: группа, дисциплина, тема, дата, оценка, номер
+  function certList(g, s, t, onlyId) {
+    const marks = marksFor(s, t.id);
     return g.students
       .filter(st => !onlyId || st.id === onlyId)
       .map(st => {
-        const m = s.marks[st.id];
-        const t = m && m.grade && m.num ? topicFor(s, m.variant) : null;
-        if (!t) return null;
+        const m = marks[st.id];
+        if (!m || !m.grade || !m.num) return null;
         return {
           studentName: st.name, groupName: g.name, grade: m.grade,
-          workTitle: s.work, subject: s.name, topic: t.topic, variantLabel: t.label,
-          date: fmtDate(s.date) || fmtDate(todayISO()), teacher: state.teacher.trim(), number: m.num
+          workTitle: t.name, subject: s.name,
+          date: fmtDate(t.date) || fmtDate(todayISO()),
+          teacher: state.teacher.trim(), number: m.num
         };
       })
       .filter(Boolean);
@@ -650,8 +713,8 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
   }
 
   $("#dlAll").addEventListener("click", () => {
-    const g = curGroup(), s = curSubject();
-    downloadPdf(certList(g, s), `Сертификаты — ${g.name} — ${s.name}.pdf`, $("#dlAll"));
+    const g = curGroup(), s = curSubject(), t = curTopic();
+    downloadPdf(certList(g, s, t), `Сертификаты — ${g.name} — ${s.name} — ${t.name}.pdf`, $("#dlAll"));
   });
 
   function certificateHTML(d) {
@@ -664,8 +727,7 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
         <div class="cert-name">${esc(d.studentName)}</div>
         <p class="cert-text">студент(ка) группы <b>${esc(d.groupName)}</b> успешно выполнил(а) работу</p>
         <div class="cert-work">«${esc(d.workTitle)}»</div>
-        <p class="cert-topic">${d.variantLabel ? esc(d.variantLabel) + ": " : ""}${esc(d.topic)}</p>
-        <p class="cert-text">по предмету <b>${esc(d.subject)}</b></p>
+        <p class="cert-text">по дисциплине <b>${esc(d.subject)}</b></p>
         <div class="cert-grade-label">Оценка</div>
         <div class="cert-grade">${esc(d.grade)}</div>
         <div class="cert-footer">
@@ -673,7 +735,7 @@ details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border
           <div class="seal"><span>CERT</span></div>
           <div class="sig"><div class="sig-line"></div>Дата: ${esc(d.date)}</div>
         </div>
-        <div class="cert-number">№ ${esc(d.number)}</div>
+        <div class="cert-number">Номер идентификации: ${esc(d.number)}</div>
       </div></div>
     </div>`;
   }

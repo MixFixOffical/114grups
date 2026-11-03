@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Сертификаты</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600&family=Onest:wght@400;500;600;700&family=Playfair+Display:wght@700&family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="js/firebase-config.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --ink: #1f2a24;
+  --ink-2: #4a5650;
+  --ink-3: #7b857f;
+  --paper: #f4f2ec;
+  --card: #ffffff;
+  --line: #e3e0d5;
+  --line-soft: #eeece4;
+  --green: #2d5a4c;
+  --green-2: #23483d;
+  --green-soft: #e6eeea;
+  --danger: #a33a2a;
+  --warn: #9a4a1a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.5 "Onest", system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--paper); }
+button, input, select, textarea { font: inherit; color: inherit; }
+h2 { font-family: "Literata", Georgia, serif; font-weight: 600; }
+
+/* Шапка */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 24px; padding: 16px 28px; background: var(--card); border-bottom: 1px solid var(--line); }
+.brand { font-family: "Literata", Georgia, serif; font-size: 22px; font-weight: 600; margin-right: auto; }
+.teacher { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-2); }
+.teacher input { width: 280px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+#status { font-size: 13px; color: var(--green); background: var(--green-soft); padding: 4px 12px; border-radius: 999px; }
+
+/* Основная колонка и шаги */
+main { max-width: 980px; margin: 28px auto 48px; padding: 0 20px; display: grid; gap: 20px; }
+.step { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px 26px; }
+.step-head { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 18px; }
+.step-num { flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-weight: 600; font-size: 14px; }
+.step-head h2 { margin: 0; font-size: 19px; }
+.step-head p { margin: 4px 0 0; }
+.muted { color: var(--ink-3); font-size: 13px; }
+.warn { color: var(--warn); font-size: 13px; }
+.hint { font-size: 12px; color: var(--ink-3); margin-top: 4px; }
+
+/* Выбор группы и предмета */
+.pick { display: grid; gap: 18px; }
+.field { display: grid; gap: 6px; }
+.field > label { font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.field-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select { padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; min-width: 260px; }
+
+/* Кнопки */
+.btn { padding: 9px 14px; border: 1px solid var(--line); border-radius: 8px; background: #fff; cursor: pointer; font-weight: 600; font-size: 14px; }
+.btn:hover { background: #f0f3f1; }
+.btn:focus-visible, select:focus-visible, input:focus-visible, textarea:focus-visible, summary:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.btn:disabled { opacity: .45; cursor: default; }
+.btn.sm { padding: 6px 10px; font-size: 13px; }
+.btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+.btn.primary:hover { background: var(--green-2); }
+.btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); font-weight: 500; }
+.btn.ghost:hover { background: var(--paper); }
+.btn.danger { color: var(--danger); }
+.btn.ghost.danger:hover { color: var(--danger); }
+
+/* Заголовок предмета */
+.subj-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px; padding: 14px 16px; margin-bottom: 14px; background: var(--paper); border-radius: 10px; }
+.subj-head h2 { margin: 0; font-size: 17px; font-family: "Onest", system-ui, sans-serif; font-weight: 600; }
+.subj-head label.muted { display: grid; gap: 4px; font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.subj-head input[type="date"] { padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: #fff; }
+
+/* Таблица оценок */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 10px; border-bottom: 1px solid var(--line-soft); vertical-align: middle; }
+th { font-size: 12px; color: var(--ink-3); font-weight: 600; border-bottom-color: var(--line); }
+th:first-child, td:first-child { width: 40px; color: var(--ink-3); }
+td.r { text-align: right; white-space: nowrap; }
+td input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; width: 100%; background: #fff; }
+td input.gr { width: 110px; text-align: center; }
+td input:focus { border-color: var(--green); }
+.x { border: none; background: none; color: var(--ink-3); cursor: pointer; font-size: 14px; padding: 4px 8px; border-radius: 6px; }
+.x:hover { color: var(--danger); background: var(--paper); }
+
+.row-actions { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 14px; }
+
+/* Вставка списком */
+details.paste { margin-top: 16px; border: 1px dashed var(--line); border-radius: 10px; padding: 12px 16px; }
+details.paste summary { cursor: pointer; color: var(--green); font-weight: 600; font-size: 14px; }
+details.paste textarea { width: 100%; margin: 10px 0 10px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
+
+/* Итоговый шаг */
+.actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.step-foot { margin: 12px 0 0; }
+
+/* Диалог */
+#dlg { border: none; border-radius: 12px; padding: 0; width: min(460px, 92vw); box-shadow: 0 20px 50px rgba(0,0,0,.2); }
+#dlg::backdrop { background: rgba(20,28,24,.35); }
+.dlg { padding: 24px; display: grid; gap: 14px; }
+.dlg h3 { margin: 0; font-family: "Literata", Georgia, serif; font-size: 18px; font-weight: 600; }
+.dlg label { display: grid; gap: 6px; font-size: 13px; font-weight: 600; color: var(--ink-2); }
+.dlg input, .dlg textarea { padding: 9px 12px; border: 1px solid var(--line); border-radius: 8px; font-weight: 400; }
+.dlg .act { display: flex; justify-content: flex-end; gap: 8px; margin-top: 4px; }
+
+/* Уведомления */
+#toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .2s; pointer-events: none; max-width: 90vw; }
+#toast.show { opacity: 1; }
+
+@media (max-width: 640px) {
+  .top { padding: 14px 16px; }
+  .teacher { width: 100%; }
+  .teacher input { width: 100%; }
+  main { padding: 0 12px; }
+  .step { padding: 18px; }
+  select { min-width: 0; width: 100%; }
+  .field-row .btn { flex: 1 1 auto; }
+}
+@media (prefers-reduced-motion: reduce) { #toast { transition: none; } }
+
+/* Сертификат (рендер в PDF, вне экрана) */
+#certStage { position: fixed; left: -10000px; top: 0; width: 1123px; height: 794px; }
+.cert { position: relative; width: 1123px; height: 794px; overflow: hidden; text-align: center; background: #fffdf7; color: #1f2330; font-family: "Montserrat", sans-serif; }
+.cert-frame { position: absolute; inset: 24px; border: 3px solid #b8913b; padding: 30px 70px; box-shadow: inset 0 0 0 7px #fffdf7, inset 0 0 0 9px #d9b768; }
+.cert-inner { height: 100%; display: flex; flex-direction: column; justify-content: center; }
+.cert-title { font-family: "Playfair Display", serif; font-size: 60px; font-weight: 700; letter-spacing: 6px; margin: 0; text-transform: uppercase; }
+.cert-sub { font-size: 14px; letter-spacing: 3px; text-transform: uppercase; color: #8a6d2b; margin-top: 4px; }
+.cert-text { font-size: 17px; margin: 8px 0; color: #374151; }
+.cert-name { font-family: "Playfair Display", serif; font-size: 48px; font-weight: 700; margin: 6px 0 4px; border-bottom: 2px solid #d9b768; display: inline-block; align-self: center; padding: 0 40px 6px; }
+.cert-work { font-family: "Playfair Display", serif; font-style: italic; font-size: 26px; color: #3730a3; margin: 6px 0 2px; }
+.cert-topic { font-size: 18px; color: #374151; margin: 0 0 10px; }
+.cert-grade-label { font-size: 13px; letter-spacing: 3px; text-transform: uppercase; color: #8a6d2b; margin-top: 8px; }
+.cert-grade { font-family: "Playfair Display", serif; font-size: 54px; font-weight: 700; color: #b8913b; line-height: 1.1; }
+.cert-footer { display: flex; justify-content: space-between; align-items: flex-end; margin: 22px 40px 0; font-size: 14px; color: #374151; }
+.sig { width: 240px; }
+.sig-name { font-family: "Playfair Display", serif; font-size: 19px; font-weight: 700; margin-bottom: 4px; }
+.sig-line { border-top: 1px solid #1f2330; margin-bottom: 6px; }
+.seal { width: 90px; height: 90px; border-radius: 50%; color: #fff; font-family: "Playfair Display", serif; font-weight: 700; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, #f6e3a6, #d4a84b 70%, #b8913b); }
+.cert-number { position: absolute; right: 60px; bottom: 40px; font-size: 12px; color: #9ca3af; }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">Сертификаты</div>
+  <label class="teacher">Преподаватель <input id="teacher" placeholder="Петрова Анна Сергеевна"></label>
+  <span id="status">Подключение…</span>
+</header>
+
+<main>
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">1</span>
+      <div>
+        <h2>Выберите группу и предмет</h2>
+        <p class="muted">Сначала выберите группу, затем предмет. Если их ещё нет, создайте новые.</p>
+      </div>
+    </div>
+    <div class="pick">
+      <div class="field">
+        <label for="gSel">Группа</label>
+        <div class="field-row">
+          <select id="gSel"></select>
+          <button class="btn sm" id="gNew">Новая группа</button>
+          <button class="btn sm" id="gEdit">Список студентов</button>
+          <button class="btn sm ghost danger" id="gDel">Удалить группу</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="sSel">Предмет</label>
+        <div class="field-row">
+          <select id="sSel"></select>
+          <button class="btn sm" id="sNew">Новый предмет</button>
+          <button class="btn sm ghost" id="sVar">Темы вариантов</button>
+          <button class="btn sm ghost danger" id="sDel">Удалить предмет</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">2</span>
+      <div>
+        <h2>Введите оценки</h2>
+        <p class="muted">Оценка пишется как 5 или 4/3. В поле «Вариант» укажите номер темы или саму тему.</p>
+      </div>
+    </div>
+
+    <div id="subjHead"></div>
+
+    <div class="table-wrap"><table id="tbl"></table></div>
+
+    <div class="row-actions">
+      <button class="btn sm" id="stAdd">+ Добавить студента</button>
+    </div>
+
+    <details class="paste">
+      <summary>Вставить оценки списком</summary>
+      <p class="hint">Одна строка на студента: ФИО, затем оценка. Например: «Иванов Иван Иванович 5/3».</p>
+      <textarea id="paste" rows="4" placeholder="Иванов Иван Иванович 5/3&#10;Петрова Анна Сергеевна 4"></textarea>
+      <button class="btn sm" id="pasteBtn">Применить</button>
+    </details>
+  </section>
+
+  <section class="step">
+    <div class="step-head">
+      <span class="step-num">3</span>
+      <div>
+        <h2>Создайте сертификаты</h2>
+        <p class="muted">Сохраните оценки, затем скачайте сертификаты в PDF.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button class="btn primary" id="save">Сохранить и создать сертификаты</button>
+      <button class="btn" id="dlAll">Скачать все PDF по предмету</button>
+    </div>
+    <p class="muted step-foot">Номер сертификата появляется, когда у студента есть оценка и верный вариант.</p>
+  </section>
+</main>
+
+<dialog id="dlg"></dialog>
+<div id="certStage"></div>
+<div id="toast"></div>
+
+<script>
+(function () {
+  "use strict";
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const pad = n => String(n).padStart(2, "0");
+  const uid = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2));
+  const newNum = () => uid().replace(/-/g, "").slice(0, 8).toUpperCase();
+  const todayISO = () => { const d = new Date(); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const fmtDate = iso => { if (!iso) return ""; const [y, m, d] = iso.split("-"); return `${d}.${m}.${y}`; };
+  const CERT_W = 1123, CERT_H = 794;
+
+  if (!window.FB || !window.FB.configured) { $("#status").textContent = "Нет конфига Firebase"; return; }
+  const { db } = window.FB;
+  let user = null;
+  let state = { teacher: "", groups: [] };
+  let ui = { gid: null, sid: null };
+
+  /* ---------- утилиты ---------- */
+  function toast(msg) {
+    const t = $("#toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast.timer);
+    toast.timer = setTimeout(() => t.classList.remove("show"), 3000);
+  }
+
+  function ask(title, html, onOk) {
+    const d = $("#dlg");
+    d.innerHTML = `<form method="dialog" class="dlg"><h3>${esc(title)}</h3>${html}
+      <div class="act"><button class="btn" value="cancel">Отмена</button><button class="btn primary" value="ok">Сохранить</button></div></form>`;
+    const f = d.querySelector("form");
+    d.onclose = () => { if (d.returnValue === "ok") onOk(new FormData(f)); };
+    d.showModal();
+    f.querySelector("input, textarea")?.focus();
+  }
+
+  function normalizeGrade(v) {
+    const t = String(v ?? "").trim().replace(/\s+/g, "").replace(",", ".");
+    if (!t) return "";
+    return /^\d+(\.\d+)?(\/\d+(\.\d+)?)?$/.test(t) ? t : null;
+  }
+
+  function topicFor(s, raw) {
+    const v = String(raw ?? "").trim();
+    if (!v) return { topic: s.work, label: "" };
+    if (/^\d+$/.test(v)) {
+      const f = s.variants.find(x => x.num === +v);
+      return f ? { topic: f.topic, label: `Вариант ${f.num}` } : null;
+    }
+    return { topic: v, label: "" };
+  }
+
+  const curGroup = () => state.groups.find(g => g.id === ui.gid);
+  const curSubject = () => { const g = curGroup(); return g && g.subjects.find(s => s.id === ui.sid); };
+
+  /* ---------- хранение ---------- */
+  // Ключ данных — имя преподавателя без лишних пробелов, регистр не важен
+  const teacherKey = n => n.trim().replace(/\s+/g, " ").toLowerCase().replace(/\//g, "_");
+
+  async function persist() {
+    await db.collection("teachers").doc(teacherKey(state.teacher)).set({
+      teacher: state.teacher, groups: state.groups,
+      updatedAt: window.FB.serverTimestamp()
+    }, { merge: true });
+  }
+
+  // Загружает группы и предметы преподавателя сразу после ввода имени
+  async function loadTeacher(name) {
+    name = name.trim().replace(/\s+/g, " ");
+    ui = { gid: null, sid: null };
+    state = { teacher: name, groups: [] };
+    if (!name) return render();
+    try {
+      const snap = await db.collection("teachers").doc(teacherKey(name)).get();
+      const d = snap.exists ? snap.data() : {};
+      state.groups = d.groups || [];
+      toast(snap.exists ? `Загружено: ${name}` : `Новый преподаватель: ${name}`);
+    } catch (e) {
+      toast(/permission/i.test(e.message) ? "Нет прав доступа к Firestore" : "Ошибка загрузки: " + e.message);
+    }
+    try { localStorage.setItem("lastTeacher", name); } catch (e) {}
+    render();
+  }
+
+  async function save(msg) {
+    if (!state.teacher) return toast("Сначала введите имя преподавателя");
+    try {
+      await persist();
+      render();
+      if (msg) toast(msg);
+    } catch (err) {
+      toast("Ошибка сохранения: " + err.message);
+    }
+  }
+
+  // Номер сертификата присваивается при первой оценке с корректным вариантом
+  function assignCerts(g, s) {
+    g.students.forEach(st => {
+      const m = s.marks[st.id];
+      if (!m) return;
+      if (!m.grade) { delete m.num; return; }
+      if (!m.num && topicFor(s, m.variant)) m.num = newNum();
+    });
+  }
+
+  function countCerts(g, s) {
+    return g.students.filter(st => {
+      const m = s.marks[st.id];
+      return m && m.grade && m.num && topicFor(s, m.variant);
+    }).length;
+  }
+
+  /* ---------- вход ---------- */
+  window.FB.onUser(async u => {
+    user = u;
+    $("#status").textContent = "Подключено ✓";
+    let last = "";
+    try { last = localStorage.getItem("lastTeacher") || ""; } catch (e) {}
+    if (last) { $("#teacher").value = last; await loadTeacher(last); }
+    else render();
+  }, err => {
+    $("#status").textContent = "Ошибка входа";
+    toast("Включите Anonymous в Authentication: " + err.message);
+  });
+
+  /* ---------- рендер ---------- */
+  function render() {
+    if (!user) return;
+    if (!state.teacher) {
+      $("#gSel").innerHTML = `<option>—</option>`;
+      $("#sSel").innerHTML = `<option>—</option>`;
+      $("#subjHead").innerHTML = `<span class="muted">Введите имя преподавателя вверху страницы. Его группы и предметы загрузятся сами.</span>`;
+      $("#tbl").innerHTML = "";
+      ["#gNew", "#gEdit", "#gDel", "#sNew", "#stAdd", "#sVar", "#sDel", "#save", "#dlAll", "#pasteBtn"].forEach(id => $(id).disabled = true);
+      return;
+    }
+    if (!curGroup()) ui.gid = state.groups[0]?.id || null;
+    const g = curGroup();
+    if (!g || !g.subjects.some(s => s.id === ui.sid)) ui.sid = g?.subjects[0]?.id || null;
+    const s = curSubject();
+
+    $("#gSel").innerHTML = state.groups.map(x =>
+      `<option value="${x.id}" ${x.id === ui.gid ? "selected" : ""}>${esc(x.name)}</option>`).join("") || `<option>Нет групп</option>`;
+    $("#sSel").innerHTML = g ? (g.subjects.map(x =>
+      `<option value="${x.id}" ${x.id === ui.sid ? "selected" : ""}>${esc(x.name)}</option>`).join("") || `<option>Нет предметов</option>`)
+      : `<option>—</option>`;
+
+    ["#gDel", "#gEdit", "#sNew", "#stAdd"].forEach(id => $(id).disabled = !g);
+    $("#gNew").disabled = false;
+    ["#sVar", "#sDel", "#save", "#dlAll", "#pasteBtn"].forEach(id => $(id).disabled = !s);
+
+    if (!g) {
+      $("#subjHead").innerHTML = `<span class="muted">Создайте группу, нажав «Новая группа»</span>`;
+      $("#tbl").innerHTML = "";
+      return;
+    }
+    if (!s) {
+      $("#subjHead").innerHTML = `<span class="muted">В группе «${esc(g.name)}» нет предметов. Добавьте предмет.</span>`;
+      $("#tbl").innerHTML = "";
+      return;
+    }
+
+    $("#subjHead").innerHTML = `
+      <div><h2>${esc(s.name)}</h2><div class="muted">${esc(s.work || "Вид работы не указан")} · ${esc(g.name)} · сертификатов: ${countCerts(g, s)} из ${g.students.length}</div></div>
+      <label class="muted">Дата работы <input type="date" id="sDate" value="${esc(s.date || "")}"></label>`;
+
+    if (!g.students.length) {
+      $("#tbl").innerHTML = `<tr><td class="muted">В группе нет студентов. Добавьте их кнопкой ниже.</td></tr>`;
+      return;
+    }
+    const rows = g.students.map((st, i) => {
+      const m = s.marks[st.id] || {};
+      const t = topicFor(s, m.variant);
+      let status = `<span class="muted">—</span>`;
+      if (m.grade && !t) status = `<span class="warn">нет такого варианта</span>`;
+      else if (m.grade && m.num) status = `<span class="muted">№ ${esc(m.num)}</span>`;
+      return `<tr data-stid="${st.id}">
+        <td>${i + 1}</td>
+        <td>${esc(st.name)}</td>
+        <td><input class="va" value="${esc(m.variant || "")}" placeholder="№ или тема">
+            <div class="hint">${t ? esc((t.label ? t.label + " — " : "") + t.topic) : ""}</div></td>
+        <td><input class="gr" value="${esc(m.grade || "")}" placeholder="5/3"></td>
+        <td>${status}</td>
+        <td class="r">${m.grade && m.num && t ? `<button class="btn sm" data-act="one" data-stid="${st.id}">PDF</button>` : ""}
+            <button class="x" data-act="rm" data-stid="${st.id}" title="Удалить студента">✕</button></td>
+      </tr>`;
+    }).join("");
+    $("#tbl").innerHTML = `<thead><tr><th>#</th><th>ФИО</th><th>Вариант / тема</th><th>Оценка</th><th>Сертификат</th><th></th></tr></thead><tbody>${rows}</tbody>`;
+  }
+
+  /* ---------- группы, предметы, студенты ---------- */
+  $("#gSel").addEventListener("change", e => { ui.gid = e.target.value; ui.sid = null; render(); });
+  $("#sSel").addEventListener("change", e => { ui.sid = e.target.value; render(); });
+
+  $("#teacher").addEventListener("change", e => { if (user) loadTeacher(e.target.value); });
+  $("#teacher").addEventListener("keydown", e => { if (e.key === "Enter") e.target.blur(); });
+
+  $("#gNew").addEventListener("click", () => ask("Новая группа", `
+    <label>Название группы <input name="name" required placeholder="ИС-21"></label>
+    <label>Студенты (каждый с новой строки)<textarea name="students" rows="6" placeholder="Иванов Иван Иванович"></textarea></label>`,
+    fd => {
+      const name = String(fd.get("name")).trim();
+      if (!name) return toast("Введите название группы");
+      const students = String(fd.get("students")).split("\n").map(x => x.trim()).filter(Boolean).map(n => ({ id: uid(), name: n }));
+      const g = { id: uid(), name, students, subjects: [] };
+      state.groups.push(g);
+      ui = { gid: g.id, sid: null };
+      save(`Группа «${name}» создана`);
+    }));
+
+  $("#gDel").addEventListener("click", () => {
+    const g = curGroup();
+    if (!g || !confirm(`Удалить группу «${g.name}» со всеми предметами и оценками?`)) return;
+    state.groups = state.groups.filter(x => x !== g);
+    ui = { gid: null, sid: null };
+    save("Группа удалена");
+  });
+
+  // Список студентов принадлежит группе и общий для всех её предметов
+  $("#gEdit").addEventListener("click", () => {
+    const g = curGroup();
+    ask(`Студенты: ${g.name}`, `
+      <label>ФИО, каждое с новой строки
+        <textarea name="students" rows="10">${esc(g.students.map(s => s.name).join("\n"))}</textarea></label>`,
+      fd => {
+        const byName = new Map(g.students.map(s => [s.name, s]));
+        g.students = String(fd.get("students")).split("\n").map(x => x.trim()).filter(Boolean)
+          .map(n => byName.get(n) || { id: uid(), name: n });
+        save("Список студентов обновлён");
+      });
+  });
+
+  $("#sNew").addEventListener("click", () => ask("Новый предмет", `
+    <label>Предмет <input name="name" required placeholder="Информационные технологии"></label>
+    <label>Вид работы <input name="work" placeholder="Лабораторная работа №1"></label>
+    <label>Дата работы <input name="date" type="date" value="${todayISO()}"></label>
+    <label>Варианты (каждая тема с новой строки, необязательно)<textarea name="variants" rows="4"></textarea></label>`,
+    fd => {
+      const name = String(fd.get("name")).trim();
+      if (!name) return toast("Введите название предмета");
+      const g = curGroup();
+      const variants = String(fd.get("variants")).split("\n").map(x => x.trim()).filter(Boolean).map((topic, i) => ({ num: i + 1, topic }));
+      const s = { id: uid(), name, work: String(fd.get("work")).trim(), date: fd.get("date") || todayISO(), variants, marks: {} };
+      g.subjects.push(s);
+      ui.sid = s.id;
+      save(`Предмет «${name}» добавлен`);
+    }));
+
+  $("#sVar").addEventListener("click", () => {
+    const s = curSubject();
+    ask(`Варианты: ${s.name}`, `
+      <label>Темы вариантов (каждая с новой строки, номер = порядок)
+        <textarea name="v" rows="8">${esc(s.variants.map(v => v.topic).join("\n"))}</textarea></label>`,
+      fd => {
+        s.variants = String(fd.get("v")).split("\n").map(x => x.trim()).filter(Boolean).map((topic, i) => ({ num: i + 1, topic }));
+        save("Варианты сохранены");
+      });
+  });
+
+  $("#sDel").addEventListener("click", () => {
+    const g = curGroup(), s = curSubject();
+    if (!s || !confirm(`Удалить предмет «${s.name}» и его оценки?`)) return;
+    g.subjects = g.subjects.filter(x => x !== s);
+    ui.sid = null;
+    save("Предмет удалён");
+  });
+
+  $("#stAdd").addEventListener("click", () => ask("Новый студент", `
+    <label>ФИО <input name="name" required placeholder="Иванов Иван Иванович"></label>`,
+    fd => {
+      const name = String(fd.get("name")).trim();
+      if (!name) return toast("Введите ФИО");
+      curGroup().students.push({ id: uid(), name });
+      save("Студент добавлен");
+    }));
+
+  $("#subjHead").addEventListener("change", e => {
+    if (e.target.id !== "sDate") return;
+    curSubject().date = e.target.value;
+    save();
+  });
+
+  $("#tbl").addEventListener("click", e => {
+    const b = e.target.closest("[data-act]");
+    if (!b) return;
+    const g = curGroup(), s = curSubject();
+    if (b.dataset.act === "one") {
+      const st = g.students.find(x => x.id === b.dataset.stid);
+      return downloadPdf(certList(g, s, st.id), `Сертификат — ${st.name}.pdf`, b);
+    }
+    if (b.dataset.act === "rm") {
+      const st = g.students.find(x => x.id === b.dataset.stid);
+      if (!confirm(`Удалить студента «${st.name}» из группы?`)) return;
+      g.students = g.students.filter(x => x !== st);
+      save("Студент удалён");
+    }
+  });
+
+  /* ---------- оценки ---------- */
+  // Читает оценки и варианты из таблицы; возвращает либо строки, либо ошибку
+  function readRows(g) {
+    const rows = [];
+    for (const tr of $("#tbl").querySelectorAll("tr[data-stid]")) {
+      const grInp = tr.querySelector(".gr");
+      const grade = normalizeGrade(grInp.value);
+      if (grade === null) return { error: grInp.value };
+      rows.push({ stid: tr.dataset.stid, grade, variant: tr.querySelector(".va").value.trim() });
+    }
+    return { rows };
+  }
+
+  $("#save").addEventListener("click", () => {
+    const g = curGroup(), s = curSubject();
+    const r = readRows(g);
+    if (r.error !== undefined) return toast(`Неверная оценка: ${r.error}`);
+    r.rows.forEach(x => {
+      const m = s.marks[x.stid] || (s.marks[x.stid] = {});
+      m.grade = x.grade;
+      m.variant = x.variant;
+    });
+    assignCerts(g, s);
+    const n = countCerts(g, s);
+    save(`Сохранено. Сертификатов по предмету: ${n}` + (state.teacher ? "" : " (укажите преподавателя для PDF)"));
+  });
+
+  $("#tbl").addEventListener("keydown", e => {
+    if (e.key !== "Enter" || !e.target.matches("input")) return;
+    e.preventDefault();
+    const inputs = [...$("#tbl").querySelectorAll("input")];
+    const next = inputs[inputs.indexOf(e.target) + 1];
+    if (next) next.focus(); else $("#save").click();
+  });
+  $("#tbl").addEventListener("focusin", e => { if (e.target.matches("input")) e.target.select(); });
+
+  $("#pasteBtn").addEventListener("click", () => {
+    const g = curGroup(), s = curSubject();
+    let ok = 0;
+    const miss = [];
+    $("#paste").value.split("\n").map(l => l.trim()).filter(Boolean).forEach(line => {
+      let name, grade;
+      if (line.includes("\t")) [name, grade] = line.split("\t");
+      else if (line.includes(";")) [name, grade] = line.split(";");
+      else {
+        const i = line.lastIndexOf(" ");
+        if (i < 0) { miss.push(line); return; }
+        name = line.slice(0, i);
+        grade = line.slice(i + 1);
+      }
+      const st = g.students.find(x => x.name.trim().toLowerCase() === (name || "").trim().toLowerCase());
+      const v = normalizeGrade((grade || "").trim());
+      if (!st || !v) { miss.push(line); return; }
+      (s.marks[st.id] || (s.marks[st.id] = {})).grade = v;
+      ok++;
+    });
+    assignCerts(g, s);
+    $("#paste").value = "";
+    save(`Вставлено оценок: ${ok}` + (miss.length ? `, не найдено: ${miss.length}` : ""));
+  });
+
+  /* ---------- PDF ---------- */
+  // Сертификат собирается из текущих данных: группа, предмет, дата, преподаватель, оценка, номер
+  function certList(g, s, onlyId) {
+    return g.students
+      .filter(st => !onlyId || st.id === onlyId)
+      .map(st => {
+        const m = s.marks[st.id];
+        const t = m && m.grade && m.num ? topicFor(s, m.variant) : null;
+        if (!t) return null;
+        return {
+          studentName: st.name, groupName: g.name, grade: m.grade,
+          workTitle: s.work, subject: s.name, topic: t.topic, variantLabel: t.label,
+          date: fmtDate(s.date) || fmtDate(todayISO()), teacher: state.teacher.trim(), number: m.num
+        };
+      })
+      .filter(Boolean);
+  }
+
+  async function downloadPdf(list, fileName, btn) {
+    if (!state.teacher.trim()) return toast("Укажите имя преподавателя вверху страницы");
+    if (!list.length) return toast("Нет сертификатов для скачивания");
+    const label = btn ? btn.textContent : null;
+    if (btn) { btn.disabled = true; btn.textContent = "…"; }
+    try {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ orientation: "landscape", unit: "px", format: [CERT_W, CERT_H], compress: true });
+      for (let i = 0; i < list.length; i++) {
+        const canvas = await renderCanvas(list[i]);
+        if (i > 0) pdf.addPage([CERT_W, CERT_H], "landscape");
+        pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, CERT_W, CERT_H, undefined, "FAST");
+      }
+      pdf.save(fileName);
+    } catch (err) {
+      toast("Ошибка PDF: " + err.message);
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = label; }
+    }
+  }
+
+  async function renderCanvas(d) {
+    const stage = $("#certStage");
+    stage.innerHTML = certificateHTML(d);
+    try {
+      await Promise.all([
+        document.fonts.load('700 60px "Playfair Display"'),
+        document.fonts.load('400 20px "Montserrat"'),
+        document.fonts.load('700 20px "Montserrat"')
+      ]);
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      return await window.html2canvas(stage.querySelector(".cert"), {
+        scale: 2, backgroundColor: "#fffdf7", useCORS: true, logging: false,
+        width: CERT_W, height: CERT_H, windowWidth: CERT_W, windowHeight: CERT_H,
+        x: 0, y: 0, scrollX: 0, scrollY: 0
+      });
+    } finally {
+      stage.innerHTML = "";
+    }
+  }
+
+  $("#dlAll").addEventListener("click", () => {
+    const g = curGroup(), s = curSubject();
+    downloadPdf(certList(g, s), `Сертификаты — ${g.name} — ${s.name}.pdf`, $("#dlAll"));
+  });
+
+  function certificateHTML(d) {
+    return `
+    <div class="cert">
+      <div class="cert-frame"><div class="cert-inner">
+        <h1 class="cert-title">Сертификат</h1>
+        <div class="cert-sub">о выполнении учебной работы</div>
+        <p class="cert-text" style="margin-top:18px">Настоящим подтверждается, что</p>
+        <div class="cert-name">${esc(d.studentName)}</div>
+        <p class="cert-text">студент(ка) группы <b>${esc(d.groupName)}</b> успешно выполнил(а) работу</p>
+        <div class="cert-work">«${esc(d.workTitle)}»</div>
+        <p class="cert-topic">${d.variantLabel ? esc(d.variantLabel) + ": " : ""}${esc(d.topic)}</p>
+        <p class="cert-text">по предмету <b>${esc(d.subject)}</b></p>
+        <div class="cert-grade-label">Оценка</div>
+        <div class="cert-grade">${esc(d.grade)}</div>
+        <div class="cert-footer">
+          <div class="sig"><div class="sig-name">${esc(d.teacher)}</div><div class="sig-line"></div>Преподаватель</div>
+          <div class="seal"><span>CERT</span></div>
+          <div class="sig"><div class="sig-line"></div>Дата: ${esc(d.date)}</div>
+        </div>
+        <div class="cert-number">№ ${esc(d.number)}</div>
+      </div></div>
+    </div>`;
+  }
+})();
+</script>
+</body>
+</html>

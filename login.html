@@ -185,6 +185,8 @@ body{
     position:relative;margin-bottom:12px;
     opacity:0;transition:opacity .25s var(--ease);
 }
+.field.hide{display:none}
+
 .card[data-mode="login"] .login-panel .field,
 .card[data-mode="login"] .login-panel .opts,
 .card[data-mode="login"] .login-panel .submit,
@@ -241,7 +243,8 @@ input[type="checkbox"]:focus{
     border-color:transparent;
 }
 
-.field.err input{
+.field.err input,
+.field.err select{
     border-color:var(--red-600);
     box-shadow:0 0 0 3px rgba(185,28,28,.12);
 }
@@ -276,6 +279,31 @@ input[type="checkbox"]:focus{
 .pwd-toggle.on .eye-on{opacity:0}
 .pwd-toggle.on .eye-off{opacity:1}
 .pwd-toggle:hover{color:var(--ink-700);background:var(--ink-100)}
+
+/* =========================================================
+   SELECT (должность АДМТ)
+========================================================= */
+select{
+    width:100%;height:48px;
+    padding:0 40px 0 14px;
+    border:1px solid var(--ink-200);
+    border-radius:var(--radius-md);
+    outline:none;
+    background:#fff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='m6 9 6 6 6-6'/></svg>") no-repeat right 14px center / 16px 16px;
+    color:var(--ink-900);
+    font-family:inherit;font-size:15px;font-weight:500;
+    transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+    -webkit-appearance:none;appearance:none;
+    cursor:pointer;
+}
+select:hover{border-color:var(--ink-300)}
+select:focus{
+    border-color:var(--blue-600);
+    box-shadow:0 0 0 3px rgba(29,78,216,.12);
+}
+select:invalid,
+select option[value=""]{color:var(--ink-400)}
+.role[data-role="admt"] .role-icon{color:#0f766e}
 
 /* =========================================================
    OPTS
@@ -1023,6 +1051,7 @@ input[type="checkbox"]:focus{
     .title{font-size:20px}
     .logo{width:48px;height:48px;font-size:18px;border-radius:10px}
     input{height:50px;font-size:16px}
+    select{height:50px;font-size:16px}
     .submit,.check-btn{height:50px;font-size:15px}
     .status-icon{width:80px;height:80px}
     .status-svg{width:80px;height:80px}
@@ -1401,6 +1430,21 @@ input[type="checkbox"]:focus{
                         </div>
                         <svg class="role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
                     </div>
+
+                    <div class="role" data-role="admt" tabindex="0" role="button">
+                        <div class="role-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M4 21V8l8-4 8 4v13"/>
+                                <path d="M9 21v-6h6v6"/>
+                                <path d="M8 11h.01M12 11h.01M16 11h.01"/>
+                            </svg>
+                        </div>
+                        <div class="role-info">
+                            <div class="role-name">АДМТ</div>
+                            <div class="role-desc">Администрация техникума</div>
+                        </div>
+                        <svg class="role-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>
+                    </div>
                 </div>
 
                 <form id="regForm" class="reg-form hide" novalidate>
@@ -1412,6 +1456,21 @@ input[type="checkbox"]:focus{
                     <div class="role-badge">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
                         Роль: <span id="roleBadgeText">—</span>
+                    </div>
+
+                    <div class="field hide" id="posField">
+                        <div class="input-wrap">
+                            <select id="regPosition">
+                                <option value="" disabled selected>Выберите должность</option>
+                                <option value="Директор">Директор</option>
+                                <option value="Зам директора по ВПР">Зам директора по ВПР</option>
+                                <option value="Зам директора по УР">Зам директора по УР</option>
+                                <option value="Зам директора по ВР">Зам директора по ВР</option>
+                                <option value="Зам директора по АХЧ">Зам директора по АХЧ</option>
+                                <option value="Главный бухгалтер">Главный бухгалтер</option>
+                                <option value="Методист">Методист</option>
+                            </select>
+                        </div>
                     </div>
 
                     <input type="hidden" id="regRole" value="">
@@ -1482,7 +1541,7 @@ input[type="checkbox"]:focus{
                         </div>
                     </div>
 
-                    <div class="field">
+                    <div class="field" id="groupField">
                         <div class="input-wrap">
                             <input type="text" id="regGroup" placeholder="Группа, например 114" autocomplete="off" required maxlength="30">
                             <div class="input-icon">
@@ -1621,9 +1680,18 @@ const log = (...a) => IS_DEV && console.log(...a);
 const logErr = (...a) => console.error(...a.map(x =>
     (x && x.code) ? { code:x.code, message:x.message } : x));
 
-const ALLOWED_ROLES = new Set(["curator","starosta","parent"]);
+const ALLOWED_ROLES = new Set(["curator","starosta","parent","admt"]);
 const ALLOWED_PAGES = new Set(["adminhome","phome","khome","home"]);
-const ROLE_LABELS = { curator:"Куратор", starosta:"Староста", parent:"Родитель" };
+const ROLE_LABELS = { curator:"Куратор", starosta:"Староста", parent:"Родитель", admt:"АДМТ" };
+const ADMT_POSITIONS = [
+    "Директор",
+    "Зам директора по ВПР",
+    "Зам директора по УР",
+    "Зам директора по ВР",
+    "Зам директора по АХЧ",
+    "Главный бухгалтер",
+    "Методист"
+];
 
 const REDIRECT_DELAY = 2200;
 const CHECK_INTERVAL = 15;
@@ -1999,6 +2067,16 @@ $("tabReg").addEventListener("click", () => switchMode("register"));
 ========================================= */
 let roleChosen = false;
 
+/* Показ/скрытие полей в зависимости от роли */
+function applyRoleFields(role){
+    const isAdmt = role === "admt";
+    $("posField").classList.toggle("hide", !isAdmt);
+    $("groupField").classList.toggle("hide", isAdmt);
+    $("regPosition").value = "";
+    $("regPosition").required = isAdmt;
+    $("regGroup").required = !isAdmt;
+}
+
 function showRoles(){
     roleChosen = false;
     $("regRole").value = "";
@@ -2006,6 +2084,7 @@ function showRoles(){
     $("roles").classList.remove("hide");
     $("regForm").classList.add("hide");
     document.querySelectorAll(".role").forEach(r => r.classList.remove("picked"));
+    applyRoleFields("");
     setTimeout(() => { if (mode === "register") refreshHeight(); }, 60);
 }
 
@@ -2028,6 +2107,7 @@ function pickRole(el){
     roleChosen = true;
     $("regRole").value = role;
     $("roleBadgeText").textContent = ROLE_LABELS[role] || role;
+    applyRoleFields(role);
     el.classList.add("picked");
     toast(`Выбрана роль: ${ROLE_LABELS[role]}`);
     setTimeout(showRegForm, 300);
@@ -2041,6 +2121,15 @@ document.querySelectorAll(".role").forEach(el => {
             pickRole(el);
         }
     });
+});
+
+/* Обновление бейджа при выборе должности */
+$("regPosition").addEventListener("change", e => {
+    const role = $("regRole").value;
+    const pos = e.target.value;
+    $("roleBadgeText").textContent = (role === "admt" && pos)
+        ? `${ROLE_LABELS.admt} · ${pos}`
+        : (ROLE_LABELS[role] || "—");
 });
 
 /* =========================================
@@ -2071,6 +2160,7 @@ async function routeByStatus(user, data){
             "Пользователь всё ещё ждёт подтверждения",
             `Пользователь ${data.name || ""} (${data.email || ""}) повторно вошёл в систему, но его заявка всё ещё не одобрена.\n\n` +
             `Роль: ${ROLE_LABELS[data.role] || data.role}\n` +
+            `Должность: ${data.position || "—"}\n` +
             `Группа: ${data.group || "—"}\n` +
             `UID: ${user.uid}`
         );
@@ -2688,7 +2778,9 @@ $("regForm").addEventListener("submit", async e => {
     const login = $("regLogin").value.trim();
     const pwd = $("regPassword").value;
     const confirm = $("regConfirm").value;
-    const group = $("regGroup").value.trim();
+    const isAdmt = role === "admt";
+    const position = isAdmt ? $("regPosition").value : "";
+    const group = isAdmt ? "" : $("regGroup").value.trim();
 
     if (!role || !ALLOWED_ROLES.has(role)){
         showMsg("Сначала выберите роль.");
@@ -2721,7 +2813,12 @@ $("regForm").addEventListener("submit", async e => {
         shakeField($("regConfirm"));
         return;
     }
-    if (!group || group.length > 30){
+    if (isAdmt && !ADMT_POSITIONS.includes(position)){
+        showMsg("Выберите должность.");
+        shakeField($("regPosition"));
+        return;
+    }
+    if (!isAdmt && (!group || group.length > 30)){
         showMsg("Введите корректную группу.");
         shakeField($("regGroup"));
         return;
@@ -2753,6 +2850,7 @@ $("regForm").addEventListener("submit", async e => {
             name: sanitize(name),
             email: sanitize(email),
             group: sanitize(group),
+            position: sanitize(position),
             login,
             role,
             reg: 0,
@@ -2766,7 +2864,8 @@ $("regForm").addEventListener("submit", async e => {
             `Новый пользователь ожидает подтверждения:\n\n` +
             `ФИО: ${sanitize(name)}\n` +
             `Email: ${sanitize(email)}\n` +
-            `Группа: ${sanitize(group)}\n` +
+            `Группа: ${sanitize(group) || "—"}\n` +
+            `Должность: ${sanitize(position) || "—"}\n` +
             `Роль: ${ROLE_LABELS[role] || role}\n` +
             `UID: ${user.uid}`
         );

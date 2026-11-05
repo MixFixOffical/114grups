@@ -1681,7 +1681,8 @@ const logErr = (...a) => console.error(...a.map(x =>
     (x && x.code) ? { code:x.code, message:x.message } : x));
 
 const ALLOWED_ROLES = new Set(["curator","starosta","parent","admt"]);
-const ALLOWED_PAGES = new Set(["adminhome","phome","khome","home"]);
+const ALLOWED_PAGES = new Set(["adminhome","phome","khome","home","admt"]);
+const PAGE_FILES = { admt: "admt.html" };
 const ROLE_LABELS = { curator:"Куратор", starosta:"Староста", parent:"Родитель", admt:"АДМТ" };
 const ADMT_POSITIONS = [
     "Директор",
@@ -1749,7 +1750,18 @@ function validatePassword(pwd){
 function safeRedirect(page){
     const clean = String(page || "").replace(/[^a-z0-9]/gi,"").toLowerCase();
     if (!ALLOWED_PAGES.has(clean)) return "home";
-    return clean;
+    return PAGE_FILES[clean] || clean;
+}
+
+/* Страница по роли — единая точка для всех редиректов */
+function pageForRole(role){
+    return safeRedirect(
+        role === "admin"   ? "adminhome" :
+        role === "parent"  ? "phome" :
+        role === "curator" ? "khome" :
+        role === "admt"    ? "admt" :
+        "home"
+    );
 }
 
 /* =========================================
@@ -1943,17 +1955,11 @@ async function checkApproval(silent = false){
         const reg = data.reg;
 
         if (reg === 1){
-            const role = data.role;
             const name = sanitize(String(data.name || "").split(" ")[0]) || "пользователь";
             showSuccess(`Здравствуйте, ${name}`, "Открываем систему…");
             stopWaitingTimer();
 
-            const page = safeRedirect(
-                role === "admin" ? "adminhome" :
-                role === "parent" ? "phome" :
-                role === "curator" ? "khome" :
-                "home"
-            );
+            const page = pageForRole(data.role);
             setTimeout(() => { window.location.href = page; }, REDIRECT_DELAY);
             return;
         }
@@ -2188,12 +2194,7 @@ async function routeByStatus(user, data){
     const name = sanitize(String(data.name || "").split(" ")[0]) || "пользователь";
     showSuccess(`Здравствуйте, ${name}`, "Открываем систему…");
 
-    const page = safeRedirect(
-        data.role === "admin" ? "adminhome" :
-        data.role === "parent" ? "phome" :
-        data.role === "curator" ? "khome" :
-        "home"
-    );
+    const page = pageForRole(data.role);
 
     // Функция редиректа (с двойной защитой)
     const doRedirect = () => {

@@ -121,21 +121,28 @@ th{
     position:sticky;top:0;background:var(--surface-2);font-size:11.5px;font-weight:600;
     color:var(--text-secondary);text-transform:uppercase;letter-spacing:.3px;
 }
-/* Вертикальная раскладка: предметы в строках, студенты в колонках */
-th.num,td.num{width:40px;color:var(--text-light)}
-th.subj-head,td.subj-name{
+th.name,td.name{
     text-align:left;position:sticky;left:0;
-    background:var(--surface);z-index:1;
-    min-width:200px;max-width:280px;
-    white-space:normal;line-height:1.35;
+    background:var(--surface);z-index:1;min-width:230px;
 }
-th.subj-head{background:var(--surface-2);z-index:2}
-th.student-head{
-    min-width:110px;max-width:150px;
-    white-space:normal;line-height:1.3;
-    font-size:11px;
+th.name{background:var(--surface-2);z-index:2}
+
+/* ВЕРТИКАЛЬНЫЕ ЗАГОЛОВКИ ПРЕДМЕТОВ */
+th.subj{
+    writing-mode:vertical-rl;
+    transform:rotate(180deg);
+    white-space:nowrap;
     vertical-align:bottom;
+    padding:10px 6px;
+    height:170px;
+    min-width:40px;
+    font-size:11px;
+    line-height:1.1;
+    letter-spacing:0;
+    text-transform:none;
 }
+
+td.num{color:var(--text-light);width:40px}
 tr:last-child td{border-bottom:none}
 .mark-select{
     padding:6px 8px; border:1px solid var(--border); border-radius:6px;
@@ -267,14 +274,6 @@ tr:last-child td{border-bottom:none}
 <script>
 /* =========================================================
    КОНСТАНТЫ ПРОЕКТА
-   users.role:         admin | admt | curator | student | parent
-   groups:             name, curatorId, starostaId (или leaderId), studentIds[], active
-   students:           groupId, fullName | name | fio
-   groupSettings/{id}: disciplines (старое общее),
-                       disciplinesBySemester: { "1": {...}, "2": {...}, ... },
-                       schedule, bells,
-                       semester1 / semester2: { attestation1:{start,end}, attestation2:{start,end} }
-   links/{parentId}_{studentId}: parentId, studentId
 ========================================================= */
 const ADMIN_ROLES   = ["admin", "admt"];
 const ALLOWED_ROLES = ["admin", "admt", "curator", "student", "parent"];
@@ -374,7 +373,6 @@ function extractSubjects(){
     if (bySem && typeof bySem === "object") {
         const key = String(S.semNo);
         if (bySem[key]) return extractSubjectsFrom(bySem[key]);
-        // Возможные альтернативные ключи: "semester1"/"semester2"
         const altKey = "semester" + (S.semNo === S.semList[0] ? 1 : 2);
         if (bySem[altKey]) return extractSubjectsFrom(bySem[altKey]);
     }
@@ -525,8 +523,6 @@ async function loadStudents(){
 
 /* =========================================================
    КЛЮЧИ ВЕДОМОСТИ
-   assessKey: {groupId}_s{семестр}_{a1|a2|final}
-   документ:  assessments/{assessKey}_{studentId}
 ========================================================= */
 function assessKey(){
     const part = S.type === "attestation" ? "a" + S.period : "final";
@@ -684,19 +680,18 @@ function render(){
         return;
     }
 
-    // Шапка: № | Предмет | студент1 | студент2 | ...
+    /* Шапка: № | Студент | вертикальные названия предметов */
     thead.innerHTML = `<tr>
         <th class="num">№</th>
-        <th class="subj-head">Предмет</th>
-        ${S.students.map(st => `<th class="student-head" title="${esc(st.name)}">${esc(st.name)}</th>`).join("")}
+        <th class="name">Студент</th>
+        ${S.subjects.map(s => `<th class="subj" title="${esc(s)}">${esc(s)}</th>`).join("")}
     </tr>`;
 
-    // Тело: строка = предмет, ячейка = оценка конкретного студента
-    tbody.innerHTML = S.subjects.map((subj, i) => `
+    tbody.innerHTML = S.students.map((st, i) => `
         <tr>
             <td class="num">${i + 1}</td>
-            <td class="subj-name" title="${esc(subj)}">${esc(subj)}</td>
-            ${S.students.map(st => {
+            <td class="name">${esc(st.name)}</td>
+            ${S.subjects.map(subj => {
                 const val = (S.marks[st.id] || {})[keyOf(subj)] ?? "";
                 if (canWriteCell(st.id, subj)) {
                     return `<td><select class="mark-select ${val ? "filled" : ""}"
@@ -817,7 +812,6 @@ $("tbody").addEventListener("change", e => {
 $("groupSel").addEventListener("change", e => selectGroup(e.target.value));
 $("semSel").addEventListener("change", e => {
     S.semNo = Number(e.target.value);
-    // При смене семестра пересчитываем дисциплины из disciplinesBySemester
     S.subjects = extractSubjects();
     fillPeriodSelect();
     subscribeAll();

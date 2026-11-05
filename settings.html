@@ -177,7 +177,6 @@ button:disabled{opacity:.55;cursor:not-allowed}
 }
 .role-badge.admin{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
 .role-badge.curator{background:var(--violet-soft);color:var(--violet);border-color:rgba(109,40,217,.25)}
-/* [ИЗМЕНЕНО] бейдж семестров */
 .semester-badge{background:var(--green-soft);color:var(--green);border-color:rgba(4,120,87,.25)}
 
 /* =========================================================
@@ -301,6 +300,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
     display:flex;align-items:flex-start;gap:12px;
     padding:16px 18px;
     border-bottom:1px solid var(--line-2);
+    flex-wrap:wrap;
 }
 .card-icon{
     width:38px;height:38px;
@@ -315,6 +315,16 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .card-title{font-size:14.5px;font-weight:600;color:var(--text)}
 .card-subtitle{margin-top:3px;color:var(--muted);font-size:12px;line-height:1.5}
 .card-body{padding:16px 18px}
+
+/* НОВОЕ: переключатель семестра в разделе «Расписание» */
+.semester-switch{
+    display:flex;flex-direction:column;gap:6px;
+    flex:0 0 auto;min-width:210px;margin-left:auto;
+}
+.semester-switch label{
+    font-size:10.5px;font-weight:600;color:var(--muted);
+    text-transform:uppercase;letter-spacing:.05em;
+}
 
 /* =========================================================
    DB CARD
@@ -644,7 +654,7 @@ button:disabled{opacity:.55;cursor:not-allowed}
     .header-title span{font-size:10px}
     .role-badge,.group-badge,.semester-badge{padding:5px 9px;font-size:10.5px}
     .group-badge{display:none}
-    .semester-badge{display:none} /* [ИЗМЕНЕНО] скрываем на узких экранах */
+    .semester-badge{display:none}
     .icon-btn{width:34px;height:34px}
 
     .container{padding:14px 12px calc(90px + var(--safe-bottom))}
@@ -665,6 +675,8 @@ button:disabled{opacity:.55;cursor:not-allowed}
     .card-title{font-size:13.5px}
     .card-subtitle{font-size:11.5px}
     .card-body{padding:13px 14px}
+
+    .semester-switch{min-width:0;width:100%;margin-left:0}
 
     .day-card,.discipline-day,.call-day,.semester{padding:11px;border-radius:var(--radius-md)}
     .day-name{font-size:12.5px}
@@ -743,7 +755,6 @@ button:disabled{opacity:.55;cursor:not-allowed}
             </button>
             <span id="roleBadge" class="role-badge">Проверка…</span>
             <span id="headerGroup" class="group-badge">Группа: —</span>
-            <!-- [ИЗМЕНЕНО] бейдж семестров группы -->
             <span id="headerSemester" class="semester-badge">Семестры: —</span>
         </div>
     </div>
@@ -861,9 +872,14 @@ button:disabled{opacity:.55;cursor:not-allowed}
                         <path d="M8 7h6M8 11h6"/>
                     </svg>
                 </div>
-                <div>
+                <div style="flex:1;min-width:0">
                     <div class="card-title">Расписание дисциплин</div>
                     <div class="card-subtitle">Дисциплины для каждого дня и пары. Начните вводить — появятся подсказки из уже введённых названий.</div>
+                </div>
+                <!-- НОВОЕ: выбор семестра -->
+                <div class="semester-switch" id="disciplinesSemesterSwitch" style="display:none">
+                    <label for="disciplinesSemesterSelect">Семестр</label>
+                    <select id="disciplinesSemesterSelect" class="group-select" style="height:36px"></select>
                 </div>
             </div>
             <div class="card-body">
@@ -885,7 +901,6 @@ button:disabled{opacity:.55;cursor:not-allowed}
     </section>
 
     <!-- ПЛАН -->
-    <!-- [ИЗМЕНЕНО] Заголовки блоков подставляются динамически по номеру группы -->
     <section class="section" id="planSection">
         <div class="card">
             <div class="card-head">
@@ -1066,11 +1081,15 @@ let selectedGroupName = "";
 let schedule = {};
 let disciplines = {};
 let bells = {};
-// [ИЗМЕНЕНО] semester1/semester2 — как было, только добавляем вычисление номеров
 let semester1 = {attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
 let semester2 = {attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
 let saving = false;
 let hasUnsavedChanges = false;
+
+// НОВОЕ: расписание дисциплин по семестрам
+let disciplinesBySemester = {};   // { "1": {...}, "3": {...} }
+let activeSemester = null;        // номер редактируемого семестра
+let groupSemesters = null;        // { first, second }
 
 /* =========================================================
    THEME
@@ -1123,9 +1142,21 @@ function emptyDisciplines(){
     return Object.fromEntries(days.map(d => [d, []]));
 }
 
+function buildEmptyDisciplinesFromSchedule(){
+    const out = {};
+    days.forEach(d => {
+        const count = Number(schedule[d] || 0);
+        out[d] = Array.from({length: count}, () => "");
+    });
+    return out;
+}
+
 function resetLocalSettings(){
     schedule = {...defaultSchedule};
     disciplines = emptyDisciplines();
+    disciplinesBySemester = {};
+    activeSemester = null;
+    groupSemesters = null;
     bells = JSON.parse(JSON.stringify(defaultBells));
     semester1 = {attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
     semester2 = {attestation1:{start:"",end:""},attestation2:{start:"",end:""}};
@@ -1183,11 +1214,7 @@ function plural(n,a,b,c){
 }
 
 /* =========================================================
-   [ИЗМЕНЕНО] ОПРЕДЕЛЕНИЕ СЕМЕСТРОВ ПО НОМЕРУ ГРУППЫ
-   Пример: 111 -> 1 курс -> 1,2
-           211 -> 2 курс -> 3,4
-           311 -> 3 курс -> 5,6
-           411 -> 4 курс -> 7,8
+   ОПРЕДЕЛЕНИЕ СЕМЕСТРОВ ПО НОМЕРУ ГРУППЫ
 ========================================================= */
 function getSemestersForGroup(groupName){
     const match = String(groupName || "").trim().match(/^(\d)/);
@@ -1198,7 +1225,6 @@ function getSemestersForGroup(groupName){
     return { first, second: first + 1 };
 }
 
-// [ИЗМЕНЕНО] Красивое название семестра
 function getSemesterTitle(n){
     if(!n) return "—";
     const course = Math.ceil(n / 2);
@@ -1300,7 +1326,6 @@ function updateGroupLabels(){
         ? "Настройки группы " + name
         : "Настройки группы";
 
-    // [ИЗМЕНЕНО] бейдж семестров + заголовки блоков «План»
     const semesters = getSemestersForGroup(name);
     const semEl = document.getElementById("headerSemester");
     const sem1Title = document.getElementById("sem1Title");
@@ -1344,10 +1369,7 @@ function applyRoleUI(){
 }
 
 /* =========================================================
-   [ИЗМЕНЕНО] LOAD GROUP SETTINGS
-   - читаем из groupSettings/{selectedGroupId}
-   - если semester1/semester2 пустые — берём из эталонной группы
-     (первой группы, у которой они заполнены)
+   LOAD GROUP SETTINGS
 ========================================================= */
 async function loadGroupSettings(){
     resetLocalSettings();
@@ -1366,9 +1388,11 @@ async function loadGroupSettings(){
             if(data.bells) bells = {...bells, ...data.bells};
             if(data.semester1) semester1 = {...semester1, ...data.semester1};
             if(data.semester2) semester2 = {...semester2, ...data.semester2};
+            if(data.disciplinesBySemester && typeof data.disciplinesBySemester === "object"){
+                disciplinesBySemester = {...data.disciplinesBySemester};
+            }
         }
 
-        // [ИЗМЕНЕНО] если у текущей группы аттестации пустые — тянем из эталона
         if(!hasAnyAttestation(semester1) && !hasAnyAttestation(semester2)){
             const ref = await findReferenceAttestations();
             if(ref){
@@ -1380,11 +1404,31 @@ async function loadGroupSettings(){
         console.warn("Не удалось загрузить настройки группы:", e);
     }
 
+    // Определяем семестры группы и активный семестр
+    groupSemesters = getSemestersForGroup(selectedGroupName);
+    const semNumbers = groupSemesters
+        ? [groupSemesters.first, groupSemesters.second]
+        : [1, 2];
+
+    // Миграция: если в groupSettings ещё нет disciplinesBySemester —
+    // для первого семестра берём старый disciplines, для второго — пустую заготовку
+    semNumbers.forEach((n, idx) => {
+        const key = String(n);
+        if(!disciplinesBySemester[key]){
+            disciplinesBySemester[key] = (idx === 0)
+                ? JSON.parse(JSON.stringify(disciplines))
+                : buildEmptyDisciplinesFromSchedule();
+        }
+    });
+
+    activeSemester = semNumbers[0];
+    // Текущий редактируемый набор указывает на выбранный семестр
+    disciplines = disciplinesBySemester[String(activeSemester)];
+
     hasUnsavedChanges = false;
     renderAll();
 }
 
-// [ИЗМЕНЕНО] проверка, есть ли хоть одна дата
 function hasAnyAttestation(sem){
     if(!sem) return false;
     const a1 = sem.attestation1 || {};
@@ -1392,7 +1436,6 @@ function hasAnyAttestation(sem){
     return Boolean(a1.start || a1.end || a2.start || a2.end);
 }
 
-// [ИЗМЕНЕНО] ищем эталонную группу с заполненными аттестациями
 async function findReferenceAttestations(){
     for(const g of allowedGroups){
         if(g.id === selectedGroupId) continue;
@@ -1448,8 +1491,16 @@ window.addLesson = function(day){
     const current = Number(schedule[day] || 0);
     if(current >= 7){ toast("Максимум — 7 пар", "error"); return; }
     schedule[day] = current + 1;
+
+    // Синхронизируем массивы во ВСЕХ семестрах (сохраняем введённые названия)
+    Object.keys(disciplinesBySemester).forEach(k => {
+        const disc = disciplinesBySemester[k];
+        if(!Array.isArray(disc[day])) disc[day] = [];
+        while(disc[day].length < schedule[day]) disc[day].push("");
+    });
     if(!Array.isArray(disciplines[day])) disciplines[day] = [];
     while(disciplines[day].length < schedule[day]) disciplines[day].push("");
+
     hasUnsavedChanges = true;
     renderAll();
 };
@@ -1459,7 +1510,13 @@ window.removeLesson = function(day){
     const current = Number(schedule[day] || 0);
     if(current <= 0) return;
     schedule[day] = current - 1;
+
+    Object.keys(disciplinesBySemester).forEach(k => {
+        const disc = disciplinesBySemester[k];
+        if(Array.isArray(disc[day])) disc[day] = disc[day].slice(0, schedule[day]);
+    });
     if(Array.isArray(disciplines[day])) disciplines[day] = disciplines[day].slice(0, schedule[day]);
+
     hasUnsavedChanges = true;
     renderAll();
 };
@@ -1472,8 +1529,18 @@ window.applySchedulePreset = function(name){
     if(!confirm("Применить шаблон? Текущее количество пар будет перезаписано.")) return;
 
     schedule = {...preset};
+
     days.forEach(day => {
         const count = Number(schedule[day] || 0);
+        Object.keys(disciplinesBySemester).forEach(k => {
+            const disc = disciplinesBySemester[k];
+            if(!Array.isArray(disc[day])) disc[day] = [];
+            if(disc[day].length > count){
+                disc[day] = disc[day].slice(0, count);
+            } else {
+                while(disc[day].length < count) disc[day].push("");
+            }
+        });
         if(!Array.isArray(disciplines[day])) disciplines[day] = [];
         if(disciplines[day].length > count){
             disciplines[day] = disciplines[day].slice(0, count);
@@ -1481,6 +1548,7 @@ window.applySchedulePreset = function(name){
             while(disciplines[day].length < count) disciplines[day].push("");
         }
     });
+
     hasUnsavedChanges = true;
     renderAll();
     toast("Шаблон применён", "info");
@@ -1491,6 +1559,17 @@ window.applySchedulePreset = function(name){
 ========================================================= */
 function collectAllDisciplineNames(){
     const set = new Set();
+    // Собираем из всех семестров, чтобы подсказки работали
+    Object.values(disciplinesBySemester).forEach(disc => {
+        days.forEach(day => {
+            const arr = disc[day] || [];
+            arr.forEach(name => {
+                const v = String(name || "").trim();
+                if(v) set.add(v);
+            });
+        });
+    });
+    // На случай, если disciplinesBySemester ещё не инициализирован
     days.forEach(day => {
         const arr = disciplines[day] || [];
         arr.forEach(name => {
@@ -1545,6 +1624,8 @@ function renderDisciplines(){
 
             field.addEventListener("input", () => {
                 disciplines[day][i] = field.value;
+                // Синхронизируем в хранилище по семестрам
+                disciplinesBySemester[String(activeSemester)] = disciplines;
                 hasUnsavedChanges = true;
 
                 const q = field.value.trim().toLowerCase();
@@ -1582,6 +1663,7 @@ function renderDisciplines(){
                 if(!btn) return;
                 field.value = btn.dataset.value;
                 disciplines[day][i] = btn.dataset.value;
+                disciplinesBySemester[String(activeSemester)] = disciplines;
                 hasUnsavedChanges = true;
                 suggest.classList.remove("show");
             });
@@ -1597,7 +1679,48 @@ function renderDisciplines(){
     if(!hasAny){
         container.innerHTML = '<div class="empty">Сначала добавьте пары в разделе «Пары».</div>';
     }
+
+    renderDisciplinesSemesterSwitch();
 }
+
+/* =========================================================
+   НОВОЕ: переключатель семестра в разделе «Расписание»
+========================================================= */
+function renderDisciplinesSemesterSwitch(){
+    const wrap = document.getElementById("disciplinesSemesterSwitch");
+    const sel  = document.getElementById("disciplinesSemesterSelect");
+    if(!wrap || !sel) return;
+
+    if(!groupSemesters){
+        wrap.style.display = "none";
+        return;
+    }
+
+    wrap.style.display = "";
+    const nums = [groupSemesters.first, groupSemesters.second];
+    sel.innerHTML = nums.map(n =>
+        `<option value="${n}">${getSemesterTitle(n)}</option>`
+    ).join("");
+    sel.value = String(activeSemester);
+}
+
+document.getElementById("disciplinesSemesterSelect").addEventListener("change", e => {
+    const n = Number(e.target.value);
+    if(!n || n === activeSemester) return;
+
+    // Фиксируем правки текущего семестра
+    disciplinesBySemester[String(activeSemester)] = disciplines;
+
+    // Переключаемся
+    activeSemester = n;
+    if(!disciplinesBySemester[String(n)]){
+        disciplinesBySemester[String(n)] = buildEmptyDisciplinesFromSchedule();
+    }
+    disciplines = disciplinesBySemester[String(n)];
+
+    renderDisciplines();
+    toast("Семестр: " + getSemesterTitle(n), "info");
+});
 
 /* =========================================================
    RENDER: BELLS
@@ -1661,7 +1784,6 @@ function renderBells(){
 
 /* =========================================================
    RENDER: SEMESTERS
-   [ИЗМЕНЕНО] используем semester1/semester2, как было
 ========================================================= */
 function renderSemesters(){
     const ids = [
@@ -1692,6 +1814,7 @@ function renderSummary(){
     document.getElementById("sumLessonsHint").textContent =
         `${totalLessons} ${plural(totalLessons,"пара","пары","пар")} в неделю`;
 
+    // Уникальные дисциплины считаем по текущему семестру
     const unique = new Set();
     let filled = 0;
     days.forEach(day => {
@@ -1730,9 +1853,7 @@ function renderAll(){
 }
 
 /* =========================================================
-   [ИЗМЕНЕНО] SAVE
-   - групповые настройки (schedule, disciplines, bells) — в текущую группу
-   - semester1/semester2 — во ВСЕ группы (batch), чтобы не менять структуру БД
+   SAVE
 ========================================================= */
 async function saveSettings(){
     if(saving) return;
@@ -1750,7 +1871,11 @@ async function saveSettings(){
         if(el){ el.textContent = "Сохранение…"; el.className = "message info"; }
     });
 
-    // Считываем актуальные значения из полей «План»
+    // Фиксируем текущий семестр в общий объект
+    if(activeSemester != null){
+        disciplinesBySemester[String(activeSemester)] = disciplines;
+    }
+
     const plan = {
         semester1: {
             attestation1: {
@@ -1778,7 +1903,8 @@ async function saveSettings(){
         group: selectedGroupName,
         groupId: selectedGroupId,
         schedule,
-        disciplines,
+        disciplines,                    // для обратной совместимости
+        disciplinesBySemester,          // новое хранилище по семестрам
         updatedAt: new Date().toISOString()
     };
 
@@ -1787,7 +1913,7 @@ async function saveSettings(){
     }
 
     try{
-        // 1) Текущая группа — всё, включая аттестации (если админ)
+        // 1) Текущая группа
         const payload = {...basePayload};
         if(role === "admin"){
             payload.semester1 = plan.semester1;
@@ -1795,7 +1921,7 @@ async function saveSettings(){
         }
         await db.collection("groupSettings").doc(selectedGroupId).set(payload, {merge: true});
 
-        // 2) [ИЗМЕНЕНО] Если админ — пишем аттестации во все группы (batch)
+        // 2) Аттестации — во все группы (админ)
         if(role === "admin"){
             const others = allowedGroups.filter(g => g.id !== selectedGroupId);
             if(others.length){

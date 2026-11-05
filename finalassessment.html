@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e293b">
+<title>Итоговая аттестация — Посещаемость</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+    color-scheme: light dark;
+    --accent:#1d4ed8; --accent-soft:#eff6ff;
+    --text:#0f172a; --text-secondary:#475569; --text-light:#94a3b8;
+    --surface:#ffffff; --surface-2:#f5f7fa; --surface-3:#eef2f7;
+    --border:#e2e8f0; --border-soft:#eef2f7;
+    --green:#047857; --green-soft:#ecfdf5;
+    --amber:#b45309; --amber-soft:#fffbeb;
+    --red:#b91c1c; --red-soft:#fef2f2;
+    --shadow-xs:0 1px 2px rgba(15,23,42,.05);
+    --radius-sm:8px; --radius-md:10px; --radius-lg:14px;
+}
+@media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+        --accent:#60a5fa; --accent-soft:rgba(29,78,216,.15);
+        --text:#e2e8f0; --text-secondary:#94a3b8; --text-light:#64748b;
+        --surface:#1e293b; --surface-2:#172033; --surface-3:#0f172a;
+        --border:#334155; --border-soft:#1e293b;
+        --green:#4ade80; --green-soft:rgba(4,120,87,.15);
+        --amber:#fbbf24; --amber-soft:rgba(180,83,9,.15);
+        --red:#f87171; --red-soft:rgba(185,28,28,.15);
+        --shadow-xs:0 1px 2px rgba(0,0,0,.3);
+    }
+}
+
+body{
+    min-height:100vh;
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:var(--text); background:var(--surface-3);
+    -webkit-font-smoothing:antialiased;
+}
+button,select,input{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* ---------- TOPBAR ---------- */
+.topbar{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; gap:14px;
+    padding:12px 24px; background:var(--surface);
+    border-bottom:1px solid var(--border);
+}
+.back{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 12px; border:1px solid var(--border); border-radius:var(--radius-sm);
+    background:var(--surface); color:var(--text-secondary); text-decoration:none;
+    font-size:13px; font-weight:500;
+}
+.back:hover{background:var(--surface-2);color:var(--text)}
+.back svg{width:15px;height:15px}
+.page-title{font-size:16px;font-weight:700;letter-spacing:-.2px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;min-width:0}
+.user-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.role-badge{
+    font-size:11.5px;font-weight:600; padding:4px 9px; border-radius:999px;
+    background:var(--accent-soft); color:var(--accent); white-space:nowrap;
+}
+
+/* ---------- LAYOUT ---------- */
+.layout{
+    display:grid; grid-template-columns:minmax(0,1fr) 300px;
+    gap:20px; padding:20px 24px 40px; max-width:1500px; margin:0 auto;
+}
+@media (max-width:1000px){ .layout{grid-template-columns:1fr} }
+@media (max-width:600px){ .layout{padding:14px 12px 30px} .topbar{padding:10px 12px} .user-name{display:none} }
+
+.card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-xs);
+}
+
+/* ---------- FILTERS ---------- */
+.filters{
+    display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end;
+    padding:16px 18px; margin-bottom:16px;
+}
+.field{display:flex;flex-direction:column;gap:6px;min-width:150px}
+.field label{font-size:11.5px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px}
+.field select{
+    padding:9px 10px; border:1px solid var(--border); border-radius:var(--radius-sm);
+    background:var(--surface-2); color:var(--text); font-size:13.5px; min-width:160px;
+}
+.field select:disabled{opacity:.7}
+.field.grow{flex:1;min-width:220px}
+
+.mode{display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.mode button{
+    padding:9px 16px; border:none; background:var(--surface-2); color:var(--text-secondary);
+    font-size:13.5px; font-weight:500; cursor:pointer;
+}
+.mode button + button{border-left:1px solid var(--border)}
+.mode button.active{background:var(--accent);color:#fff;font-weight:600}
+.mode button:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- TABLE ---------- */
+.table-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:14px 18px;border-bottom:1px solid var(--border-soft);flex-wrap:wrap;
+}
+.table-title{font-size:14px;font-weight:700}
+.table-sub{font-size:12px;color:var(--text-secondary);margin-top:2px}
+.hint{
+    margin:14px 2px 0; font-size:12px; color:var(--text-secondary); line-height:1.5;
+}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--border-soft);text-align:center;white-space:nowrap}
+th{
+    position:sticky;top:0;background:var(--surface-2);font-size:11.5px;font-weight:600;
+    color:var(--text-secondary);text-transform:uppercase;letter-spacing:.3px;
+}
+th.name,td.name{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;min-width:230px}
+th.name{background:var(--surface-2);z-index:2}
+th.subj{max-width:140px;white-space:normal;line-height:1.3}
+td.num{color:var(--text-light);width:40px}
+tr:last-child td{border-bottom:none}
+
+.mark-select{
+    padding:6px 8px; border:1px solid var(--border); border-radius:6px;
+    background:var(--surface); color:var(--text); font-size:13px; min-width:110px;
+}
+.mark-select.filled{border-color:var(--accent)}
+.mark{display:inline-block;min-width:34px;padding:4px 8px;border-radius:6px;font-weight:600;background:var(--surface-2);color:var(--text-secondary)}
+.mark.good{background:var(--green-soft);color:var(--green)}
+.mark.bad{background:var(--red-soft);color:var(--red)}
+.mark.pass{background:var(--accent-soft);color:var(--accent)}
+.mark.empty{color:var(--text-light);background:transparent;font-weight:400}
+
+.empty{padding:40px 20px;text-align:center;color:var(--text-secondary);font-size:13.5px}
+.denied{max-width:480px;margin:80px auto;padding:30px;text-align:center}
+
+/* ---------- SIDE ---------- */
+.side{display:flex;flex-direction:column;gap:16px}
+.side-card{padding:16px}
+.side-title{
+    font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--text-light);margin-bottom:10px;
+}
+.menu-btn{
+    width:100%; display:flex; align-items:center; gap:12px; padding:11px 12px; margin-bottom:6px;
+    border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface);
+    color:var(--text); font-size:14px; font-weight:500; text-align:left; cursor:pointer;
+}
+.menu-btn:hover{background:var(--surface-2)}
+.menu-btn.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.menu-btn kbd{
+    margin-left:auto; min-width:22px; height:22px; padding:0 6px; display:inline-flex;
+    align-items:center; justify-content:center; border-radius:5px; font-size:11px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-light);
+    font-family:inherit;
+}
+.menu-hint{font-size:11.5px;color:var(--text-light);margin-top:4px;line-height:1.4}
+
+.log{list-style:none;max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.log li{padding:10px 11px;border:1px solid var(--border-soft);border-radius:var(--radius-sm);background:var(--surface-2)}
+.log-what{font-size:12.5px;line-height:1.45;color:var(--text)}
+.log-what b{font-weight:600}
+.log-val{font-weight:600}
+.log-meta{margin-top:5px;font-size:11px;color:var(--text-secondary)}
+.log-tag{
+    display:inline-block;font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:4px;margin-right:4px;
+    background:var(--amber-soft);color:var(--amber);
+}
+.log-tag.set{background:var(--green-soft);color:var(--green)}
+
+.toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:var(--text);color:var(--surface);padding:10px 16px;border-radius:var(--radius-sm);
+    font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:all .2s ease;z-index:100;
+    max-width:90vw;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+    <a class="back" href="adminhome.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Назад
+    </a>
+    <div class="page-title">Итоговая аттестация</div>
+    <div class="topbar-right">
+        <span class="user-name" id="userName">—</span>
+        <span class="role-badge" id="roleBadge">—</span>
+    </div>
+</header>
+
+<div class="layout">
+    <main>
+        <section class="card filters">
+            <div class="field grow">
+                <label for="groupSel">Группа</label>
+                <select id="groupSel" disabled><option>Загрузка…</option></select>
+            </div>
+            <div class="field">
+                <label for="semSel">Семестр</label>
+                <select id="semSel">
+                    <option value="1">1 семестр</option><option value="2">2 семестр</option>
+                    <option value="3">3 семестр</option><option value="4">4 семестр</option>
+                    <option value="5">5 семестр</option><option value="6">6 семестр</option>
+                    <option value="7">7 семестр</option><option value="8">8 семестр</option>
+                </select>
+            </div>
+            <div class="field" id="periodField">
+                <label for="periodSel">Аттестация</label>
+                <select id="periodSel">
+                    <option value="1">1 аттестация</option>
+                    <option value="2">2 аттестация</option>
+                    <option value="3">3 аттестация</option>
+                </select>
+            </div>
+            <div class="field" id="modeField">
+                <label>Режим</label>
+                <div class="mode" role="tablist">
+                    <button id="modeAttest" class="active" data-mode="attest">Аттестация</button>
+                    <button id="modeCorrect" data-mode="correct">Коррекция</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="card" id="tableCard">
+            <div class="table-head">
+                <div>
+                    <div class="table-title" id="tableTitle">—</div>
+                    <div class="table-sub" id="tableSub">—</div>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead id="thead"></thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <p class="hint" id="rightsHint"></p>
+    </main>
+
+    <aside class="side">
+        <section class="card side-card">
+            <div class="side-title">Меню</div>
+            <button class="menu-btn active" data-type="attestation">1&nbsp;&nbsp;Аттестационная <kbd>1</kbd></button>
+            <button class="menu-btn" data-type="semester">2&nbsp;&nbsp;Семестровая <kbd>2</kbd></button>
+            <div class="menu-hint" id="typeHint"></div>
+        </section>
+
+        <section class="card side-card" id="logCard">
+            <div class="side-title">Журнал изменений</div>
+            <ul class="log" id="logList"><li class="log-what" style="border:none;background:none;padding:0">Нет данных</li></ul>
+        </section>
+    </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   НАСТРОЙКИ. Названия коллекций и полей сверьте с вашей базой.
+========================================================= */
+const CONFIG = {
+    // Роли: значение из поля users.role (любой регистр) → ключ роли
+    roleAliases: {
+        admin:          ["admin","administrator","админ","администратор"],
+        administration: ["администрация","администрация техникума","administration"],
+        curator:        ["куратор","curator"],
+        starosta:       ["староста","starosta"],
+        parent:         ["родитель","parent"]
+    },
+    roleLabels: {
+        admin: "Администратор",
+        administration: "Администрация техникума",
+        curator: "Куратор",
+        starosta: "Староста",
+        parent: "Родитель"
+    },
+    // Кто может выставлять оценки (режим «Аттестация», пустые ячейки)
+    canEnter:  ["admin","administration","curator","starosta"],
+    // Кто может исправлять уже выставленные оценки (режим «Коррекция»)
+    canCorrect:["admin","administration","curator"],
+    // Кто видит все группы
+    seeAllGroups: ["admin","administration"],
+    periods: [1, 2, 3]
+};
+
+const MARKS = [
+    { v:"5",     t:"5 (отлично)",            cls:"good" },
+    { v:"4",     t:"4 (хорошо)",             cls:"good" },
+    { v:"3",     t:"3 (удовлетворительно)",  cls:"pass" },
+    { v:"2",     t:"2 (неудовлетворительно)", cls:"bad" },
+    { v:"зач",   t:"Зачтено",                cls:"good" },
+    { v:"незач", t:"Не зачтено",             cls:"bad" },
+    { v:"н",     t:"Не аттестован",          cls:"bad" }
+];
+const markInfo = v => MARKS.find(m => m.v === v);
+
+/* =========================================================
+   СОСТОЯНИЕ
+========================================================= */
+const S = {
+    uid: null, name: "", role: null, userGroupId: null,
+    groups: [], groupId: null,
+    childIds: [],
+    students: [], subjects: [],
+    semester: 1, type: "attestation", period: 1, mode: "attest",
+    marks: {},          // studentId → { subjectId: value }
+    logs: [],
+    unsubMarks: null, unsubLog: null
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+function normRole(raw){
+    const r = String(raw || "").trim().toLowerCase();
+    for (const [key, list] of Object.entries(CONFIG.roleAliases)) {
+        if (list.includes(r)) return key;
+    }
+    return null;
+}
+const can = list => list.includes(S.role);
+const typeLabel = t => t === "attestation" ? "Аттестационная" : "Семестровая";
+
+function toast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+function assessId(){
+    const part = S.type === "attestation" ? "p" + S.period : "final";
+    return `${S.type}_s${S.semester}_${part}_${S.groupId}`;
+}
+
+/* =========================================================
+   ЗАГРУЗКА ДАННЫХ
+========================================================= */
+auth.onAuthStateChanged(async user => {
+    if (!user) { window.location.href = "index.html"; return; }
+    S.uid = user.uid;
+
+    try {
+        const snap = await db.collection("users").doc(user.uid).get();
+        const data = snap.data() || {};
+        S.name = data.name || data.fullName || user.email || "Пользователь";
+        S.role = normRole(data.role);
+        S.userGroupId = data.groupId || null;
+    } catch (e) {
+        console.error(e); toast("Не удалось загрузить профиль");
+        return;
+    }
+
+    if (!S.role) { showDenied(); return; }
+
+    $("userName").textContent = S.name;
+    $("roleBadge").textContent = CONFIG.roleLabels[S.role];
+    setupRights();
+
+    await loadGroups();
+    fillGroupSelect();
+    await refresh();
+});
+
+function showDenied(){
+    document.querySelector(".layout").innerHTML = `
+        <div class="card denied">
+            <div class="table-title" style="margin-bottom:8px">Доступ запрещён</div>
+            <div class="table-sub">Для вашей роли раздел «Итоговая аттестация» недоступен.</div>
+        </div>`;
+}
+
+async function loadGroups(){
+    const gcol = db.collection("groups");
+    let docs = [];
+    try {
+        if (can(CONFIG.seeAllGroups)) {
+            docs = (await gcol.get()).docs;
+        } else if (S.role === "curator") {
+            docs = (await gcol.where("curatorUid", "==", S.uid).get()).docs;
+        } else if (S.role === "starosta") {
+            if (S.userGroupId) {
+                const g = await gcol.doc(S.userGroupId).get();
+                if (g.exists) docs = [g];
+            }
+        } else if (S.role === "parent") {
+            const kids = await db.collection("students").where("parentIds", "array-contains", S.uid).get();
+            S.childIds = kids.docs.map(d => d.id);
+            const gids = [...new Set(kids.docs.map(d => d.data().groupId).filter(Boolean))];
+            const gs = await Promise.all(gids.map(id => gcol.doc(id).get()));
+            docs = gs.filter(g => g.exists);
+        }
+    } catch (e) {
+        console.error(e); toast("Ошибка загрузки групп: " + e.message);
+    }
+
+    S.groups = docs
+        .map(d => ({ id: d.id, name: d.data().name || d.data().title || d.id }))
+        .sort((a, b) => a.name.localeCompare(b.name, "ru", { numeric: true }));
+
+    // Авто-подстановка: группа старосты или первая группа куратора
+    const own = S.groups.find(g => g.id === S.userGroupId);
+    S.groupId = own ? own.id : (S.groups[0] ? S.groups[0].id : null);
+}
+
+function fillGroupSelect(){
+    const sel = $("groupSel");
+    if (!S.groups.length) {
+        sel.innerHTML = `<option value="">Нет доступных групп</option>`;
+        sel.disabled = true;
+        return;
+    }
+    sel.innerHTML = S.groups.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join("");
+    sel.value = S.groupId;
+    // Староста видит только свою группу, список не нужен
+    sel.disabled = S.role === "starosta" || S.groups.length === 1 && S.role !== "admin" && S.role !== "administration";
+}
+
+async function loadStudents(){
+    S.students = [];
+    if (!S.groupId) return;
+    const snap = await db.collection("students").where("groupId", "==", S.groupId).get();
+    let list = snap.docs.map(d => ({ id: d.id, name: d.data().fullName || d.data().name || "—" }));
+    if (S.role === "parent") list = list.filter(s => S.childIds.includes(s.id));
+    S.students = list.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+}
+
+async function loadSubjects(){
+    S.subjects = [];
+    if (!S.groupId) return;
+    const d = await db.collection("curriculum").doc(`${S.groupId}_${S.semester}`).get();
+    if (d.exists) {
+        S.subjects = (d.data().subjects || []).map(s =>
+            typeof s === "string" ? { id: s, name: s } : s
+        );
+    }
+}
+
+// Колонки зависят от вида аттестации и семестра.
+// В плане (curriculum) у предмета можно указать:
+//   attestation: false — не попадает в аттестационную ведомость
+//   semester:    false — не попадает в семестровую ведомость
+function columns(){
+    return S.subjects.filter(s =>
+        S.type === "attestation" ? s.attestation !== false : s.semester !== false
+    );
+}
+
+function subscribeMarks(){
+    if (S.unsubMarks) S.unsubMarks();
+    if (S.unsubLog) S.unsubLog();
+    S.marks = {};
+    S.logs = [];
+    if (!S.groupId) { render(); renderLog(); return; }
+
+    const aid = assessId();
+    let q = db.collection("assessments").where("assessId", "==", aid);
+    if (S.role === "parent") {
+        if (!S.childIds.length) { render(); return; }
+        q = q.where("studentId", "in", S.childIds.slice(0, 10));
+    }
+    S.unsubMarks = q.onSnapshot(snap => {
+        const m = {};
+        snap.docs.forEach(d => { const x = d.data(); m[x.studentId] = x.marks || {}; });
+        S.marks = m;
+        render();
+    }, err => { console.error(err); toast("Ошибка оценок: " + err.message); });
+
+    if (S.role !== "parent") {
+        S.unsubLog = db.collection("assessment_log").where("assessId", "==", aid)
+            .onSnapshot(snap => {
+                S.logs = snap.docs.map(d => d.data())
+                    .sort((a, b) => (b.at?.toMillis?.() || Date.now()) - (a.at?.toMillis?.() || Date.now()))
+                    .slice(0, 100);
+                renderLog();
+            }, err => { console.error(err); S.logs = []; renderLog(err.message); });
+    }
+}
+
+async function refresh(){
+    await loadStudents();
+    await loadSubjects();
+    subscribeMarks();
+    render();
+    renderLog();
+}
+
+/* =========================================================
+   ПРАВА И ИНТЕРФЕЙС
+========================================================= */
+function setupRights(){
+    const isParent = S.role === "parent";
+    $("modeField").style.display = isParent ? "none" : "";
+    $("logCard").style.display = isParent ? "none" : "";
+    const canFix = can(CONFIG.canCorrect);
+    $("modeCorrect").disabled = !canFix;
+    $("modeCorrect").title = canFix ? "" : "Коррекция доступна куратору и администрации";
+
+    let hint = "";
+    if (isParent) hint = "Вы видите оценки только ваших детей. Редактирование недоступно.";
+    else if (S.role === "starosta") hint = "Выставление оценок — только в пустые ячейки. Исправлять уже выставленные оценки может куратор или администрация.";
+    else if (S.role === "curator") hint = "Выставляйте оценки в пустые ячейки. Режим «Коррекция» позволяет исправить уже выставленные; все изменения попадают в журнал.";
+    else hint = "Все изменения сохраняются сразу и попадают в журнал с указанием автора и времени.";
+    $("rightsHint").textContent = hint;
+
+    setType(S.type, false);
+    setMode(S.mode, false);
+}
+
+function setType(t, reload = true){
+    S.type = t;
+    document.querySelectorAll(".menu-btn").forEach(b =>
+        b.classList.toggle("active", b.dataset.type === t));
+    $("periodField").style.display = t === "attestation" ? "" : "none";
+    $("typeHint").textContent = t === "attestation"
+        ? "Колонки: предметы аттестационной ведомости выбранного семестра, по выбранной аттестации."
+        : "Колонки: предметы семестровой ведомости выбранного семестра.";
+    if (reload) refresh();
+}
+
+function setMode(m, reload = true){
+    if (m === "correct" && !can(CONFIG.canCorrect)) m = "attest";
+    S.mode = m;
+    $("modeAttest").classList.toggle("active", m === "attest");
+    $("modeCorrect").classList.toggle("active", m === "correct");
+    if (reload) render();
+}
+
+function renderHeader(){
+    const cols = columns();
+    const grp = S.groups.find(g => g.id === S.groupId);
+    const periodText = S.type === "attestation" ? `${S.period} аттестация` : "итог семестра";
+    $("tableTitle").textContent = `${typeLabel(S.type)} ведомость — ${S.semester} семестр, ${periodText}`;
+    $("tableSub").textContent = `${grp ? grp.name : "Группа не выбрана"} · студентов: ${S.students.length} · предметов: ${cols.length}`;
+}
+
+function canWrite(sid, cid){
+    if (S.role === "parent") return false;
+    const cur = (S.marks[sid] || {})[cid];
+    const filled = cur !== undefined && cur !== null && cur !== "";
+    if (S.mode === "attest") return can(CONFIG.canEnter) && !filled;
+    return can(CONFIG.canCorrect);
+}
+
+function render(){
+    renderHeader();
+    const cols = columns();
+    const thead = $("thead"), tbody = $("tbody");
+
+    if (!S.groupId) {
+        thead.innerHTML = "";
+        tbody.innerHTML = `<tr><td><div class="empty">Нет доступных групп</div></td></tr>`;
+        return;
+    }
+    if (!cols.length) {
+        thead.innerHTML = "";
+        tbody.innerHTML = `<tr><td><div class="empty">Для этой группы нет учебного плана на ${S.semester} семестр.<br>Добавьте предметы в коллекцию <b>curriculum</b>.</div></td></tr>`;
+        return;
+    }
+    if (!S.students.length) {
+        thead.innerHTML = "";
+        tbody.innerHTML = `<tr><td><div class="empty">В группе нет студентов.</div></td></tr>`;
+        return;
+    }
+
+    thead.innerHTML = `<tr>
+        <th class="num">№</th>
+        <th class="name">Студент</th>
+        ${cols.map(c => `<th class="subj" title="${esc(c.name)}">${esc(c.name)}</th>`).join("")}
+    </tr>`;
+
+    tbody.innerHTML = S.students.map((s, i) => `
+        <tr>
+            <td class="num">${i + 1}</td>
+            <td class="name">${esc(s.name)}</td>
+            ${cols.map(c => {
+                const val = (S.marks[s.id] || {})[c.id] ?? "";
+                if (canWrite(s.id, c.id)) {
+                    return `<td><select class="mark-select ${val ? "filled" : ""}"
+                                data-s="${esc(s.id)}" data-c="${esc(c.id)}" data-old="${esc(val)}">
+                        <option value="">—</option>
+                        ${MARKS.map(m => `<option value="${m.v}" ${m.v === val ? "selected" : ""}>${m.t}</option>`).join("")}
+                    </select></td>`;
+                }
+                const mi = markInfo(val);
+                return `<td>${mi
+                    ? `<span class="mark ${mi.cls}">${esc(mi.v)}</span>`
+                    : `<span class="mark empty">—</span>`}</td>`;
+            }).join("")}
+        </tr>`).join("");
+}
+
+function renderLog(err){
+    const list = $("logList");
+    if (err) { list.innerHTML = `<li class="log-what" style="border:none;background:none;padding:0;color:var(--red)">Журнал недоступен: ${esc(err)}</li>`; return; }
+    if (!S.logs.length) {
+        list.innerHTML = `<li class="log-what" style="border:none;background:none;padding:0;color:var(--text-secondary)">Изменений пока нет</li>`;
+        return;
+    }
+    list.innerHTML = S.logs.map(l => {
+        const when = l.at?.toDate
+            ? l.at.toDate().toLocaleString("ru-RU", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" })
+            : "сохраняется…";
+        const tag = l.action === "set"
+            ? `<span class="log-tag set">Выставлено</span>`
+            : l.action === "clear"
+                ? `<span class="log-tag">Удалено</span>`
+                : `<span class="log-tag">Исправлено</span>`;
+        return `<li>
+            <div class="log-what">${tag}<b>${esc(l.studentName)}</b> · ${esc(l.subjectName)}<br>
+                ${esc(label(l.from))} → <span class="log-val">${esc(label(l.to))}</span></div>
+            <div class="log-meta">${esc(l.byName)} (${esc(CONFIG.roleLabels[l.byRole] || l.byRole)}) · ${when}</div>
+        </li>`;
+    }).join("");
+}
+
+const label = v => (v ? (markInfo(v)?.t || v) : "пусто");
+
+/* =========================================================
+   ЗАПИСЬ ОЦЕНКИ (транзакция + запись в журнал)
+========================================================= */
+async function saveMark(sid, cid, newVal, el){
+    const oldVal = (S.marks[sid] || {})[cid] ?? "";
+    if (newVal === oldVal) return;
+
+    if (!canWrite(sid, cid)) {
+        toast("Нет прав на изменение этой ячейки");
+        el.value = oldVal;
+        return;
+    }
+
+    const student = S.students.find(s => s.id === sid);
+    const subj = columns().find(c => c.id === cid) || { name: cid };
+    const docId = `${assessId()}_${sid}`;
+    const ref = db.collection("assessments").doc(docId);
+    const logRef = db.collection("assessment_log").doc();
+    let action = null, from = "";
+
+    try {
+        await db.runTransaction(async t => {
+            const snap = await t.get(ref);
+            const cur = snap.exists ? ((snap.data().marks || {})[cid] ?? "") : "";
+            from = cur;
+            if (cur === newVal) { action = null; return; }
+
+            // Режим «Аттестация» не даёт перезаписать уже выставленную оценку
+            if (cur !== "" && S.mode === "attest") throw new Error("Оценка уже выставлена. Используйте режим «Коррекция».");
+
+            action = newVal === "" ? "clear" : (cur === "" ? "set" : "correct");
+
+            const meta = {
+                assessId: assessId(), studentId: sid, groupId: S.groupId,
+                semester: S.semester, type: S.type,
+                period: S.type === "attestation" ? S.period : null,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+                updatedBy: S.uid
+            };
+
+            if (!snap.exists) {
+                if (newVal !== "") t.set(ref, { ...meta, marks: { [cid]: newVal } });
+            } else if (newVal === "") {
+                t.update(ref, { ...meta, [`marks.${cid}`]: firebase.firestore.FieldValue.delete() });
+            } else {
+                t.set(ref, { ...meta, marks: { [cid]: newVal } }, { merge: true });
+            }
+
+            t.set(logRef, {
+                assessId: assessId(), groupId: S.groupId, semester: S.semester, type: S.type,
+                period: S.type === "attestation" ? S.period : null,
+                studentId: sid, studentName: student ? student.name : sid,
+                subjectId: cid, subjectName: subj.name,
+                from: cur, to: newVal, action, mode: S.mode,
+                byUid: S.uid, byName: S.name, byRole: S.role,
+                at: firebase.firestore.FieldValue.serverTimestamp()
+            });
+        });
+
+        if (action) {
+            el.classList.toggle("filled", newVal !== "");
+            el.dataset.old = newVal;
+            toast("Сохранено");
+        }
+    } catch (e) {
+        console.error(e);
+        toast(e.message || "Не удалось сохранить");
+        el.value = oldVal;
+    }
+}
+
+$("tbody").addEventListener("change", e => {
+    const sel = e.target.closest("select.mark-select");
+    if (!sel) return;
+    saveMark(sel.dataset.s, sel.dataset.c, sel.value, sel);
+});
+
+/* =========================================================
+   СОБЫТИЯ УПРАВЛЕНИЯ
+========================================================= */
+$("groupSel").addEventListener("change", e => {
+    S.groupId = e.target.value;
+    refresh();
+});
+$("semSel").addEventListener("change", e => {
+    S.semester = Number(e.target.value);
+    refresh();
+});
+$("periodSel").addEventListener("change", e => {
+    S.period = Number(e.target.value);
+    refresh();
+});
+$("modeAttest").addEventListener("click", () => setMode("attest"));
+$("modeCorrect").addEventListener("click", () => setMode("correct"));
+document.querySelectorAll(".menu-btn").forEach(b =>
+    b.addEventListener("click", () => setType(b.dataset.type)));
+
+// Горячие клавиши 1 / 2 — тип ведомости
+document.addEventListener("keydown", e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (["input", "select", "textarea"].includes(tag)) return;
+    if (e.key === "1") setType("attestation");
+    if (e.key === "2") setType("semester");
+});
+</script>
+</body>
+</html>

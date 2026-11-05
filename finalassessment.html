@@ -121,10 +121,21 @@ th{
     position:sticky;top:0;background:var(--surface-2);font-size:11.5px;font-weight:600;
     color:var(--text-secondary);text-transform:uppercase;letter-spacing:.3px;
 }
-th.name,td.name{text-align:left;position:sticky;left:0;background:var(--surface);z-index:1;min-width:230px}
-th.name{background:var(--surface-2);z-index:2}
-th.subj{max-width:150px;white-space:normal;line-height:1.3}
-td.num{color:var(--text-light);width:40px}
+/* Вертикальная раскладка: предметы в строках, студенты в колонках */
+th.num,td.num{width:40px;color:var(--text-light)}
+th.subj-head,td.subj-name{
+    text-align:left;position:sticky;left:0;
+    background:var(--surface);z-index:1;
+    min-width:200px;max-width:280px;
+    white-space:normal;line-height:1.35;
+}
+th.subj-head{background:var(--surface-2);z-index:2}
+th.student-head{
+    min-width:110px;max-width:150px;
+    white-space:normal;line-height:1.3;
+    font-size:11px;
+    vertical-align:bottom;
+}
 tr:last-child td{border-bottom:none}
 .mark-select{
     padding:6px 8px; border:1px solid var(--border); border-radius:6px;
@@ -255,15 +266,17 @@ tr:last-child td{border-bottom:none}
 
 <script>
 /* =========================================================
-   КОНСТАНТЫ ПРОЕКТА (совпадают с остальными страницами)
+   КОНСТАНТЫ ПРОЕКТА
    users.role:         admin | admt | curator | student | parent
    groups:             name, curatorId, starostaId (или leaderId), studentIds[], active
    students:           groupId, fullName | name | fio
-   groupSettings/{id}: disciplines{ "Понедельник": [...], ... },
+   groupSettings/{id}: disciplines (старое общее),
+                       disciplinesBySemester: { "1": {...}, "2": {...}, ... },
+                       schedule, bells,
                        semester1 / semester2: { attestation1:{start,end}, attestation2:{start,end} }
    links/{parentId}_{studentId}: parentId, studentId
 ========================================================= */
-const ADMIN_ROLES   = ["admin", "admt"];                       // полный доступ ко всем группам
+const ADMIN_ROLES   = ["admin", "admt"];
 const ALLOWED_ROLES = ["admin", "admt", "curator", "student", "parent"];
 const HOME_BY_ROLE  = { admin: "adminhome.html", admt: "admt.html", curator: "khome.html", parent: "phome.html", student: "home.html" };
 const ROLE_LABELS   = { admin: "Администратор", admt: "АДМТ", curator: "Куратор", student: "Староста", parent: "Родитель" };
@@ -287,14 +300,14 @@ const labelOf  = v => (v ? (markInfo(v)?.t || v) : "пусто");
 const S = {
     uid: null, name: "", role: null,
     groups: [], group: null, groupId: null,
-    gRole: null,              // роль в текущей группе: admin | curator | starosta | parent
+    gRole: null,
     semList: [], semNo: null,
     period: 1, type: "attestation", mode: "attest",
-    settings: {},             // groupSettings/{groupId}
-    subjects: [],             // названия дисциплин группы
-    students: [],             // { id, name }
+    settings: {},
+    subjects: [],
+    students: [],
     childIds: [],
-    marks: {},                // studentId → { subjectKey: value }
+    marks: {},
     logs: [],
     unsubs: []
 };
@@ -312,11 +325,9 @@ function toast(msg){
     toast._t = setTimeout(() => t.classList.remove("show"), 2600);
 }
 
-// Ключ поля в marks: точки и слэши ломают пути Firestore
 const keyOf = name => String(name).trim().replace(/[.\/\[\]*`~]/g, "_");
 
-/* ---------- Семестры по номеру группы (как в settings.html) ---------- */
-// 111 → курс 1 → семестры 1, 2;  211 → курс 2 → 3, 4 и т.д.
+/* ---------- Семестры по номеру группы ---------- */
 function semestersOfGroup(name){
     const m = String(name || "").trim().match(/^(\d)/);
     if (!m) return null;
@@ -330,7 +341,6 @@ function semesterTitle(n){
     const half = n % 2 === 1 ? "осенний" : "весенний";
     return `${n} семестр · ${course} курс · ${half}`;
 }
-// В groupSettings аттестации хранятся по двум семестрам курса: semester1 (первый) и semester2 (второй)
 function settingsKey(){
     return S.semNo === S.semList[0] ? "semester1" : "semester2";
 }
@@ -338,8 +348,10 @@ function attestationWindow(p){
     return S.settings?.[settingsKey()]?.["attestation" + p] || null;
 }
 
-/* ---------- Дисциплины группы из groupSettings.disciplines ---------- */
-function extractSubjects(disc){
+/* ---------- Дисциплины группы ----------
+   Приоритет: disciplinesBySemester[<номер семестра>] → fallback на disciplines
+------------------------------------------ */
+function extractSubjectsFrom(disc){
     const names = [];
     const add = v => {
         if (v && typeof v === "object") v = v.discipline || v.subject || v.name || v.title || v.lessonName;
@@ -357,8 +369,19 @@ function extractSubjects(disc){
     return names;
 }
 
+function extractSubjects(){
+    const bySem = S.settings?.disciplinesBySemester;
+    if (bySem && typeof bySem === "object") {
+        const key = String(S.semNo);
+        if (bySem[key]) return extractSubjectsFrom(bySem[key]);
+        // Возможные альтернативные ключи: "semester1"/"semester2"
+        const altKey = "semester" + (S.semNo === S.semList[0] ? 1 : 2);
+        if (bySem[altKey]) return extractSubjectsFrom(bySem[altKey]);
+    }
+    return extractSubjectsFrom(S.settings?.disciplines);
+}
+
 /* ---------- Права ---------- */
-// Роль пользователя в конкретной группе
 function roleInGroup(g){
     if (isAdmin()) return "admin";
     if (S.role === "parent") return "parent";
@@ -421,7 +444,6 @@ async function loadGroups(){
         if (isAdmin()) {
             docs = (await gcol.get()).docs;
         } else if (S.role === "parent") {
-            // Дети родителя: links/{parentId}_{studentId}
             const links = await db.collection("links").where("parentId", "==", S.uid).get();
             S.childIds = links.docs.map(d => d.data().studentId).filter(Boolean);
             const kids = await Promise.all(S.childIds.map(id => db.collection("students").doc(id).get()));
@@ -451,7 +473,6 @@ async function loadGroups(){
 function fillGroupSelect(){
     const sel = $("groupSel");
     sel.innerHTML = S.groups.map(g => `<option value="${esc(g.id)}">${esc(g.name || g.id)}</option>`).join("");
-    // Список групп нужен только если групп несколько
     sel.disabled = S.groups.length <= 1;
 }
 
@@ -463,7 +484,6 @@ async function selectGroup(gid){
     $("groupSel").value = gid;
     S.gRole = roleInGroup(S.group);
 
-    // Семестры: по номеру группы. Если номер не распознан — показываем 1 и 2
     S.semList = semestersOfGroup(S.group.name) || [1, 2];
     if (!S.semNo || !S.semList.includes(S.semNo)) S.semNo = S.semList[0];
     fillSemesterSelect();
@@ -480,14 +500,13 @@ async function loadSettings(){
     try {
         const d = await db.collection("groupSettings").doc(S.groupId).get();
         S.settings = d.exists ? (d.data() || {}) : {};
-        S.subjects = extractSubjects(S.settings.disciplines);
+        S.subjects = extractSubjects();
     } catch (e) { console.error(e); toast("Ошибка настроек группы: " + e.message); }
 }
 
 async function loadStudents(){
     S.students = [];
     try {
-        // Как в attendance.html: студенты с groupId группы + studentIds из группы
         const ids = new Set(Array.isArray(S.group.studentIds) ? S.group.studentIds : []);
         const byGroup = await db.collection("students").where("groupId", "==", S.groupId).get();
         byGroup.docs.forEach(d => ids.add(d.id));
@@ -629,7 +648,6 @@ function setModeButtons(){
     $("modeCorrect").classList.toggle("active", S.mode === "correct");
 }
 
-// Можно ли менять ячейку (студент × дисциплина)
 function canWriteCell(sid, subj){
     if (S.gRole === "parent") return false;
     const cur = (S.marks[sid] || {})[keyOf(subj)] ?? "";
@@ -656,7 +674,8 @@ function render(){
     }
     if (!S.subjects.length) {
         thead.innerHTML = ""; tbody.innerHTML = `<tr><td><div class="empty">
-            В настройках группы не заданы дисциплины.<br>Заполните расписание в разделе «Настройки → Расписание».
+            В настройках группы не заданы дисциплины для выбранного семестра.<br>
+            Заполните расписание в разделе «Настройки → Расписание» и выберите нужный семестр.
         </div></td></tr>`;
         return;
     }
@@ -665,17 +684,19 @@ function render(){
         return;
     }
 
+    // Шапка: № | Предмет | студент1 | студент2 | ...
     thead.innerHTML = `<tr>
         <th class="num">№</th>
-        <th class="name">Студент</th>
-        ${S.subjects.map(s => `<th class="subj" title="${esc(s)}">${esc(s)}</th>`).join("")}
+        <th class="subj-head">Предмет</th>
+        ${S.students.map(st => `<th class="student-head" title="${esc(st.name)}">${esc(st.name)}</th>`).join("")}
     </tr>`;
 
-    tbody.innerHTML = S.students.map((st, i) => `
+    // Тело: строка = предмет, ячейка = оценка конкретного студента
+    tbody.innerHTML = S.subjects.map((subj, i) => `
         <tr>
             <td class="num">${i + 1}</td>
-            <td class="name">${esc(st.name)}</td>
-            ${S.subjects.map(subj => {
+            <td class="subj-name" title="${esc(subj)}">${esc(subj)}</td>
+            ${S.students.map(st => {
                 const val = (S.marks[st.id] || {})[keyOf(subj)] ?? "";
                 if (canWriteCell(st.id, subj)) {
                     return `<td><select class="mark-select ${val ? "filled" : ""}"
@@ -740,7 +761,6 @@ async function saveMark(sid, subj, newVal, el){
             const cur = snap.exists ? (((snap.data() || {}).marks || {})[key] ?? "") : "";
             if (cur === newVal) return;
 
-            // В режиме «Аттестация» перезаписывать уже выставленное нельзя
             if (cur !== "" && S.mode === "attest") {
                 throw new Error("Оценка уже выставлена. Для исправления используйте режим «Коррекция».");
             }
@@ -797,6 +817,8 @@ $("tbody").addEventListener("change", e => {
 $("groupSel").addEventListener("change", e => selectGroup(e.target.value));
 $("semSel").addEventListener("change", e => {
     S.semNo = Number(e.target.value);
+    // При смене семестра пересчитываем дисциплины из disciplinesBySemester
+    S.subjects = extractSubjects();
     fillPeriodSelect();
     subscribeAll();
 });
@@ -809,7 +831,6 @@ $("modeCorrect").addEventListener("click", () => setMode("correct"));
 document.querySelectorAll(".menu-btn").forEach(b =>
     b.addEventListener("click", () => setType(b.dataset.type)));
 
-// Клавиши 1 и 2 — тип ведомости
 document.addEventListener("keydown", e => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const tag = (e.target.tagName || "").toLowerCase();

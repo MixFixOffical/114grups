@@ -1,1 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ru" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e293b" id="metaThemeColor">
+<meta name="robots" content="noindex, nofollow">
+<title>Панель АДМТ — Куратор-журнал</title>
+<link rel="manifest" href="manifest.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+    color-scheme:light dark;
+    --accent:#1d4ed8;--accent-dark:#1e3a8a;--accent-soft:#eff6ff;
+    --text:#0f172a;--text-secondary:#475569;--text-light:#94a3b8;
+    --surface:#ffffff;--surface-2:#f5f7fa;--surface-3:#eef2f7;
+    --border:#e2e8f0;--border-soft:#eef2f7;
+    --green:#047857;--amber:#b45309;--red:#b91c1c;--red-soft:#fef2f2;
+    --shadow-xs:0 1px 2px rgba(15,23,42,.05);
+    --radius-md:10px;--radius-lg:14px;--ease:cubic-bezier(.4,0,.2,1);
+}
+[data-theme="dark"]{
+    color-scheme:dark;
+    --accent:#60a5fa;--accent-dark:#1e3a8a;--accent-soft:rgba(29,78,216,.15);
+    --text:#e2e8f0;--text-secondary:#94a3b8;--text-light:#64748b;
+    --surface:#1e293b;--surface-2:#172033;--surface-3:#0f172a;
+    --border:#334155;--border-soft:#1e293b;
+    --green:#4ade80;--amber:#fbbf24;--red:#f87171;--red-soft:rgba(185,28,28,.15);
+    --shadow-xs:0 1px 2px rgba(0,0,0,.3);
+}
+body{
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--surface-3);color:var(--text);min-height:100vh;
+    -webkit-font-smoothing:antialiased;overflow-x:hidden;
+}
+button,input,select{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ---------- загрузчик ---------- */
+.page-loader{position:fixed;inset:0;z-index:999;display:flex;align-items:center;justify-content:center;background:var(--surface-3);transition:opacity .3s var(--ease),visibility .3s var(--ease)}
+.page-loader.hidden{opacity:0;visibility:hidden}
+.loader-text{color:var(--text-secondary);font-size:13px;font-weight:500}
+
+/* ---------- каркас ---------- */
+.app{display:flex;min-height:100vh}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:18px 14px;z-index:100;transition:transform .25s var(--ease)}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 18px}
+.brand-logo{width:38px;height:38px;border-radius:10px;background:#0f766e;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px}
+.brand-title{font-weight:700;font-size:15px}
+.brand-sub{font-size:11.5px;color:var(--text-secondary)}
+.nav-title{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--text-light);padding:12px 10px 6px;font-weight:600}
+.nav-link{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:0;border-radius:var(--radius-md);background:none;color:var(--text-secondary);font-size:14px;font-weight:500;cursor:pointer;text-align:left}
+.nav-link:hover{background:var(--surface-2);color:var(--text)}
+.nav-link.active{background:var(--accent-soft);color:var(--accent);font-weight:600}
+.nav-link svg{width:18px;height:18px;flex:none}
+.sidebar-footer{margin-top:auto;border-top:1px solid var(--border);padding-top:14px}
+.me-name{font-size:13px;font-weight:600;padding:0 10px}
+.me-role{font-size:11.5px;color:var(--text-secondary);padding:2px 10px 10px}
+.logout{width:100%;height:36px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);color:var(--red);font-size:13px;font-weight:600;cursor:pointer}
+.logout:hover{border-color:var(--red)}
+
+.main{margin-left:240px;flex:1;min-width:0}
+.topbar{position:sticky;top:0;z-index:50;height:60px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--border)}
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0}
+.topbar h1{font-size:17px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-right{display:flex;align-items:center;gap:10px}
+.today{font-size:12.5px;color:var(--text-secondary);text-transform:capitalize;white-space:nowrap}
+.icon-btn{width:36px;height:36px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);color:var(--text-secondary);display:flex;align-items:center;justify-content:center;cursor:pointer}
+.icon-btn svg{width:18px;height:18px}
+.hamburger{display:none}
+.overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:90;display:none}
+.overlay.show{display:block}
+
+.content{padding:24px;max-width:1200px}
+.sec{display:none}
+.sec.active{display:block}
+
+@media (max-width:900px){
+    .sidebar{transform:translateX(-100%)}
+    .sidebar.open{transform:none}
+    .main{margin-left:0}
+    .hamburger{display:inline-flex}
+    .content{padding:16px}
+    .topbar{padding:0 14px}
+    .today{display:none}
+}
+
+/* ---------- компоненты ---------- */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-xs);padding:18px;min-width:0}
+.card-title{font-size:14px;font-weight:700;margin-bottom:12px}
+.grid-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:14px;margin-bottom:16px}
+.kpi-label{font-size:12px;color:var(--text-secondary);font-weight:500}
+.kpi-value{font-size:26px;font-weight:700;margin-top:6px;letter-spacing:-.4px;font-variant-numeric:tabular-nums}
+.kpi-value.ok{color:var(--green)}
+.kpi-value.mid{color:var(--amber)}
+.kpi-value.bad{color:var(--red)}
+.kpi-hint{font-size:11.5px;color:var(--text-light);margin-top:4px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.grid-2{grid-template-columns:1fr}}
+
+.sec-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.sec-head h2{font-size:18px;font-weight:700;letter-spacing:-.2px}
+.sec-sub{font-size:12.5px;color:var(--text-secondary);margin-top:2px}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.input,.select{height:36px;padding:0 12px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface);color:var(--text);font-size:13px}
+.input{min-width:210px}
+.btn{height:36px;padding:0 14px;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface-2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer}
+.btn:hover{border-color:var(--text-light)}
+.btn.primary{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
+
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);font-weight:600;padding:11px 14px;background:var(--surface-2);border-bottom:1px solid var(--border);white-space:nowrap}
+.tbl td{padding:11px 14px;border-bottom:1px solid var(--border-soft);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.tbl tr.risk td{background:var(--red-soft)}
+.tbl .num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tbl .name{font-weight:600}
+.tbl th.num{text-align:right}
+.card .table-wrap{border:0;border-radius:0}
+
+.pct{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pct.ok,.g-stat b.ok{color:var(--green)}
+.pct.mid,.g-stat b.mid{color:var(--amber)}
+.pct.bad,.g-stat b.bad{color:var(--red)}
+.bar{display:inline-block;width:80px;height:6px;border-radius:4px;background:var(--surface-3);overflow:hidden;vertical-align:middle;margin-left:8px}
+.bar i{display:block;height:100%;border-radius:4px}
+.bar i.ok,.hbar-track i.ok,.chart-col i.ok{background:var(--green)}
+.bar i.mid,.hbar-track i.mid,.chart-col i.mid{background:var(--amber)}
+.bar i.bad,.hbar-track i.bad,.chart-col i.bad{background:var(--red)}
+.muted{color:var(--text-light)}
+.empty{padding:28px;text-align:center;color:var(--text-secondary);font-size:13px}
+
+.grid-groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.g-card{display:flex;flex-direction:column;gap:14px}
+.g-name{font-size:16px;font-weight:700}
+.g-curator{font-size:12.5px;color:var(--text-secondary);margin-top:3px}
+.g-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.g-stat{background:var(--surface-2);border-radius:var(--radius-md);padding:9px 10px}
+.g-stat b{display:block;font-size:15px;font-variant-numeric:tabular-nums}
+.g-stat span{font-size:11px;color:var(--text-secondary)}
+
+.chart{display:flex;align-items:flex-end;gap:6px;height:170px;padding-top:6px}
+.chart-col{flex:1;height:100%;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;align-items:center}
+.chart-col i{display:block;width:100%;max-width:30px;min-height:3px;border-radius:6px 6px 0 0;background:var(--border)}
+.chart-col span{font-size:10px;color:var(--text-light);margin-top:6px;white-space:nowrap}
+
+.hbar{display:grid;grid-template-columns:170px 1fr 64px;gap:12px;align-items:center;font-size:13px;margin-bottom:11px}
+.hbar > span{color:var(--text-secondary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hbar b{text-align:right;font-variant-numeric:tabular-nums}
+.hbar-track{height:10px;background:var(--surface-3);border-radius:6px;overflow:hidden}
+.hbar-track i{display:block;height:100%;border-radius:6px}
+.hbar-track i.plain{background:var(--accent)}
+@media (max-width:600px){.hbar{grid-template-columns:110px 1fr 52px}}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,120px);background:var(--text);color:var(--surface);padding:11px 18px;border-radius:var(--radius-md);font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:transform .25s var(--ease),opacity .25s;z-index:300;max-width:calc(100vw - 32px);text-align:center}
+.toast.show{transform:translate(-50%,0);opacity:1}
+</style>
+</head>
+
+<body>
+
+<div class="page-loader" id="pageLoader">
+    <div class="loader-text" id="loaderText">Загрузка панели…</div>
+</div>
+
+<div class="overlay" id="overlay" onclick="closeSidebar()"></div>
+
+<div class="app">
+
+    <!-- ===== БОКОВОЕ МЕНЮ ===== -->
+    <aside class="sidebar" id="sidebar">
+        <div class="brand">
+            <div class="brand-logo">А</div>
+            <div>
+                <div class="brand-title">АДМТ</div>
+                <div class="brand-sub">Администрация техникума</div>
+            </div>
+        </div>
+
+        <div class="nav-title">Разделы</div>
+        <nav>
+            <button class="nav-link" data-section="overview" onclick="showSection('overview')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>
+                Главная
+            </button>
+            <button class="nav-link" data-section="groups" onclick="showSection('groups')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3 20c.6-3 3-4.5 6-4.5s5.4 1.5 6 4.5"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14.5c2.6 0 4.5 1.3 5 4"/></svg>
+                Группы
+            </button>
+            <button class="nav-link" data-section="students" onclick="showSection('students')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><circle cx="9" cy="11" r="2"/><path d="M6 16c.5-1.5 1.5-2 3-2s2.5.5 3 2"/><path d="M14 10h4M14 14h3"/></svg>
+                Студенты
+            </button>
+            <button class="nav-link" data-section="attendance" onclick="showSection('attendance')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1Z"/><rect x="5" y="6" width="14" height="15" rx="2.5"/><path d="m9 13.2 2.3 2.3L15.5 11"/></svg>
+                Посещаемость
+            </button>
+            <button class="nav-link" data-section="stats" onclick="showSection('stats')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V11"/><path d="M10.5 20V4"/><path d="M17 20v-8"/><path d="M3 20h18"/></svg>
+                Статистика
+            </button>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="me-name" id="meName">—</div>
+            <div class="me-role" id="meRole">АДМТ</div>
+            <button class="logout" onclick="logout()">Выйти</button>
+        </div>
+    </aside>
+
+    <div class="main">
+
+        <!-- ===== ВЕРХНЯЯ ПАНЕЛЬ ===== -->
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="icon-btn hamburger" onclick="openSidebar()" aria-label="Открыть меню">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+                </button>
+                <h1 id="secTitle">Главная</h1>
+            </div>
+            <div class="topbar-right">
+                <span class="today" id="todayText"></span>
+                <select class="select" id="periodSel" onchange="setPeriod(this.value)" aria-label="Период">
+                    <option value="7">7 дней</option>
+                    <option value="30" selected>30 дней</option>
+                    <option value="90">90 дней</option>
+                </select>
+                <button class="icon-btn" onclick="toggleTheme()" aria-label="Сменить тему">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+                </button>
+            </div>
+        </header>
+
+        <main class="content">
+
+            <!-- ===== ГЛАВНАЯ ===== -->
+            <section class="sec" id="sec-overview">
+                <div class="grid-kpi" id="kpi"></div>
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title">Требуют внимания: низкая посещаемость</div>
+                        <div class="table-wrap">
+                            <table class="tbl">
+                                <thead><tr><th>Студент</th><th>Группа</th><th class="num">Посещаемость</th></tr></thead>
+                                <tbody id="riskBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Посещаемость по дням (14 дней)</div>
+                        <div class="chart" id="dayChart"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== ГРУППЫ ===== -->
+            <section class="sec" id="sec-groups">
+                <div class="sec-head">
+                    <div>
+                        <h2>Группы</h2>
+                        <div class="sec-sub">Кураторы, состав и посещаемость за выбранный период</div>
+                    </div>
+                </div>
+                <div class="grid-groups" id="groupsGrid"></div>
+            </section>
+
+            <!-- ===== СТУДЕНТЫ ===== -->
+            <section class="sec" id="sec-students">
+                <div class="sec-head">
+                    <div>
+                        <h2>Студенты</h2>
+                        <div class="sec-sub" id="stCount"></div>
+                    </div>
+                    <div class="toolbar">
+                        <input class="input" id="stSearch" placeholder="Поиск по ФИО" oninput="S.search=this.value;renderStudents()">
+                        <select class="select" id="stGroup" onchange="S.filterGroup=this.value;renderStudents()"></select>
+                        <button class="btn" onclick="exportCsv()">Скачать CSV</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table class="tbl">
+                        <thead>
+                            <tr>
+                                <th>ФИО</th><th>Группа</th><th>Посещаемость</th>
+                                <th class="num">Отметок</th><th class="num">Пропусков</th><th class="num">Неуваж.</th>
+                            </tr>
+                        </thead>
+                        <tbody id="stBody"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- ===== ПОСЕЩАЕМОСТЬ ===== -->
+            <section class="sec" id="sec-attendance">
+                <div class="sec-head">
+                    <div>
+                        <h2>Посещаемость</h2>
+                        <div class="sec-sub">Сводка по группам и по дням за выбранный период</div>
+                    </div>
+                </div>
+                <div class="card" style="margin-bottom:16px">
+                    <div class="card-title">По группам</div>
+                    <div class="table-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr>
+                                    <th>Группа</th><th>Куратор</th><th class="num">Студентов</th><th class="num">Отметок</th>
+                                    <th>Посещаемость</th><th class="num">Уваж.</th><th class="num">Неуваж.</th>
+                                </tr>
+                            </thead>
+                            <tbody id="attGroupBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">По дням</div>
+                    <div class="table-wrap">
+                        <table class="tbl">
+                            <thead>
+                                <tr><th>Дата</th><th class="num">Отметок</th><th class="num">Пропусков</th><th>Посещаемость</th></tr>
+                            </thead>
+                            <tbody id="attDayBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ===== СТАТИСТИКА ===== -->
+            <section class="sec" id="sec-stats">
+                <div class="sec-head">
+                    <div>
+                        <h2>Статистика</h2>
+                        <div class="sec-sub">Распределение студентов и структура отметок</div>
+                    </div>
+                </div>
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-title">Студенты по уровню посещаемости</div>
+                        <div id="statStudents"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-title">Структура отметок</div>
+                        <div id="statTypes"></div>
+                    </div>
+                </div>
+                <div class="card" style="margin-top:16px">
+                    <div class="card-title">Рейтинг групп по посещаемости</div>
+                    <div id="statGroups"></div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   ПАНЕЛЬ АДМТ
+   Данные: users/{uid}, groups, students, attendance/{дата}
+========================================================= */
+
+const CONFIG = {
+    LOW: 60,                              // порог риска, %
+    MID: 75,                              // порог «хорошо», %
+    ALLOWED_ROLES: ["admt", "admin"],
+    TITLES: {
+        overview: "Главная",
+        groups: "Группы",
+        students: "Студенты",
+        attendance: "Посещаемость",
+        stats: "Статистика"
+    }
+};
+
+const S = {
+    user: null,
+    profile: {},
+    groups: new Map(),    // id -> { id, name, curator, studentIds }
+    students: new Map(),  // id -> { id, name, groupId, gid }
+    records: [],          // { sid, date, status, absentType }
+    section: "overview",
+    period: 30,
+    filterGroup: "",
+    search: "",
+    lastRows: []
+};
+
+const $ = id => document.getElementById(id);
+
+/* ---------- утилиты ---------- */
+
+function esc(s) {
+    return String(s ?? "").replace(/[&<>"']/g, c => ({
+        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[c]));
+}
+function toISO(d) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+function addDays(d, n) {
+    const x = new Date(d);
+    x.setDate(x.getDate() + n);
+    return x;
+}
+function todayISO() { return toISO(new Date()); }
+function periodFrom(days) { return toISO(addDays(new Date(), -(days - 1))); }
+function round1(n) { return Math.round(n * 10) / 10; }
+function pctOf(present, total) { return total ? round1(present / total * 100) : null; }
+
+function pctClass(p) {
+    if (p === null || p === undefined) return "";
+    if (p < CONFIG.LOW) return "bad";
+    if (p < CONFIG.MID) return "mid";
+    return "ok";
+}
+function pctHtml(p) {
+    if (p === null) return `<span class="muted">—</span>`;
+    const c = pctClass(p);
+    return `<span class="pct ${c}">${p.toFixed(1)}%</span><span class="bar"><i class="${c}" style="width:${Math.min(p, 100)}%"></i></span>`;
+}
+
+function toast(text) {
+    const el = $("toast");
+    el.textContent = text;
+    el.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+/* ---------- разбор данных ---------- */
+
+function normalizeStatus(status) {
+    const v = String(status ?? "").trim().toLowerCase();
+    if (["present", "присутствовал", "присутствует", "присутствие", "п", "✓"].includes(v)) return "present";
+    if (["absent", "отсутствовал", "отсутствует", "отсутствие", "н"].includes(v)) return "absent";
+    if (["late", "опоздал", "опоздание"].includes(v)) return "late";
+    return "";
+}
+
+function parseAttendance(doc) {
+    const data = doc.data() || {};
+    const date = data.date || doc.id;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return [];
+
+    const out = [];
+    const push = (sid, lessons) => {
+        if (!lessons || typeof lessons !== "object") return;
+        Object.values(lessons).forEach(ld => {
+            if (!ld) return;
+            const status = normalizeStatus(ld.status);
+            if (!status) return;
+            out.push({ sid, date, status, absentType: String(ld.absentType || "").toLowerCase() });
+        });
+    };
+
+    const st = data.students;
+    if (st && typeof st === "object" && !Array.isArray(st)) {
+        Object.entries(st).forEach(([key, rec]) => {
+            if (rec) push(String(rec.studentId || key).trim(), rec.lessons);
+        });
+    } else if (Array.isArray(st)) {
+        st.forEach(rec => rec && push(String(rec.studentId || rec.id || "").trim(), rec.lessons));
+    } else if (data.studentId) {
+        push(String(data.studentId).trim(), data.lessons);
+    }
+    return out;
+}
+
+async function fetchAttendance(from, to) {
+    const col = db.collection("attendance");
+    const idField = firebase.firestore.FieldPath.documentId();
+    try {
+        const snap = await col.where(idField, ">=", from).where(idField, "<=", to).get();
+        return snap.docs;
+    } catch (e) {
+        console.warn("attendance by id:", e);
+        const snap = await col.where("date", ">=", from).where("date", "<=", to).get();
+        return snap.docs;
+    }
+}
+
+function resolveGroupId(raw) {
+    if (!raw) return null;
+    const v = String(raw).trim();
+    if (S.groups.has(v)) return v;
+    const low = v.toLowerCase();
+    for (const g of S.groups.values()) {
+        if (g.name.toLowerCase() === low) return g.id;
+    }
+    return null;
+}
+
+/* Загрузка за 90 дней. Возвращает список разделов, которые не загрузились */
+async function loadData() {
+    const from = toISO(addDays(new Date(), -89));
+    const to = todayISO();
+
+    const [gRes, sRes, aRes] = await Promise.allSettled([
+        db.collection("groups").get(),
+        db.collection("students").get(),
+        fetchAttendance(from, to)
+    ]);
+    const failed = [];
+
+    if (gRes.status === "fulfilled") {
+        gRes.value.forEach(d => {
+            const x = d.data() || {};
+            S.groups.set(d.id, {
+                id: d.id,
+                name: String(x.name || d.id).trim(),
+                curator: String(x.curatorName || "").trim(),
+                studentIds: Array.isArray(x.studentIds) ? x.studentIds.map(String) : []
+            });
+        });
+    } else {
+        console.error("groups:", gRes.reason);
+        failed.push("группы");
+    }
+
+    if (sRes.status === "fulfilled") {
+        sRes.value.forEach(d => {
+            const x = d.data() || {};
+            S.students.set(d.id, {
+                id: d.id,
+                name: String(x.fullName || x.fio || x.name || "Без имени").trim(),
+                groupId: x.groupId ? String(x.groupId) : null,
+                gid: null
+            });
+        });
+    } else {
+        console.error("students:", sRes.reason);
+        failed.push("студенты");
+    }
+
+    /* Привязка студента к группе: сначала поле groupId, затем список studentIds у группы */
+    S.students.forEach(s => { s.gid = resolveGroupId(s.groupId); });
+    S.groups.forEach(g => {
+        g.studentIds.forEach(sid => {
+            const s = S.students.get(sid);
+            if (s && !s.gid) s.gid = g.id;
+        });
+    });
+
+    if (aRes.status === "fulfilled") {
+        aRes.value.forEach(doc => {
+            parseAttendance(doc).forEach(r => {
+                if (S.students.has(r.sid)) S.records.push(r);
+            });
+        });
+    } else {
+        console.error("attendance:", aRes.reason);
+        failed.push("посещаемость");
+    }
+
+    return failed;
+}
+
+/* ---------- расчёты ---------- */
+
+/* Агрегация за последние N дней. Логика совпадает с khome.html:
+   «присутствие» = присутствовал + опоздал; уважительные = uv / bolezn */
+function aggregate(days) {
+    const from = periodFrom(days);
+    const to = todayISO();
+    const st = new Map();
+    const byDay = new Map();
+    const types = { present: 0, late: 0, excused: 0, unexcused: 0 };
+
+    S.records.forEach(r => {
+        if (r.date < from || r.date > to) return;
+
+        let p = st.get(r.sid);
+        if (!p) { p = { total: 0, present: 0, excused: 0, unexcused: 0 }; st.set(r.sid, p); }
+
+        let d = byDay.get(r.date);
+        if (!d) { d = { total: 0, present: 0 }; byDay.set(r.date, d); }
+
+        p.total++;
+        d.total++;
+
+        if (r.status === "absent") {
+            if (r.absentType === "uv" || r.absentType === "bolezn") { p.excused++; types.excused++; }
+            else { p.unexcused++; types.unexcused++; }
+        } else {
+            p.present++;
+            d.present++;
+            if (r.status === "late") types.late++;
+            else types.present++;
+        }
+    });
+
+    return { st, byDay, types, from, to };
+}
+
+function buildGroupRows(agg) {
+    const rows = new Map();
+    S.groups.forEach(g => rows.set(g.id, {
+        id: g.id, name: g.name, curator: g.curator,
+        members: 0, total: 0, present: 0, excused: 0, unexcused: 0
+    }));
+
+    S.students.forEach(s => {
+        const row = s.gid ? rows.get(s.gid) : null;
+        if (!row) return;
+        row.members++;
+        const p = agg.st.get(s.id);
+        if (!p) return;
+        row.total += p.total;
+        row.present += p.present;
+        row.excused += p.excused;
+        row.unexcused += p.unexcused;
+    });
+
+    return [...rows.values()].map(r => ({
+        ...r,
+        absent: r.excused + r.unexcused,
+        pct: pctOf(r.present, r.total)
+    }));
+}
+
+function buildStudentRows(agg) {
+    const rows = [];
+    S.students.forEach(s => {
+        const p = agg.st.get(s.id) || { total: 0, present: 0, excused: 0, unexcused: 0 };
+        rows.push({
+            id: s.id,
+            name: s.name,
+            gid: s.gid,
+            group: s.gid ? S.groups.get(s.gid).name : "Без группы",
+            total: p.total,
+            absent: p.excused + p.unexcused,
+            unexcused: p.unexcused,
+            pct: pctOf(p.present, p.total)
+        });
+    });
+    return rows;
+}
+
+function kpi(label, value, hint, cls = "") {
+    return `<div class="card">
+        <div class="kpi-label">${label}</div>
+        <div class="kpi-value ${cls}">${value}</div>
+        <div class="kpi-hint">${hint}</div>
+    </div>`;
+}
+
+/* ---------- разделы ---------- */
+
+function renderOverview() {
+    const agg = aggregate(S.period);
+    const groups = buildGroupRows(agg);
+    const students = buildStudentRows(agg);
+    const withData = students.filter(s => s.pct !== null);
+
+    let tot = 0, pres = 0;
+    agg.st.forEach(p => { tot += p.total; pres += p.present; });
+    const overall = pctOf(pres, tot);
+
+    const week = aggregate(7);
+    const weekAbs = week.types.excused + week.types.unexcused;
+    const riskG = groups.filter(g => g.pct !== null && g.pct < CONFIG.LOW).length;
+    const riskS = withData.filter(s => s.pct < CONFIG.LOW).length;
+
+    $("kpi").innerHTML = [
+        kpi("Групп", S.groups.size, "в техникуме"),
+        kpi("Студентов", S.students.size, "в системе"),
+        kpi("Средняя посещаемость", overall === null ? "—" : overall.toFixed(1) + "%", `за ${S.period} дн.`, pctClass(overall)),
+        kpi("Пропуски за 7 дней", weekAbs, "уважительные и неуважительные"),
+        kpi("Группы в зоне риска", riskG, `ниже ${CONFIG.LOW}%`, riskG ? "bad" : ""),
+        kpi("Студенты в зоне риска", riskS, `ниже ${CONFIG.LOW}%`, riskS ? "bad" : "")
+    ].join("");
+
+    const risk = [...withData].sort((a, b) => a.pct - b.pct).slice(0, 8);
+    $("riskBody").innerHTML = risk.length
+        ? risk.map(s => `<tr class="${s.pct < CONFIG.LOW ? "risk" : ""}">
+            <td class="name">${esc(s.name)}</td>
+            <td>${esc(s.group)}</td>
+            <td class="num">${pctHtml(s.pct)}</td>
+          </tr>`).join("")
+        : `<tr><td colspan="3" class="empty">Данных о посещаемости пока нет</td></tr>`;
+
+    const a14 = aggregate(14);
+    const now = new Date();
+    $("dayChart").innerHTML = Array.from({ length: 14 }, (_, i) => {
+        const d = addDays(now, i - 13);
+        const day = a14.byDay.get(toISO(d));
+        const p = day ? pctOf(day.present, day.total) : null;
+        const h = p === null ? 3 : Math.max(p, 3);
+        const label = `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}`;
+        return `<div class="chart-col" title="${label}: ${p === null ? "нет отметок" : p.toFixed(1) + "%"}">
+            <i class="${pctClass(p)}" style="height:${h}%"></i><span>${label}</span>
+        </div>`;
+    }).join("");
+
+    if (!S.records.length) {
+        toast("Отметок посещаемости пока нет");
+    }
+}
+
+function renderGroups() {
+    const agg = aggregate(S.period);
+    const rows = buildGroupRows(agg).sort((a, b) => a.name.localeCompare(b.name, "ru"));
+
+    $("groupsGrid").innerHTML = rows.length
+        ? rows.map(g => `
+            <div class="card g-card">
+                <div>
+                    <div class="g-name">${esc(g.name)}</div>
+                    <div class="g-curator">Куратор: ${esc(g.curator || "не назначен")}</div>
+                </div>
+                <div class="g-stats">
+                    <div class="g-stat"><b>${g.members}</b><span>студентов</span></div>
+                    <div class="g-stat"><b class="${pctClass(g.pct)}">${g.pct === null ? "—" : g.pct.toFixed(1) + "%"}</b><span>посещаемость</span></div>
+                    <div class="g-stat"><b>${g.absent}</b><span>пропусков</span></div>
+                </div>
+                <button class="btn" onclick="openGroupStudents('${esc(g.id)}')">Список студентов</button>
+            </div>`).join("")
+        : `<div class="card empty">Групп пока нет</div>`;
+}
+
+function fillGroupSelect() {
+    const sel = $("stGroup");
+    const opts = [`<option value="">Все группы</option>`];
+    [...S.groups.values()]
+        .sort((a, b) => a.name.localeCompare(b.name, "ru"))
+        .forEach(g => opts.push(`<option value="${esc(g.id)}">${esc(g.name)}</option>`));
+    if ([...S.students.values()].some(s => !s.gid)) {
+        opts.push(`<option value="none">Без группы</option>`);
+    }
+    sel.innerHTML = opts.join("");
+    sel.value = S.filterGroup;
+    if (sel.value !== S.filterGroup) { S.filterGroup = ""; sel.value = ""; }
+}
+
+function renderStudents() {
+    const agg = aggregate(S.period);
+    const q = S.search.trim().toLowerCase();
+    const all = buildStudentRows(agg);
+
+    const rows = all
+        .filter(r => {
+            if (!S.filterGroup) return true;
+            if (S.filterGroup === "none") return !r.gid;
+            return r.gid === S.filterGroup;
+        })
+        .filter(r => !q || r.name.toLowerCase().includes(q))
+        .sort((a, b) => {
+            if (a.pct === null && b.pct === null) return a.name.localeCompare(b.name, "ru");
+            if (a.pct === null) return 1;
+            if (b.pct === null) return -1;
+            return a.pct - b.pct;
+        });
+
+    S.lastRows = rows;
+    $("stCount").textContent = `Показано ${rows.length} из ${all.length}`;
+
+    $("stBody").innerHTML = rows.length
+        ? rows.map(r => `<tr class="${r.pct !== null && r.pct < CONFIG.LOW ? "risk" : ""}">
+            <td class="name">${esc(r.name)}</td>
+            <td>${esc(r.group)}</td>
+            <td>${pctHtml(r.pct)}</td>
+            <td class="num">${r.total}</td>
+            <td class="num">${r.absent}</td>
+            <td class="num">${r.unexcused}</td>
+          </tr>`).join("")
+        : `<tr><td colspan="6" class="empty">${S.students.size ? "Никого не найдено" : "Студентов пока нет"}</td></tr>`;
+}
+
+function openGroupStudents(gid) {
+    S.filterGroup = gid;
+    S.search = "";
+    $("stSearch").value = "";
+    fillGroupSelect();
+    showSection("students");
+}
+
+function exportCsv() {
+    if (!S.lastRows.length) { toast("Нет данных для выгрузки"); return; }
+    const head = ["ФИО", "Группа", "Посещаемость, %", "Отметок", "Пропусков", "Неуважительных"];
+    const lines = S.lastRows.map(r => [
+        r.name,
+        r.group,
+        r.pct === null ? "" : r.pct.toFixed(1).replace(".", ","),
+        r.total,
+        r.absent,
+        r.unexcused
+    ]);
+    const csv = [head, ...lines]
+        .map(row => row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(";"))
+        .join("\r\n");
+
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `students_${S.period}d_${todayISO()}.csv`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast("Файл сформирован");
+}
+
+function renderAttendance() {
+    const agg = aggregate(S.period);
+    const groups = buildGroupRows(agg).sort((a, b) => a.name.localeCompare(b.name, "ru"));
+
+    $("attGroupBody").innerHTML = groups.length
+        ? groups.map(g => `<tr class="${g.pct !== null && g.pct < CONFIG.LOW ? "risk" : ""}">
+            <td class="name">${esc(g.name)}</td>
+            <td>${esc(g.curator || "—")}</td>
+            <td class="num">${g.members}</td>
+            <td class="num">${g.total}</td>
+            <td>${pctHtml(g.pct)}</td>
+            <td class="num">${g.excused}</td>
+            <td class="num">${g.unexcused}</td>
+          </tr>`).join("")
+        : `<tr><td colspan="7" class="empty">Групп пока нет</td></tr>`;
+
+    const days = [...agg.byDay.entries()].sort((a, b) => b[0].localeCompare(a[0]));
+    $("attDayBody").innerHTML = days.length
+        ? days.map(([date, d]) => {
+            const [y, m, dd] = date.split("-");
+            return `<tr>
+                <td class="name">${dd}.${m}.${y}</td>
+                <td class="num">${d.total}</td>
+                <td class="num">${d.total - d.present}</td>
+                <td>${pctHtml(pctOf(d.present, d.total))}</td>
+              </tr>`;
+        }).join("")
+        : `<tr><td colspan="4" class="empty">Отметок за выбранный период нет</td></tr>`;
+}
+
+function barRow(label, value, pct, cls = "") {
+    return `<div class="hbar">
+        <span title="${esc(label)}">${esc(label)}</span>
+        <div class="hbar-track"><i class="${cls}" style="width:${Math.min(pct, 100)}%"></i></div>
+        <b>${value}</b>
+    </div>`;
+}
+
+function renderStats() {
+    const agg = aggregate(S.period);
+    const students = buildStudentRows(agg);
+    const withData = students.filter(s => s.pct !== null);
+    const n = withData.length || 1;
+    const count = f => withData.filter(s => f(s.pct)).length;
+
+    const buckets = [
+        { label: `${CONFIG.MID}% и выше`, cls: "ok", c: count(p => p >= CONFIG.MID) },
+        { label: `От ${CONFIG.LOW}% до ${CONFIG.MID}%`, cls: "mid", c: count(p => p >= CONFIG.LOW && p < CONFIG.MID) },
+        { label: `Ниже ${CONFIG.LOW}%`, cls: "bad", c: count(p => p < CONFIG.LOW) }
+    ];
+
+    $("statStudents").innerHTML = withData.length
+        ? buckets.map(b => barRow(b.label, b.c, b.c / n * 100, b.cls)).join("") +
+          `<div class="sec-sub" style="margin-top:8px">С отметками: ${withData.length} из ${students.length}</div>`
+        : `<div class="empty">Нет отметок за период</div>`;
+
+    const t = agg.types;
+    const totalMarks = (t.present + t.late + t.excused + t.unexcused) || 1;
+    $("statTypes").innerHTML = [
+        ["Присутствовал", t.present, "ok"],
+        ["Опоздал", t.late, "mid"],
+        ["Уважительная причина", t.excused, "plain"],
+        ["Неуважительная", t.unexcused, "bad"]
+    ].map(([label, v, cls]) => barRow(label, v, v / totalMarks * 100, cls)).join("");
+
+    const ranked = buildGroupRows(agg)
+        .filter(g => g.pct !== null)
+        .sort((a, b) => b.pct - a.pct);
+    $("statGroups").innerHTML = ranked.length
+        ? ranked.map(g => barRow(g.name, g.pct.toFixed(1) + "%", g.pct, pctClass(g.pct))).join("")
+        : `<div class="empty">Нет отметок за период</div>`;
+}
+
+/* ---------- навигация ---------- */
+
+function renderSection(name) {
+    switch (name) {
+        case "groups":     renderGroups(); break;
+        case "students":   renderStudents(); break;
+        case "attendance": renderAttendance(); break;
+        case "stats":      renderStats(); break;
+        default:           renderOverview();
+    }
+}
+
+function showSection(name) {
+    if (!CONFIG.TITLES[name]) name = "overview";
+    S.section = name;
+
+    document.querySelectorAll(".sec").forEach(el => el.classList.toggle("active", el.id === "sec-" + name));
+    document.querySelectorAll(".nav-link").forEach(el => el.classList.toggle("active", el.dataset.section === name));
+    $("secTitle").textContent = CONFIG.TITLES[name];
+
+    closeSidebar();
+    renderSection(name);
+    try { history.replaceState(null, "", "#" + name); } catch (e) {}
+    window.scrollTo({ top: 0 });
+}
+
+function setPeriod(v) {
+    S.period = Number(v) || 30;
+    renderSection(S.section);
+}
+
+function openSidebar() {
+    $("sidebar").classList.add("open");
+    $("overlay").classList.add("show");
+}
+function closeSidebar() {
+    $("sidebar").classList.remove("open");
+    $("overlay").classList.remove("show");
+}
+
+/* ---------- тема ---------- */
+
+function applyTheme(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    const meta = $("metaThemeColor");
+    if (meta) meta.setAttribute("content", t === "dark" ? "#0f172a" : "#1e293b");
+}
+function initTheme() {
+    let saved = null;
+    try { saved = localStorage.getItem("admt-theme"); } catch (e) {}
+    applyTheme(saved || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+}
+function toggleTheme() {
+    const next = document.documentElement.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    applyTheme(next);
+    try { localStorage.setItem("admt-theme", next); } catch (e) {}
+}
+
+/* ---------- выход и роли ---------- */
+
+async function logout() {
+    if (!confirm("Выйти из аккаунта?")) return;
+    try { await auth.signOut(); } catch (e) { console.warn(e); }
+    location.replace("login.html");
+}
+
+function homeForRole(role) {
+    return {
+        admin: "adminhome.html",
+        curator: "khome.html",
+        starosta: "khome.html",
+        parent: "phome.html"
+    }[role] || "home.html";
+}
+
+/* ---------- старт ---------- */
+
+async function init(user) {
+    S.user = user;
+
+    try {
+        const snap = await db.collection("users").doc(user.uid).get();
+        S.profile = snap.data() || {};
+    } catch (e) {
+        console.warn("profile:", e.code || e.message);
+        S.profile = {};
+    }
+
+    const role = String(S.profile.role || "").toLowerCase();
+    if (!CONFIG.ALLOWED_ROLES.includes(role)) {
+        $("loaderText").textContent = "Эта страница для АДМТ";
+        setTimeout(() => location.replace(homeForRole(role)), 1200);
+        return;
+    }
+
+    const name = S.profile.name || S.profile.fullName || user.displayName || user.email || "Пользователь";
+    const parts = name.trim().split(/\s+/);
+    $("meName").textContent = name;
+    $("meRole").textContent = S.profile.position || (role === "admin" ? "Администратор" : "АДМТ");
+
+    try {
+        const failed = await loadData();
+        fillGroupSelect();
+        showSection(location.hash.slice(1) || "overview");
+        if (failed.length) {
+            toast(`Не загружено: ${failed.join(", ")}. Проверьте правила доступа Firestore.`);
+        }
+    } catch (e) {
+        console.error(e);
+        toast("Ошибка загрузки данных");
+    } finally {
+        $("pageLoader").classList.add("hidden");
+    }
+}
+
+initTheme();
+$("todayText").textContent = new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" });
+
+window.addEventListener("hashchange", () => showSection(location.hash.slice(1)));
+
+auth.onAuthStateChanged(user => {
+    if (!user) { location.replace("login.html"); return; }
+    init(user);
+});
+</script>
+
+</body>
+</html>

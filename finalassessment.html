@@ -114,6 +114,24 @@ button,select,input{font-family:inherit}
 }
 .table-title{font-size:14px;font-weight:700}
 .table-sub{font-size:12px;color:var(--text-secondary);margin-top:2px}
+
+.print-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:9px 16px;
+    border:1px solid var(--accent);
+    border-radius:var(--radius-sm);
+    background:var(--accent);
+    color:#fff;
+    font-size:13px;font-weight:600;
+    cursor:pointer;
+    transition:background .15s ease;
+    white-space:nowrap;
+}
+.print-btn:hover{background:#1e40af;border-color:#1e40af}
+@media (max-width:700px){
+    .print-btn{padding:8px 12px;font-size:12px}
+}
+
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
 th,td{
@@ -121,7 +139,7 @@ th,td{
     border-bottom:1px solid var(--border-soft);
     text-align:center;
     white-space:nowrap;
-    vertical-align:middle;      /* центр по вертикали для всех ячеек */
+    vertical-align:middle;
 }
 th{
     position:sticky;top:0;background:var(--surface-2);font-size:11.5px;font-weight:600;
@@ -133,19 +151,16 @@ th.name,td.name{
 }
 th.name{background:var(--surface-2);z-index:2}
 
-/* фиксированная высота строк с оценками — чтобы середина квадратика совпадала
-   с серединой вертикального заголовка */
 tbody tr{height:50px}
 
-/* ВЕРТИКАЛЬНЫЕ ЗАГОЛОВКИ ПРЕДМЕТОВ — по центру относительно ячеек с оценками */
 th.subj{
     writing-mode:vertical-rl;
     transform:rotate(180deg);
     white-space:nowrap;
-    vertical-align:middle;      /* было bottom — из-за этого съезжало */
+    vertical-align:middle;
     text-align:center;
     padding:8px 4px;
-    height:150px;               /* можно уменьшить до 120px, если названия короткие */
+    height:150px;
     min-width:32px;
     font-size:11px;
     line-height:1.05;
@@ -155,7 +170,6 @@ th.subj{
 
 td.num{color:var(--text-light);width:36px}
 
-/* Компактный селект-«квадратик» */
 .mark-select{
     -webkit-appearance:none; appearance:none;
     width:52px; height:34px;
@@ -224,7 +238,6 @@ td.num{color:var(--text-light);width:36px}
 /* ---------- MOBILE (до 700px) ---------- */
 .mobile-only{display:none}
 @media (max-width:700px){
-    /* прячем таблицу, показываем мобильный блок */
     .desktop-only{display:none !important}
     .mobile-only{display:block}
 
@@ -232,7 +245,6 @@ td.num{color:var(--text-light);width:36px}
     .field{min-width:0; flex:1 1 100%}
     .field select{width:100%; min-width:0}
 
-    /* селектор предмета */
     .subject-picker{
         padding:12px 14px;
         border-bottom:1px solid var(--border-soft);
@@ -257,7 +269,6 @@ td.num{color:var(--text-light);width:36px}
         color:var(--text-light);
     }
 
-    /* список студентов под выбранным предметом */
     .student-list{
         display:flex;flex-direction:column;
     }
@@ -330,6 +341,14 @@ td.num{color:var(--text-light);width:36px}
                     <div class="table-title" id="tableTitle">—</div>
                     <div class="table-sub" id="tableSub">—</div>
                 </div>
+                <button class="print-btn" id="printBtn" type="button" title="Сгенерировать и распечатать ведомость">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                        <path d="M6 9V2h12v7"/>
+                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                        <path d="M6 14h12v8H6z"/>
+                    </svg>
+                    Печать
+                </button>
             </div>
 
             <!-- ДЕСКТОП: таблица -->
@@ -381,7 +400,6 @@ const HOME_BY_ROLE  = { admin: "adminhome.html", admt: "admt.html", curator: "kh
 const ROLE_LABELS   = { admin: "Администратор", admt: "АДМТ", curator: "Куратор", student: "Староста", parent: "Родитель" };
 const DAYS = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 
-/* Короткие метки: зачёт — за-о / нз-о */
 const MARKS = [
     { v:"5",     t:"5",       full:"5 (отлично)",             cls:"good" },
     { v:"4",     t:"4",       full:"4 (хорошо)",              cls:"good" },
@@ -964,6 +982,197 @@ async function saveMark(sid, subj, newVal, el){
 }
 
 /* =========================================================
+   ПЕЧАТЬ ВЕДОМОСТИ
+========================================================= */
+function buildPrintHTML(){
+    const groupName = S.group ? (S.group.name || S.groupId) : "—";
+    const semTitle  = semesterTitle(S.semNo);
+    const what      = S.type === "attestation"
+        ? `${S.period}-я аттестация`
+        : "Итоговая за семестр";
+    const typeName  = typeLabel(S.type);
+    const today     = new Date().toLocaleDateString("ru-RU");
+
+    const cell = v => {
+        if (!v) return "";
+        const mi = markInfo(v);
+        return mi ? mi.t : esc(v);
+    };
+
+    const thead = `
+        <tr>
+            <th style="width:36px">№</th>
+            <th style="width:220px;text-align:left">ФИО студента</th>
+            ${S.subjects.map(s => `<th title="${esc(s)}">${esc(s)}</th>`).join("")}
+        </tr>`;
+
+    const rows = S.students.map((st, i) => `
+        <tr>
+            <td class="center">${i + 1}</td>
+            <td>${esc(st.name)}</td>
+            ${S.subjects.map(subj => {
+                const val = (S.marks[st.id] || {})[keyOf(subj)] ?? "";
+                return `<td class="center">${cell(val)}</td>`;
+            }).join("")}
+        </tr>`).join("");
+
+    const minRows = 20;
+    let extraRows = "";
+    for (let i = S.students.length; i < minRows; i++) {
+        extraRows += `<tr>
+            <td class="center">${i + 1}</td>
+            <td></td>
+            ${S.subjects.map(() => `<td></td>`).join("")}
+        </tr>`;
+    }
+
+    const footer = `
+        <div class="signs">
+            <div class="sign">
+                <div>Преподаватель ___________________________</div>
+                <div class="sign-hint">(подпись, ФИО)</div>
+            </div>
+            <div class="sign">
+                <div>Куратор группы ___________________________</div>
+                <div class="sign-hint">(подпись, ФИО)</div>
+            </div>
+        </div>`;
+
+    return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>${typeName} ведомость — ${esc(groupName)}</title>
+<style>
+    @page{ size:A4 landscape; margin:12mm 10mm; }
+    *{box-sizing:border-box}
+    body{
+        font-family:"Times New Roman", "DejaVu Serif", serif;
+        color:#000; margin:0; padding:0;
+        font-size:11pt;
+    }
+    .doc-head{
+        display:flex;justify-content:space-between;align-items:flex-start;
+        margin-bottom:10px;gap:20px;
+    }
+    .doc-head .title{
+        font-size:14pt;font-weight:700;text-align:center;
+        flex:1;line-height:1.3;
+    }
+    .doc-head .meta{
+        font-size:10pt;text-align:right;white-space:nowrap;
+        line-height:1.4;
+    }
+    .doc-sub{
+        text-align:center;font-size:11pt;margin-bottom:12px;
+        line-height:1.4;
+    }
+    .doc-sub b{font-weight:700}
+    table{
+        width:100%;border-collapse:collapse;
+        font-size:10pt;
+        table-layout:auto;
+    }
+    th,td{
+        border:1px solid #000;
+        padding:4px 5px;
+        vertical-align:middle;
+        word-break:break-word;
+    }
+    thead th{
+        background:#f0f0f0;
+        font-weight:700;
+        text-align:center;
+        font-size:9.5pt;
+    }
+    td.center{text-align:center}
+    tbody tr{height:24px}
+    .signs{
+        margin-top:24px;
+        display:flex;justify-content:space-between;gap:40px;
+        font-size:10pt;
+    }
+    .sign{flex:1}
+    .sign-hint{
+        font-size:8.5pt;color:#444;margin-top:2px;padding-left:20px;
+    }
+    .date-line{
+        margin-top:14px;font-size:10pt;
+    }
+    @media print{
+        body{padding:0}
+        thead{display:table-header-group}
+        tr{page-break-inside:avoid}
+    }
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+    <div class="meta">
+        <div>Учебное заведение</div>
+        <div>Дата: ${today}</div>
+    </div>
+    <div class="title">
+        ${typeName.toUpperCase()} ВЕДОМОСТЬ
+    </div>
+    <div class="meta">
+        <div>Форма № 1</div>
+        <div>Лист ____ из ____</div>
+    </div>
+</div>
+
+<div class="doc-sub">
+    Группа: <b>${esc(groupName)}</b> ·
+    ${esc(semTitle)} ·
+    ${esc(what)} ·
+    Дисциплин: <b>${S.subjects.length}</b> ·
+    Студентов: <b>${S.students.length}</b>
+</div>
+
+<table>
+    <thead>${thead}</thead>
+    <tbody>${rows}${extraRows}</tbody>
+</table>
+
+<div class="date-line">
+    Дата проведения: «____» ______________ 20___ г.
+</div>
+
+${footer}
+
+</body>
+</html>`;
+}
+
+function openPrintWindow(){
+    if (!S.groupId) { toast("Сначала выберите группу"); return; }
+    if (!S.subjects.length) { toast("В настройках группы нет дисциплин для этого семестра"); return; }
+    if (!S.students.length) { toast("В группе нет студентов"); return; }
+
+    const html = buildPrintHTML();
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) {
+        toast("Разрешите всплывающие окна для печати");
+        return;
+    }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+
+    win.onload = () => {
+        setTimeout(() => {
+            win.focus();
+            win.print();
+        }, 200);
+    };
+
+    setTimeout(() => {
+        try { win.focus(); win.print(); } catch(e){}
+    }, 500);
+}
+
+/* =========================================================
    СОБЫТИЯ
 ========================================================= */
 document.addEventListener("change", e => {
@@ -993,6 +1202,8 @@ $("subjectSel").addEventListener("change", e => {
     S.mobileSubject = e.target.value;
     renderMobile();
 });
+
+$("printBtn").addEventListener("click", openPrintWindow);
 
 let _lastMobile = null;
 function handleResize(){

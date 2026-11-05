@@ -116,7 +116,13 @@ button,select,input{font-family:inherit}
 .table-sub{font-size:12px;color:var(--text-secondary);margin-top:2px}
 .table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:13px}
-th,td{padding:8px 8px;border-bottom:1px solid var(--border-soft);text-align:center;white-space:nowrap}
+th,td{
+    padding:8px 8px;
+    border-bottom:1px solid var(--border-soft);
+    text-align:center;
+    white-space:nowrap;
+    vertical-align:middle;      /* центр по вертикали для всех ячеек */
+}
 th{
     position:sticky;top:0;background:var(--surface-2);font-size:11.5px;font-weight:600;
     color:var(--text-secondary);text-transform:uppercase;letter-spacing:.3px;
@@ -127,14 +133,19 @@ th.name,td.name{
 }
 th.name{background:var(--surface-2);z-index:2}
 
-/* ВЕРТИКАЛЬНЫЕ ЗАГОЛОВКИ ПРЕДМЕТОВ */
+/* фиксированная высота строк с оценками — чтобы середина квадратика совпадала
+   с серединой вертикального заголовка */
+tbody tr{height:50px}
+
+/* ВЕРТИКАЛЬНЫЕ ЗАГОЛОВКИ ПРЕДМЕТОВ — по центру относительно ячеек с оценками */
 th.subj{
     writing-mode:vertical-rl;
     transform:rotate(180deg);
     white-space:nowrap;
-    vertical-align:bottom;
-    padding:10px 4px;
-    height:150px;
+    vertical-align:middle;      /* было bottom — из-за этого съезжало */
+    text-align:center;
+    padding:8px 4px;
+    height:150px;               /* можно уменьшить до 120px, если названия короткие */
     min-width:32px;
     font-size:11px;
     line-height:1.05;
@@ -381,11 +392,6 @@ const MARKS = [
     { v:"н",     t:"н/а",     full:"Не аттестован",           cls:"bad"  }
 ];
 const markInfo = v => MARKS.find(m => m.v === v);
-const markShort = v => {
-    if (!v) return "";
-    const m = markInfo(v);
-    return m ? m.t : v;
-};
 const labelOf = v => (v ? (markInfo(v)?.full || v) : "пусто");
 
 /* =========================================================
@@ -404,7 +410,7 @@ const S = {
     marks: {},
     logs: [],
     unsubs: [],
-    mobileSubject: ""     // выбранный предмет на мобильном
+    mobileSubject: ""
 };
 
 const $ = id => document.getElementById(id);
@@ -754,7 +760,7 @@ function renderHeader(){
     $("tableSub").textContent = `Группа ${grp} · студентов: ${S.students.length} · дисциплин: ${S.subjects.length}`;
 }
 
-/* ---- селект оценки (один для десктопа и мобильного) ---- */
+/* ---- селект оценки ---- */
 function markSelectHTML(sid, subj, val){
     return `<select class="mark-select ${val ? "filled" : ""}"
                 data-s="${esc(sid)}" data-c="${esc(subj)}" data-old="${esc(val)}">
@@ -807,7 +813,6 @@ function renderDesktop(){
 
 /* ---- мобильный блок ---- */
 function syncMobileSubject(){
-    // если текущий выбранный предмет не входит в новый список — берём первый
     if (!S.subjects.includes(S.mobileSubject)) {
         S.mobileSubject = S.subjects[0] || "";
     }
@@ -961,7 +966,6 @@ async function saveMark(sid, subj, newVal, el){
 /* =========================================================
    СОБЫТИЯ
 ========================================================= */
-/* Делегирование: работает и для таблицы, и для мобильного списка */
 document.addEventListener("change", e => {
     const sel = e.target.closest("select.mark-select");
     if (!sel) return;
@@ -985,13 +989,11 @@ $("modeCorrect").addEventListener("click", () => setMode("correct"));
 document.querySelectorAll(".menu-btn").forEach(b =>
     b.addEventListener("click", () => setType(b.dataset.type)));
 
-/* Выбор предмета на мобильном */
 $("subjectSel").addEventListener("change", e => {
     S.mobileSubject = e.target.value;
     renderMobile();
 });
 
-/* Реагируем на изменение ширины окна: переключаем режим отрисовки */
 let _lastMobile = null;
 function handleResize(){
     const now = isMobile();

@@ -7,6 +7,7 @@
 <meta name="description" content="Система управления посещаемостью студентов">
 <title>Посещаемость — Панель управления</title>
 
+<!-- PWA -->
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -352,6 +353,7 @@ button{font-family:inherit}
 }
 .unread-dot.show{display:block}
 
+/* Кнопка темы */
 .theme-toggle-btn{
     position:relative;
     width:38px;height:38px;
@@ -1961,6 +1963,7 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
                             <div class="dropdown-role">Администратор</div>
                         </div>
 
+                        <!-- НОВАЯ КНОПКА TELEGRAM -->
                         <button class="dropdown-item" id="linkTgBtn" onclick="openTelegramModal()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="m22 2-7 20-4-9-9-4Z"/>
@@ -2536,7 +2539,7 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
 <script>
 
 /* =========================================================
-   CONFIG
+   CONFIG & SHORTCUTS
 ========================================================= */
 
 const CONFIG = {
@@ -2549,11 +2552,7 @@ const CONFIG = {
     IDLE_ACTIVITY_THROTTLE: 2000,
     INITIAL_LOAD_DELAY: 800,
     SPARK_DAYS: 7,
-    LOW_ATTENDANCE: 60,
-    COUNT_REFRESH_MS: 60_000,
-    PROFILE_TTL: 10 * 60 * 1000,
-    PROFILE_CACHE_KEY: "kurator_admin_profile_cache",
-    MIGRATION_FLAG_KEY: "kurator_attendance_migration_v1"
+    LOW_ATTENDANCE: 60
 };
 
 const db = firebase.firestore();
@@ -2563,13 +2562,21 @@ let currentUserUid = null;
 let currentUserRole = null;
 let isInitialLoad = true;
 
-let requestsInterval = null;
-let messagesInterval = null;
-let countsInterval = null;
-let debtorsInterval = null;
+// Флаги запуска слушателей
+const listenerFlags = {
+    requests: false,
+    messages: false
+};
 
+let unsubscribeRequests = null;
+let unsubscribeMessages = null;
+
+// Счётчики для отслеживания роста
 let prevRequestsCount = null;
 let prevMessagesCount = null;
+let prevStudentsCount = null;
+let prevGroupsCount = null;
+let prevParentsCount = null;
 
 
 /* =========================================================
@@ -2611,33 +2618,6 @@ function debounce(fn, wait) {
         clearTimeout(t);
         t = setTimeout(() => fn.apply(this, args), wait);
     };
-}
-
-/* =========================================================
-   КЭШ ПРОФИЛЯ
-========================================================= */
-async function getCachedProfile(uid) {
-    try {
-        const raw = localStorage.getItem(CONFIG.PROFILE_CACHE_KEY);
-        if (raw) {
-            const { uid: cachedUid, data, ts } = JSON.parse(raw);
-            if (cachedUid === uid && Date.now() - ts < CONFIG.PROFILE_TTL) {
-                return data;
-            }
-        }
-    } catch (e) { /* ignore */ }
-
-    const snap = await db.collection("users").doc(uid).get();
-    const data = snap.exists ? snap.data() : null;
-
-    if (data) {
-        try {
-            localStorage.setItem(CONFIG.PROFILE_CACHE_KEY, JSON.stringify({
-                uid, data, ts: Date.now()
-            }));
-        } catch (e) { /* ignore */ }
-    }
-    return data;
 }
 
 
@@ -2832,9 +2812,10 @@ const LogoutModal = (() => {
 LogoutModal.init();
 
 function clearSavedPinAndLogin() {
+    // Совместимо со страницей входа: очищаются только данные для быстрого входа.
     ["kurator_pin_hash_v1", "kurator_pin_salt_v1", "kurator_pin_name_v1",
      "kurator_pin_attempts_v1", "kurator_last_login_id"].forEach((key) => {
-        try { localStorage.removeItem(key); } catch (error) { /* ignore */ }
+        try { localStorage.removeItem(key); } catch (error) { /* хранилище недоступно */ }
     });
     try { localStorage.setItem("kurator_remember_flag", "0"); } catch (error) { /* ignore */ }
 }
@@ -2847,7 +2828,7 @@ let logoutInProgress = false;
 async function logout() {
     if (logoutInProgress) return;
 
-    const choice = await LogoutModal.open();
+    const choice = await LogoutModal.open(); // "keep" | "forget" | null
     if (choice === null) {
         showToast("Выход отменён");
         return;
@@ -2939,8 +2920,6 @@ document.addEventListener("visibilitychange", function() {
     } else {
         startClock();
         autoThemeByTime();
-        loadRequestsCount();
-        loadUnreadCount();
     }
 });
 
@@ -3166,7 +3145,7 @@ window.addEventListener("load", function() {
 
 
 /* =========================================================
-   СЧЁТЧИКИ (через .count(), а не onSnapshot)
+   СЛУШАТЕЛИ ДАННЫХ
 ========================================================= */
 
 function updateBadge(badge, nav, count, activeClass) {
@@ -3182,148 +3161,144 @@ function updateBadge(badge, nav, count, activeClass) {
     }
 }
 
-async function loadRequestsCount() {
+function startRegistrationRequestsListener() {
+    if (listenerFlags.requests) return;
+    listenerFlags.requests = true;
+
     const badge = document.getElementById("permissionsBadge");
     const nav = document.getElementById("permissionsNav");
 
-    try {
-        const snap = await db.collection("users").where("reg", "==", 0).count().get();
-        const count = snap.data().count;
+    unsubscribeRequests = db.collection("users")
+        .where("reg", "==", 0)
+        .onSnapshot(
+            function(snapshot) {
+                const count = snapshot.size;
 
-        if (!isInitialLoad && prevRequestsCount !== null && count > prevRequestsCount) {
-            const diff = count - prevRequestsCount;
-            const text = diff === 1
-                ? "Поступила новая заявка на регистрацию"
-                : `Поступило новых заявок: ${diff}`;
-            showNotification("request", "Запрос регистрации", text, () => openPermissions());
-            tryBrowserNotification("Запрос регистрации", text);
-        }
-        prevRequestsCount = count;
+                if (!isInitialLoad && prevRequestsCount !== null && count > prevRequestsCount) {
+                    const diff = count - prevRequestsCount;
+                    const text = diff === 1
+                        ? "Поступила новая заявка на регистрацию"
+                        : `Поступило новых заявок: ${diff}`;
+                    showNotification("request", "Запрос регистрации", text, () => openPermissions());
+                    tryBrowserNotification("Запрос регистрации", text);
+                }
+                prevRequestsCount = count;
 
-        updateBadge(badge, nav, count, "has-requests");
+                updateBadge(badge, nav, count, "has-requests");
 
-        const statEl = document.getElementById("statRequests");
-        if (statEl) {
-            statEl.classList.remove("pending");
-            statEl.textContent = count;
-        }
-        updateAttentionCard();
-        scheduleUpdateActivity();
-    } catch (e) {
-        if (e && e.code !== "permission-denied") {
-            console.warn("Счётчик заявок:", e.code || e.message);
-        }
-        updateBadge(badge, nav, 0, "has-requests");
-        const statEl = document.getElementById("statRequests");
-        if (statEl) {
-            statEl.classList.remove("pending");
-            statEl.textContent = "0";
-        }
-    }
+                const statEl = document.getElementById("statRequests");
+                if (statEl) {
+                    statEl.classList.remove("pending");
+                    statEl.textContent = count;
+                }
+                updateAttentionCard();
+                scheduleUpdateActivity();
+            },
+            function(error) {
+                if (error && error.code !== "permission-denied") {
+                    console.warn("Счётчик заявок:", error.code || error.message);
+                }
+                updateBadge(badge, nav, 0, "has-requests");
+                const statEl = document.getElementById("statRequests");
+                if (statEl) {
+                    statEl.classList.remove("pending");
+                    statEl.textContent = "0";
+                }
+            }
+        );
 }
 
-async function loadUnreadCount() {
+function startMessagesListener() {
+    if (listenerFlags.messages) return;
     if (!currentUserUid) return;
+    listenerFlags.messages = true;
 
     const sidebarBadge = document.getElementById("messagesBadge");
     const sidebarNav = document.getElementById("messagesNav");
     const topbarDot = document.getElementById("topbarUnreadDot");
     const dropdownBadge = document.getElementById("dropdownMessagesBadge");
 
-    try {
-        const snap = await db.collection("users").doc(currentUserUid).get();
-        let count = 0;
-
-        if (snap.exists) {
-            const data = snap.data() || {};
-            if (typeof data.unreadTotal === "number") {
-                count = data.unreadTotal;
-            } else {
-                // Fallback через чаты (если Cloud Function нет)
-                const chatsSnap = await db.collection("chats")
-                    .where("participants", "array-contains", currentUserUid)
-                    .get();
-                chatsSnap.forEach(d => {
-                    const n = (d.data().unread || {})[currentUserUid];
+    unsubscribeMessages = db.collection("chats")
+        .where("participants", "array-contains", currentUserUid)
+        .onSnapshot(
+            function(snapshot) {
+                let count = 0;
+                snapshot.forEach(function(doc) {
+                    const d = doc.data() || {};
+                    const unread = d.unread || {};
+                    const n = unread[currentUserUid];
                     if (typeof n === "number" && n > 0) count += n;
                 });
+
+                if (!isInitialLoad && prevMessagesCount !== null && count > prevMessagesCount) {
+                    const diff = count - prevMessagesCount;
+                    const text = diff === 1 ? "У вас новое сообщение" : `Новых сообщений: ${diff}`;
+                    showNotification("message", "Новое сообщение", text, () => openMessages());
+                    tryBrowserNotification("Новое сообщение", text);
+                }
+                prevMessagesCount = count;
+
+                if (sidebarBadge) {
+                    if (count > 0) {
+                        sidebarBadge.textContent = count > 99 ? "99+" : String(count);
+                        sidebarBadge.style.display = "flex";
+                    } else {
+                        sidebarBadge.textContent = "0";
+                        sidebarBadge.style.display = "none";
+                    }
+                }
+                if (sidebarNav) sidebarNav.classList.toggle("has-unread", count > 0);
+                if (topbarDot) topbarDot.classList.toggle("show", count > 0);
+                if (dropdownBadge) {
+                    dropdownBadge.textContent = count > 99 ? "99+" : String(count);
+                    dropdownBadge.classList.toggle("show", count > 0);
+                }
+
+                const statEl = document.getElementById("statMessages");
+                if (statEl) {
+                    statEl.classList.remove("pending");
+                    statEl.textContent = count;
+                }
+                scheduleUpdateActivity();
+            },
+            function(error) {
+                if (error && error.code !== "permission-denied") {
+                    console.warn("Счётчик сообщений:", error.code || error.message);
+                }
+                if (sidebarBadge) { sidebarBadge.textContent = "0"; sidebarBadge.style.display = "none"; }
+                if (sidebarNav) sidebarNav.classList.remove("has-unread");
+                if (topbarDot) topbarDot.classList.remove("show");
+                if (dropdownBadge) { dropdownBadge.textContent = "0"; dropdownBadge.classList.remove("show"); }
+                const statEl = document.getElementById("statMessages");
+                if (statEl) { statEl.classList.remove("pending"); statEl.textContent = "0"; }
             }
-        }
-
-        if (!isInitialLoad && prevMessagesCount !== null && count > prevMessagesCount) {
-            const diff = count - prevMessagesCount;
-            const text = diff === 1 ? "У вас новое сообщение" : `Новых сообщений: ${diff}`;
-            showNotification("message", "Новое сообщение", text, () => openMessages());
-            tryBrowserNotification("Новое сообщение", text);
-        }
-        prevMessagesCount = count;
-
-        if (sidebarBadge) {
-            if (count > 0) {
-                sidebarBadge.textContent = count > 99 ? "99+" : String(count);
-                sidebarBadge.style.display = "flex";
-            } else {
-                sidebarBadge.textContent = "0";
-                sidebarBadge.style.display = "none";
-            }
-        }
-        if (sidebarNav) sidebarNav.classList.toggle("has-unread", count > 0);
-        if (topbarDot) topbarDot.classList.toggle("show", count > 0);
-        if (dropdownBadge) {
-            dropdownBadge.textContent = count > 99 ? "99+" : String(count);
-            dropdownBadge.classList.toggle("show", count > 0);
-        }
-
-        const statEl = document.getElementById("statMessages");
-        if (statEl) {
-            statEl.classList.remove("pending");
-            statEl.textContent = count;
-        }
-        scheduleUpdateActivity();
-    } catch (e) {
-        if (e && e.code !== "permission-denied") {
-            console.warn("Счётчик сообщений:", e.code || e.message);
-        }
-        if (sidebarBadge) { sidebarBadge.textContent = "0"; sidebarBadge.style.display = "none"; }
-        if (sidebarNav) sidebarNav.classList.remove("has-unread");
-        if (topbarDot) topbarDot.classList.remove("show");
-        if (dropdownBadge) { dropdownBadge.textContent = "0"; dropdownBadge.classList.remove("show"); }
-        const statEl = document.getElementById("statMessages");
-        if (statEl) { statEl.classList.remove("pending"); statEl.textContent = "0"; }
-    }
+        );
 }
 
 
 /* =========================================================
-   ЗАГРУЗКА КОЛЛЕКЦИЙ (через .count())
+   ЗАГРУЗКА КОЛЛЕКЦИЙ
 ========================================================= */
 
-async function loadCollectionCount(collectionName, elementId, onCount) {
+function loadCollectionCount(collectionName, elementId, onCount) {
     const el = document.getElementById(elementId);
     if (!el) return;
 
-    try {
-        const snap = await db.collection(collectionName).count().get();
-        el.classList.remove("pending");
-        el.textContent = snap.data().count;
-        if (typeof onCount === "function") onCount(snap.data().count);
-        scheduleUpdateActivity();
-    } catch (e) {
-        if (e && e.code !== "permission-denied") {
-            console.warn(`Коллекция "${collectionName}":`, e.code || e.message);
+    db.collection(collectionName).onSnapshot(
+        function(snapshot) {
+            el.classList.remove("pending");
+            el.textContent = snapshot.size;
+            if (typeof onCount === "function") onCount(snapshot);
+            scheduleUpdateActivity();
+        },
+        function(error) {
+            if (error && error.code !== "permission-denied") {
+                console.warn(`Коллекция "${collectionName}":`, error.code || error.message);
+            }
+            el.classList.remove("pending");
+            el.textContent = "0";
         }
-        el.classList.remove("pending");
-        el.textContent = "0";
-    }
-}
-
-async function loadAllCounts() {
-    await Promise.all([
-        loadCollectionCount("students", "statStudents"),
-        loadCollectionCount("groups", "statGroups"),
-        loadCollectionCount("parents", "statParents")
-    ]);
-    updateAttentionCard();
+    );
 }
 
 
@@ -3415,7 +3390,7 @@ function updateAttentionCard() {
 
 
 /* =========================================================
-   СПАРКЛАЙН (визуальный, без чтений из БД)
+   СПАРКЛАЙН ПОСЕЩАЕМОСТИ (7 дней)
 ========================================================= */
 
 function initSparkline() {
@@ -3459,7 +3434,7 @@ function initSparkline() {
 
 
 /* =========================================================
-   ТОП-ДОЛЖНИКОВ (фильтр по attendancePercent)
+   ТОП-ДОЛЖНИКОВ
 ========================================================= */
 
 function renderDebtors(students) {
@@ -3493,142 +3468,39 @@ function renderDebtors(students) {
     }).join("");
 }
 
-async function loadDebtors() {
+function loadDebtors() {
     const body = document.getElementById("debtorsBody");
-    if (!body) return;
 
-    try {
-        const snap = await db.collection("students")
-            .where("attendancePercent", "<", CONFIG.LOW_ATTENDANCE)
-            .orderBy("attendancePercent")
-            .limit(5)
-            .get();
-
-        const students = [];
-        snap.forEach(doc => {
-            const d = doc.data() || {};
-            students.push({
-                name: d.fullName || d.name || d.fio || "Без имени",
-                group: d.group || d.groupName || "",
-                attendance: typeof d.attendancePercent === "number" ? d.attendancePercent : 0
+    db.collection("students").limit(50).onSnapshot(
+        function(snapshot) {
+            const students = [];
+            snapshot.forEach(doc => {
+                const d = doc.data() || {};
+                const name = d.name || d.fullName || d.fio || "";
+                const group = d.group || d.groupName || "";
+                const attendance = typeof d.attendance === "number"
+                    ? d.attendance
+                    : (typeof d.attendancePercent === "number" ? d.attendancePercent : null);
+                if (name && attendance !== null && attendance < CONFIG.LOW_ATTENDANCE) {
+                    students.push({ name, group, attendance });
+                }
             });
-        });
-
-        renderDebtors(students);
-    } catch (e) {
-        if (e && e.code === "failed-precondition") {
-            console.warn("Создайте индекс: students.attendancePercent ASC");
-        } else if (e && e.code !== "permission-denied") {
-            console.warn("Debtors:", e.code || e.message);
-        }
-        renderDebtors([]);
-    }
-}
-
-
-/* =========================================================
-   АВТОМИГРАЦИЯ attendancePercent (1 раз)
-   Считает % посещаемости для каждого студента.
-   Запускается один раз за всё время существования браузера
-   (флаг в localStorage).
-========================================================= */
-
-async function autoMigrateAttendance(force = false) {
-    if (!force && localStorage.getItem(CONFIG.MIGRATION_FLAG_KEY) === "1") {
-        return { skipped: true };
-    }
-
-    console.log("[Миграция] Проверяем студентов...");
-
-    try {
-        const sample = await db.collection("students").limit(1).get();
-        if (sample.empty) {
-            localStorage.setItem(CONFIG.MIGRATION_FLAG_KEY, "1");
-            return { skipped: true };
-        }
-
-        const hasField = sample.docs.some(d => typeof d.data().attendancePercent === "number");
-        if (hasField && !force) {
-            console.log("[Миграция] Поле уже есть, пропускаем.");
-            localStorage.setItem(CONFIG.MIGRATION_FLAG_KEY, "1");
-            return { skipped: true };
-        }
-
-        console.log("[Миграция] Начинаем пересчёт % для всех студентов...");
-
-        const studentsSnap = await db.collection("students").get();
-        const students = studentsSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        console.log(`[Миграция] Студентов: ${students.length}`);
-
-        const attSnap = await db.collection("attendance").get();
-        console.log(`[Миграция] Записей посещаемости: ${attSnap.size}`);
-
-        const stats = new Map();
-        attSnap.forEach(doc => {
-            const data = doc.data() || {};
-            const studentsMap = data.students;
-            if (!studentsMap || typeof studentsMap !== "object") return;
-
-            Object.entries(studentsMap).forEach(([sid, rec]) => {
-                if (!rec || !rec.lessons) return;
-                const s = stats.get(sid) || { total: 0, present: 0 };
-                Object.values(rec.lessons).forEach(l => {
-                    if (!l || !l.status) return;
-                    s.total++;
-                    if (l.status === "present") s.present++;
-                });
-                stats.set(sid, s);
-            });
-        });
-
-        let batch = db.batch();
-        let inBatch = 0;
-        let totalUpdated = 0;
-
-        for (const s of students) {
-            const st = stats.get(s.id) || { total: 0, present: 0 };
-            const percent = st.total ? Math.round(st.present / st.total * 1000) / 10 : 0;
-
-            batch.set(db.collection("students").doc(s.id), {
-                attendancePercent: percent
-            }, { merge: true });
-
-            inBatch++;
-            totalUpdated++;
-
-            if (inBatch >= 400) {
-                await batch.commit();
-                console.log(`[Миграция] Записано: ${totalUpdated}`);
-                batch = db.batch();
-                inBatch = 0;
+            students.sort((a, b) => a.attendance - b.attendance);
+            renderDebtors(students);
+        },
+        function(error) {
+            if (error && error.code !== "permission-denied") {
+                console.warn("Debtors:", error.code || error.message);
+            }
+            if (body) {
+                body.innerHTML = `
+                    <div class="debtors-empty">
+                        <div>Данные о посещаемости недоступны</div>
+                    </div>`;
             }
         }
-
-        if (inBatch > 0) await batch.commit();
-
-        console.log(`[Миграция] Готово. Обновлено студентов: ${totalUpdated}`);
-        localStorage.setItem(CONFIG.MIGRATION_FLAG_KEY, "1");
-
-        loadDebtors();
-        return { skipped: false, updated: totalUpdated };
-    } catch (e) {
-        console.error("[Миграция] Ошибка:", e);
-        return { skipped: false, error: e.message };
-    }
+    );
 }
-
-// Ручной запуск из консоли: window.recalcAllAttendance()
-window.recalcAllAttendance = async function() {
-    showToast("Пересчёт посещаемости запущен...");
-    const res = await autoMigrateAttendance(true);
-    if (res.error) {
-        showToast("Ошибка: " + res.error);
-    } else if (res.updated !== undefined) {
-        showToast(`Готово. Обновлено: ${res.updated}`);
-    } else {
-        showToast("Готово");
-    }
-};
 
 
 /* =========================================================
@@ -3640,6 +3512,7 @@ let warningTimer = null;
 let warningCountdown = null;
 let idleWarningShown = false;
 let isLoggedOut = false;
+let lastActivityTime = 0;
 
 function resetIdleTimer() {
     if (isLoggedOut) return;
@@ -3905,7 +3778,7 @@ window.addEventListener("appinstalled", () => {
    АВТОРИЗАЦИЯ
 ========================================================= */
 
-auth.onAuthStateChanged(async function(user) {
+auth.onAuthStateChanged(function(user) {
     if (!user) {
         window.location.href = "index.html";
         return;
@@ -3915,76 +3788,69 @@ auth.onAuthStateChanged(async function(user) {
 
     requestNotificationPermission();
 
-    try {
-        const data = await getCachedProfile(user.uid);
+    db.collection("users").doc(user.uid).get()
+        .then(function(doc) {
+            const data = doc.exists ? (doc.data() || {}) : {};
+            const fio = data.name || data.fullName || "Пользователь";
+            const role = String(data.role || "").toLowerCase();
 
-        if (!data) {
-            document.querySelector(".loader-text").textContent = "Профиль не найден";
-            setTimeout(() => {
-                window.location.href = "index.html";
-            }, 1200);
-            return;
-        }
+            currentUserRole = role;
 
-        const fio = data.name || data.fullName || "Пользователь";
-        const role = String(data.role || "").toLowerCase();
+            if (role && role !== "admin" && role !== "administrator" && role !== "администратор") {
+                document.querySelector(".loader-text").textContent = "Доступ только для администраторов";
+                setTimeout(() => {
+                    window.location.href = "home.html";
+                }, 1200);
+                return;
+            }
 
-        currentUserRole = role;
+            document.getElementById("userFio").textContent = fio;
+            document.getElementById("dropdownName").textContent = fio;
 
-        if (role && role !== "admin" && role !== "administrator" && role !== "администратор") {
-            document.querySelector(".loader-text").textContent = "Доступ только для администраторов";
-            setTimeout(() => {
-                window.location.href = "home.html";
-            }, 1200);
-            return;
-        }
+            const parts = fio.trim().split(/\s+/);
+            let initials = "?";
+            if (parts.length >= 2) {
+                initials = (parts[0][0] + parts[1][0]).toUpperCase();
+            } else if (parts.length === 1 && parts[0].length > 0) {
+                initials = parts[0][0].toUpperCase();
+            }
+            document.getElementById("userAvatar").textContent = initials;
 
-        document.getElementById("userFio").textContent = fio;
-        document.getElementById("dropdownName").textContent = fio;
+            // Обновляем текст кнопки Telegram, если уже привязан
+            if (data.telegram && data.telegram.linked) {
+                document.getElementById("tgMenuText").textContent = "Telegram привязан";
+            }
 
-        const parts = fio.trim().split(/\s+/);
-        let initials = "?";
-        if (parts.length >= 2) {
-            initials = (parts[0][0] + parts[1][0]).toUpperCase();
-        } else if (parts.length === 1 && parts[0].length > 0) {
-            initials = parts[0][0].toUpperCase();
-        }
-        document.getElementById("userAvatar").textContent = initials;
+            startRegistrationRequestsListener();
+            startMessagesListener();
+            loadCollectionCount("students", "statStudents", () => updateAttentionCard());
+            loadCollectionCount("groups", "statGroups");
+            loadCollectionCount("parents", "statParents");
+            loadDebtors();
+            initSparkline();
+        })
+        .catch(function(error) {
+            if (error && error.code !== "permission-denied") {
+                console.warn("Профиль:", error.code || error.message);
+            }
+            document.getElementById("userFio").textContent = "Пользователь";
+            startRegistrationRequestsListener();
+            startMessagesListener();
+            loadCollectionCount("students", "statStudents");
+            loadCollectionCount("groups", "statGroups");
+            loadCollectionCount("parents", "statParents");
+        })
+        .finally(function() {
+            document.body.classList.remove("auth-pending");
+            document.getElementById("pageLoader").classList.add("hidden");
+            updateAttentionCard();
 
-        if (data.telegram && data.telegram.linked) {
-            document.getElementById("tgMenuText").textContent = "Telegram привязан";
-        }
+            setTimeout(function() {
+                isInitialLoad = false;
+            }, CONFIG.INITIAL_LOAD_DELAY);
 
-        await loadRequestsCount();
-        await loadUnreadCount();
-        await loadAllCounts();
-        await loadDebtors();
-
-        requestsInterval = setInterval(loadRequestsCount, CONFIG.COUNT_REFRESH_MS);
-        messagesInterval = setInterval(loadUnreadCount, CONFIG.COUNT_REFRESH_MS);
-        countsInterval = setInterval(loadAllCounts, CONFIG.COUNT_REFRESH_MS * 5);
-        debtorsInterval = setInterval(loadDebtors, CONFIG.COUNT_REFRESH_MS * 5);
-
-        initSparkline();
-
-        // 🔥 АВТОМИГРАЦИЯ attendancePercent — запускается 1 раз в фоне
-        autoMigrateAttendance();
-    } catch (error) {
-        if (error && error.code !== "permission-denied") {
-            console.warn("Профиль:", error.code || error.message);
-        }
-        document.getElementById("userFio").textContent = "Пользователь";
-    } finally {
-        document.body.classList.remove("auth-pending");
-        document.getElementById("pageLoader").classList.add("hidden");
-        updateAttentionCard();
-
-        setTimeout(function() {
-            isInitialLoad = false;
-        }, CONFIG.INITIAL_LOAD_DELAY);
-
-        resetIdleTimer();
-    }
+            resetIdleTimer();
+        });
 });
 
 
@@ -4025,10 +3891,8 @@ window.addEventListener("unhandledrejection", function(event) {
 ========================================================= */
 
 window.addEventListener("beforeunload", function() {
-    clearInterval(requestsInterval);
-    clearInterval(messagesInterval);
-    clearInterval(countsInterval);
-    clearInterval(debtorsInterval);
+    if (typeof unsubscribeRequests === "function") unsubscribeRequests();
+    if (typeof unsubscribeMessages === "function") unsubscribeMessages();
     clearTimeout(idleTimer);
     clearTimeout(warningTimer);
     clearInterval(warningCountdown);
@@ -4040,7 +3904,9 @@ window.addEventListener("beforeunload", function() {
    TELEGRAM ПРИВЯЗКА
 ========================================================= */
 
-const TG_BOT_NAME = "Kuratorjurnalbot";
+const TG_BOT_NAME = "Kuratorjurnalbot"; // Твой бот
+
+let currentTgCode = null;
 
 async function openTelegramModal() {
     closeUserMenu();
@@ -4054,10 +3920,12 @@ async function openTelegramModal() {
     if (!auth.currentUser) return;
 
     try {
-        const userData = await getCachedProfile(auth.currentUser.uid);
+        const doc = await db.collection("users").doc(auth.currentUser.uid).get();
+        const userData = doc.data();
         const tg = userData?.telegram;
 
         if (tg && tg.linked) {
+            // Уже привязан
             body.innerHTML = `
                 <div style="text-align:center;margin-bottom:20px">
                     <div class="tg-linked-badge">
@@ -4075,6 +3943,7 @@ async function openTelegramModal() {
             return;
         }
 
+        // Не привязан
         const login = userData?.login || 'ваш_логин';
         
         body.innerHTML = `
@@ -4108,6 +3977,7 @@ async function openTelegramModal() {
             </div>
         `;
         
+        // Автоформат ввода в верхний регистр
         document.getElementById('tgCodeInput').addEventListener('input', function(e) {
             e.target.value = e.target.value.toUpperCase();
         });
@@ -4161,14 +4031,18 @@ async function submitTgCode() {
             throw new Error("Код принадлежит другому аккаунту");
         }
 
+        // Привязываем через транзакцию
         await db.runTransaction(async (t) => {
+            // Перепроверяем код в транзакции
             const freshSnap = await t.get(codeRef);
             if (freshSnap.data().used) {
                 throw new Error("Код только что был использован");
             }
 
+            // 1. Помечаем код использованным
             t.update(codeRef, { used: true });
 
+            // 2. Записываем привязку в профиль
             t.update(db.collection("users").doc(auth.currentUser.uid), {
                 telegram: {
                     chatId: data.chatId,
@@ -4178,11 +4052,11 @@ async function submitTgCode() {
             });
         });
 
-        try { localStorage.removeItem(CONFIG.PROFILE_CACHE_KEY); } catch (e) {}
-
+        // Успех
         showToast("Telegram успешно привязан!");
         document.getElementById("tgMenuText").textContent = "Telegram привязан";
         
+        // Обновляем окно
         setTimeout(() => {
             openTelegramModal();
         }, 1000);
@@ -4204,8 +4078,6 @@ async function unlinkTelegram() {
         await db.collection("users").doc(auth.currentUser.uid).update({
             telegram: firebase.firestore.FieldValue.delete()
         });
-        
-        try { localStorage.removeItem(CONFIG.PROFILE_CACHE_KEY); } catch (e) {}
         
         showToast("Telegram отвязан");
         document.getElementById("tgMenuText").textContent = "Связать Telegram";

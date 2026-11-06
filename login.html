@@ -220,7 +220,6 @@ input:focus{
 input[type="password"]{letter-spacing:.3px}
 input[data-numeric]{letter-spacing:2px}
 
-/* === Чекбоксы сохраняют нативный вид === */
 input[type="checkbox"]{
     -webkit-appearance:checkbox;
     appearance:auto;
@@ -281,7 +280,7 @@ input[type="checkbox"]:focus{
 .pwd-toggle:hover{color:var(--ink-700);background:var(--ink-100)}
 
 /* =========================================================
-   SELECT (должность АДМТ)
+   SELECT
 ========================================================= */
 select{
     width:100%;height:48px;
@@ -1231,25 +1230,21 @@ select option[value=""]{color:var(--ink-400)}
 <main class="page">
     <section class="card" id="card" data-mode="login" data-step="" data-state="">
 
-        <!-- LOGO -->
         <div class="logo-wrap">
             <div class="logo">K</div>
         </div>
 
-        <!-- HEAD -->
         <div class="head">
             <h1 class="title" id="title">Вход в систему</h1>
             <p class="subtitle" id="subtitle">Введите логин или почту и пароль</p>
         </div>
 
-        <!-- TABS -->
         <div class="tabs">
             <div class="tab-ind"></div>
             <button class="tab t-login" id="tabLogin" type="button">Вход</button>
             <button class="tab t-reg" id="tabReg" type="button">Регистрация</button>
         </div>
 
-        <!-- VIEWPORT -->
         <div class="viewport" id="viewport">
 
             <!-- LOGIN -->
@@ -1558,13 +1553,10 @@ select option[value=""]{color:var(--ink-400)}
 
         </div>
 
-        <!-- MESSAGE -->
         <div class="message" id="message"></div>
 
-        <!-- FOOTER -->
         <div class="foot">Система управления <strong>KURATOR</strong></div>
 
-        <!-- STATUS SCREEN -->
         <div class="status" id="status">
             <div class="status-icon">
                 <div class="spinner"></div>
@@ -1624,7 +1616,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
 import {
     getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, serverTimestamp,
-    collection, query, where
+    collection, query, where,
+    enableIndexedDbPersistence
 } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
 
 /* =========================================
@@ -1643,9 +1636,18 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ВКЛЮЧАЕМ ОФФЛАЙН-КЭШ (чтобы не тратить чтения при повторных заходах)
-db.enablePersistence({ synchronizeTabs: true }).catch(err => {
-    console.warn("Persistence disabled:", err.code);
+// ИСПРАВЛЕНО: В модульном SDK метод называется enableIndexedDbPersistence,
+// а не db.enablePersistence.
+enableIndexedDbPersistence(db).catch(err => {
+    if (err.code === "failed-precondition"){
+        // Несколько вкладок открыто — это нормально, работаем без кэша.
+        console.warn("Persistence: несколько вкладок, кэш работает в одной");
+    } else if (err.code === "unimplemented"){
+        // Браузер не поддерживает IndexedDB.
+        console.warn("Persistence: браузер не поддерживает IndexedDB");
+    } else {
+        console.warn("Persistence disabled:", err.code);
+    }
 });
 
 /* =========================================
@@ -1705,11 +1707,9 @@ const LOCK_KEY = "kurator_lock";
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 60_000;
 
-/* === АВТОВХОД === */
 const LAST_ID_KEY        = "kurator_last_login_id";
 const REMEMBER_FLAG_KEY  = "kurator_remember_flag";
 
-/* === PIN === */
 const PIN_HASH_KEY       = "kurator_pin_hash_v1";
 const PIN_SALT_KEY       = "kurator_pin_salt_v1";
 const PIN_NAME_KEY       = "kurator_pin_name_v1";
@@ -1718,9 +1718,8 @@ const PIN_LENGTH         = 4;
 const PIN_MAX_ATTEMPTS   = 5;
 const AUTH_TIMEOUT_MS    = 3000;
 
-/* === КЭШ ПРОФИЛЯ === */
 const PROFILE_CACHE_KEY = "kurator_profile_cache";
-const PROFILE_TTL = 10 * 60 * 1000; // 10 минут
+const PROFILE_TTL = 10 * 60 * 1000;
 
 /* =========================================
    ELEMENTS
@@ -1776,7 +1775,6 @@ function pageForRole(role){
    ПОИСК ПО ЛОГИНУ (С АВТОМИГРАЦИЕЙ В logins)
 ========================================= */
 async function findUserByLogin(login){
-    // 1. Пытаемся найти в новой быстрой коллекции (1 чтение вместо сканирования)
     try {
         const fastSnap = await getDoc(doc(db, "logins", login));
         if (fastSnap.exists()) {
@@ -1787,7 +1785,6 @@ async function findUserByLogin(login){
         console.warn("Ошибка чтения logins:", e);
     }
 
-    // 2. Fallback: ищем в старой коллекции users (совместимость со старыми данными)
     log("Логин не найден в logins, ищем в users...");
     const q = query(collection(db, "users"), where("login", "==", login));
     const snap = await getDocs(q);
@@ -1797,7 +1794,6 @@ async function findUserByLogin(login){
     const userDoc = snap.docs[0];
     const userData = userDoc.data();
 
-    // 3. АВТОМИГРАЦИЯ: сохраняем в новую коллекцию, чтобы следующий вход был мгновенным
     if (userData.email) {
         try {
             await setDoc(doc(db, "logins", login), {
@@ -1966,7 +1962,6 @@ function showError(title = "Не удалось войти", sub = "Провер
     stopWaitingTimer();
 }
 
-/* === ЭКРАН ОЖИДАНИЯ === */
 let waitingTimer = null;
 let waitingInterval = null;
 let currentUserId = null;
@@ -2351,10 +2346,8 @@ $("setupForm").addEventListener("submit", async e => {
     try {
         const user = setupUser;
 
-        // Сохраняем в users (для обратной совместимости)
         await setDoc(doc(db, "users", user.uid), { login }, { merge:true });
 
-        // А также в быструю коллекцию logins (для мгновенного входа)
         try {
             await setDoc(doc(db, "logins", login), {
                 email: user.email,
@@ -2420,7 +2413,7 @@ function resetPinAttempts(){
 }
 
 /* =========================================
-   PIN PANEL (автовход)
+   PIN PANEL
 ========================================= */
 let pinBuffer = "";
 let pinBusy = false;
@@ -2927,7 +2920,6 @@ $("regForm").addEventListener("submit", async e => {
             createdAt: serverTimestamp()
         });
 
-        // Дублируем в logins для быстрого входа
         try {
             await setDoc(doc(db, "logins", login), {
                 email: sanitize(email),
@@ -3013,7 +3005,7 @@ $("regPassword").addEventListener("input", e => {
 });
 
 /* =========================================
-   AUTH STATE — автовход + PIN
+   AUTH STATE
 ========================================= */
 let authCheckInProgress = false;
 let authResolved = false;

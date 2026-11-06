@@ -428,7 +428,8 @@ const S = {
     marks: {},
     logs: [],
     unsubs: [],
-    mobileSubject: ""
+    mobileSubject: "",
+    accessDenied: false
 };
 
 const $ = id => document.getElementById(id);
@@ -507,7 +508,7 @@ function roleInGroup(g){
 }
 const canEnter   = () => ["admin", "curator", "starosta"].includes(S.gRole);
 const canCorrect = () => ["admin", "curator"].includes(S.gRole);
-const canSeeLog  = () => isAdmin() || S.role === "curator";
+const canSeeLog  = () => isAdmin() || (S.role === "curator" && S.gRole === "curator");
 
 /* =========================================================
    ЗАГРУЗКА
@@ -541,17 +542,27 @@ auth.onAuthStateChanged(async user => {
 });
 
 function showDenied(){
+    S.accessDenied = true;
     $("layout").innerHTML = `<div class="card denied">
         <div class="table-title" style="margin-bottom:8px">Доступ запрещён</div>
         <div class="table-sub">Раздел «Итоговая аттестация» недоступен для вашей роли.</div>
     </div>`;
 }
 function showNoGroups(){
+    S.accessDenied = true;
     $("groupSel").innerHTML = `<option value="">Нет доступных групп</option>`;
-    $("tbody").innerHTML = `<tr><td><div class="empty">
-        ${isAdmin() ? "В системе пока нет групп." : "Вам не назначена ни одна группа. Обратитесь к администратору."}
-    </div></td></tr>`;
-    $("mobileStudentList").innerHTML = `<div class="empty">Нет доступных групп</div>`;
+    $("groupSel").disabled = true;
+
+    const hint = S.role === "parent"
+        ? "К вашему аккаунту не привязан ни один ребёнок. Обратитесь к администратору."
+        : (isAdmin()
+            ? "В системе пока нет групп."
+            : "Вам не назначена ни одна группа. Обратитесь к администратору.");
+
+    $("thead").innerHTML = "";
+    $("tbody").innerHTML = `<tr><td><div class="empty">${hint}</div></td></tr>`;
+    $("mobileStudentList").innerHTML = `<div class="empty">${hint}</div>`;
+    $("rightsHint").textContent = "";
 }
 
 async function loadGroups(){
@@ -595,11 +606,26 @@ function fillGroupSelect(){
 
 async function selectGroup(gid){
     unsubscribeAll();
+
     S.groupId = gid;
     S.group = S.groups.find(g => g.id === gid) || null;
-    if (!S.group) return;
+    if (!S.group) { showNoGroups(); return; }
+
     $("groupSel").value = gid;
     S.gRole = roleInGroup(S.group);
+
+    // НОВОЕ: жёсткая проверка прав на группу
+    if (!S.gRole) {
+        S.accessDenied = true;
+        $("thead").innerHTML = "";
+        $("tbody").innerHTML = `<tr><td><div class="empty">Нет доступа к этой группе.</div></td></tr>`;
+        $("mobileStudentList").innerHTML = `<div class="empty">Нет доступа к этой группе.</div>`;
+        $("tableTitle").textContent = "Нет доступа";
+        $("tableSub").textContent = "Эта группа не закреплена за вами.";
+        $("rightsHint").textContent = "";
+        return;
+    }
+    S.accessDenied = false;
 
     S.semList = semestersOfGroup(S.group.name) || [1, 2];
     if (!S.semNo || !S.semList.includes(S.semNo)) S.semNo = S.semList[0];
@@ -615,6 +641,7 @@ async function selectGroup(gid){
 async function loadSettings(){
     S.settings = {};
     S.subjects = [];
+    if (!S.gRole) return;
     try {
         const d = await db.collection("groupSettings").doc(S.groupId).get();
         S.settings = d.exists ? (d.data() || {}) : {};
@@ -624,6 +651,7 @@ async function loadSettings(){
 
 async function loadStudents(){
     S.students = [];
+    if (!S.gRole) return;
     try {
         const ids = new Set(Array.isArray(S.group.studentIds) ? S.group.studentIds : []);
         const byGroup = await db.collection("students").where("groupId", "==", S.groupId).get();
@@ -636,7 +664,11 @@ async function loadStudents(){
             list.push({ id: d.id, name: x.fullName || x.name || x.fio || "Без имени" });
         });
 
-        if (S.role === "parent") list = list.filter(s => S.childIds.includes(s.id));
+        // НОВОЕ: родитель видит только своих детей
+        if (S.role === "parent") {
+            const childSet = new Set(S.childIds);
+            list = list.filter(s => childSet.has(s.id));
+        }
         S.students = list.sort((a, b) => a.name.localeCompare(b.name, "ru"));
     } catch (e) { console.error(e); toast("Ошибка загрузки студентов: " + e.message); }
 }
@@ -661,6 +693,8 @@ function unsubscribeAll(){
 
 function subscribeAll(){
     unsubscribeAll();
+    if (S.accessDenied || !S.gRole || !S.groupId) return;
+
     const key = assessKey();
 
     S.students.forEach(st => {
@@ -736,7 +770,7 @@ function setupRights(){
     setType(S.type, false);
 
     let hint;
-    if (isParent) hint = "Вы видите оценки только ваших детей. Редактирование недоступно.";
+    if (isParent) hint = "Вы видите оценки только своих детей. Редактирование недоступно.";
     else if (S.gRole === "starosta") hint = "Выставление оценок — только в пустые ячейки. Исправлять уже выставленные оценки может куратор или администрация.";
     else if (S.gRole === "curator") hint = "Выставляйте оценки в пустые ячейки. Режим «Коррекция» позволяет исправить уже выставленные. Все изменения попадают в журнал.";
     else hint = "Все изменения сохраняются сразу и попадают в журнал с указанием автора и времени.";
@@ -765,6 +799,7 @@ function setModeButtons(){
 }
 
 function canWriteCell(sid, subj){
+    if (S.accessDenied || !S.gRole) return false;
     if (S.gRole === "parent") return false;
     const cur = (S.marks[sid] || {})[keyOf(subj)] ?? "";
     if (S.mode === "attest") return canEnter() && cur === "";
@@ -772,6 +807,7 @@ function canWriteCell(sid, subj){
 }
 
 function renderHeader(){
+    if (S.accessDenied || !S.gRole) return;
     const grp = S.group ? (S.group.name || S.groupId) : "—";
     const what = S.type === "attestation" ? `${S.period} аттестация` : "итог семестра";
     $("tableTitle").textContent = `${typeLabel(S.type)} ведомость — ${semesterTitle(S.semNo)}, ${what}`;
@@ -797,6 +833,8 @@ function markViewHTML(val){
 function renderDesktop(){
     const thead = $("thead"), tbody = $("tbody");
 
+    if (S.accessDenied) return;
+
     if (!S.groupId) {
         thead.innerHTML = ""; tbody.innerHTML = `<tr><td><div class="empty">Группа не выбрана</div></td></tr>`;
         return;
@@ -808,7 +846,11 @@ function renderDesktop(){
         return;
     }
     if (!S.students.length) {
-        thead.innerHTML = ""; tbody.innerHTML = `<tr><td><div class="empty">В группе нет студентов.</div></td></tr>`;
+        thead.innerHTML = "";
+        const msg = S.gRole === "parent"
+            ? "К этой группе не привязан ни один ваш ребёнок."
+            : "В группе нет студентов.";
+        tbody.innerHTML = `<tr><td><div class="empty">${msg}</div></td></tr>`;
         return;
     }
 
@@ -842,6 +884,8 @@ function renderMobile(){
     const meta = $("subjectMeta");
     const list = $("mobileStudentList");
 
+    if (S.accessDenied) return;
+
     if (!S.groupId || !S.subjects.length) {
         picker.style.display = "none";
         list.innerHTML = `<div class="empty">${
@@ -851,7 +895,10 @@ function renderMobile(){
     }
     if (!S.students.length) {
         picker.style.display = "none";
-        list.innerHTML = `<div class="empty">В группе нет студентов.</div>`;
+        const msg = S.gRole === "parent"
+            ? "К этой группе не привязан ни один ваш ребёнок."
+            : "В группе нет студентов.";
+        list.innerHTML = `<div class="empty">${msg}</div>`;
         return;
     }
 
@@ -913,6 +960,12 @@ function renderLog(err){
    ЗАПИСЬ ОЦЕНКИ
 ========================================================= */
 async function saveMark(sid, subj, newVal, el){
+    if (S.accessDenied || !S.gRole) {
+        toast("Нет доступа");
+        el.value = "";
+        return;
+    }
+
     const key = keyOf(subj);
     const oldVal = (S.marks[sid] || {})[key] ?? "";
     if (newVal === oldVal) return;
@@ -1146,6 +1199,7 @@ ${footer}
 }
 
 function openPrintWindow(){
+    if (S.accessDenied || !S.gRole) { toast("Нет доступа"); return; }
     if (!S.groupId) { toast("Сначала выберите группу"); return; }
     if (!S.subjects.length) { toast("В настройках группы нет дисциплин для этого семестра"); return; }
     if (!S.students.length) { toast("В группе нет студентов"); return; }

@@ -1074,7 +1074,8 @@ const SCHEDULE_PRESETS = {
 ========================================================= */
 let currentUser = null;
 let userData = null;
-let role = "";
+let role = "";          // нормализованная роль: "admin" | "curator" | "student"
+let rawRole = "";       // исходная роль из users/{uid}.role (например, "admt")
 let allowedGroups = [];
 let selectedGroupId = "";
 let selectedGroupName = "";
@@ -1233,6 +1234,17 @@ function getSemesterTitle(n){
 }
 
 /* =========================================================
+   НОРМАЛИЗАЦИЯ РОЛИ
+========================================================= */
+function normalizeRole(raw){
+    const r = String(raw || "").toLowerCase().trim();
+    if(["administrator","администратор","admin","admt","адмт"].includes(r)) return "admin";
+    if(["куратор","curator"].includes(r)) return "curator";
+    if(["student","студент"].includes(r)) return "student";
+    return r;
+}
+
+/* =========================================================
    LOAD GROUPS
 ========================================================= */
 async function loadAllowedGroups(){
@@ -1363,6 +1375,7 @@ function applyRoleUI(){
         document.getElementById("headerSubtitle").textContent = "Настройки закреплённых групп";
         document.getElementById("heroText").textContent = "Вы можете управлять количеством пар и дисциплинами только своих групп. Время звонков и учебный план доступны только администратору.";
     } else {
+        // admin + admt (нормализованы в admin) — полный доступ
         document.getElementById("headerSubtitle").textContent = "Полное управление системой";
         document.getElementById("heroText").textContent = "Администратор может выбрать любую доступную группу и управлять всеми настройками системы.";
     }
@@ -1994,17 +2007,17 @@ async function initializeForUser(user){
         if(!snap.exists) throw new Error("Профиль пользователя не найден: users/" + user.uid);
 
         userData = snap.data() || {};
-        role = String(userData.role || "").toLowerCase().trim();
-        if(["administrator","администратор"].includes(role)) role = "admin";
-        if(["куратор","curator"].includes(role)) role = "curator";
-        if(["student","студент"].includes(role)) role = "student";
+        rawRole = String(userData.role || "").toLowerCase().trim();
+
+        // НОВОЕ: admt приравнивается к admin
+        role = normalizeRole(rawRole);
 
         if(role === "student"){
             window.location.href = "home.html";
             return;
         }
 
-        if(!["admin","curator"].includes(role)){
+        if(role !== "admin" && role !== "curator"){
             document.getElementById("mainContent").style.display = "none";
             document.getElementById("accessDenied").style.display = "block";
             document.getElementById("loaderText").textContent = "Доступ запрещён";
@@ -2047,7 +2060,14 @@ async function initializeForUser(user){
    HOME BY ROLE
 ========================================================= */
 function goHomeByRole(){
-    const r = String(role || "").toLowerCase().trim();
+    const r = String(rawRole || role || "").toLowerCase().trim();
+
+    // admt — возврат на admt.html
+    if(["admt","адмт"].includes(r)){
+        window.location.href = "admt.html";
+        return;
+    }
+
     if(["admin","administrator","администратор"].includes(r)){
         window.location.href = "adminhome.html";
     } else if(["curator","куратор"].includes(r)){
@@ -2056,7 +2076,9 @@ function goHomeByRole(){
         window.location.href = "home.html";
     } else {
         const raw = String(userData?.role || "").toLowerCase().trim();
-        if(["admin","administrator","администратор"].includes(raw)){
+        if(["admt","адмт"].includes(raw)){
+            window.location.href = "admt.html";
+        } else if(["admin","administrator","администратор"].includes(raw)){
             window.location.href = "adminhome.html";
         } else {
             window.location.href = "home.html";

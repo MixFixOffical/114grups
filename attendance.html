@@ -1080,7 +1080,7 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, query, where, FieldPath } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, FieldPath } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
@@ -1141,20 +1141,18 @@ let authResolved = false;
 let resolveAuthReady;
 const authReady = new Promise(r => { resolveAuthReady = r; });
 
+/* ---- кеш чтений Firestore (живёт до перезагрузки страницы или «Обновить») ---- */
+let userDocCache = null;        // users/{uid}: читается один раз (и для роли, и для домашней страницы)
+let groupsLoaded = false;       // groups: все группы
+let studentsLoaded = false;     // students: все студенты (фильтр по группе на клиенте, как раньше)
+const settingsCache = new Map(); // groupId -> settings
+
 let students = [], allStudents = [], allGroupsData = [], userGroups = [];
 let userRole = null, selectedGroupId = "", settings = {}, attendance = {};
 let selectedDate = "", selectedStudent = null, selectedLesson = null, selectedAction = null;
 let selectedAbsentType = "neuv", quickMode = null, studentFilter = "";
 let currentLesson = 0;
 let hintShown = localStorage.getItem("swipeHintShown") === "1";
-
-/* ---- кеш чтений Firestore (живёт до перезагрузки страницы или «Обновить») ---- */
-const cache = {
-    groupsLoaded: false,           // группы + роль загружены
-    studentsByGroup: new Map(),    // groupId -> массив студентов группы
-    settingsByGroup: new Map(),    // groupId -> settings
-    attendanceByDate: new Map()    // date -> результат loadAttendance (сырой snapshot-лист)
-};
 
 const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 const dayNames = ["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
@@ -1291,14 +1289,12 @@ function getAttestationInfo(dateString) {
 /* =========================================================
    DATA LOADING
 ========================================================= */
-let cachedUserDoc = null;   // снимок users/{uid}, читается один раз
-
 async function resolveHomePage(user) {
     let role = null;
     try {
         const snap = await getDoc(doc(db, "users", user.uid));
-        cachedUserDoc = snap.exists() ? snap.data() : null;
-        role = cachedUserDoc ? cachedUserDoc.role : null;
+        userDocCache = snap.exists() ? snap.data() : null;
+        role = userDocCache ? userDocCache.role : null;
     } catch (e) { return "home.html"; }
 
     if (role === "admin") {
@@ -1317,18 +1313,18 @@ onAuthStateChanged(auth, async user => {
     if (!authResolved) { authResolved = true; resolveAuthReady(); }
 });
 
-/* Роль и группы — один раз за сессию (или до «Обновить») */
+/* Роль и группы: один раз за сессию (или при force) */
 async function loadGroupsAndRole(force = false) {
-    if (cache.groupsLoaded && !force) return;
+    if (groupsLoaded && !force) return;
     if (!currentUser) return;
 
-    if (force || !cachedUserDoc) {
+    if (!userDocCache || force) {
         try {
             const s = await getDoc(doc(db, "users", currentUser.uid));
-            cachedUserDoc = s.exists() ? s.data() : null;
+            userDocCache = s.exists() ? s.data() : null;
         } catch (e) { console.error(e); }
     }
-    userRole = cachedUserDoc ? (cachedUserDoc.role || null) : null;
+    userRole = userDocCache ? (userDocCache.role || null) : null;
 
     try {
         const g = await getDocs(collection(db, "groups"));
@@ -1339,7 +1335,7 @@ async function loadGroupsAndRole(force = false) {
     if (userRole === "admin") userGroups = allGroupsData;
     else userGroups = allGroupsData.filter(g => g.curatorId === currentUser.uid || g.starostaId === currentUser.uid || g.leaderId === currentUser.uid);
 
-    cache.groupsLoaded = true;
+    groupsLoaded = true;
 }
 
 const groupSelect = $("groupSelect");
@@ -1369,27 +1365,32 @@ function populateGroupSelect() {
     }
 }
 
+/* Смена группы: посещаемость не зависит от группы (документ по дате),
+   поэтому читаем только настройки, и то один раз на группу */
 groupSelect.addEventListener("change", async function() {
     selectedGroupId = this.value;
     localStorage.setItem("selectedGroupId", selectedGroupId);
-    await loadStudents();          // из кеша или один запрос по группе
-    await loadSettings();          // из кеша или один документ
-    await loadAttendance();        // один документ на дату
+    applyGroupFilter();
+    await loadSettings();
     currentLesson = 0;
     render();
 });
 
 function applyGroupFilter() {
     if (!selectedGroupId) { students = []; return; }
-    students = [...(cache.studentsByGroup.get(selectedGroupId) || [])];
+    const g = allGroupsData.find(i => i.id === selectedGroupId);
+    const ids = g && Array.isArray(g.studentIds) ? g.studentIds : [];
+    const set = new Set(ids);
+    students = allStudents.filter(s => s.groupId === selectedGroupId || set.has(s.id));
+    students.sort((a,b) => String(a.name||a.fullName||a.fio||"").localeCompare(String(b.name||b.fullName||b.fio||""),"ru"));
 }
 
 async function loadSettings() {
     settings = { schedule: {}, disciplines: {}, bells: {}, semester1: {}, semester2: {} };
     if (!selectedGroupId) return;
 
-    if (cache.settingsByGroup.has(selectedGroupId)) {
-        settings = cache.settingsByGroup.get(selectedGroupId);
+    if (settingsCache.has(selectedGroupId)) {
+        settings = settingsCache.get(selectedGroupId);
         return;
     }
     try {
@@ -1401,39 +1402,16 @@ async function loadSettings() {
                 bells: d.bells || {}, semester1: d.semester1 || {}, semester2: d.semester2 || {}
             };
         }
-        cache.settingsByGroup.set(selectedGroupId, settings);
+        settingsCache.set(selectedGroupId, settings);
     } catch (e) { console.error(e); }
 }
 
-/* Студенты выбранной группы: два запроса по составу (groupId и studentIds),
-   объединяем без дублей. Кешируем по groupId. */
-async function loadStudents() {
-    if (!selectedGroupId) { students = []; return; }
-
-    if (!cache.studentsByGroup.has(selectedGroupId)) {
-        try {
-            const g = allGroupsData.find(i => i.id === selectedGroupId);
-            const ids = g && Array.isArray(g.studentIds) ? g.studentIds.filter(Boolean) : [];
-
-            const colRef = collection(db, "students");
-            const tasks = [getDocs(query(colRef, where("groupId", "==", selectedGroupId)))];
-
-            // studentIds может быть длиннее лимита "in" (30), поэтому режем на куски
-            for (let i = 0; i < ids.length; i += 30) {
-                const chunk = ids.slice(i, i + 30);
-                tasks.push(getDocs(query(colRef, where(FieldPath.documentId(), "in", chunk))));
-            }
-
-            const results = await Promise.all(tasks);
-            const map = new Map();
-            results.forEach(snap => snap.docs.forEach(d => {
-                if (!map.has(d.id)) map.set(d.id, { id: d.id, ...d.data() });
-            }));
-
-            const list = [...map.values()];
-            list.sort((a,b) => String(a.name||a.fullName||a.fio||"").localeCompare(String(b.name||b.fullName||b.fio||""),"ru"));
-            cache.studentsByGroup.set(selectedGroupId, list);
-        } catch (e) { console.error(e); }
+/* Студенты: вся коллекция один раз за сессию, дальше фильтр по группе на клиенте */
+async function loadStudents(force = false) {
+    if (force || !studentsLoaded) {
+        const snap = await getDocs(collection(db, "students"));
+        allStudents = snap.docs.map(i => ({ id: i.id, ...i.data() }));
+        studentsLoaded = true;
     }
     applyGroupFilter();
 }
@@ -1591,7 +1569,6 @@ window.disableQuickMode = disableQuickMode;
    SWIPE CARDS (MOBILE)
 ========================================================= */
 const SWIPE_THRESHOLD = 90;
-let activeSwipe = null;
 
 function attachSwipeHandlers(cardEl, student, lesson) {
     let startX = 0, startY = 0, currentX = 0, dragging = false, lockAxis = null;
@@ -2113,36 +2090,33 @@ function closeLessonInfo() { $("lessonInfoOverlay").classList.remove("active"); 
 window.closeLessonInfo = closeLessonInfo;
 
 /* =========================================================
-   DATE NAV — меняет только attendance (один документ)
+   DATE NAV — меняет только attendance (1 документ)
 ========================================================= */
-datePicker.addEventListener("change", async function() {
-    selectedDate = this.value;
-    currentLesson = 0;
-    await loadAttendance();
-    render();
-});
-
-async function shiftDate(delta) {
-    const d = parseDate(selectedDate || formatDate(new Date()));
-    d.setDate(d.getDate() + delta);
-    selectedDate = formatDate(d);
+async function changeDate(newDate) {
+    selectedDate = newDate;
     datePicker.value = selectedDate;
     currentLesson = 0;
     await loadAttendance();
     render();
+}
+
+datePicker.addEventListener("change", function() {
+    changeDate(this.value);
+});
+
+function shiftDate(delta) {
+    const d = parseDate(selectedDate || formatDate(new Date()));
+    d.setDate(d.getDate() + delta);
+    changeDate(formatDate(d));
 }
 window.shiftDate = shiftDate;
 
-async function goToday() {
-    selectedDate = formatDate(new Date());
-    datePicker.value = selectedDate;
-    currentLesson = 0;
-    await loadAttendance();
-    render();
+function goToday() {
+    changeDate(formatDate(new Date()));
 }
 window.goToday = goToday;
 
-/* Полная перезагрузка: сбрасывает кеш и читает всё заново */
+/* Полная перезагрузка («Обновить») сбрасывает кеш; при старте force=false */
 async function reloadData(force = true) {
     tableContainer.innerHTML = `<div class="loading"><div class="spinner"></div>Загрузка данных...</div>`;
     studentsListEl.innerHTML = "";
@@ -2150,14 +2124,10 @@ async function reloadData(force = true) {
     refreshBtn.classList.add("spin");
     try {
         await authReady;
-        if (force) {
-            cache.groupsLoaded = false;
-            cache.studentsByGroup.clear();
-            cache.settingsByGroup.clear();
-        }
+        if (force) settingsCache.clear();
         await loadGroupsAndRole(force);
         populateGroupSelect();
-        await loadStudents();
+        await loadStudents(force);
         await loadSettings();
         await loadAttendance();
         render();

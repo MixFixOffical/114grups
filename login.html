@@ -1643,6 +1643,11 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// ВКЛЮЧАЕМ ОФФЛАЙН-КЭШ (чтобы не тратить чтения при повторных заходах)
+db.enablePersistence({ synchronizeTabs: true }).catch(err => {
+    console.warn("Persistence disabled:", err.code);
+});
+
 /* =========================================
    EMAILJS
 ========================================= */
@@ -1713,6 +1718,10 @@ const PIN_LENGTH         = 4;
 const PIN_MAX_ATTEMPTS   = 5;
 const AUTH_TIMEOUT_MS    = 3000;
 
+/* === КЭШ ПРОФИЛЯ === */
+const PROFILE_CACHE_KEY = "kurator_profile_cache";
+const PROFILE_TTL = 10 * 60 * 1000; // 10 минут
+
 /* =========================================
    ELEMENTS
 ========================================= */
@@ -1753,7 +1762,6 @@ function safeRedirect(page){
     return PAGE_FILES[clean] || clean;
 }
 
-/* Страница по роли — единая точка для всех редиректов */
 function pageForRole(role){
     return safeRedirect(
         role === "admin"   ? "adminhome" :
@@ -1765,11 +1773,74 @@ function pageForRole(role){
 }
 
 /* =========================================
-   ПОИСК ПО ЛОГИНУ
+   ПОИСК ПО ЛОГИНУ (С АВТОМИГРАЦИЕЙ В logins)
 ========================================= */
 async function findUserByLogin(login){
-    const snap = await getDocs(query(collection(db, "users"), where("login", "==", login)));
-    return snap.empty ? null : snap.docs[0];
+    // 1. Пытаемся найти в новой быстрой коллекции (1 чтение вместо сканирования)
+    try {
+        const fastSnap = await getDoc(doc(db, "logins", login));
+        if (fastSnap.exists()) {
+            const d = fastSnap.data();
+            return { email: d.email, uid: d.uid };
+        }
+    } catch (e) {
+        console.warn("Ошибка чтения logins:", e);
+    }
+
+    // 2. Fallback: ищем в старой коллекции users (совместимость со старыми данными)
+    log("Логин не найден в logins, ищем в users...");
+    const q = query(collection(db, "users"), where("login", "==", login));
+    const snap = await getDocs(q);
+
+    if (snap.empty) return null;
+
+    const userDoc = snap.docs[0];
+    const userData = userDoc.data();
+
+    // 3. АВТОМИГРАЦИЯ: сохраняем в новую коллекцию, чтобы следующий вход был мгновенным
+    if (userData.email) {
+        try {
+            await setDoc(doc(db, "logins", login), {
+                email: userData.email,
+                uid: userDoc.id
+            });
+            log(`Логин ${login} автоматически перенесён в коллекцию logins`);
+        } catch (e) {
+            console.warn("Не удалось перенести логин в logins:", e);
+        }
+    }
+
+    return {
+        email: userData.email,
+        uid: userDoc.id
+    };
+}
+
+/* =========================================
+   КЭШ ПРОФИЛЯ (10 минут)
+========================================= */
+async function getCachedProfile(uid) {
+    try {
+        const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+        if (raw) {
+            const { uid: cachedUid, data, ts } = JSON.parse(raw);
+            if (cachedUid === uid && Date.now() - ts < PROFILE_TTL) {
+                return data;
+            }
+        }
+    } catch (e) { /* ignore */ }
+
+    const snap = await getDoc(doc(db, "users", uid));
+    const data = snap.exists ? snap.data() : null;
+
+    if (data) {
+        try {
+            localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
+                uid, data, ts: Date.now()
+            }));
+        } catch (e) { /* ignore */ }
+    }
+    return data;
 }
 
 /* =========================================
@@ -1943,15 +2014,14 @@ async function checkApproval(silent = false){
     if (!silent) log("Проверка статуса регистрации…");
 
     try {
-        const snap = await getDoc(doc(db, "users", currentUserId));
+        const data = await getCachedProfile(currentUserId);
 
-        if (!snap.exists()){
+        if (!data){
             showError("Аккаунт удалён", "Обратитесь к администратору.");
             stopWaitingTimer();
             return;
         }
 
-        const data = snap.data();
         const reg = data.reg;
 
         if (reg === 1){
@@ -2073,7 +2143,6 @@ $("tabReg").addEventListener("click", () => switchMode("register"));
 ========================================= */
 let roleChosen = false;
 
-/* Показ/скрытие полей в зависимости от роли */
 function applyRoleFields(role){
     const isAdmt = role === "admt";
     $("posField").classList.toggle("hide", !isAdmt);
@@ -2129,7 +2198,6 @@ document.querySelectorAll(".role").forEach(el => {
     });
 });
 
-/* Обновление бейджа при выборе должности */
 $("regPosition").addEventListener("change", e => {
     const role = $("regRole").value;
     const pos = e.target.value;
@@ -2141,10 +2209,10 @@ $("regPosition").addEventListener("change", e => {
 /* =========================================
    ФЛАГИ
 ========================================= */
-let loginFlow = false;      // идёт процесс входа/восстановления
-let pinMode = false;        // пользователь на PIN-панели — блокируем редиректы
-let pinSetupOpen = false;   // открыта модалка установки PIN — блокируем редирект
-let pendingRedirect = null; // отложенный редирект после PIN-setup
+let loginFlow = false;
+let pinMode = false;
+let pinSetupOpen = false;
+let pendingRedirect = null;
 let setupUser = null;
 let setupPwd = "";
 
@@ -2152,7 +2220,6 @@ let setupPwd = "";
    МАРШРУТИЗАЦИЯ ПО СТАТУСУ
 ========================================= */
 async function routeByStatus(user, data){
-    // Пока пользователь на PIN-панели — не редиректим
     if (pinMode) return;
 
     const reg = data.reg;
@@ -2190,19 +2257,16 @@ async function routeByStatus(user, data){
         return;
     }
 
-    // reg === 1 — одобрен
     const name = sanitize(String(data.name || "").split(" ")[0]) || "пользователь";
     showSuccess(`Здравствуйте, ${name}`, "Открываем систему…");
 
     const page = pageForRole(data.role);
 
-    // Функция редиректа (с двойной защитой)
     const doRedirect = () => {
         if (pinMode || pinSetupOpen) return;
         window.location.href = page;
     };
 
-    // Если открыта модалка PIN — откладываем редирект до её закрытия
     if (pinSetupOpen){
         pendingRedirect = doRedirect;
         return;
@@ -2270,7 +2334,7 @@ $("setupForm").addEventListener("submit", async e => {
 
     try {
         const taken = await findUserByLogin(login);
-        if (taken && taken.id !== setupUser.uid){
+        if (taken && taken.uid !== setupUser.uid){
             showMsg("Этот логин уже занят. Придумайте другой.");
             shakeField($("setupLogin"));
             return;
@@ -2286,7 +2350,18 @@ $("setupForm").addEventListener("submit", async e => {
 
     try {
         const user = setupUser;
+
+        // Сохраняем в users (для обратной совместимости)
         await setDoc(doc(db, "users", user.uid), { login }, { merge:true });
+
+        // А также в быструю коллекцию logins (для мгновенного входа)
+        try {
+            await setDoc(doc(db, "logins", login), {
+                email: user.email,
+                uid: user.uid
+            });
+        } catch (e) { logErr(e); }
+
         const snap = await getDoc(doc(db, "users", user.uid));
         setupUser = null;
         setupPwd = "";
@@ -2421,7 +2496,6 @@ async function tryPinLogin(){
                 return;
             }
 
-            // Снимаем защиту — теперь можно редиректить
             pinMode = false;
             loginFlow = false;
             closePinPanel();
@@ -2531,7 +2605,7 @@ let pinSetupBuffer = "";
 let pinSetupBusy = false;
 
 function openPinSetup(){
-    pinSetupOpen = true;   // ← блокируем редирект, пока открыта модалка
+    pinSetupOpen = true;
     pinSetupBuffer = "";
     updatePinSetupDots();
     $("pinSetupErr").classList.remove("on");
@@ -2562,13 +2636,12 @@ function flashPinSetupError(text){
     setTimeout(() => err.classList.remove("on"), 2500);
 }
 
-/* Разрешить отложенный редирект после закрытия модалки */
 function resumeRedirectIfPending(){
     pinSetupOpen = false;
     if (typeof pendingRedirect === "function"){
         const fn = pendingRedirect;
         pendingRedirect = null;
-        setTimeout(fn, 400);   // даём пользователю увидеть тост
+        setTimeout(fn, 400);
     }
 }
 
@@ -2627,7 +2700,6 @@ async function savePinFromSetup(){
     toast("PIN установлен ✓");
     pinSetupBusy = false;
 
-    // Разрешаем отложенный редирект (если он был)
     resumeRedirectIfPending();
 }
 
@@ -2657,7 +2729,7 @@ $("pinSetupSkip").addEventListener("click", () => {
         localStorage.setItem(REMEMBER_FLAG_KEY, "0");
         $("rememberMe").checked = false;
     } catch {}
-    resumeRedirectIfPending();   // ← продолжаем редирект
+    resumeRedirectIfPending();
 });
 
 /* =========================================
@@ -2708,10 +2780,10 @@ $("loginForm").addEventListener("submit", async e => {
         let email = idRaw;
         if (!isEmail){
             const found = await findUserByLogin(idRaw);
-            if (!found || !found.data().email){
+            if (!found || !found.email){
                 throw { code:"auth/invalid-login-credentials" };
             }
-            email = found.data().email;
+            email = found.email;
         }
 
         const cred = await signInWithEmailAndPassword(auth, email, pwd);
@@ -2747,12 +2819,9 @@ $("loginForm").addEventListener("submit", async e => {
         const needPinSetup = remember && !hasPin() && data.reg === 1;
 
         if (needPinSetup){
-            // Сначала открываем модалку PIN — это выставит pinSetupOpen = true
             openPinSetup();
-            // Затем вызываем routeByStatus — увидит pinSetupOpen и ОТЛОЖИТ редирект
             await routeByStatus(user, data);
         } else {
-            // Обычный редирект через REDIRECT_DELAY
             await routeByStatus(user, data);
         }
     } catch (err){
@@ -2857,6 +2926,14 @@ $("regForm").addEventListener("submit", async e => {
             reg: 0,
             createdAt: serverTimestamp()
         });
+
+        // Дублируем в logins для быстрого входа
+        try {
+            await setDoc(doc(db, "logins", login), {
+                email: sanitize(email),
+                uid: user.uid
+            });
+        } catch (e) { logErr(e); }
 
         sendAdminEmail(
             email,
@@ -2965,7 +3042,6 @@ async function handleAuthenticatedUser(user){
             return;
         }
 
-        // === Сценарий 1: «Запомнить» + PIN → показываем PIN-панель ===
         if (wasRemember && hasPinSaved && data.reg === 1){
             pinMode = true;
             loginFlow = true;
@@ -2973,7 +3049,6 @@ async function handleAuthenticatedUser(user){
             return;
         }
 
-        // === Сценарий 2: обычный автовход ===
         showLoading("Восстанавливаем сессию…", "Проверяем ваши данные");
         loginFlow = true;
         await routeByStatus(user, data);

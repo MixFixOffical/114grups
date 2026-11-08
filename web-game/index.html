@@ -13,8 +13,11 @@
       --purple-dark: #3b0f8c;
       --yellow: #ffd23f;
       --orange: #ff7a1a;
+      --pink: #ff4d6d;
       --white: #ffffff;
       --text-light: rgba(255, 255, 255, 0.85);
+      --mx: 0;
+      --my: 0;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -24,14 +27,40 @@
     body {
       font-family: "Manrope", system-ui, sans-serif;
       color: var(--white);
-      background: linear-gradient(135deg, var(--purple-dark) 0%, var(--purple) 50%, #9b3fe8 100%);
+      background: linear-gradient(135deg, var(--purple-dark), var(--purple), #9b3fe8, var(--purple-dark));
+      background-size: 300% 300%;
+      animation: bgShift 14s ease-in-out infinite;
       min-height: 100vh;
       overflow-x: hidden;
       position: relative;
     }
 
+    /* ---------- Курсорное свечение ---------- */
+    .cursor-glow {
+      position: fixed;
+      width: 420px;
+      height: 420px;
+      left: 0;
+      top: 0;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 210, 63, 0.22), transparent 65%);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 1;
+      transition: opacity 0.4s ease;
+      mix-blend-mode: screen;
+    }
+
     /* ---------- Анимированный фон ---------- */
-    .bg-shapes { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+    .bg-shapes {
+      position: fixed;
+      inset: -40px;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+      transform: translate(calc(var(--mx) * -22px), calc(var(--my) * -22px));
+      transition: transform 0.6s cubic-bezier(.2,.7,.2,1);
+    }
 
     .shape {
       position: absolute;
@@ -40,10 +69,19 @@
       filter: blur(2px);
       animation: float 14s ease-in-out infinite;
     }
-    .shape.s1 { width: 340px; height: 340px; background: radial-gradient(circle at 30% 30%, var(--orange), #ff4d6d); top: -80px; left: -60px; animation-duration: 16s; }
+    .shape.s1 { width: 340px; height: 340px; background: radial-gradient(circle at 30% 30%, var(--orange), var(--pink)); top: -80px; left: -60px; animation-duration: 16s; }
     .shape.s2 { width: 240px; height: 240px; background: radial-gradient(circle at 30% 30%, var(--yellow), var(--orange)); top: 30%; right: -70px; animation-duration: 18s; animation-delay: -4s; }
     .shape.s3 { width: 180px; height: 180px; background: radial-gradient(circle at 30% 30%, #c084fc, var(--purple)); bottom: 5%; left: 15%; animation-duration: 12s; animation-delay: -2s; }
     .shape.s4 { width: 120px; height: 120px; background: var(--yellow); bottom: 20%; right: 20%; opacity: 0.35; animation-duration: 10s; }
+
+    .ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 2px dashed rgba(255, 255, 255, 0.22);
+      animation: spin 30s linear infinite;
+    }
+    .ring.r1 { width: 560px; height: 560px; top: -150px; right: -180px; }
+    .ring.r2 { width: 380px; height: 380px; bottom: -120px; left: -100px; animation-direction: reverse; animation-duration: 22s; border-color: rgba(255, 210, 63, 0.3); }
 
     .blob {
       position: absolute;
@@ -54,7 +92,7 @@
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      animation: morph 20s ease-in-out infinite, spin 40s linear infinite;
+      animation: morph 20s ease-in-out infinite, spinBlob 40s linear infinite;
       filter: blur(30px);
     }
 
@@ -75,6 +113,10 @@
       user-select: none;
     }
 
+    @keyframes bgShift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
     @keyframes float {
       0%, 100% { transform: translate(0, 0) scale(1); }
       33% { transform: translate(40px, -30px) scale(1.06); }
@@ -85,6 +127,10 @@
       50% { border-radius: 70% 30% 46% 54% / 30% 60% 40% 70%; }
     }
     @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes spinBlob {
       from { transform: translate(-50%, -50%) rotate(0deg); }
       to { transform: translate(-50%, -50%) rotate(360deg); }
     }
@@ -106,6 +152,7 @@
       justify-content: space-between;
       gap: 12px;
       padding: 20px clamp(20px, 5vw, 60px);
+      animation: slideDown 0.7s ease both;
     }
 
     .logo {
@@ -129,10 +176,10 @@
       color: var(--purple-dark);
       font-size: 22px;
       box-shadow: 0 6px 18px rgba(255, 122, 26, 0.45);
-      transform: rotate(-6deg);
+      animation: wiggle 4s ease-in-out infinite;
       transition: transform 0.3s ease;
     }
-    .logo:hover .logo-mark { transform: rotate(8deg) scale(1.08); }
+    .logo:hover .logo-mark { transform: rotate(8deg) scale(1.12); animation-play-state: paused; }
 
     .nav-actions { display: flex; gap: 10px; align-items: center; }
 
@@ -165,9 +212,9 @@
       cursor: pointer;
       backdrop-filter: blur(6px);
       text-decoration: none;
-      transition: background 0.2s ease;
+      transition: background 0.2s ease, transform 0.2s ease;
     }
-    .btn-outline:hover { background: rgba(255, 255, 255, 0.22); }
+    .btn-outline:hover { background: rgba(255, 255, 255, 0.22); transform: translateY(-2px); }
 
     /* ---------- Hero ---------- */
     main {
@@ -193,7 +240,7 @@
       font-size: 14px;
       font-weight: 600;
       margin-bottom: 26px;
-      animation: fadeUp 0.8s ease both;
+      animation: fadeUp 0.8s ease both, bob 3s ease-in-out 1s infinite;
     }
 
     h1 {
@@ -206,11 +253,19 @@
       animation: fadeUp 0.8s 0.1s ease both;
     }
 
+    .word {
+      display: inline-block;
+      transition: transform 0.3s ease;
+    }
+    .word:hover { transform: translateY(-6px) rotate(-3deg); }
+
     h1 .highlight {
-      background: linear-gradient(90deg, var(--yellow), var(--orange));
+      background: linear-gradient(90deg, var(--yellow), var(--orange), var(--pink), var(--yellow));
+      background-size: 300% 100%;
       -webkit-background-clip: text;
       background-clip: text;
       color: transparent;
+      animation: gradientMove 4s linear infinite;
     }
 
     .subtitle {
@@ -222,6 +277,106 @@
       animation: fadeUp 0.8s 0.2s ease both;
     }
 
+    /* ---------- Демо-карточка квиза ---------- */
+    .demo {
+      position: relative;
+      max-width: 380px;
+      margin: 0 auto 40px;
+      background: rgba(255, 255, 255, 0.14);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      padding: 20px;
+      text-align: left;
+      transform: rotate(-2deg);
+      box-shadow: 0 24px 60px rgba(20, 0, 60, 0.35);
+      animation: fadeUp 0.9s 0.25s ease both, floaty 6s ease-in-out 1.2s infinite;
+    }
+    .demo-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-light);
+      margin-bottom: 10px;
+    }
+    .demo-timer {
+      background: var(--pink);
+      color: var(--white);
+      border-radius: 999px;
+      padding: 3px 10px;
+      font-family: "Unbounded", sans-serif;
+      font-size: 12px;
+    }
+    .demo-q {
+      font-weight: 800;
+      font-size: 18px;
+      margin-bottom: 14px;
+    }
+    .demo-opt {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.12);
+      margin-bottom: 8px;
+      font-weight: 700;
+      transition: background 0.35s ease, transform 0.35s ease, opacity 0.35s ease, color 0.35s ease;
+    }
+    .demo-opt .dot {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.6);
+      display: grid;
+      place-items: center;
+      font-size: 12px;
+      flex-shrink: 0;
+    }
+    .demo-opt.picked { background: rgba(255, 255, 255, 0.25); }
+    .demo-opt.correct {
+      background: #3ddc97;
+      color: var(--purple-dark);
+      transform: scale(1.03);
+    }
+    .demo-opt.correct .dot { background: var(--white); border-color: var(--white); color: #1a9e66; }
+    .demo-opt.wrong { opacity: 0.45; }
+    .demo-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      margin-top: 12px;
+      overflow: hidden;
+    }
+    .demo-bar span {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, var(--yellow), var(--orange));
+      border-radius: inherit;
+    }
+    .demo-bar span.run { animation: fill 3s linear forwards; }
+
+    .sparkle-pop {
+      position: absolute;
+      top: -14px;
+      right: -14px;
+      background: var(--yellow);
+      color: var(--purple-dark);
+      font-family: "Unbounded", sans-serif;
+      font-weight: 900;
+      font-size: 14px;
+      padding: 8px 12px;
+      border-radius: 14px;
+      transform: rotate(8deg);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s cubic-bezier(.3,1.6,.5,1);
+    }
+    .sparkle-pop.show { opacity: 1; transform: rotate(8deg) scale(1.05); }
+
     .cta-group {
       display: flex;
       gap: 16px;
@@ -231,6 +386,8 @@
     }
 
     .btn-primary {
+      position: relative;
+      overflow: hidden;
       font-family: inherit;
       font-weight: 800;
       font-size: 18px;
@@ -243,7 +400,19 @@
       box-shadow: 0 10px 30px rgba(255, 122, 26, 0.45);
       transition: transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
     }
-    .btn-primary:hover { transform: translateY(-3px) scale(1.02); box-shadow: 0 14px 36px rgba(255, 122, 26, 0.55); }
+    .btn-primary::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: -75%;
+      width: 50%;
+      height: 100%;
+      background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+      transform: skewX(-20deg);
+      animation: shine 3.5s ease-in-out infinite;
+    }
+    .btn-primary:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 14px 36px rgba(255, 122, 26, 0.55); }
+    .btn-primary:active { transform: translateY(2px) scale(0.98); }
     .btn-primary.locked { opacity: 0.6; }
 
     /* ---------- Вход в квиз по коду ---------- */
@@ -256,7 +425,9 @@
       border-radius: 24px;
       padding: 26px;
       animation: fadeUp 0.8s 0.4s ease both;
+      transition: transform 0.3s ease, border-color 0.3s ease;
     }
+    .join-card:focus-within { transform: scale(1.02); border-color: var(--yellow); }
 
     .join-title {
       font-weight: 800;
@@ -276,9 +447,9 @@
       padding: 14px 16px;
       outline: none;
       width: 100%;
-      transition: border-color 0.2s ease;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    input:focus { border-color: var(--yellow); }
+    input:focus { border-color: var(--yellow); box-shadow: 0 0 0 6px rgba(255, 210, 63, 0.25); }
     input::placeholder { color: #9a8bc4; }
 
     .code-input {
@@ -296,6 +467,31 @@
       margin-top: 10px;
       text-align: left;
     }
+    .error.shake { animation: shake 0.4s ease; }
+
+    /* ---------- Особенности ---------- */
+    .features {
+      display: flex;
+      gap: 14px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 40px;
+      animation: fadeUp 0.8s 0.5s ease both;
+    }
+    .feature {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 14px 20px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: default;
+      transition: transform 0.25s cubic-bezier(.3,1.5,.5,1), background 0.25s ease;
+    }
+    .feature:hover { transform: translateY(-6px) rotate(-2deg); background: rgba(255, 255, 255, 0.22); }
+    .feature span { display: inline-block; margin-right: 8px; transition: transform 0.4s ease; }
+    .feature:hover span { transform: rotate(360deg) scale(1.2); }
 
     /* ---------- Модальные окна ---------- */
     .modal {
@@ -320,7 +516,7 @@
       max-width: 400px;
       text-align: left;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-      animation: fadeUp 0.3s ease both;
+      animation: popIn 0.4s cubic-bezier(.3,1.4,.5,1) both;
     }
 
     .modal-box h2 {
@@ -349,7 +545,9 @@
       border-radius: 14px;
       padding: 14px 18px;
       cursor: pointer;
+      transition: background 0.2s ease;
     }
+    .modal-actions .btn-cancel:hover { background: rgba(255, 255, 255, 0.22); }
 
     /* ---------- Тост ---------- */
     .toast {
@@ -363,32 +561,25 @@
       padding: 14px 22px;
       border-radius: 14px;
       box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
-      transition: transform 0.35s ease;
+      transition: transform 0.45s cubic-bezier(.3,1.4,.5,1);
       z-index: 60;
       max-width: calc(100% - 40px);
       text-align: center;
     }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
-    .features {
-      display: flex;
-      gap: 14px;
-      justify-content: center;
-      flex-wrap: wrap;
-      margin-top: 40px;
-      animation: fadeUp 0.8s 0.5s ease both;
+    /* ---------- Конфетти ---------- */
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 14px;
+      border-radius: 3px;
+      pointer-events: none;
+      z-index: 70;
+      animation: fall 1.2s cubic-bezier(.2,.6,.4,1) forwards;
     }
-    .feature {
-      background: rgba(255, 255, 255, 0.12);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(10px);
-      border-radius: 16px;
-      padding: 14px 20px;
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .feature span { margin-right: 8px; }
 
+    /* ---------- Анимации ---------- */
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(24px); }
       to { opacity: 1; transform: translateY(0); }
@@ -396,6 +587,48 @@
     @keyframes fadeIn {
       from { opacity: 0; }
       to { opacity: 1; }
+    }
+    @keyframes popIn {
+      from { opacity: 0; transform: scale(0.85) translateY(20px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes floaty {
+      0%, 100% { transform: rotate(-2deg) translateY(0); }
+      50% { transform: rotate(1deg) translateY(-12px); }
+    }
+    @keyframes bob {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    @keyframes wiggle {
+      0%, 90%, 100% { transform: rotate(-6deg); }
+      94% { transform: rotate(10deg); }
+      97% { transform: rotate(-8deg); }
+    }
+    @keyframes gradientMove {
+      from { background-position: 0% 50%; }
+      to { background-position: 300% 50%; }
+    }
+    @keyframes shine {
+      0%, 60% { left: -75%; }
+      100% { left: 125%; }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+    @keyframes fill {
+      from { width: 0; }
+      to { width: 100%; }
+    }
+    @keyframes fall {
+      0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+      100% { transform: translate(var(--dx), 110vh) rotate(720deg); opacity: 0; }
     }
 
     @media (max-width: 560px) {
@@ -405,6 +638,9 @@
       .btn-primary { width: 100%; }
       .join-form { flex-direction: column; }
       .join-form .btn-primary { width: 100%; }
+      .demo { transform: none; }
+      .sparkle-pop { right: 10px; top: -12px; }
+      .cursor-glow { display: none; }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -414,8 +650,13 @@
 </head>
 <body>
 
+  <!-- Курсорное свечение -->
+  <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
   <!-- Анимированный фон -->
   <div class="bg-shapes" aria-hidden="true">
+    <div class="ring r1"></div>
+    <div class="ring r2"></div>
     <div class="blob"></div>
     <div class="shape s1"></div>
     <div class="shape s2"></div>
@@ -452,11 +693,26 @@
   <main>
     <div class="hero-inner">
       <div class="badge">🎉 Бесплатно. Навсегда.</div>
-      <h1>Создавай квизы <span class="highlight">легко</span> и&nbsp;бесплатно</h1>
+      <h1>Создавай квизы <span class="word"><span class="highlight">легко</span></span> и&nbsp;бесплатно</h1>
       <p class="subtitle">
         Собери свой тест за пару минут, поделись ссылкой с друзьями, коллегами или учениками
         и смотри результаты в реальном времени.
       </p>
+
+      <!-- Демо-карточка -->
+      <div class="demo" aria-hidden="true">
+        <div class="sparkle-pop" id="sparkle">+100 ✦</div>
+        <div class="demo-top">
+          <span>Вопрос 3 из 10</span>
+          <span class="demo-timer" id="demoTimer">15</span>
+        </div>
+        <div class="demo-q">Какая планета самая большая?</div>
+        <div class="demo-opt" data-i="0"><span class="dot">A</span>Марс</div>
+        <div class="demo-opt" data-i="1"><span class="dot">B</span>Юпитер</div>
+        <div class="demo-opt" data-i="2"><span class="dot">C</span>Земля</div>
+        <div class="demo-opt" data-i="3"><span class="dot">D</span>Венера</div>
+        <div class="demo-bar"><span id="demoBar"></span></div>
+      </div>
 
       <div class="cta-group">
         <button class="btn-primary" id="createBtn">Создать квиз</button>
@@ -556,6 +812,84 @@
 
   let pendingCode = null;
 
+  /* ---------- Курсор: свечение и параллакс фона ---------- */
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const glow = $('cursorGlow');
+  const root = document.documentElement;
+
+  if (!reduceMotion && window.matchMedia('(pointer: fine)').matches) {
+    document.addEventListener('pointermove', (e) => {
+      glow.style.left = e.clientX + 'px';
+      glow.style.top = e.clientY + 'px';
+      glow.style.opacity = '1';
+      const nx = e.clientX / window.innerWidth - 0.5;
+      const ny = e.clientY / window.innerHeight - 0.5;
+      root.style.setProperty('--mx', nx.toFixed(3));
+      root.style.setProperty('--my', ny.toFixed(3));
+    });
+    document.addEventListener('pointerleave', () => { glow.style.opacity = '0'; });
+  } else {
+    glow.style.display = 'none';
+  }
+
+  /* ---------- Демо-квиз: анимированный цикл ---------- */
+  const demoOpts = [...document.querySelectorAll('.demo-opt')];
+  const demoBar = $('demoBar');
+  const demoTimer = $('demoTimer');
+  const sparkle = $('sparkle');
+  const CORRECT = 1;
+  let demoStep = 0;
+  let demoTick = null;
+
+  function runDemo() {
+    demoOpts.forEach((o) => o.classList.remove('picked', 'correct', 'wrong'));
+    demoBar.classList.remove('run');
+    void demoBar.offsetWidth; // перезапуск CSS-анимации
+    demoBar.classList.add('run');
+    sparkle.classList.remove('show');
+
+    let seconds = 15;
+    demoTimer.textContent = seconds;
+
+    const pick = demoStep % 4 === CORRECT ? (CORRECT + 2) % 4 : (demoStep * 3 + 1) % 4;
+    clearInterval(demoTick);
+    demoTick = setInterval(() => {
+      seconds--;
+      demoTimer.textContent = Math.max(seconds, 0);
+      if (seconds === 9) demoOpts[pick].classList.add('picked');
+      if (seconds === 6) {
+        demoOpts.forEach((o, i) => {
+          if (i === CORRECT) o.classList.add('correct');
+          else o.classList.add('wrong');
+        });
+        if (pick === CORRECT) sparkle.classList.add('show');
+      }
+      if (seconds === 3) {
+        demoStep++;
+        runDemo();
+      }
+    }, 500);
+  }
+  if (!reduceMotion) runDemo();
+  else demoOpts[CORRECT].classList.add('correct');
+
+  /* ---------- Конфетти ---------- */
+  function burstConfetti() {
+    if (reduceMotion) return;
+    const colors = ['#ffd23f', '#ff7a1a', '#ff4d6d', '#c084fc', '#3ddc97', '#ffffff'];
+    for (let i = 0; i < 60; i++) {
+      const c = document.createElement('div');
+      c.className = 'confetti';
+      c.style.left = (window.innerWidth / 2 + (Math.random() - 0.5) * 200) + 'px';
+      c.style.top = (window.innerHeight * 0.45) + 'px';
+      c.style.background = colors[i % colors.length];
+      c.style.setProperty('--dx', ((Math.random() - 0.5) * 60) + 'vw');
+      c.style.animationDelay = (Math.random() * 0.15) + 's';
+      document.body.appendChild(c);
+      setTimeout(() => c.remove(), 1600);
+    }
+  }
+
   /* ---------- Состояние авторизации (Firebase Auth) ---------- */
   let currentUser = null;
 
@@ -578,6 +912,14 @@
     t.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+  }
+
+  /* ---------- Ошибки с тряской ---------- */
+  function showError(el, text) {
+    el.textContent = text;
+    el.classList.remove('shake');
+    void el.offsetWidth;
+    el.classList.add('shake');
   }
 
   /* ---------- Модалки ---------- */
@@ -634,8 +976,8 @@
     const error = $('loginError');
     const submit = $('loginForm').querySelector('button[type="submit"]');
 
-    if (!/^\S+@\S+\.\S+$/.test(email)) { error.textContent = 'Введите корректный email'; return; }
-    if (password.length < 6) { error.textContent = 'Пароль минимум 6 символов'; return; }
+    if (!/^\S+@\S+\.\S+$/.test(email)) { showError(error, 'Введите корректный email'); return; }
+    if (password.length < 6) { showError(error, 'Пароль минимум 6 символов'); return; }
 
     submit.disabled = true;
     error.textContent = '';
@@ -645,6 +987,7 @@
         // Профиль пользователя: правила разрешают писать только владельцу
         await setDoc(doc(db, 'users', cred.user.uid), { email, createdAt: serverTimestamp() });
         showToast('Аккаунт создан. Добро пожаловать!');
+        burstConfetti();
       } else {
         await signInWithEmailAndPassword(auth, email, password);
         showToast('Вы вошли в аккаунт');
@@ -653,7 +996,7 @@
       closeModal('loginModal');
     } catch (err) {
       console.error(err);
-      error.textContent = AUTH_ERRORS[err.code] || 'Не удалось войти. Попробуйте ещё раз';
+      showError(error, AUTH_ERRORS[err.code] || 'Не удалось войти. Попробуйте ещё раз');
     } finally {
       submit.disabled = false;
     }
@@ -668,10 +1011,12 @@
   createBtn.addEventListener('click', () => {
     if (!currentUser) {
       showToast('Чтобы создать квиз, сначала войдите в аккаунт');
+      createBtn.classList.remove('shake');
       openModal('loginModal');
       return;
     }
-    window.location.href = 'ctqz.html';
+    burstConfetti();
+    setTimeout(() => { window.location.href = 'ctqz.html'; }, 350);
   });
 
   /* ---------- Ввод кода квиза ---------- */
@@ -689,7 +1034,7 @@
     const error = $('codeError');
 
     if (!/^\d{6}$/.test(code)) {
-      error.textContent = 'Код квиза состоит из 6 цифр';
+      showError(error, 'Код квиза состоит из 6 цифр');
       return;
     }
 
@@ -702,7 +1047,7 @@
       const snap = await getDoc(doc(db, 'quizzes', code));
 
       if (!snap.exists()) {
-        error.textContent = 'Квиз с таким кодом не найден';
+        showError(error, 'Квиз с таким кодом не найден');
         return;
       }
 
@@ -712,7 +1057,7 @@
       openModal('nickModal');
     } catch (err) {
       console.error(err);
-      error.textContent = 'Не удалось проверить код. Попробуйте ещё раз';
+      showError(error, 'Не удалось проверить код. Попробуйте ещё раз');
     } finally {
       joinBtn.disabled = false;
       joinBtn.textContent = 'Далее';
@@ -725,11 +1070,12 @@
     const nick = $('nickInput').value.trim();
     const error = $('nickError');
 
-    if (nick.length < 2) { error.textContent = 'Никнейм минимум 2 символа'; return; }
-    if (nick.length > 20) { error.textContent = 'Никнейм максимум 20 символов'; return; }
+    if (nick.length < 2) { showError(error, 'Никнейм минимум 2 символа'); return; }
+    if (nick.length > 20) { showError(error, 'Никнейм максимум 20 символов'); return; }
 
     sessionStorage.setItem('izi_nickname', nick);
-    window.location.href = `quize.html?code=${pendingCode}`;
+    burstConfetti();
+    setTimeout(() => { window.location.href = `quize.html?code=${pendingCode}`; }, 350);
   });
 
   renderAuth();

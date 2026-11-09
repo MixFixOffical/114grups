@@ -407,7 +407,18 @@ td.num{color:var(--text-light);width:36px}
                     <div class="table-title">Колонки для печати</div>
                     <div class="table-sub">Выберите «Теория» или «Практику», «+» — дублировать колонку, «✕» — удалить</div>
                 </div>
-                <button type="button" class="ghost-btn" id="resetColsBtn">Сбросить</button>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <label style="font-size:12.5px;color:var(--text-secondary);display:flex;align-items:center;gap:6px">
+                        Клетка
+                        <select id="cellSel" style="padding:6px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--text);font-size:12.5px">
+                            <option value="8">8 мм</option>
+                            <option value="10">10 мм</option>
+                            <option value="12" selected>12 мм</option>
+                            <option value="15">15 мм</option>
+                        </select>
+                    </label>
+                    <button type="button" class="ghost-btn" id="resetColsBtn">Сбросить</button>
+                </div>
             </div>
             <div class="pc-list" id="pcList"></div>
             <datalist id="kindList">
@@ -471,6 +482,7 @@ const S = {
     settings: {},
     subjects: [],
     printCols: [],          // колонки для печати: {id, subj, kind}
+    cellMm: 12,             // размер квадратной клетки в печати, мм
     students: [],
     childIds: [],
     marks: {},
@@ -825,6 +837,7 @@ $("pcList").addEventListener("input", e => {
     if (col) col.kind = inp.value.trim();
 });
 $("resetColsBtn").addEventListener("click", resetPrintCols);
+$("cellSel").addEventListener("change", e => { S.cellMm = Number(e.target.value); });
 
 /* =========================================================
    ИНТЕРФЕЙС
@@ -1140,6 +1153,7 @@ async function saveMark(sid, subj, newVal, el){
 ========================================================= */
 function buildPrintHTML(){
     const sc        = 1;                           // одна колонка на каждую колонку в списке
+    const cw        = S.cellMm + "mm";             // ширина колонки = сторона квадратной клетки
     const cols      = S.printCols;
     const groupName = S.group ? (S.group.name || S.groupId) : "—";
     const semTitle  = semesterTitle(S.semNo);
@@ -1160,7 +1174,7 @@ function buildPrintHTML(){
             <th style="width:36px">№</th>
             <th style="width:220px;text-align:left">ФИО студента</th>
             ${cols.map(c =>
-                `<th class="kind" colspan="${sc}">${esc(c.kind)}</th>`
+                `<th class="kind" colspan="${sc}" style="width:${cw};min-width:${cw};max-width:${cw}">${esc(c.kind)}</th>`
             ).join("")}
         </tr>`;
 
@@ -1170,7 +1184,7 @@ function buildPrintHTML(){
             <td>${esc(st.name)}</td>
             ${cols.map(c => {
                 const val = (S.marks[st.id] || {})[keyOf(c.subj)] ?? "";
-                return `<td class="center" colspan="${sc}">${cell(val)}</td>`;
+                return `<td class="center" colspan="${sc}" style="width:${cw};min-width:${cw};max-width:${cw}">${cell(val)}</td>`;
             }).join("")}
         </tr>`).join("");
 
@@ -1189,7 +1203,7 @@ function buildPrintHTML(){
         <tr>
             <td colspan="2" class="foot-label">Дисциплины</td>
             ${cols.map(c =>
-                `<td class="foot-subj" colspan="${sc}">${esc(c.subj)}</td>`
+                `<td class="foot-subj" colspan="${sc}" style="width:${cw};min-width:${cw};max-width:${cw};padding:0"><div class="sq" style="width:100%;height:${cw}">${esc(c.subj)}</div></td>`
             ).join("")}
         </tr>`;
 
@@ -1274,13 +1288,15 @@ function buildPrintHTML(){
     }
     .foot-subj{
         text-align:center;
-        font-size:9.5pt;
-        line-height:1.2;
-        padding:6px 4px;
-        min-width:90px;
-        white-space:normal;
-        overflow-wrap:anywhere;
         vertical-align:top;
+        white-space:normal;
+    }
+    .sq{
+        display:flex;align-items:center;justify-content:center;
+        text-align:center;overflow:hidden;
+        font-size:9.5pt;line-height:1.15;
+        padding:2px;
+        overflow-wrap:anywhere;word-break:normal;
     }
     .signs{
         margin-top:24px;
@@ -1333,6 +1349,15 @@ function buildPrintHTML(){
 </div>
 
 ${footer}
+<script>
+document.querySelectorAll('.sq').forEach(function(el){
+    var fs = parseFloat(getComputedStyle(el).fontSize);
+    while ((el.scrollHeight > el.clientHeight + 1 || el.scrollWidth > el.clientWidth + 1) && fs > 5) {
+        fs -= 0.5;
+        el.style.fontSize = fs + 'px';
+    }
+});
+</script>
 
 </body>
 </html>`;

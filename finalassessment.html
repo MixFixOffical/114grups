@@ -370,10 +370,6 @@ td.num{color:var(--text-light);width:36px}
                     <div class="table-sub" id="tableSub">—</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-                    <label style="font-size:12.5px;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text-secondary)">
-                        <input type="checkbox" id="splitChk" checked>
-                        Колонки «+» и «−»
-                    </label>
                     <button class="print-btn" id="printBtn" type="button" title="Сгенерировать и распечатать ведомость">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
                             <path d="M6 9V2h12v7"/>
@@ -414,6 +410,10 @@ td.num{color:var(--text-light);width:36px}
                 <button type="button" class="ghost-btn" id="resetColsBtn">Сбросить</button>
             </div>
             <div class="pc-list" id="pcList"></div>
+            <datalist id="kindList">
+                <option value="Теория"></option>
+                <option value="Практика"></option>
+            </datalist>
         </section>
 
         <p class="hint" id="rightsHint"></p>
@@ -798,10 +798,7 @@ function renderPrintCols(){
         <div class="pc-item">
             <div class="pc-name" title="${esc(c.subj)}">${esc(c.subj)}</div>
             <div class="pc-row">
-                <select class="pc-kind" data-id="${esc(c.id)}">
-                    <option value="">—</option>
-                    ${KINDS.map(k => `<option value="${k}" ${c.kind === k ? "selected" : ""}>${k}</option>`).join("")}
-                </select>
+                <input class="pc-kind" type="text" list="kindList" placeholder="Теория / Практика" value="${esc(c.kind)}" data-id="${esc(c.id)}">
                 <button type="button" class="pc-btn" data-act="dup" data-id="${esc(c.id)}" title="Дублировать колонку">+</button>
                 <button type="button" class="pc-btn del" data-act="del" data-id="${esc(c.id)}" title="Удалить колонку">✕</button>
             </div>
@@ -821,11 +818,11 @@ $("pcList").addEventListener("click", e => {
     }
     renderPrintCols();
 });
-$("pcList").addEventListener("change", e => {
-    const sel = e.target.closest("select.pc-kind");
-    if (!sel) return;
-    const col = S.printCols.find(c => c.id === sel.dataset.id);
-    if (col) col.kind = sel.value;
+$("pcList").addEventListener("input", e => {
+    const inp = e.target.closest("input.pc-kind");
+    if (!inp) return;
+    const col = S.printCols.find(c => c.id === inp.dataset.id);
+    if (col) col.kind = inp.value.trim();
 });
 $("resetColsBtn").addEventListener("click", resetPrintCols);
 
@@ -1142,8 +1139,7 @@ async function saveMark(sid, subj, newVal, el){
    ПЕЧАТЬ ВЕДОМОСТИ
 ========================================================= */
 function buildPrintHTML(){
-    const split     = document.getElementById("splitChk")?.checked ?? true;
-    const sc        = split ? 2 : 1;               // колонок на одну колонку предмета
+    const sc        = 1;                           // одна колонка на каждую колонку в списке
     const cols      = S.printCols;
     const groupName = S.group ? (S.group.name || S.groupId) : "—";
     const semTitle  = semesterTitle(S.semNo);
@@ -1159,19 +1155,14 @@ function buildPrintHTML(){
         return mi ? mi.t : esc(v);
     };
 
-    const rs = split ? ` rowspan="2"` : "";
-
     const thead = `
         <tr>
-            <th${rs} style="width:36px">№</th>
-            <th${rs} style="width:220px;text-align:left">ФИО студента</th>
+            <th style="width:36px">№</th>
+            <th style="width:220px;text-align:left">ФИО студента</th>
             ${cols.map(c =>
-                `<th class="subj" colspan="${sc}" title="${esc(c.subj)}"><span>${esc(c.subj)}</span></th>`
+                `<th class="kind" colspan="${sc}">${esc(c.kind)}</th>`
             ).join("")}
-        </tr>
-        ${split ? `<tr>${cols.map(() =>
-            `<th class="sub">+</th><th class="sub">−</th>`
-        ).join("")}</tr>` : ""}`;
+        </tr>`;
 
     const rows = S.students.map((st, i) => `
         <tr>
@@ -1196,9 +1187,9 @@ function buildPrintHTML(){
     // названия предметов — внизу таблицы, перенос по словам
     const tfoot = `
         <tr>
-            <td colspan="2" class="foot-label">Тип занятия</td>
+            <td colspan="2" class="foot-label">Дисциплины</td>
             ${cols.map(c =>
-                `<td class="foot-subj" colspan="${sc}">${esc(c.kind)}</td>`
+                `<td class="foot-subj" colspan="${sc}">${esc(c.subj)}</td>`
             ).join("")}
         </tr>`;
 
@@ -1259,15 +1250,14 @@ function buildPrintHTML(){
         text-align:center;
         font-size:9.5pt;
     }
-    th.subj{
-        writing-mode:vertical-rl;
-        transform:rotate(180deg);
-        white-space:nowrap;
-        height:150px;
-        padding:6px 2px;
+    th.kind{
         font-size:9.5pt;
-        line-height:1.1;
-        text-align:center;
+        font-weight:700;
+        padding:4px 3px;
+        min-width:90px;
+        white-space:normal;
+        overflow-wrap:anywhere;
+        vertical-align:middle;
     }
     th.sub{
         width:30px;
@@ -1284,9 +1274,13 @@ function buildPrintHTML(){
     }
     .foot-subj{
         text-align:center;
-        font-size:9pt;
+        font-size:9.5pt;
+        line-height:1.2;
         padding:6px 4px;
-        min-width:50px;
+        min-width:90px;
+        white-space:normal;
+        overflow-wrap:anywhere;
+        vertical-align:top;
     }
     .signs{
         margin-top:24px;

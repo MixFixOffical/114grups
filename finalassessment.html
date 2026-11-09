@@ -1154,6 +1154,7 @@ async function saveMark(sid, subj, newVal, el){
 function buildPrintHTML(){
     const sc        = 1;                           // одна колонка на каждую колонку в списке
     const cw        = S.cellMm + "mm";             // ширина колонки = сторона квадратной клетки
+    const vh        = "40mm";                      // высота шапки с вертикальным названием предмета
     const cols      = S.printCols;
     const groupName = S.group ? (S.group.name || S.groupId) : "—";
     const semTitle  = semesterTitle(S.semNo);
@@ -1174,7 +1175,7 @@ function buildPrintHTML(){
             <th style="width:36px">№</th>
             <th style="width:220px;text-align:left">ФИО студента</th>
             ${cols.map(c =>
-                `<th class="kind" colspan="${sc}" style="width:${cw};min-width:${cw};max-width:${cw}">${esc(c.kind)}</th>`
+                `<th class="subj" colspan="${sc}" style="width:${cw};min-width:${cw};max-width:${cw};height:${vh}" title="${esc(c.subj)}"><div class="sq sqv" style="height:${vh}">${esc(c.subj)}</div></th>`
             ).join("")}
         </tr>`;
 
@@ -1201,9 +1202,9 @@ function buildPrintHTML(){
     // названия предметов — внизу таблицы, перенос по словам
     const tfoot = `
         <tr>
-            <td colspan="2" class="foot-label">Дисциплины</td>
+            <td colspan="2" class="foot-label">Тип занятия</td>
             ${cols.map(c =>
-                `<td class="foot-subj" colspan="${sc}" style="width:${cw};min-width:${cw};max-width:${cw};padding:0"><div class="sq" style="width:100%;height:${cw}">${esc(c.subj)}</div></td>`
+                `<td class="foot-subj" colspan="${sc}" style="width:${cw};min-width:${cw};max-width:${cw}">${esc(c.kind)}</td>`
             ).join("")}
         </tr>`;
 
@@ -1264,14 +1265,20 @@ function buildPrintHTML(){
         text-align:center;
         font-size:9.5pt;
     }
-    th.kind{
-        font-size:9.5pt;
-        font-weight:700;
-        padding:4px 3px;
-        min-width:90px;
+    th.subj{
+        padding:4px 2px;
+        vertical-align:bottom;
+    }
+    .sqv{
+        display:block !important;
+        writing-mode:vertical-rl;
+        transform:rotate(180deg);
+        text-align:center;
         white-space:normal;
-        overflow-wrap:anywhere;
-        vertical-align:middle;
+        font-size:9.5pt;
+        line-height:1.15;
+        padding:2px;
+        margin:0 auto;
     }
     th.sub{
         width:30px;

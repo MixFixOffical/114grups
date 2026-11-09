@@ -1,0 +1,1430 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e293b">
+<title>Итоговая аттестация — Посещаемость</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+    color-scheme: light dark;
+    --accent:#1d4ed8; --accent-soft:#eff6ff;
+    --text:#0f172a; --text-secondary:#475569; --text-light:#94a3b8;
+    --surface:#ffffff; --surface-2:#f5f7fa; --surface-3:#eef2f7;
+    --border:#e2e8f0; --border-soft:#eef2f7;
+    --green:#047857; --green-soft:#ecfdf5;
+    --amber:#b45309; --amber-soft:#fffbeb;
+    --red:#b91c1c; --red-soft:#fef2f2;
+    --shadow-xs:0 1px 2px rgba(15,23,42,.05);
+    --radius-sm:8px; --radius-md:10px; --radius-lg:14px;
+}
+@media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+        --accent:#60a5fa; --accent-soft:rgba(29,78,216,.15);
+        --text:#e2e8f0; --text-secondary:#94a3b8; --text-light:#64748b;
+        --surface:#1e293b; --surface-2:#172033; --surface-3:#0f172a;
+        --border:#334155; --border-soft:#1e293b;
+        --green:#4ade80; --green-soft:rgba(4,120,87,.15);
+        --amber:#fbbf24; --amber-soft:rgba(180,83,9,.15);
+        --red:#f87171; --red-soft:rgba(185,28,28,.15);
+        --shadow-xs:0 1px 2px rgba(0,0,0,.3);
+    }
+}
+body{
+    min-height:100vh;
+    font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:var(--text); background:var(--surface-3);
+    -webkit-font-smoothing:antialiased;
+}
+button,select,input{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+/* ---------- TOPBAR ---------- */
+.topbar{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; gap:14px;
+    padding:12px 24px; background:var(--surface);
+    border-bottom:1px solid var(--border);
+}
+.back{
+    display:inline-flex; align-items:center; gap:6px;
+    padding:7px 12px; border:1px solid var(--border); border-radius:var(--radius-sm);
+    background:var(--surface); color:var(--text-secondary); text-decoration:none;
+    font-size:13px; font-weight:500;
+}
+.back:hover{background:var(--surface-2);color:var(--text)}
+.back svg{width:15px;height:15px}
+.page-title{font-size:16px;font-weight:700;letter-spacing:-.2px}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:10px;min-width:0}
+.user-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.role-badge{
+    font-size:11.5px;font-weight:600; padding:4px 9px; border-radius:999px;
+    background:var(--accent-soft); color:var(--accent); white-space:nowrap;
+}
+
+/* ---------- LAYOUT ---------- */
+.layout{
+    display:grid; grid-template-columns:minmax(0,1fr) 300px;
+    gap:20px; padding:20px 24px 40px; max-width:1500px; margin:0 auto;
+}
+@media (max-width:1000px){ .layout{grid-template-columns:1fr} }
+@media (max-width:600px){ .layout{padding:14px 12px 30px} .topbar{padding:10px 12px} .user-name{display:none} }
+.card{
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:var(--radius-lg); box-shadow:var(--shadow-xs);
+}
+
+/* ---------- FILTERS ---------- */
+.filters{
+    display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end;
+    padding:16px 18px; margin-bottom:16px;
+}
+.field{display:flex;flex-direction:column;gap:6px;min-width:150px}
+.field.grow{flex:1;min-width:220px}
+.field label{font-size:11.5px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.4px}
+.field select{
+    padding:9px 10px; border:1px solid var(--border); border-radius:var(--radius-sm);
+    background:var(--surface-2); color:var(--text); font-size:13.5px; min-width:160px;
+}
+.field select:disabled{opacity:.7}
+.mode{display:flex;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.mode button{
+    padding:9px 16px; border:none; background:var(--surface-2); color:var(--text-secondary);
+    font-size:13.5px; font-weight:500; cursor:pointer;
+}
+.mode button + button{border-left:1px solid var(--border)}
+.mode button.active{background:var(--accent);color:#fff;font-weight:600}
+.mode button:disabled{opacity:.45;cursor:not-allowed}
+
+/* ---------- TABLE (desktop) ---------- */
+.table-head{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:14px 18px;border-bottom:1px solid var(--border-soft);flex-wrap:wrap;
+}
+.table-title{font-size:14px;font-weight:700}
+.table-sub{font-size:12px;color:var(--text-secondary);margin-top:2px}
+
+.print-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:9px 16px;
+    border:1px solid var(--accent);
+    border-radius:var(--radius-sm);
+    background:var(--accent);
+    color:#fff;
+    font-size:13px;font-weight:600;
+    cursor:pointer;
+    transition:background .15s ease;
+    white-space:nowrap;
+}
+.print-btn:hover{background:#1e40af;border-color:#1e40af}
+.ghost-btn{
+    padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+    background:var(--surface);color:var(--text-secondary);font-size:12.5px;font-weight:500;cursor:pointer;
+}
+.ghost-btn:hover{background:var(--surface-2);color:var(--text)}
+@media (max-width:700px){
+    .print-btn{padding:8px 12px;font-size:12px}
+}
+
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{
+    padding:8px 8px;
+    border-bottom:1px solid var(--border-soft);
+    text-align:center;
+    white-space:nowrap;
+    vertical-align:middle;
+}
+th{
+    position:sticky;top:0;background:var(--surface-2);font-size:11.5px;font-weight:600;
+    color:var(--text-secondary);text-transform:uppercase;letter-spacing:.3px;
+}
+th.name,td.name{
+    text-align:left;position:sticky;left:0;
+    background:var(--surface);z-index:1;min-width:230px;
+}
+th.name{background:var(--surface-2);z-index:2}
+
+tbody tr{height:50px}
+
+th.subj{
+    writing-mode:vertical-rl;
+    transform:rotate(180deg);
+    white-space:nowrap;
+    vertical-align:middle;
+    text-align:center;
+    padding:8px 4px;
+    height:150px;
+    min-width:32px;
+    font-size:11px;
+    line-height:1.05;
+    letter-spacing:0;
+    text-transform:none;
+}
+
+td.num{color:var(--text-light);width:36px}
+
+.mark-select{
+    -webkit-appearance:none; appearance:none;
+    width:52px; height:34px;
+    padding:0 4px;
+    border:1px solid var(--border); border-radius:6px;
+    background:var(--surface);
+    color:var(--text);
+    font-size:12.5px; font-weight:600;
+    text-align:center; text-align-last:center;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+}
+.mark-select:hover{border-color:var(--text-light)}
+.mark-select.filled{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.mark-select option{font-weight:400}
+
+.mark{display:inline-flex;align-items:center;justify-content:center;min-width:40px;height:34px;padding:0 6px;border-radius:6px;font-weight:600;font-size:12.5px;background:var(--surface-2);color:var(--text-secondary)}
+.mark.good{background:var(--green-soft);color:var(--green)}
+.mark.bad{background:var(--red-soft);color:var(--red)}
+.mark.pass{background:var(--accent-soft);color:var(--accent)}
+.mark.empty{color:var(--text-light);background:transparent;font-weight:400}
+
+.empty{padding:40px 20px;text-align:center;color:var(--text-secondary);font-size:13.5px;line-height:1.6}
+.hint{margin:14px 2px 0;font-size:12px;color:var(--text-secondary);line-height:1.5}
+.denied{max-width:480px;margin:80px auto;padding:30px;text-align:center}
+
+/* ---------- PRINT COLUMNS PANEL ---------- */
+.pc-list{display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px}
+.pc-item{
+    display:flex;flex-direction:column;gap:8px;
+    width:180px;max-width:100%;padding:10px 10px;
+    border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);
+}
+.pc-name{font-size:12.5px;font-weight:600;line-height:1.3;overflow-wrap:anywhere}
+.pc-row{display:flex;gap:6px;align-items:center}
+.pc-kind{
+    flex:1;min-width:0;padding:6px 6px;
+    border:1px solid var(--border);border-radius:6px;
+    background:var(--surface);color:var(--text);font-size:12.5px;
+}
+.pc-btn{
+    width:30px;height:30px;flex:none;
+    border:1px solid var(--border);border-radius:6px;
+    background:var(--surface);color:var(--text-secondary);
+    font-size:14px;font-weight:600;cursor:pointer;line-height:1;
+}
+.pc-btn:hover{background:var(--surface-3);color:var(--text)}
+.pc-btn.del:hover{color:var(--red);border-color:var(--red)}
+
+/* ---------- SIDE ---------- */
+.side{display:flex;flex-direction:column;gap:16px}
+.side-card{padding:16px}
+.side-title{
+    font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+    color:var(--text-light);margin-bottom:10px;
+}
+.menu-btn{
+    width:100%; display:flex; align-items:center; gap:12px; padding:11px 12px; margin-bottom:6px;
+    border:1px solid var(--border); border-radius:var(--radius-md); background:var(--surface);
+    color:var(--text); font-size:14px; font-weight:500; text-align:left; cursor:pointer;
+}
+.menu-btn:hover{background:var(--surface-2)}
+.menu-btn.active{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
+.menu-btn kbd{
+    margin-left:auto; min-width:22px; height:22px; padding:0 6px; display:inline-flex;
+    align-items:center; justify-content:center; border-radius:5px; font-size:11px;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--text-light); font-family:inherit;
+}
+.menu-hint{font-size:11.5px;color:var(--text-light);margin-top:4px;line-height:1.4}
+.log{list-style:none;max-height:520px;overflow-y:auto;display:flex;flex-direction:column;gap:10px}
+.log li{padding:10px 11px;border:1px solid var(--border-soft);border-radius:var(--radius-sm);background:var(--surface-2)}
+.log-what{font-size:12.5px;line-height:1.45;color:var(--text)}
+.log-meta{margin-top:5px;font-size:11px;color:var(--text-secondary)}
+.log-tag{
+    display:inline-block;font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:4px;margin-right:4px;
+    background:var(--amber-soft);color:var(--amber);
+}
+.log-tag.set{background:var(--green-soft);color:var(--green)}
+.log-tag.clear{background:var(--red-soft);color:var(--red)}
+.log-note{font-size:12.5px;color:var(--text-secondary);line-height:1.5}
+
+.toast{
+    position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);
+    background:var(--text);color:var(--surface);padding:10px 16px;border-radius:var(--radius-sm);
+    font-size:13px;font-weight:500;opacity:0;pointer-events:none;transition:all .2s ease;z-index:100;max-width:90vw;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- MOBILE (до 700px) ---------- */
+.mobile-only{display:none}
+@media (max-width:700px){
+    .desktop-only{display:none !important}
+    .mobile-only{display:block}
+
+    .filters{padding:12px 12px; gap:10px}
+    .field{min-width:0; flex:1 1 100%}
+    .field select{width:100%; min-width:0}
+
+    .subject-picker{
+        padding:12px 14px;
+        border-bottom:1px solid var(--border-soft);
+        display:flex;flex-direction:column;gap:6px;
+    }
+    .subject-picker label{
+        font-size:11px;font-weight:600;color:var(--text-secondary);
+        text-transform:uppercase;letter-spacing:.4px;
+    }
+    .subject-picker select{
+        width:100%;
+        padding:11px 12px;
+        border:1px solid var(--border);
+        border-radius:var(--radius-sm);
+        background:var(--surface-2);
+        color:var(--text);
+        font-size:14px;
+    }
+    .subject-meta{
+        margin-top:6px;
+        font-size:11.5px;
+        color:var(--text-light);
+    }
+
+    .student-list{
+        display:flex;flex-direction:column;
+    }
+    .student-row{
+        display:flex;align-items:center;gap:10px;
+        padding:10px 14px;
+        border-bottom:1px solid var(--border-soft);
+    }
+    .student-row:last-child{border-bottom:none}
+    .student-row .idx{
+        flex:none;width:24px;text-align:center;
+        color:var(--text-light);font-size:12px;
+    }
+    .student-row .nm{
+        flex:1;min-width:0;
+        font-size:13.5px;
+        overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+    }
+    .student-row .mark-wrap{
+        flex:none;
+    }
+    .student-row .mark-select{
+        width:64px; height:38px;
+        font-size:13px;
+    }
+}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+    <a class="back" id="backLink" href="home.html">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        Назад
+    </a>
+    <div class="page-title">Итоговая аттестация</div>
+    <div class="topbar-right">
+        <span class="user-name" id="userName">—</span>
+        <span class="role-badge" id="roleBadge">—</span>
+    </div>
+</header>
+
+<div class="layout" id="layout">
+    <main>
+        <section class="card filters">
+            <div class="field grow">
+                <label for="groupSel">Группа</label>
+                <select id="groupSel" disabled><option>Загрузка…</option></select>
+            </div>
+            <div class="field">
+                <label for="semSel">Семестр</label>
+                <select id="semSel" disabled></select>
+            </div>
+            <div class="field" id="periodField">
+                <label for="periodSel">Аттестация</label>
+                <select id="periodSel"></select>
+            </div>
+            <div class="field" id="modeField">
+                <label>Режим</label>
+                <div class="mode">
+                    <button id="modeAttest" class="active" data-mode="attest">Аттестация</button>
+                    <button id="modeCorrect" data-mode="correct">Коррекция</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="table-head">
+                <div>
+                    <div class="table-title" id="tableTitle">—</div>
+                    <div class="table-sub" id="tableSub">—</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                    <label style="font-size:12.5px;display:flex;align-items:center;gap:6px;cursor:pointer;color:var(--text-secondary)">
+                        <input type="checkbox" id="splitChk" checked>
+                        Колонки «+» и «−»
+                    </label>
+                    <button class="print-btn" id="printBtn" type="button" title="Сгенерировать и распечатать ведомость">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
+                            <path d="M6 9V2h12v7"/>
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                            <path d="M6 14h12v8H6z"/>
+                        </svg>
+                        Печать
+                    </button>
+                </div>
+            </div>
+
+            <!-- ДЕСКТОП: таблица -->
+            <div class="table-wrap desktop-only">
+                <table>
+                    <thead id="thead"></thead>
+                    <tbody id="tbody"></tbody>
+                </table>
+            </div>
+
+            <!-- МОБИЛЬНЫЙ: выбор предмета + список студентов -->
+            <div class="mobile-only" id="mobileWrap">
+                <div class="subject-picker" id="subjectPicker" style="display:none">
+                    <label for="subjectSel">Предмет</label>
+                    <select id="subjectSel"></select>
+                    <div class="subject-meta" id="subjectMeta"></div>
+                </div>
+                <div class="student-list" id="mobileStudentList"></div>
+            </div>
+        </section>
+
+        <!-- КОЛОНКИ ДЛЯ ПЕЧАТИ -->
+        <section class="card" id="printColsCard" style="margin-top:16px">
+            <div class="table-head">
+                <div>
+                    <div class="table-title">Колонки для печати</div>
+                    <div class="table-sub">Выберите «Теория» или «Практику», «+» — дублировать колонку, «✕» — удалить</div>
+                </div>
+                <button type="button" class="ghost-btn" id="resetColsBtn">Сбросить</button>
+            </div>
+            <div class="pc-list" id="pcList"></div>
+        </section>
+
+        <p class="hint" id="rightsHint"></p>
+    </main>
+
+    <aside class="side">
+        <section class="card side-card">
+            <div class="side-title">Меню</div>
+            <button class="menu-btn active" data-type="attestation">1&nbsp;&nbsp;Аттестационная <kbd>1</kbd></button>
+            <button class="menu-btn" data-type="semester">2&nbsp;&nbsp;Семестровая <kbd>2</kbd></button>
+            <div class="menu-hint" id="typeHint"></div>
+        </section>
+
+        <section class="card side-card" id="logCard">
+            <div class="side-title">Журнал изменений</div>
+            <ul class="log" id="logList"></ul>
+        </section>
+    </aside>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   КОНСТАНТЫ
+========================================================= */
+const ADMIN_ROLES   = ["admin", "admt"];
+const ALLOWED_ROLES = ["admin", "admt", "curator", "student", "parent"];
+const HOME_BY_ROLE  = { admin: "adminhome.html", admt: "admt.html", curator: "khome.html", parent: "phome.html", student: "home.html" };
+const ROLE_LABELS   = { admin: "Администратор", admt: "АДМТ", curator: "Куратор", student: "Староста", parent: "Родитель" };
+const DAYS = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+const KINDS = ["Теория", "Практика"];
+
+const MARKS = [
+    { v:"5",     t:"5",       full:"5 (отлично)",             cls:"good" },
+    { v:"4",     t:"4",       full:"4 (хорошо)",              cls:"good" },
+    { v:"3",     t:"3",       full:"3 (удовлетворительно)",   cls:"pass" },
+    { v:"2",     t:"2",       full:"2 (неудовлетворительно)", cls:"bad"  },
+    { v:"зач",   t:"за-о",    full:"Зачтено",                 cls:"good" },
+    { v:"незач", t:"нз-о",    full:"Не зачтено",              cls:"bad"  },
+    { v:"н",     t:"н/а",     full:"Не аттестован",           cls:"bad"  }
+];
+const markInfo = v => MARKS.find(m => m.v === v);
+const labelOf = v => (v ? (markInfo(v)?.full || v) : "пусто");
+
+/* =========================================================
+   СОСТОЯНИЕ
+========================================================= */
+const S = {
+    uid: null, name: "", role: null,
+    groups: [], group: null, groupId: null,
+    gRole: null,
+    semList: [], semNo: null,
+    period: 1, type: "attestation", mode: "attest",
+    settings: {},
+    subjects: [],
+    printCols: [],          // колонки для печати: {id, subj, kind}
+    students: [],
+    childIds: [],
+    marks: {},
+    logs: [],
+    unsubs: [],
+    mobileSubject: "",
+    accessDenied: false
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const isAdmin = () => ADMIN_ROLES.includes(S.role);
+const typeLabel = t => t === "attestation" ? "Аттестационная" : "Семестровая";
+const isMobile = () => window.matchMedia("(max-width: 700px)").matches;
+let _pcSeq = 0;
+const newPcId = () => "pc" + (++_pcSeq);
+
+function toast(msg){
+    const t = $("toast");
+    t.textContent = msg;
+    t.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => t.classList.remove("show"), 2600);
+}
+
+const keyOf = name => String(name).trim().replace(/[.\/\[\]*`~]/g, "_");
+
+/* ---------- Семестры ---------- */
+function semestersOfGroup(name){
+    const m = String(name || "").trim().match(/^(\d)/);
+    if (!m) return null;
+    const course = Number(m[1]);
+    if (course < 1 || course > 4) return null;
+    const first = (course - 1) * 2 + 1;
+    return [first, first + 1];
+}
+function semesterTitle(n){
+    const course = Math.ceil(n / 2);
+    const half = n % 2 === 1 ? "осенний" : "весенний";
+    return `${n} семестр · ${course} курс · ${half}`;
+}
+function settingsKey(){
+    return S.semNo === S.semList[0] ? "semester1" : "semester2";
+}
+function attestationWindow(p){
+    return S.settings?.[settingsKey()]?.["attestation" + p] || null;
+}
+
+/* ---------- Дисциплины ---------- */
+function extractSubjectsFrom(disc){
+    const names = [];
+    const add = v => {
+        if (v && typeof v === "object") v = v.discipline || v.subject || v.name || v.title || v.lessonName;
+        if (typeof v === "string" && v.trim() && !names.includes(v.trim())) names.push(v.trim());
+    };
+    if (Array.isArray(disc)) { disc.forEach(add); return names; }
+    if (!disc || typeof disc !== "object") return names;
+    const keys = [...DAYS.filter(d => d in disc), ...Object.keys(disc).filter(k => !DAYS.includes(k))];
+    keys.forEach(k => {
+        const arr = disc[k];
+        if (Array.isArray(arr)) arr.forEach(add);
+        else if (arr && typeof arr === "object") Object.values(arr).forEach(add);
+        else add(arr);
+    });
+    return names;
+}
+function extractSubjects(){
+    const bySem = S.settings?.disciplinesBySemester;
+    if (bySem && typeof bySem === "object") {
+        const key = String(S.semNo);
+        if (bySem[key]) return extractSubjectsFrom(bySem[key]);
+        const altKey = "semester" + (S.semNo === S.semList[0] ? 1 : 2);
+        if (bySem[altKey]) return extractSubjectsFrom(bySem[altKey]);
+    }
+    return extractSubjectsFrom(S.settings?.disciplines);
+}
+
+/* ---------- Права ---------- */
+function roleInGroup(g){
+    if (isAdmin()) return "admin";
+    if (S.role === "parent") return "parent";
+    if (g.curatorId === S.uid) return "curator";
+    if (g.starostaId === S.uid || g.leaderId === S.uid) return "starosta";
+    return null;
+}
+const canEnter   = () => ["admin", "curator", "starosta"].includes(S.gRole);
+const canCorrect = () => ["admin", "curator"].includes(S.gRole);
+const canSeeLog  = () => isAdmin() || (S.role === "curator" && S.gRole === "curator");
+
+/* =========================================================
+   ЗАГРУЗКА
+========================================================= */
+auth.onAuthStateChanged(async user => {
+    if (!user) { window.location.href = "index.html"; return; }
+    S.uid = user.uid;
+
+    try {
+        const snap = await db.collection("users").doc(user.uid).get();
+        if (!snap.exists) { showDenied(); return; }
+        const data = snap.data() || {};
+        S.role = String(data.role || "").trim().toLowerCase();
+        S.name = data.name || data.fullName || data.fio || user.email || "Пользователь";
+    } catch (e) {
+        console.error(e); toast("Не удалось загрузить профиль");
+        return;
+    }
+
+    if (!ALLOWED_ROLES.includes(S.role)) { showDenied(); return; }
+
+    $("backLink").href = HOME_BY_ROLE[S.role] || "home.html";
+    $("userName").textContent = S.name;
+    $("roleBadge").textContent = ROLE_LABELS[S.role] || S.role;
+
+    await loadGroups();
+    if (!S.groups.length) { showNoGroups(); return; }
+
+    fillGroupSelect();
+    await selectGroup(S.groups[0].id);
+});
+
+function showDenied(){
+    S.accessDenied = true;
+    $("layout").innerHTML = `<div class="card denied">
+        <div class="table-title" style="margin-bottom:8px">Доступ запрещён</div>
+        <div class="table-sub">Раздел «Итоговая аттестация» недоступен для вашей роли.</div>
+    </div>`;
+}
+function showNoGroups(){
+    S.accessDenied = true;
+    $("groupSel").innerHTML = `<option value="">Нет доступных групп</option>`;
+    $("groupSel").disabled = true;
+
+    const hint = S.role === "parent"
+        ? "К вашему аккаунту не привязан ни один ребёнок. Обратитесь к администратору."
+        : (isAdmin()
+            ? "В системе пока нет групп."
+            : "Вам не назначена ни одна группа. Обратитесь к администратору.");
+
+    $("thead").innerHTML = "";
+    $("tbody").innerHTML = `<tr><td><div class="empty">${hint}</div></td></tr>`;
+    $("mobileStudentList").innerHTML = `<div class="empty">${hint}</div>`;
+    $("rightsHint").textContent = "";
+}
+
+async function loadGroups(){
+    const gcol = db.collection("groups");
+    let docs = [];
+    try {
+        if (isAdmin()) {
+            docs = (await gcol.get()).docs;
+        } else if (S.role === "parent") {
+            const links = await db.collection("links").where("parentId", "==", S.uid).get();
+            S.childIds = links.docs.map(d => d.data().studentId).filter(Boolean);
+            const kids = await Promise.all(S.childIds.map(id => db.collection("students").doc(id).get()));
+            const gids = [...new Set(kids.map(k => k.exists ? k.data().groupId : null).filter(Boolean))];
+            const gs = await Promise.all(gids.map(id => gcol.doc(id).get()));
+            docs = gs.filter(g => g.exists);
+        } else {
+            const [a, b, c] = await Promise.all([
+                gcol.where("curatorId", "==", S.uid).get(),
+                gcol.where("starostaId", "==", S.uid).get(),
+                gcol.where("leaderId", "==", S.uid).get()
+            ]);
+            const map = new Map();
+            [...a.docs, ...b.docs, ...c.docs].forEach(d => map.set(d.id, d));
+            docs = [...map.values()];
+        }
+    } catch (e) {
+        console.error(e); toast("Ошибка загрузки групп: " + e.message);
+    }
+
+    S.groups = docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .filter(g => S.role === "parent" || g.active !== false)
+        .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ru", { numeric: true }));
+}
+
+function fillGroupSelect(){
+    const sel = $("groupSel");
+    sel.innerHTML = S.groups.map(g => `<option value="${esc(g.id)}">${esc(g.name || g.id)}</option>`).join("");
+    sel.disabled = S.groups.length <= 1;
+}
+
+async function selectGroup(gid){
+    unsubscribeAll();
+
+    S.groupId = gid;
+    S.group = S.groups.find(g => g.id === gid) || null;
+    if (!S.group) { showNoGroups(); return; }
+
+    $("groupSel").value = gid;
+    S.gRole = roleInGroup(S.group);
+
+    // жёсткая проверка прав на группу
+    if (!S.gRole) {
+        S.accessDenied = true;
+        $("thead").innerHTML = "";
+        $("tbody").innerHTML = `<tr><td><div class="empty">Нет доступа к этой группе.</div></td></tr>`;
+        $("mobileStudentList").innerHTML = `<div class="empty">Нет доступа к этой группе.</div>`;
+        $("tableTitle").textContent = "Нет доступа";
+        $("tableSub").textContent = "Эта группа не закреплена за вами.";
+        $("rightsHint").textContent = "";
+        return;
+    }
+    S.accessDenied = false;
+
+    S.semList = semestersOfGroup(S.group.name) || [1, 2];
+    if (!S.semNo || !S.semList.includes(S.semNo)) S.semNo = S.semList[0];
+    fillSemesterSelect();
+
+    await Promise.all([loadSettings(), loadStudents()]);
+    fillPeriodSelect();
+    setupRights();
+    syncMobileSubject();
+    subscribeAll();
+}
+
+async function loadSettings(){
+    S.settings = {};
+    S.subjects = [];
+    if (!S.gRole) return;
+    try {
+        const d = await db.collection("groupSettings").doc(S.groupId).get();
+        S.settings = d.exists ? (d.data() || {}) : {};
+        S.subjects = extractSubjects();
+    } catch (e) { console.error(e); toast("Ошибка настроек группы: " + e.message); }
+    resetPrintCols();
+}
+
+async function loadStudents(){
+    S.students = [];
+    if (!S.gRole) return;
+    try {
+        const ids = new Set(Array.isArray(S.group.studentIds) ? S.group.studentIds : []);
+        const byGroup = await db.collection("students").where("groupId", "==", S.groupId).get();
+        byGroup.docs.forEach(d => ids.add(d.id));
+
+        let list = [];
+        const docs = await Promise.all([...ids].map(id => db.collection("students").doc(id).get()));
+        docs.filter(d => d.exists).forEach(d => {
+            const x = d.data() || {};
+            list.push({ id: d.id, name: x.fullName || x.name || x.fio || "Без имени" });
+        });
+
+        // родитель видит только своих детей
+        if (S.role === "parent") {
+            const childSet = new Set(S.childIds);
+            list = list.filter(s => childSet.has(s.id));
+        }
+        S.students = list.sort((a, b) => a.name.localeCompare(b.name, "ru"));
+    } catch (e) { console.error(e); toast("Ошибка загрузки студентов: " + e.message); }
+}
+
+/* =========================================================
+   КЛЮЧИ
+========================================================= */
+function assessKey(){
+    const part = S.type === "attestation" ? "a" + S.period : "final";
+    return `${S.groupId}_s${S.semNo}_${part}`;
+}
+
+/* =========================================================
+   ПОДПИСКИ
+========================================================= */
+function unsubscribeAll(){
+    S.unsubs.forEach(f => { try { f(); } catch (e) {} });
+    S.unsubs = [];
+    S.marks = {};
+    S.logs = [];
+}
+
+function subscribeAll(){
+    unsubscribeAll();
+    if (S.accessDenied || !S.gRole || !S.groupId) return;
+
+    const key = assessKey();
+
+    S.students.forEach(st => {
+        const off = db.collection("assessments").doc(`${key}_${st.id}`).onSnapshot(
+            d => {
+                S.marks[st.id] = d.exists ? ((d.data() || {}).marks || {}) : {};
+                render();
+            },
+            err => { console.error(err); toast("Нет доступа к оценкам: " + (err.code || err.message)); }
+        );
+        S.unsubs.push(off);
+    });
+
+    if (canSeeLog()) {
+        const off = db.collection("assessment_log").where("assessKey", "==", key).onSnapshot(
+            snap => {
+                S.logs = snap.docs.map(d => d.data())
+                    .sort((a, b) => (b.at?.toMillis?.() ?? Date.now()) - (a.at?.toMillis?.() ?? Date.now()))
+                    .slice(0, 100);
+                renderLog();
+            },
+            err => { console.error(err); S.logs = []; renderLog(err.code || err.message); }
+        );
+        S.unsubs.push(off);
+    }
+
+    render();
+    renderLog();
+}
+
+/* =========================================================
+   КОЛОНКИ ДЛЯ ПЕЧАТИ
+========================================================= */
+function resetPrintCols(){
+    S.printCols = S.subjects.map(s => ({ id: newPcId(), subj: s, kind: "" }));
+    renderPrintCols();
+}
+
+function renderPrintCols(){
+    const list = $("pcList");
+    if (!S.subjects.length) {
+        list.innerHTML = `<div class="empty" style="padding:6px 0;text-align:left">Нет дисциплин для печати</div>`;
+        return;
+    }
+    if (!S.printCols.length) {
+        list.innerHTML = `<div class="empty" style="padding:6px 0;text-align:left">Все колонки удалены. Нажмите «Сбросить».</div>`;
+        return;
+    }
+    list.innerHTML = S.printCols.map(c => `
+        <div class="pc-item">
+            <div class="pc-name" title="${esc(c.subj)}">${esc(c.subj)}</div>
+            <div class="pc-row">
+                <select class="pc-kind" data-id="${esc(c.id)}">
+                    <option value="">—</option>
+                    ${KINDS.map(k => `<option value="${k}" ${c.kind === k ? "selected" : ""}>${k}</option>`).join("")}
+                </select>
+                <button type="button" class="pc-btn" data-act="dup" data-id="${esc(c.id)}" title="Дублировать колонку">+</button>
+                <button type="button" class="pc-btn del" data-act="del" data-id="${esc(c.id)}" title="Удалить колонку">✕</button>
+            </div>
+        </div>`).join("");
+}
+
+$("pcList").addEventListener("click", e => {
+    const b = e.target.closest("[data-act]");
+    if (!b) return;
+    const i = S.printCols.findIndex(c => c.id === b.dataset.id);
+    if (i < 0) return;
+    if (b.dataset.act === "dup") {
+        const src = S.printCols[i];
+        S.printCols.splice(i + 1, 0, { id: newPcId(), subj: src.subj, kind: src.kind });
+    } else if (b.dataset.act === "del") {
+        S.printCols.splice(i, 1);
+    }
+    renderPrintCols();
+});
+$("pcList").addEventListener("change", e => {
+    const sel = e.target.closest("select.pc-kind");
+    if (!sel) return;
+    const col = S.printCols.find(c => c.id === sel.dataset.id);
+    if (col) col.kind = sel.value;
+});
+$("resetColsBtn").addEventListener("click", resetPrintCols);
+
+/* =========================================================
+   ИНТЕРФЕЙС
+========================================================= */
+function fillSemesterSelect(){
+    const sel = $("semSel");
+    sel.innerHTML = S.semList.map(n => `<option value="${n}">${semesterTitle(n)}</option>`).join("");
+    sel.value = S.semNo;
+    sel.disabled = S.semList.length <= 1;
+}
+
+function fmtDate(s){
+    if (!s) return "";
+    const [y, m, d] = String(s).split("-");
+    return d && m && y ? `${d}.${m}.${y}` : s;
+}
+
+function fillPeriodSelect(){
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const inside = w => {
+        if (!w?.start || !w?.end) return false;
+        const a = new Date(w.start), b = new Date(w.end);
+        return !isNaN(a) && !isNaN(b) && today >= a && today <= b;
+    };
+    const current = [1, 2].find(p => inside(attestationWindow(p)));
+    if (current) S.period = current;
+
+    $("periodSel").innerHTML = [1, 2].map(p => {
+        const w = attestationWindow(p);
+        const dates = w?.start && w?.end ? ` (${fmtDate(w.start)} — ${fmtDate(w.end)})` : " (даты не заданы)";
+        return `<option value="${p}">${p} аттестация${dates}</option>`;
+    }).join("");
+    $("periodSel").value = S.period;
+}
+
+function setupRights(){
+    const isParent = S.gRole === "parent";
+    $("modeField").style.display = isParent ? "none" : "";
+    $("logCard").style.display = canSeeLog() ? "" : "none";
+    $("modeCorrect").disabled = !canCorrect();
+    $("modeCorrect").title = canCorrect() ? "" : "Коррекция доступна куратору и администрации";
+    if (S.mode === "correct" && !canCorrect()) S.mode = "attest";
+    setModeButtons();
+    setType(S.type, false);
+
+    let hint;
+    if (isParent) hint = "Вы видите оценки только своих детей. Редактирование недоступно.";
+    else if (S.gRole === "starosta") hint = "Выставление оценок — только в пустые ячейки. Исправлять уже выставленные оценки может куратор или администрация.";
+    else if (S.gRole === "curator") hint = "Выставляйте оценки в пустые ячейки. Режим «Коррекция» позволяет исправить уже выставленные. Все изменения попадают в журнал.";
+    else hint = "Все изменения сохраняются сразу и попадают в журнал с указанием автора и времени.";
+    $("rightsHint").textContent = hint;
+}
+
+function setType(t, reload = true){
+    S.type = t;
+    document.querySelectorAll(".menu-btn").forEach(b => b.classList.toggle("active", b.dataset.type === t));
+    $("periodField").style.display = t === "attestation" ? "" : "none";
+    $("typeHint").textContent = t === "attestation"
+        ? "Оценки по дисциплинам за выбранную аттестацию (1 или 2) выбранного семестра."
+        : "Итоговые оценки по дисциплинам за семестр.";
+    if (reload) subscribeAll();
+}
+
+function setMode(m){
+    if (m === "correct" && !canCorrect()) m = "attest";
+    S.mode = m;
+    setModeButtons();
+    render();
+}
+function setModeButtons(){
+    $("modeAttest").classList.toggle("active", S.mode === "attest");
+    $("modeCorrect").classList.toggle("active", S.mode === "correct");
+}
+
+function canWriteCell(sid, subj){
+    if (S.accessDenied || !S.gRole) return false;
+    if (S.gRole === "parent") return false;
+    const cur = (S.marks[sid] || {})[keyOf(subj)] ?? "";
+    if (S.mode === "attest") return canEnter() && cur === "";
+    return canCorrect();
+}
+
+function renderHeader(){
+    if (S.accessDenied || !S.gRole) return;
+    const grp = S.group ? (S.group.name || S.groupId) : "—";
+    const what = S.type === "attestation" ? `${S.period} аттестация` : "итог семестра";
+    $("tableTitle").textContent = `${typeLabel(S.type)} ведомость — ${semesterTitle(S.semNo)}, ${what}`;
+    $("tableSub").textContent = `Группа ${grp} · студентов: ${S.students.length} · дисциплин: ${S.subjects.length}`;
+}
+
+/* ---- селект оценки ---- */
+function markSelectHTML(sid, subj, val){
+    return `<select class="mark-select ${val ? "filled" : ""}"
+                data-s="${esc(sid)}" data-c="${esc(subj)}" data-old="${esc(val)}">
+        <option value="">—</option>
+        ${MARKS.map(m => `<option value="${m.v}" ${m.v === val ? "selected" : ""}>${m.t}</option>`).join("")}
+    </select>`;
+}
+
+function markViewHTML(val){
+    const mi = markInfo(val);
+    return mi ? `<span class="mark ${mi.cls}" title="${esc(mi.full)}">${esc(mi.t)}</span>`
+              : `<span class="mark empty">—</span>`;
+}
+
+/* ---- десктопная таблица ---- */
+function renderDesktop(){
+    const thead = $("thead"), tbody = $("tbody");
+
+    if (S.accessDenied) return;
+
+    if (!S.groupId) {
+        thead.innerHTML = ""; tbody.innerHTML = `<tr><td><div class="empty">Группа не выбрана</div></td></tr>`;
+        return;
+    }
+    if (!S.subjects.length) {
+        thead.innerHTML = ""; tbody.innerHTML = `<tr><td><div class="empty">
+            В настройках группы не заданы дисциплины для выбранного семестра.
+        </div></td></tr>`;
+        return;
+    }
+    if (!S.students.length) {
+        thead.innerHTML = "";
+        const msg = S.gRole === "parent"
+            ? "К этой группе не привязан ни один ваш ребёнок."
+            : "В группе нет студентов.";
+        tbody.innerHTML = `<tr><td><div class="empty">${msg}</div></td></tr>`;
+        return;
+    }
+
+    thead.innerHTML = `<tr>
+        <th class="num">№</th>
+        <th class="name">Студент</th>
+        ${S.subjects.map(s => `<th class="subj" title="${esc(s)}">${esc(s)}</th>`).join("")}
+    </tr>`;
+
+    tbody.innerHTML = S.students.map((st, i) => `
+        <tr>
+            <td class="num">${i + 1}</td>
+            <td class="name">${esc(st.name)}</td>
+            ${S.subjects.map(subj => {
+                const val = (S.marks[st.id] || {})[keyOf(subj)] ?? "";
+                return `<td>${canWriteCell(st.id, subj) ? markSelectHTML(st.id, subj, val) : markViewHTML(val)}</td>`;
+            }).join("")}
+        </tr>`).join("");
+}
+
+/* ---- мобильный блок ---- */
+function syncMobileSubject(){
+    if (!S.subjects.includes(S.mobileSubject)) {
+        S.mobileSubject = S.subjects[0] || "";
+    }
+}
+
+function renderMobile(){
+    const picker = $("subjectPicker");
+    const sel = $("subjectSel");
+    const meta = $("subjectMeta");
+    const list = $("mobileStudentList");
+
+    if (S.accessDenied) return;
+
+    if (!S.groupId || !S.subjects.length) {
+        picker.style.display = "none";
+        list.innerHTML = `<div class="empty">${
+            S.groupId ? "В настройках группы не заданы дисциплины для выбранного семестра." : "Группа не выбрана."
+        }</div>`;
+        return;
+    }
+    if (!S.students.length) {
+        picker.style.display = "none";
+        const msg = S.gRole === "parent"
+            ? "К этой группе не привязан ни один ваш ребёнок."
+            : "В группе нет студентов.";
+        list.innerHTML = `<div class="empty">${msg}</div>`;
+        return;
+    }
+
+    picker.style.display = "";
+    syncMobileSubject();
+
+    sel.innerHTML = S.subjects.map(s =>
+        `<option value="${esc(s)}" ${s === S.mobileSubject ? "selected" : ""}>${esc(s)}</option>`
+    ).join("");
+
+    const subj = S.mobileSubject;
+    const idx = S.subjects.indexOf(subj) + 1;
+    meta.textContent = `Предмет ${idx} из ${S.subjects.length}`;
+
+    list.innerHTML = S.students.map((st, i) => {
+        const val = (S.marks[st.id] || {})[keyOf(subj)] ?? "";
+        const control = canWriteCell(st.id, subj)
+            ? markSelectHTML(st.id, subj, val)
+            : markViewHTML(val);
+        return `<div class="student-row">
+            <div class="idx">${i + 1}</div>
+            <div class="nm" title="${esc(st.name)}">${esc(st.name)}</div>
+            <div class="mark-wrap">${control}</div>
+        </div>`;
+    }).join("");
+}
+
+function render(){
+    renderHeader();
+    if (isMobile()) {
+        renderMobile();
+    } else {
+        renderDesktop();
+    }
+}
+
+function renderLog(err){
+    const list = $("logList");
+    const note = t => `<li style="border:none;background:none;padding:0"><div class="log-note">${t}</div></li>`;
+    if (err) { list.innerHTML = note(`Журнал недоступен: ${esc(err)}`); return; }
+    if (!S.logs.length) { list.innerHTML = note("Изменений пока нет"); return; }
+
+    list.innerHTML = S.logs.map(l => {
+        const when = l.at?.toDate
+            ? l.at.toDate().toLocaleString("ru-RU", { day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" })
+            : "сохраняется…";
+        const tag = l.action === "set" ? `<span class="log-tag set">Выставлено</span>`
+                  : l.action === "clear" ? `<span class="log-tag clear">Удалено</span>`
+                  : `<span class="log-tag">Исправлено</span>`;
+        return `<li>
+            <div class="log-what">${tag}<b>${esc(l.studentName)}</b> · ${esc(l.subjectName)}<br>
+                ${esc(labelOf(l.from))} → <b>${esc(labelOf(l.to))}</b></div>
+            <div class="log-meta">${esc(l.byName)} (${esc(ROLE_LABELS[l.byRole] || l.byRole)}) · ${when}</div>
+        </li>`;
+    }).join("");
+}
+
+/* =========================================================
+   ЗАПИСЬ ОЦЕНКИ
+========================================================= */
+async function saveMark(sid, subj, newVal, el){
+    if (S.accessDenied || !S.gRole) {
+        toast("Нет доступа");
+        el.value = "";
+        return;
+    }
+
+    const key = keyOf(subj);
+    const oldVal = (S.marks[sid] || {})[key] ?? "";
+    if (newVal === oldVal) return;
+
+    if (!canWriteCell(sid, subj)) {
+        toast("Нет прав на изменение этой ячейки");
+        el.value = oldVal;
+        return;
+    }
+
+    const aKey = assessKey();
+    const ref = db.collection("assessments").doc(`${aKey}_${sid}`);
+    const logRef = db.collection("assessment_log").doc();
+    const student = S.students.find(s => s.id === sid);
+    const FV = firebase.firestore.FieldValue;
+    let changed = false;
+
+    try {
+        await db.runTransaction(async t => {
+            changed = false;
+            const snap = await t.get(ref);
+            const cur = snap.exists ? (((snap.data() || {}).marks || {})[key] ?? "") : "";
+            if (cur === newVal) return;
+
+            if (cur !== "" && S.mode === "attest") {
+                throw new Error("Оценка уже выставлена. Для исправления используйте режим «Коррекция».");
+            }
+
+            const action = newVal === "" ? "clear" : (cur === "" ? "set" : "correct");
+            const meta = {
+                assessKey: aKey, groupId: S.groupId, studentId: sid,
+                semester: S.semNo, type: S.type,
+                period: S.type === "attestation" ? S.period : null,
+                updatedAt: FV.serverTimestamp(), updatedBy: S.uid
+            };
+
+            if (!snap.exists) {
+                if (newVal !== "") t.set(ref, { ...meta, marks: { [key]: newVal } });
+            } else if (newVal === "") {
+                t.update(ref, { ...meta, [`marks.${key}`]: FV.delete() });
+            } else {
+                t.set(ref, { ...meta, marks: { [key]: newVal } }, { merge: true });
+            }
+
+            t.set(logRef, {
+                assessKey: aKey, groupId: S.groupId, semester: S.semNo, type: S.type,
+                period: S.type === "attestation" ? S.period : null,
+                studentId: sid, studentName: student ? student.name : sid,
+                subjectKey: key, subjectName: subj,
+                from: cur, to: newVal, action, mode: S.mode,
+                byUid: S.uid, byName: S.name, byRole: S.role,
+                at: FV.serverTimestamp()
+            });
+            changed = true;
+        });
+
+        if (changed) {
+            el.classList.toggle("filled", newVal !== "");
+            el.dataset.old = newVal;
+            toast("Сохранено");
+        }
+    } catch (e) {
+        console.error(e);
+        toast(e.message || "Не удалось сохранить");
+        el.value = oldVal;
+    }
+}
+
+/* =========================================================
+   ПЕЧАТЬ ВЕДОМОСТИ
+========================================================= */
+function buildPrintHTML(){
+    const split     = document.getElementById("splitChk")?.checked ?? true;
+    const sc        = split ? 2 : 1;               // колонок на одну колонку предмета
+    const cols      = S.printCols;
+    const groupName = S.group ? (S.group.name || S.groupId) : "—";
+    const semTitle  = semesterTitle(S.semNo);
+    const what      = S.type === "attestation"
+        ? `${S.period}-я аттестация`
+        : "Итоговая за семестр";
+    const typeName  = typeLabel(S.type);
+    const today     = new Date().toLocaleDateString("ru-RU");
+
+    const cell = v => {
+        if (!v) return "";
+        const mi = markInfo(v);
+        return mi ? mi.t : esc(v);
+    };
+
+    const rs = split ? ` rowspan="2"` : "";
+
+    const thead = `
+        <tr>
+            <th${rs} style="width:36px">№</th>
+            <th${rs} style="width:220px;text-align:left">ФИО студента</th>
+            ${cols.map(c =>
+                `<th class="subj" colspan="${sc}" title="${esc(c.subj)}"><span>${esc(c.subj)}</span></th>`
+            ).join("")}
+        </tr>
+        ${split ? `<tr>${cols.map(() =>
+            `<th class="sub">+</th><th class="sub">−</th>`
+        ).join("")}</tr>` : ""}`;
+
+    const rows = S.students.map((st, i) => `
+        <tr>
+            <td class="center">${i + 1}</td>
+            <td>${esc(st.name)}</td>
+            ${cols.map(c => {
+                const val = (S.marks[st.id] || {})[keyOf(c.subj)] ?? "";
+                return `<td class="center" colspan="${sc}">${cell(val)}</td>`;
+            }).join("")}
+        </tr>`).join("");
+
+    const minRows = 20;
+    let extraRows = "";
+    for (let i = S.students.length; i < minRows; i++) {
+        extraRows += `<tr>
+            <td class="center">${i + 1}</td>
+            <td></td>
+            ${cols.map(() => `<td colspan="${sc}"></td>`).join("")}
+        </tr>`;
+    }
+
+    // названия предметов — внизу таблицы, перенос по словам
+    const tfoot = `
+        <tr>
+            <td colspan="2" class="foot-label">Тип занятия</td>
+            ${cols.map(c =>
+                `<td class="foot-subj" colspan="${sc}">${esc(c.kind)}</td>`
+            ).join("")}
+        </tr>`;
+
+    const footer = `
+        <div class="signs">
+            <div class="sign">
+                <div>Преподаватель ___________________________</div>
+                <div class="sign-hint">(подпись, ФИО)</div>
+            </div>
+            <div class="sign">
+                <div>Куратор группы ___________________________</div>
+                <div class="sign-hint">(подпись, ФИО)</div>
+            </div>
+        </div>`;
+
+    return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>${typeName} ведомость — ${esc(groupName)}</title>
+<style>
+    @page{ size:A4 landscape; margin:12mm 10mm; }
+    *{box-sizing:border-box}
+    body{
+        font-family:"Times New Roman", "DejaVu Serif", serif;
+        color:#000; margin:0; padding:0;
+        font-size:11pt;
+    }
+    .doc-head{
+        display:flex;justify-content:space-between;align-items:flex-start;
+        margin-bottom:10px;gap:20px;
+    }
+    .doc-head .title{
+        font-size:14pt;font-weight:700;text-align:center;
+        flex:1;line-height:1.3;
+    }
+    .doc-head .meta{
+        font-size:10pt;text-align:right;white-space:nowrap;line-height:1.4;
+    }
+    .doc-sub{
+        text-align:center;font-size:11pt;margin-bottom:12px;line-height:1.4;
+    }
+    .doc-sub b{font-weight:700}
+    table{
+        width:100%;border-collapse:collapse;
+        font-size:10pt;table-layout:auto;
+    }
+    th,td{
+        border:1px solid #000;
+        padding:4px 5px;
+        vertical-align:middle;
+        word-break:normal;
+        overflow-wrap:anywhere;
+    }
+    thead th{
+        background:#f0f0f0;
+        font-weight:700;
+        text-align:center;
+        font-size:9.5pt;
+    }
+    th.subj{
+        writing-mode:vertical-rl;
+        transform:rotate(180deg);
+        white-space:nowrap;
+        height:150px;
+        padding:6px 2px;
+        font-size:9.5pt;
+        line-height:1.1;
+        text-align:center;
+    }
+    th.sub{
+        width:30px;
+        min-width:30px;
+        font-size:11pt;
+        padding:2px;
+    }
+    td.center{text-align:center}
+    tbody tr{height:24px}
+    tfoot td{background:#f7f7f7}
+    .foot-label{
+        font-weight:700;text-align:right;font-size:9.5pt;
+        padding:6px 5px;
+    }
+    .foot-subj{
+        text-align:center;
+        font-size:9pt;
+        padding:6px 4px;
+        min-width:50px;
+    }
+    .signs{
+        margin-top:24px;
+        display:flex;justify-content:space-between;gap:40px;
+        font-size:10pt;
+    }
+    .sign{flex:1}
+    .sign-hint{font-size:8.5pt;color:#444;margin-top:2px;padding-left:20px}
+    .date-line{margin-top:14px;font-size:10pt}
+    @media print{
+        body{padding:0}
+        thead{display:table-header-group}
+        tfoot{display:table-footer-group}
+        tr{page-break-inside:avoid}
+    }
+</style>
+</head>
+<body>
+
+<div class="doc-head">
+    <div class="meta">
+        <div>Учебное заведение</div>
+        <div>Дата: ${today}</div>
+    </div>
+    <div class="title">
+        ${typeName.toUpperCase()} ВЕДОМОСТЬ
+    </div>
+    <div class="meta">
+        <div>Форма № 1</div>
+        <div>Лист ____ из ____</div>
+    </div>
+</div>
+
+<div class="doc-sub">
+    Группа: <b>${esc(groupName)}</b> ·
+    ${esc(semTitle)} ·
+    ${esc(what)} ·
+    Дисциплин: <b>${cols.length}</b> ·
+    Студентов: <b>${S.students.length}</b>
+</div>
+
+<table>
+    <thead>${thead}</thead>
+    <tbody>${rows}${extraRows}</tbody>
+    <tfoot>${tfoot}</tfoot>
+</table>
+
+<div class="date-line">
+    Дата проведения: «____» ______________ 20___ г.
+</div>
+
+${footer}
+
+</body>
+</html>`;
+}
+
+function openPrintWindow(){
+    if (S.accessDenied || !S.gRole) { toast("Нет доступа"); return; }
+    if (!S.groupId) { toast("Сначала выберите группу"); return; }
+    if (!S.subjects.length) { toast("В настройках группы нет дисциплин для этого семестра"); return; }
+    if (!S.printCols.length) { toast("Нет колонок для печати. Нажмите «Сбросить»"); return; }
+    if (!S.students.length) { toast("В группе нет студентов"); return; }
+
+    const html = buildPrintHTML();
+    const win = window.open("", "_blank", "width=1100,height=800");
+    if (!win) {
+        toast("Разрешите всплывающие окна для печати");
+        return;
+    }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+
+    win.onload = () => {
+        setTimeout(() => {
+            win.focus();
+            win.print();
+        }, 200);
+    };
+
+    setTimeout(() => {
+        try { win.focus(); win.print(); } catch(e){}
+    }, 500);
+}
+
+/* =========================================================
+   СОБЫТИЯ
+========================================================= */
+document.addEventListener("change", e => {
+    const sel = e.target.closest("select.mark-select");
+    if (!sel) return;
+    saveMark(sel.dataset.s, sel.dataset.c, sel.value, sel);
+});
+
+$("groupSel").addEventListener("change", e => selectGroup(e.target.value));
+$("semSel").addEventListener("change", e => {
+    S.semNo = Number(e.target.value);
+    S.subjects = extractSubjects();
+    resetPrintCols();
+    fillPeriodSelect();
+    syncMobileSubject();
+    subscribeAll();
+});
+$("periodSel").addEventListener("change", e => {
+    S.period = Number(e.target.value);
+    subscribeAll();
+});
+$("modeAttest").addEventListener("click", () => setMode("attest"));
+$("modeCorrect").addEventListener("click", () => setMode("correct"));
+document.querySelectorAll(".menu-btn").forEach(b =>
+    b.addEventListener("click", () => setType(b.dataset.type)));
+
+$("subjectSel").addEventListener("change", e => {
+    S.mobileSubject = e.target.value;
+    renderMobile();
+});
+
+$("printBtn").addEventListener("click", openPrintWindow);
+
+let _lastMobile = null;
+function handleResize(){
+    const now = isMobile();
+    if (now !== _lastMobile) {
+        _lastMobile = now;
+        render();
+    }
+}
+window.addEventListener("resize", handleResize);
+handleResize();
+
+document.addEventListener("keydown", e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (["input", "select", "textarea"].includes(tag)) return;
+    if (e.key === "1") setType("attestation");
+    if (e.key === "2") setType("semester");
+});
+</script>
+</body>
+</html>

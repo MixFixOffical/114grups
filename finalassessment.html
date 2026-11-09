@@ -1154,7 +1154,7 @@ async function saveMark(sid, subj, newVal, el){
 function buildPrintHTML(){
     const sc        = 1;                           // одна колонка на каждую колонку в списке
     const cw        = S.cellMm + "mm";             // ширина колонки = сторона квадратной клетки
-    const vh        = "40mm";                      // высота шапки с вертикальным названием предмета
+    const vh        = cw;                          // шапка тоже квадратная
     const cols      = S.printCols;
     const groupName = S.group ? (S.group.name || S.groupId) : "—";
     const semTitle  = semesterTitle(S.semNo);
@@ -1175,12 +1175,12 @@ function buildPrintHTML(){
             <th style="width:36px">№</th>
             <th style="width:220px;text-align:left">ФИО студента</th>
             ${cols.map(c =>
-                `<th class="subj" colspan="${sc}" style="width:${cw};min-width:${cw};max-width:${cw};height:${vh}" title="${esc(c.subj)}"><div class="sq sqv" style="height:${vh}">${esc(c.subj)}</div></th>`
+                `<th class="subj" colspan="${sc}" style="width:${cw};min-width:${cw};max-width:${cw};height:${vh}" title="${esc(c.subj)}"><div class="sq sqv" style="height:${vh}">${esc(c.subj)}${c.kind ? " — " + esc(c.kind) : ""}</div></th>`
             ).join("")}
         </tr>`;
 
     const rows = S.students.map((st, i) => `
-        <tr>
+        <tr style="height:${cw}">
             <td class="center">${i + 1}</td>
             <td>${esc(st.name)}</td>
             ${cols.map(c => {
@@ -1192,7 +1192,7 @@ function buildPrintHTML(){
     const minRows = 20;
     let extraRows = "";
     for (let i = S.students.length; i < minRows; i++) {
-        extraRows += `<tr>
+        extraRows += `<tr style="height:${cw}">
             <td class="center">${i + 1}</td>
             <td></td>
             ${cols.map(() => `<td colspan="${sc}"></td>`).join("")}
@@ -1287,7 +1287,7 @@ function buildPrintHTML(){
         padding:2px;
     }
     td.center{text-align:center}
-    tbody tr{height:24px}
+    tbody tr{height:auto}
     tfoot td{background:#f7f7f7}
     .foot-label{
         font-weight:700;text-align:right;font-size:9.5pt;
@@ -1348,7 +1348,6 @@ function buildPrintHTML(){
 <table>
     <thead>${thead}</thead>
     <tbody>${rows}${extraRows}</tbody>
-    <tfoot>${tfoot}</tfoot>
 </table>
 
 <div class="date-line">

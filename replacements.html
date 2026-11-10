@@ -101,18 +101,12 @@ header {
 .panel-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; }
 .field { display: flex; flex-direction: column; gap: 6px; min-width: 180px; flex: 1; }
 .field label { font-size: 12px; font-weight: 600; color: var(--text-2); }
-.field-static {
-    padding: 10px 12px; border-radius: var(--r-sm);
-    background: var(--accent-soft); color: var(--accent); font-weight: 600; font-size: 14px;
-    border: 1px solid var(--accent-line);
-}
 select, input[type="date"], input[type="text"], textarea {
     width: 100%; padding: 10px 12px;
     border: 1px solid var(--border); border-radius: var(--r-sm);
     background: var(--surface-2); color: var(--text); outline: none;
 }
 select:focus, input:focus, textarea:focus { border-color: var(--accent); }
-textarea { resize: vertical; min-height: 60px; }
 
 .date-nav { display: flex; gap: 6px; }
 .date-nav button {
@@ -125,6 +119,7 @@ textarea { resize: vertical; min-height: 60px; }
 
 .day-info { margin-top: 12px; font-size: 13px; color: var(--text-2); }
 .day-info b { color: var(--text); }
+.doc-id { margin-top: 6px; font-family: monospace; font-size: 11px; color: var(--text-3); }
 
 /* ---------- LESSON LIST ---------- */
 .lessons { display: flex; flex-direction: column; gap: 10px; }
@@ -156,7 +151,6 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .act-btn:hover { background: var(--border); color: var(--text); }
 .act-btn.primary { background: var(--cyan-soft); color: var(--cyan); border-color: var(--accent-line); }
-.act-btn.primary:hover { filter: brightness(.97); }
 
 .empty {
     text-align: center; padding: 40px 20px; color: var(--text-2);
@@ -186,7 +180,7 @@ textarea { resize: vertical; min-height: 60px; }
 }
 .btn-save { background: var(--accent-dark); color: #fff; }
 .btn-save:hover { background: var(--accent); }
-.btn-save:disabled { opacity: .6; }
+.btn-save:disabled { opacity: .6; cursor: wait; }
 .btn-del { background: var(--red-soft); color: var(--red); border: 1px solid rgba(185,28,28,.25); }
 .btn-cancel { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
 .hint { font-size: 11.5px; color: var(--text-3); margin-top: 4px; }
@@ -203,6 +197,7 @@ textarea { resize: vertical; min-height: 60px; }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 .toast.success { background: var(--green); }
 .toast.error { background: var(--red); }
+.toast.warning { background: var(--amber); }
 
 /* ---------- MOBILE ---------- */
 @media (max-width: 640px) {
@@ -304,6 +299,10 @@ const firebaseConfig = {
     measurementId: "G-F50WVZRXZJ"
 };
 
+/* Уведомления (Telegram-бот). Секрет должен совпадать с Cloudflare Secrets → NOTIFY_SECRET */
+const NOTIFY_URL = "https://broken-river-4c97.vasylkivmaksim.workers.dev/notify";
+const NOTIFY_SECRET = "k7s9f2h4j8d1m5n3q6w0e7r2t5y8u1i4p3o2l1k9j8h7g6f5d4s3a2";
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
@@ -352,6 +351,28 @@ function showToast(msg, type = "", ms = 2500) {
 }
 function errText(e) {
     return e?.code ? `${e.code}` : (e?.message || "неизвестная ошибка");
+}
+
+/* Уведомление студентам группы за дату. Не блокирует интерфейс. */
+function notifyGroup(dateStr, gid) {
+    return fetch(NOTIFY_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Notify-Secret": NOTIFY_SECRET },
+        body: JSON.stringify({ date: dateStr, groupId: gid, force: true })
+    })
+        .then(r => r.json().catch(() => ({})).then(d => ({ ok: r.ok, d })))
+        .then(({ ok, d }) => {
+            if (!ok || d.ok === false) {
+                console.warn("notify failed:", d);
+                showToast("Замена сохранена, но уведомления не отправлены", "warning", 4000);
+            } else if (d.sent) {
+                showToast(`📨 Уведомлено студентов: ${d.sent}`, "success", 2500);
+            }
+        })
+        .catch(e => {
+            console.warn("notify network error:", e);
+            showToast("Замена сохранена, но уведомления не отправлены", "warning", 4000);
+        });
 }
 
 /* ---------- настройки группы ---------- */
@@ -493,9 +514,7 @@ async function loadReplacements() {
     if (!groupId || !date) return;
     try {
         const s = await getDoc(doc(db, "replacements", replacementDocId()));
-        if (s.exists()) {
-            replacements = normalizeLessons((s.data() || {}).lessons);
-        }
+        if (s.exists()) replacements = normalizeLessons((s.data() || {}).lessons);
     } catch (e) {
         console.error("replacements read:", e);
         showToast(`Не удалось прочитать замены: ${errText(e)}`, "error", 5000);
@@ -513,7 +532,7 @@ function renderDayInfo() {
         `${count} ${plural(count,"пара","пары","пар")} · ` +
         `замен: <b>${replCount}</b>` +
         (g ? ` · группа <b>${escapeHtml(g.name || g.id)}</b>` : "") +
-        `<div style="margin-top:6px;font-family:monospace;font-size:11px;color:var(--text-3)">документ: replacements/${escapeHtml(replacementDocId())}</div>`;
+        `<div class="doc-id">документ: replacements/${escapeHtml(replacementDocId())}</div>`;
     $("subtitle").textContent = g ? `${g.name || g.id} • ${formatRu(date)}` : formatRu(date);
 }
 
@@ -623,6 +642,7 @@ async function saveReplacement() {
         closeModal();
         render();
         showToast("✓ Замена сохранена", "success");
+        notifyGroup(date, groupId);
     } catch (e) {
         console.error("replacements save:", e);
         showToast(`Ошибка сохранения: ${errText(e)}`, "error", 5000);
@@ -643,6 +663,7 @@ async function deleteReplacement() {
         closeModal();
         render();
         showToast("Замена удалена");
+        notifyGroup(date, groupId);
     } catch (e) {
         console.error("replacements delete:", e);
         showToast(`Ошибка удаления: ${errText(e)}`, "error", 5000);
@@ -688,8 +709,7 @@ onAuthStateChanged(auth, async user => {
     try {
         await loadUserAndGroups(user.uid);
         renderGroupSelect();
-        date = formatDate(new Date());
-        $("datePicker").value = date;
+        await changeDate(formatDate(new Date()));
         await loadSettings();
         await loadReplacements();
         render();

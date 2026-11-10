@@ -30,6 +30,8 @@
     --amber-soft: #fffbeb;
     --violet: #6d28d9;
     --violet-soft: #f5f3ff;
+    --cyan: #0e7490;
+    --cyan-soft: #ecfeff;
 
     --text: #0f172a;
     --text-2: #475569;
@@ -182,7 +184,7 @@ header {
 .page-hero.collapsed h1 { margin-bottom: 0; }
 
 /* =========================================================
-   TOP PANEL (группа, дата, день, период)
+   TOP PANEL
 ========================================================= */
 .top-panel { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px; }
 .info-card {
@@ -214,7 +216,7 @@ header {
 .date-nav button.primary { background: var(--accent-soft); color: var(--accent); border-color: #bfdbfe; }
 
 /* =========================================================
-   QUICK MODE PANEL (для десктопа)
+   QUICK MODE PANEL
 ========================================================= */
 .quick-panel {
     display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;
@@ -244,7 +246,7 @@ header {
 .quick-panel.active[data-mode="absent"] .quick-mode-label { background: var(--red-soft); color: var(--red); }
 
 /* =========================================================
-   LESSON PICKER — чипы пар
+   LESSON PICKER
 ========================================================= */
 .lesson-picker {
     margin-bottom: 12px;
@@ -283,6 +285,7 @@ header {
 .lesson-chip .chip-label { font-size: 9px; font-weight: 600; color: var(--text-2); letter-spacing: .2px; }
 .lesson-chip.active .chip-label { color: rgba(255,255,255,.85); }
 .lesson-chip:hover { border-color: var(--accent); }
+.lesson-chip.has-repl { border-color: var(--cyan); }
 .lesson-chip.active {
     background: var(--accent-dark);
     border-color: var(--accent-dark);
@@ -292,6 +295,11 @@ header {
     position: absolute; top: 8px; right: 8px;
     width: 6px; height: 6px; border-radius: 50%;
     background: #fff;
+}
+.lesson-chip .chip-repl-dot {
+    position: absolute; top: 8px; left: 8px;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--cyan);
 }
 .lesson-chip .chip-progress {
     position: absolute; bottom: 4px; left: 50%;
@@ -307,6 +315,27 @@ header {
     border-radius: inherit;
     transition: width .3s var(--ease);
 }
+
+/* Блок дисциплины под выбором пары */
+.discipline-banner {
+    display: none;
+    align-items: center; gap: 12px;
+    margin-top: 12px; padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--r-md);
+}
+.discipline-banner.show { display: flex; }
+.discipline-icon { font-size: 18px; flex-shrink: 0; }
+.discipline-text { min-width: 0; }
+.discipline-label { font-size: 10.5px; color: var(--text-3); font-weight: 600; text-transform: uppercase; letter-spacing: .3px; }
+.discipline-name { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; word-break: break-word; }
+.discipline-time { font-size: 11.5px; color: var(--text-2); margin-top: 2px; }
+
+/* Замена в тексте */
+.repl-wrap { color: var(--cyan); font-weight: 600; }
+.repl-text { color: var(--cyan); }
+.repl-tag { display: inline-block; margin-top: 3px; font-size: 9px; font-weight: 700; letter-spacing: .3px; color: var(--cyan); text-transform: uppercase; }
 
 /* =========================================================
    PROGRESS BAR
@@ -362,30 +391,11 @@ header {
 .refresh-button.spin span { display:inline-block; animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
-/* ===== кнопка «Уведомить» ===== */
-.notify-button {
-    background: var(--accent-soft);
-    color: var(--accent);
-    border-color: #bfdbfe;
-}
-.notify-button:hover {
-    background: #dbeafe;
-    color: var(--accent-dark);
-    border-color: var(--accent);
-}
-.notify-button.sending {
-    opacity: .7;
-    cursor: wait;
-}
-.notify-button.sending span {
-    display: inline-block;
-    animation: spin 1s linear infinite;
-}
-.notify-button.sent {
-    background: var(--green-soft);
-    color: var(--green);
-    border-color: rgba(4,120,87,.3);
-}
+.notify-button { background: var(--accent-soft); color: var(--accent); border-color: #bfdbfe; }
+.notify-button:hover { background: #dbeafe; color: var(--accent-dark); border-color: var(--accent); }
+.notify-button.sending { opacity: .7; cursor: wait; }
+.notify-button.sending span { display: inline-block; animation: spin 1s linear infinite; }
+.notify-button.sent { background: var(--green-soft); color: var(--green); border-color: rgba(4,120,87,.3); }
 
 /* =========================================================
    SEARCH
@@ -414,13 +424,9 @@ header {
 .search-clear:hover { background: var(--surface-2); color: var(--text); }
 
 /* =========================================================
-   MOBILE STUDENTS LIST — свайп-карточки
+   MOBILE STUDENTS LIST
 ========================================================= */
-.students-list {
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-}
+.students-list { display: none; flex-direction: column; gap: 8px; }
 
 .student-swipe {
     position: relative;
@@ -557,8 +563,9 @@ th:first-child { position: sticky; left: 0; z-index: 10; width: 190px; min-width
 .lesson-header { cursor: pointer; user-select: none; transition: background .15s ease, color .15s ease; }
 .lesson-header:hover { background: var(--accent-soft); color: var(--accent); }
 .lesson-header.active-col { background: var(--accent-soft); color: var(--accent); }
+.lesson-header.repl-col .lesson-short-name { color: var(--cyan); }
 .lesson-number { display: inline-flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 0 7px; border-radius: var(--r-sm); background: var(--surface); color: var(--accent); font-size: 11.5px; font-weight: 700; border: 1px solid var(--border); }
-.lesson-short-name { display: block; max-width: 84px; margin: 5px auto 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); font-size: 9.5px; font-weight: 500; }
+.lesson-short-name { display: block; max-width: 110px; margin: 5px auto 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-2); font-size: 9.5px; font-weight: 500; }
 td { padding: 6px; border-bottom: 1px solid var(--border-soft); text-align: center; background: var(--surface); }
 tr:last-child td { border-bottom: none; }
 td:first-child { position: sticky; left: 0; z-index: 4; width: 190px; min-width: 190px; text-align: left; padding-left: 14px; background: var(--surface); }
@@ -654,7 +661,7 @@ tr:hover td:first-child { background: var(--surface-2); }
 .cancel-button:hover { background: var(--border-soft); color: var(--text); }
 
 /* =========================================================
-   MODAL (причина, инфо)
+   MODAL
 ========================================================= */
 .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; gap: 10px; }
 .modal-title { font-size: 17px; font-weight: 700; }
@@ -693,10 +700,7 @@ tr:hover td:first-child { background: var(--surface-2); }
     display: flex; align-items: center; gap: 5px;
     min-height: 16px;
 }
-.reason-hint .hint-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--green);
-}
+.reason-hint .hint-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
 .modal-actions { display: flex; gap: 8px; margin-top: 14px; }
 .modal-actions button { flex: 1; padding: 13px; min-height: 48px; border-radius: var(--r-md); font-weight: 600; font-size: 14px; }
 .save-button { background: var(--accent-dark); color: #fff; }
@@ -710,6 +714,7 @@ tr:hover td:first-child { background: var(--surface-2); }
 .lesson-info-subtitle { color: var(--text-2); font-size: 12.5px; margin-bottom: 16px; }
 .lesson-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .lesson-info-item { padding: 12px; border-radius: var(--r-md); background: var(--surface-2); border: 1px solid var(--border); }
+.lesson-info-item.wide { grid-column: 1 / -1; }
 .lesson-info-label { color: var(--text-2); font-size: 10.5px; margin-bottom: 4px; }
 .lesson-info-value { font-size: 13px; font-weight: 600; word-break: break-word; }
 .lesson-close { width: 100%; margin-top: 16px; padding: 13px; border-radius: var(--r-md); background: var(--surface-2); color: var(--text-2); font-weight: 600; font-size: 14px; border: 1px solid var(--border); }
@@ -776,7 +781,7 @@ tr:hover td:first-child { background: var(--surface-2); }
 .scroll-top:hover { background: var(--surface-2); color: var(--text); }
 
 /* =========================================================
-   DESKTOP ADJUSTMENTS
+   DESKTOP
 ========================================================= */
 @media (min-width: 769px) {
     .students-list { display: none !important; }
@@ -839,6 +844,7 @@ tr:hover td:first-child { background: var(--surface-2); }
     .student-index { width: 30px; height: 30px; font-size: 11px; }
     .student-name { font-size: 13px; }
 }
+
 /* ===== Текущая пара (по времени звонков) ===== */
 th.lesson-header.now-col:not(.active-col){ background: var(--green-soft); color: var(--green); box-shadow: inset 0 -3px 0 var(--green); }
 .now-tag { display: inline-block; margin-top: 4px; font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--green); }
@@ -1064,8 +1070,7 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
         <div class="lesson-info-title" id="lessonInfoTitle">1 пара</div>
         <div class="lesson-info-subtitle" id="lessonInfoSubtitle">Информация о занятии</div>
         <div class="lesson-info-grid">
-            <div class="lesson-info-item"><div class="lesson-info-label">Дисциплина</div><div class="lesson-info-value" id="lessonDiscipline">—</div></div>
-            <div class="lesson-info-item"><div class="lesson-info-label">Время</div><div class="lesson-info-value" id="lessonTime">—</div></div>
+            <div class="lesson-info-item wide"><div class="lesson-info-label">Дисциплина</div><div class="lesson-info-value" id="lessonDiscipline">—</div></div>
             <div class="lesson-info-item"><div class="lesson-info-label">Начало</div><div class="lesson-info-value" id="lessonStart">—</div></div>
             <div class="lesson-info-item"><div class="lesson-info-label">Окончание</div><div class="lesson-info-value" id="lessonEnd">—</div></div>
         </div>
@@ -1141,14 +1146,14 @@ let authResolved = false;
 let resolveAuthReady;
 const authReady = new Promise(r => { resolveAuthReady = r; });
 
-/* ---- кеш чтений Firestore (живёт до перезагрузки страницы или «Обновить») ---- */
-let userDocCache = null;        // users/{uid}: читается один раз (и для роли, и для домашней страницы)
-let groupsLoaded = false;       // groups: все группы
-let studentsLoaded = false;     // students: все студенты (фильтр по группе на клиенте, как раньше)
-const settingsCache = new Map(); // groupId -> settings
+let userDocCache = null;
+let groupsLoaded = false;
+let studentsLoaded = false;
+const settingsCache = new Map();
 
 let students = [], allStudents = [], allGroupsData = [], userGroups = [];
 let userRole = null, selectedGroupId = "", settings = {}, attendance = {};
+let replacements = {};   // замены для selectedDate + selectedGroupId: { "1": {discipline, teacher}, ... }
 let selectedDate = "", selectedStudent = null, selectedLesson = null, selectedAction = null;
 let selectedAbsentType = "neuv", quickMode = null, studentFilter = "";
 let currentLesson = 0;
@@ -1255,10 +1260,43 @@ function firstValue(obj, keys) {
     for (const k of keys) if (obj[k] !== undefined && obj[k] !== null && obj[k] !== "") return obj[k];
     return "";
 }
-function getDiscipline(d, l) {
+
+/* Исходная дисциплина из настроек группы; пустая строка, если не настроена */
+function getOriginalDiscipline(d, l) {
     const c = getLessonConfig(d, l);
-    return firstValue(c, ["discipline","subject","name","title","lessonName"]) || "Дисциплина не настроена";
+    return String(firstValue(c, ["discipline","subject","name","title","lessonName"]) || "").trim();
 }
+
+/* Замена пары; null, если замены нет */
+function getReplacement(l) {
+    const r = replacements[String(l)];
+    if (!r || typeof r !== "object") return null;
+    const discipline = String(r.discipline ?? r.subject ?? r.name ?? "").trim();
+    if (!discipline) return null;
+    const teacher = String(r.teacher ?? r.replacedTeacher ?? "").trim();
+    return { discipline, teacher };
+}
+
+/* Текст для мест без HTML: «Физика (Заменено: Математика, заменён: Иванов И.И.)» */
+function getLessonTitleText(d, l) {
+    const orig = getOriginalDiscipline(d, l);
+    const rep = getReplacement(l);
+    if (!rep) return orig || "Дисциплина не настроена";
+    const replPart = `Заменено: ${rep.discipline}${rep.teacher ? `, заменён: ${rep.teacher}` : ""}`;
+    return orig ? `${orig} (${replPart})` : `(${replPart})`;
+}
+
+/* HTML-версия для банера, шапки таблицы и окна занятия */
+function getLessonTitleHtml(d, l) {
+    const orig = getOriginalDiscipline(d, l);
+    const rep = getReplacement(l);
+    if (!rep) return escapeHtml(orig || "Дисциплина не настроена");
+    const replPart = `<span class="repl-text">Заменено: ${escapeHtml(rep.discipline)}${rep.teacher ? `, заменён: ${escapeHtml(rep.teacher)}` : ""}</span>`;
+    return orig
+        ? `${escapeHtml(orig)} <span class="repl-wrap">(${replPart})</span>`
+        : `<span class="repl-wrap">(${replPart})</span>`;
+}
+
 function getLessonTime(d, l) {
     const c = getLessonConfig(d, l);
     let s = firstValue(c, ["start","startTime","timeStart","from","begin"]);
@@ -1275,6 +1313,7 @@ function getLessonTime(d, l) {
     if (s) return { start: String(s), end: "—", text: String(s) };
     return { start: "—", end: "—", text: "Время не настроено" };
 }
+
 function getAttestationInfo(dateString) {
     const date = parseDate(dateString);
     const inside = p => p?.start && p?.end && date >= parseDate(p.start) && date <= parseDate(p.end);
@@ -1284,6 +1323,32 @@ function getAttestationInfo(dateString) {
     if (inside(settings?.semester2?.attestation2)) return { semester: "2 семестр", attestation: "Аттестация 2" };
     const m = date.getMonth();
     return { semester: m >= 8 || m <= 0 ? "1 семестр" : "2 семестр", attestation: "—" };
+}
+
+/* =========================================================
+   REPLACEMENTS
+========================================================= */
+function normalizeLessons(raw) {
+    const out = {};
+    if (!raw) return out;
+    if (Array.isArray(raw)) {
+        raw.forEach((v, i) => { if (v) out[String(i + 1)] = v; });
+    } else if (typeof raw === "object") {
+        Object.entries(raw).forEach(([k, v]) => { if (v) out[String(k)] = v; });
+    }
+    return out;
+}
+
+async function loadReplacements() {
+    replacements = {};
+    if (!selectedGroupId || !selectedDate) return;
+    try {
+        const snap = await getDoc(doc(db, "replacements", `${selectedDate}_${selectedGroupId}`));
+        if (snap.exists()) replacements = normalizeLessons((snap.data() || {}).lessons);
+    } catch (e) {
+        console.error("replacements:", e);
+        showToast(`Не удалось прочитать замены: ${e?.code || e?.message || ""}`, "warning");
+    }
 }
 
 /* =========================================================
@@ -1313,7 +1378,6 @@ onAuthStateChanged(auth, async user => {
     if (!authResolved) { authResolved = true; resolveAuthReady(); }
 });
 
-/* Роль и группы: один раз за сессию (или при force) */
 async function loadGroupsAndRole(force = false) {
     if (groupsLoaded && !force) return;
     if (!currentUser) return;
@@ -1365,13 +1429,12 @@ function populateGroupSelect() {
     }
 }
 
-/* Смена группы: посещаемость не зависит от группы (документ по дате),
-   поэтому читаем только настройки, и то один раз на группу */
 groupSelect.addEventListener("change", async function() {
     selectedGroupId = this.value;
     localStorage.setItem("selectedGroupId", selectedGroupId);
     applyGroupFilter();
     await loadSettings();
+    await loadReplacements();
     currentLesson = 0;
     render();
 });
@@ -1406,7 +1469,6 @@ async function loadSettings() {
     } catch (e) { console.error(e); }
 }
 
-/* Студенты: вся коллекция один раз за сессию, дальше фильтр по группе на клиенте */
 async function loadStudents(force = false) {
     if (force || !studentsLoaded) {
         const snap = await getDocs(collection(db, "students"));
@@ -1487,12 +1549,11 @@ async function saveStudentDay(student, lessons) {
         lessons, semester: period.semester, attestation: period.attestation
     };
 
-    // 🔔 Уведомление ТОЛЬКО этому студенту
     notifyStudents(selectedDate, selectedGroupId, { studentId: student.id }).catch(() => {});
 }
 
 /* =========================================================
-   ACTIONS — отметка
+   ACTIONS
 ========================================================= */
 async function quickPresent(student, lesson) {
     try {
@@ -1511,7 +1572,7 @@ function quickAbsent(student, lesson) {
     selectedStudent = student; selectedLesson = lesson; selectedAction = "single";
     $("modalStudent").textContent = student.name;
     $("modalDate").textContent = formatDateRu(selectedDate);
-    $("modalLesson").textContent = `${lesson} пара • ${getDiscipline(getDayIndex(selectedDate), lesson)}`;
+    $("modalLesson").textContent = `${lesson} пара • ${getLessonTitleText(getDayIndex(selectedDate), lesson)}`;
     const old = getLessonData(student.id, lesson);
     selectedAbsentType = old.absentType || "neuv";
     updateAbsentTypeButtons();
@@ -1543,7 +1604,7 @@ async function deleteAttendance() {
 window.deleteAttendance = deleteAttendance;
 
 /* =========================================================
-   QUICK MODE (desktop)
+   QUICK MODE
 ========================================================= */
 function enableQuickMode(mode) {
     quickMode = mode;
@@ -1663,14 +1724,18 @@ function renderLessonChips() {
             if (d.status === "present" || d.status === "absent") marked++;
         });
         const pct = totalStudents ? Math.round((marked / totalStudents) * 100) : 0;
+        const hasRepl = !!getReplacement(l);
 
         const chip = document.createElement("button");
         chip.type = "button";
-        chip.className = "lesson-chip" + (l === currentLesson ? " active" : "");
+        chip.className = "lesson-chip"
+            + (l === currentLesson ? " active" : "")
+            + (hasRepl ? " has-repl" : "");
         chip.dataset.lesson = l;
         chip.innerHTML = `
             ${l}
             <span class="chip-label">${pct}%</span>
+            ${hasRepl && l !== currentLesson ? '<span class="chip-repl-dot"></span>' : ''}
             ${l === currentLesson ? '<span class="chip-pulse"></span>' : ''}
             ${pct > 0 && l !== currentLesson ? `<span class="chip-progress" style="--p:${pct}%"></span>` : ''}
         `;
@@ -1687,9 +1752,9 @@ function updateDisciplineBanner() {
         disciplineBanner.classList.remove("show");
         return;
     }
-    const disc = getDiscipline(dayIndex, currentLesson);
     const time = getLessonTime(dayIndex, currentLesson);
-    $("disciplineName").textContent = disc;
+    const rep = getReplacement(currentLesson);
+    $("disciplineName").innerHTML = getLessonTitleHtml(dayIndex, currentLesson);
     $("disciplineTime").textContent = time.text;
     disciplineBanner.classList.add("show");
 }
@@ -1806,13 +1871,11 @@ function openCellMenu(student, lesson) {
 }
 window.openCellMenu = openCellMenu;
 
-/* Минуты от начала суток из строки времени "8:30" / "08:30" */
 function parseHM(v) {
     const m = /^(\d{1,2})[:.](\d{2})/.exec(String(v ?? "").trim());
     return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 }
 
-/* Текущая пара по времени звонков */
 function getCurrentLessonInfo(dayIndex, count) {
     const none = { lesson: 0, state: "none" };
     if (!count || selectedDate !== formatDate(new Date())) return none;
@@ -1888,10 +1951,10 @@ function render() {
 
     let html = `<table><thead><tr><th>Студент</th>`;
     for (let l = 1; l <= lessonCount; l++) {
-        const disc = getDiscipline(dayIndex, l);
-        html += `<th class="lesson-header ${l === currentLesson ? 'active-col' : ''} ${l === nowCol ? 'now-col' : ''}" title="Информация о паре" onclick="window.openLessonInfo(${l})">
+        const hasRepl = !!getReplacement(l);
+        html += `<th class="lesson-header ${l === currentLesson ? 'active-col' : ''} ${l === nowCol ? 'now-col' : ''} ${hasRepl ? 'repl-col' : ''}" title="Информация о паре" onclick="window.openLessonInfo(${l})">
             <span class="lesson-number">${l}</span>
-            <span class="lesson-short-name">${escapeHtml(disc)}</span>
+            <span class="lesson-short-name">${getLessonTitleHtml(dayIndex, l)}</span>
             ${l === nowCol ? '<span class="now-tag">сейчас</span>' : ''}
         </th>`;
     }
@@ -2009,7 +2072,7 @@ function chooseAbsent() {
     $("modalStudent").textContent = selectedStudent.name;
     $("modalDate").textContent = formatDateRu(selectedDate);
     $("modalLesson").textContent =
-        `${selectedLesson} пара • ${getDiscipline(getDayIndex(selectedDate), selectedLesson)}`;
+        `${selectedLesson} пара • ${getLessonTitleText(getDayIndex(selectedDate), selectedLesson)}`;
     selectedAbsentType = d.absentType || "neuv";
     updateAbsentTypeButtons();
 
@@ -2075,11 +2138,12 @@ window.closeReason = closeReason;
 
 function openLessonInfo(lesson) {
     const dayIndex = getDayIndex(selectedDate);
-    const disc = getDiscipline(dayIndex, lesson);
     const time = getLessonTime(dayIndex, lesson);
+    const rep = getReplacement(lesson);
     $("lessonInfoTitle").textContent = `${lesson} пара`;
     $("lessonInfoSubtitle").textContent = `${getDayName(selectedDate)} • ${formatDateRu(selectedDate)}`;
-    $("lessonDiscipline").textContent = disc;
+    $("lessonDiscipline").innerHTML = getLessonTitleHtml(dayIndex, lesson)
+        + (rep ? `<div class="repl-tag">замена</div>` : "");
     $("lessonTime").textContent = time.text;
     $("lessonStart").textContent = time.start;
     $("lessonEnd").textContent = time.end;
@@ -2090,13 +2154,14 @@ function closeLessonInfo() { $("lessonInfoOverlay").classList.remove("active"); 
 window.closeLessonInfo = closeLessonInfo;
 
 /* =========================================================
-   DATE NAV — меняет только attendance (1 документ)
+   DATE NAV
 ========================================================= */
 async function changeDate(newDate) {
     selectedDate = newDate;
     datePicker.value = selectedDate;
     currentLesson = 0;
     await loadAttendance();
+    await loadReplacements();
     render();
 }
 
@@ -2116,7 +2181,6 @@ function goToday() {
 }
 window.goToday = goToday;
 
-/* Полная перезагрузка («Обновить») сбрасывает кеш; при старте force=false */
 async function reloadData(force = true) {
     tableContainer.innerHTML = `<div class="loading"><div class="spinner"></div>Загрузка данных...</div>`;
     studentsListEl.innerHTML = "";
@@ -2130,6 +2194,7 @@ async function reloadData(force = true) {
         await loadStudents(force);
         await loadSettings();
         await loadAttendance();
+        await loadReplacements();
         render();
     } catch (e) {
         console.error(e);
@@ -2142,7 +2207,7 @@ async function reloadData(force = true) {
 window.reloadData = reloadData;
 
 /* =========================================================
-   SEND NOTIFICATIONS — кнопка «Уведомить»
+   SEND NOTIFICATIONS
 ========================================================= */
 async function sendNotifications() {
     if (!selectedDate) { showToast("Сначала выберите дату", "warning"); return; }

@@ -316,7 +316,7 @@ let userGroups = [];
 let groupId = "";
 let date = "";
 let settings = {};
-let replacements = {};   // { "1": {discipline, teacher}, ... }
+let replacements = {};
 let editingLesson = null;
 let homePage = "home.html";
 
@@ -343,12 +343,15 @@ function plural(n, one, few, many) {
     if (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14)) return few;
     return many;
 }
-function showToast(msg, type = "") {
+function showToast(msg, type = "", ms = 2500) {
     const t = $("toast");
     t.textContent = msg;
     t.className = `toast show ${type}`;
     clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => t.className = "toast", 2500);
+    showToast._t = setTimeout(() => t.className = "toast", ms);
+}
+function errText(e) {
+    return e?.code ? `${e.code}` : (e?.message || "неизвестная ошибка");
 }
 
 /* ---------- настройки группы ---------- */
@@ -364,7 +367,6 @@ function getLessonCount(dayIndex) {
     return Number(v) || 0;
 }
 
-/* Исходная дисциплина из настроек. Если не настроена — пустая строка */
 function getOriginalDiscipline(dayIndex, lesson) {
     if (dayIndex < 1 || dayIndex > 6) return "";
     const disc = settings?.disciplines?.[DAYS[dayIndex-1]];
@@ -390,7 +392,6 @@ function getLessonTime(dayIndex, lesson) {
     return s && e ? `${s} — ${e}` : (s || "");
 }
 
-/* Все дисциплины группы — для подсказок в поле ввода */
 function collectDisciplines() {
     const set = new Set();
     Object.keys(settings?.disciplines || {}).forEach(day => {
@@ -402,6 +403,29 @@ function collectDisciplines() {
         });
     });
     return [...set].sort((a,b) => a.localeCompare(b, "ru"));
+}
+
+/* ---------- замены ---------- */
+function normalizeLessons(raw) {
+    const out = {};
+    if (!raw) return out;
+    if (Array.isArray(raw)) {
+        raw.forEach((v, i) => { if (v) out[String(i + 1)] = v; });
+    } else if (typeof raw === "object") {
+        Object.entries(raw).forEach(([k, v]) => { if (v) out[String(k)] = v; });
+    }
+    return out;
+}
+
+function replDiscipline(rep) {
+    return String(rep?.discipline ?? rep?.subject ?? rep?.name ?? "").trim();
+}
+function replTeacher(rep) {
+    return String(rep?.teacher ?? rep?.replacedTeacher ?? "").trim();
+}
+
+function replacementDocId() {
+    return `${date}_${groupId}`;
 }
 
 /* ---------- загрузка ---------- */
@@ -419,12 +443,12 @@ async function loadUserAndGroups(uid) {
     if (userRole === "admin") {
         groupsFromSnap(await getDocs(collection(db, "groups"))).forEach(g => map.set(g.id, g));
     } else if (userRole === "curator") {
-        groupsFromSnap(await getDocs(query(collection(db, "groups"), where("curatorId","==",uid))))
+        groupsFromSnap(await getDocs(query(collection(db, "groups"), where("curatorId", "==", uid))))
             .forEach(g => map.set(g.id, g));
     } else {
         const [a, b] = await Promise.all([
-            getDocs(query(collection(db, "groups"), where("starostaId","==",uid))),
-            getDocs(query(collection(db, "groups"), where("leaderId","==",uid)))
+            getDocs(query(collection(db, "groups"), where("starostaId", "==", uid))),
+            getDocs(query(collection(db, "groups"), where("leaderId", "==", uid)))
         ]);
         [...groupsFromSnap(a), ...groupsFromSnap(b)].forEach(g => map.set(g.id, g));
     }
@@ -436,6 +460,7 @@ function renderGroupSelect() {
     if (!userGroups.length) {
         sel.innerHTML = `<option value="">Нет доступных групп</option>`;
         sel.disabled = true;
+        groupId = "";
         return;
     }
     sel.innerHTML = userGroups.map(g =>
@@ -445,7 +470,6 @@ function renderGroupSelect() {
     groupId = userGroups.some(g => g.id === remembered) ? remembered : userGroups[0].id;
     sel.value = groupId;
 
-    // Если у пользователя одна группа — не даём менять
     if (userGroups.length === 1 && userRole !== "admin") {
         sel.disabled = true;
         $("groupField").querySelector("label").textContent = "Группа (закреплена)";
@@ -458,22 +482,29 @@ async function loadSettings() {
     try {
         const s = await getDoc(doc(db, "groupSettings", groupId));
         settings = s.exists() ? (s.data() || {}) : {};
-    } catch (e) { console.error(e); showToast("Не удалось загрузить настройки", "error"); }
+    } catch (e) {
+        console.error("groupSettings:", e);
+        showToast(`Не удалось прочитать настройки группы: ${errText(e)}`, "error", 5000);
+    }
 }
 
 async function loadReplacements() {
     replacements = {};
     if (!groupId || !date) return;
     try {
-        const s = await getDoc(doc(db, "replacements", `${date}_${groupId}`));
-        if (s.exists()) replacements = (s.data() || {}).lessons || {};
-    } catch (e) { console.error(e); showToast("Не удалось загрузить замены", "error"); }
+        const s = await getDoc(doc(db, "replacements", replacementDocId()));
+        if (s.exists()) {
+            replacements = normalizeLessons((s.data() || {}).lessons);
+        }
+    } catch (e) {
+        console.error("replacements read:", e);
+        showToast(`Не удалось прочитать замены: ${errText(e)}`, "error", 5000);
+    }
 }
 
 /* ---------- рендер ---------- */
 function renderDayInfo() {
-    const d = parseDate(date);
-    const dayIdx = d.getDay();
+    const dayIdx = parseDate(date).getDay();
     const count = getLessonCount(dayIdx);
     const g = userGroups.find(x => x.id === groupId);
     const replCount = Object.keys(replacements).length;
@@ -481,28 +512,28 @@ function renderDayInfo() {
         `<b>${DAY_NAMES[dayIdx]}</b>, ${formatRu(date)} · ` +
         `${count} ${plural(count,"пара","пары","пар")} · ` +
         `замен: <b>${replCount}</b>` +
-        (g ? ` · группа <b>${escapeHtml(g.name || g.id)}</b>` : "");
+        (g ? ` · группа <b>${escapeHtml(g.name || g.id)}</b>` : "") +
+        `<div style="margin-top:6px;font-family:monospace;font-size:11px;color:var(--text-3)">документ: replacements/${escapeHtml(replacementDocId())}</div>`;
     $("subtitle").textContent = g ? `${g.name || g.id} • ${formatRu(date)}` : formatRu(date);
 }
 
-function lessonHtml(dayIdx, l, count) {
+function lessonHtml(dayIdx, l) {
     const orig = getOriginalDiscipline(dayIdx, l);
     const rep = replacements[String(l)];
+    const repName = replDiscipline(rep);
+    const repTeach = replTeacher(rep);
     const time = getLessonTime(dayIdx, l);
 
     let text = "";
     if (orig) text += `<div class="lesson-orig">${escapeHtml(orig)}</div>`;
-    if (rep && rep.discipline) {
-        const teacher = rep.teacher
-            ? `, <span class="sub">заменён: ${escapeHtml(rep.teacher)}</span>`
-            : "";
-        text += `<div class="lesson-repl">(Заменено: ${escapeHtml(rep.discipline)}${teacher})</div>`;
+    if (repName) {
+        const teacher = repTeach ? `, <span class="sub">заменён: ${escapeHtml(repTeach)}</span>` : "";
+        text += `<div class="lesson-repl">(Заменено: ${escapeHtml(repName)}${teacher})</div>`;
     }
     if (!text) text = `<div class="lesson-empty">Дисциплина не настроена</div>`;
 
-    // Если дисциплина не настроена, ничего не выводим для исходной части
     return `
-        <div class="lesson ${rep && rep.discipline ? "replaced" : ""}">
+        <div class="lesson ${repName ? "replaced" : ""}">
             <div class="lesson-num">${l}<small>пара</small></div>
             <div class="lesson-body">
                 ${time ? `<div class="lesson-time">${escapeHtml(time)}</div>` : ""}
@@ -510,7 +541,7 @@ function lessonHtml(dayIdx, l, count) {
             </div>
             <div class="lesson-actions">
                 <button class="act-btn primary" onclick="openModal(${l})">
-                    ${rep && rep.discipline ? "✎ Изменить" : "+ Заменить"}
+                    ${repName ? "✎ Изменить" : "+ Заменить"}
                 </button>
             </div>
         </div>`;
@@ -530,13 +561,18 @@ function render() {
         wrap.innerHTML = `<div class="empty"><div class="empty-icon">🌴</div>В воскресенье занятий нет.</div>`;
         return;
     }
-    const count = getLessonCount(dayIdx);
+
+    const schedCount = getLessonCount(dayIdx);
+    const replNums = Object.keys(replacements).map(Number).filter(n => Number.isInteger(n) && n > 0);
+    const count = Math.max(schedCount, ...replNums, 0);
+
     if (!count) {
         wrap.innerHTML = `<div class="empty"><div class="empty-icon">📚</div>Для этого дня расписание не настроено.</div>`;
         return;
     }
+
     let html = "";
-    for (let l = 1; l <= count; l++) html += lessonHtml(dayIdx, l, count);
+    for (let l = 1; l <= count; l++) html += lessonHtml(dayIdx, l);
     wrap.innerHTML = html;
 }
 
@@ -551,10 +587,10 @@ function openModal(lesson) {
     $("modalSub").textContent = `${DAY_NAMES[dayIdx]}, ${formatRu(date)}` + (orig ? ` • ${orig}` : "");
 
     $("disciplineList").innerHTML = collectDisciplines().map(d => `<option value="${escapeHtml(d)}">`).join("");
-    $("replDiscipline").value = rep.discipline || "";
-    $("replTeacher").value = rep.teacher || "";
+    $("replDiscipline").value = replDiscipline(rep);
+    $("replTeacher").value = replTeacher(rep);
 
-    $("delBtn").style.display = rep.discipline ? "block" : "none";
+    $("delBtn").style.display = replDiscipline(rep) ? "block" : "none";
     $("replOverlay").classList.add("active");
     setTimeout(() => $("replDiscipline").focus(), 80);
 }
@@ -575,20 +611,21 @@ async function saveReplacement() {
     const btn = $("saveBtn");
     btn.disabled = true;
     try {
-        const ref = doc(db, "replacements", `${date}_${groupId}`);
-        await setDoc(ref, {
+        await setDoc(doc(db, "replacements", replacementDocId()), {
             date, groupId,
-            lessons: { [String(editingLesson)]: { discipline, teacher, updatedAt: new Date().toISOString() } },
+            lessons: {
+                [String(editingLesson)]: { discipline, teacher, updatedAt: new Date().toISOString() }
+            },
             updatedAt: new Date().toISOString()
         }, { merge: true });
 
-        replacements[String(editingLesson)] = { discipline, teacher };
+        await loadReplacements();
         closeModal();
         render();
         showToast("✓ Замена сохранена", "success");
     } catch (e) {
-        console.error(e);
-        showToast("Ошибка сохранения", "error");
+        console.error("replacements save:", e);
+        showToast(`Ошибка сохранения: ${errText(e)}`, "error", 5000);
     } finally {
         btn.disabled = false;
     }
@@ -599,15 +636,16 @@ async function deleteReplacement() {
     if (!editingLesson || !groupId || !date) return;
     if (!confirm("Удалить замену для этой пары?")) return;
     try {
-        const ref = doc(db, "replacements", `${date}_${groupId}`);
-        await updateDoc(ref, { [`lessons.${editingLesson}`]: deleteField() });
-        delete replacements[String(editingLesson)];
+        await updateDoc(doc(db, "replacements", replacementDocId()), {
+            [`lessons.${editingLesson}`]: deleteField()
+        });
+        await loadReplacements();
         closeModal();
         render();
         showToast("Замена удалена");
     } catch (e) {
-        console.error(e);
-        showToast("Ошибка удаления", "error");
+        console.error("replacements delete:", e);
+        showToast(`Ошибка удаления: ${errText(e)}`, "error", 5000);
     }
 }
 window.deleteReplacement = deleteReplacement;
@@ -656,9 +694,9 @@ onAuthStateChanged(auth, async user => {
         await loadReplacements();
         render();
     } catch (e) {
-        console.error(e);
-        showToast("Ошибка загрузки данных", "error");
-        $("lessonsWrap").innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div>Не удалось загрузить данные.</div>`;
+        console.error("start:", e);
+        showToast(`Ошибка загрузки: ${errText(e)}`, "error", 6000);
+        $("lessonsWrap").innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div>Не удалось загрузить данные (${escapeHtml(errText(e))}).</div>`;
     }
 });
 </script>

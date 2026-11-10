@@ -89,13 +89,10 @@
     .q-img-host { display: block; max-width: 100%; max-height: 260px; object-fit: contain; margin: 0 0 14px; border-radius: 16px; background: #fff; }
     .opt-list { display: grid; gap: 10px; }
     .opt-item { background: rgba(255,255,255,.14); border-radius: 14px; padding: 12px 14px; font-weight: 700; display: flex; gap: 10px; align-items: center; }
-    .opt-item.right { background: #e9f8ee; color: var(--purple-dark); }
     .lt { width: 28px; height: 28px; border-radius: 9px; flex-shrink: 0; background: linear-gradient(135deg, var(--yellow), var(--orange)); display: grid; place-items: center; font-weight: 900; color: var(--purple-dark); }
     .blk-label { font-size: 13px; font-weight: 700; color: var(--text-light); margin: 10px 0 6px; }
-    .code-view { font-family: Consolas, "Courier New", monospace; font-size: 14px; line-height: 1.45; background: #1e1640; color: #e9e3ff; border-radius: 14px; padding: 12px 14px; white-space: pre-wrap; overflow-x: auto; margin: 0; }
     .blk-order { display: flex; flex-wrap: wrap; gap: 8px; }
     .blk-chip { font-family: Consolas, "Courier New", monospace; font-size: 14px; font-weight: 700; background: var(--white); color: var(--purple-dark); border-radius: 10px; padding: 6px 10px; white-space: pre; }
-    .blk-chip.extra { background: rgba(255,255,255,.25); color: var(--white); }
     .side .stat { background: rgba(255,255,255,.14); border-radius: 18px; padding: 18px; text-align: center; margin-bottom: 18px; }
     .stat-num { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 44px; color: var(--yellow); }
     .side .section-title { text-align: left; }
@@ -243,7 +240,6 @@
 
   const $ = (id) => document.getElementById(id);
   const code = new URLSearchParams(location.search).get('code');
-  const LETTERS = ['А', 'Б', 'В', 'Г', 'Д', 'Е'];
 
   let user = null;
   let quiz = null;
@@ -342,13 +338,6 @@
         && value.every((v, i) => String(v).trim() === String(q.answer[i]).trim());
     }
     return false;
-  }
-
-  function correctPayload(q) {
-    if (q.type === 'choice') return { text: q.options[q.correct], idx: q.correct };
-    if (q.type === 'open') return { text: q.answers[0] || '', idx: null };
-    if (q.type === 'code') return { text: q.answer, idx: null };
-    return { text: q.answer.join('\n'), idx: null };
   }
 
   /* ---------- Старт ---------- */
@@ -605,21 +594,19 @@
     hydrateImages();
   }
 
+  // Показываем только текст/варианты, без правильных ответов
   function questionPreview(q) {
     if (q.type === 'choice') {
       return `<div class="opt-list">${q.options.map((o, j) => `
-        <div class="opt-item ${j === q.correct ? 'right' : ''}"><span class="lt">${LETTERS[j] || j + 1}</span>${esc(o)}</div>`).join('')}</div>`;
+        <div class="opt-item"><span class="lt">${String.fromCharCode(1040 + j)}</span>${esc(o)}</div>`).join('')}</div>`;
     }
     if (q.type === 'open') {
-      return `<div class="hint">Засчитываются ответы: ${q.answers.map((a) => esc(a)).join(', ')}</div>`;
+      return '<div class="hint">Открытый ответ — игроки вводят текст.</div>';
     }
     if (q.type === 'code') {
-      return `${q.hasBug ? `<div class="blk-label">Код для исправления</div><pre class="code-view">${esc(q.starter)}</pre>` : ''}
-        <div class="blk-label">Правильный код</div><pre class="code-view">${esc(q.answer)}</pre>`;
+      return '<div class="hint">Задание на код — игроки пишут решение.</div>';
     }
-    return `<div class="blk-label">Правильный порядок блоков</div>
-      <div class="blk-order">${q.answer.map((b, j) => `<span class="blk-chip"><b>${j + 1}</b> ${esc(b)}</span>`).join('')}</div>
-      ${q.extra && q.extra.length ? `<div class="blk-label">Лишние блоки</div><div class="blk-order">${q.extra.map((b) => `<span class="blk-chip extra">${esc(b)}</span>`).join('')}</div>` : ''}`;
+    return '<div class="hint">Задание на блоки — игроки собирают порядок.</div>';
   }
 
   function updateCounters() {
@@ -920,22 +907,12 @@
     startTick();
 
     if (quiz.manualMode) return;
-    const pause = quiz.showAnswers ? 3500 : 2000;
-    driverTimer = setTimeout(() => advance(pos), hostTotalMs + pause);
-  }
-
-  // Правильный ответ для участников пишем только при включённом показе ответов
-  async function writeQresult(pos) {
-    if (!quiz.showAnswers || !fullQ[order[pos]]) return;
-    await setDoc(doc(db, 'games', code, 'rounds', String(round), 'qresults', String(pos)), {
-      q: pos, ...correctPayload(fullQ[order[pos]])
-    });
+    driverTimer = setTimeout(() => advance(pos), hostTotalMs + 2000);
   }
 
   async function advance(pos) {
     if (!game || game.status !== 'running' || game.current !== pos) return;
     try {
-      await writeQresult(pos);
       await updateDoc(doc(db, 'games', code), { current: pos + 1, questionStartedAt: serverTimestamp() });
     } catch (err) {
       console.error(err);
@@ -1067,9 +1044,6 @@
     try {
       answers.filter((a) => a.correct === undefined && a.q < order.length).forEach((a) => gradeOne(a));
       await waitIdle();
-      if (game.status === 'running' && typeof game.current === 'number' && game.current >= 0 && game.current < order.length) {
-        await writeQresult(game.current);
-      }
       await updateDoc(doc(db, 'games', code), { status: 'finished', finishedAt: serverTimestamp() });
       await issueCertificates();
       showToast('Тест завершён, сертификаты выданы');

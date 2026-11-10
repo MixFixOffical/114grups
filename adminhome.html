@@ -733,6 +733,7 @@ button{font-family:inherit}
 .settings .icon{color:var(--amber)}
 .messages .icon{color:var(--red)}
 .final-assessment .icon{color:#be185d}
+.replacements .icon{color:#0e7490} /* NEW */
 
 .button-content{position:relative;z-index:2;min-width:0;flex:1}
 .button-title{
@@ -1751,6 +1752,16 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
                         Посещаемость
                     </a>
 
+                    <!-- NEW: пункт «Замены» в боковом меню -->
+                    <a class="sidebar-link nav-replacements" onclick="openReplacements()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M7 7h11l-3-3"/>
+                            <path d="M17 17H6l3 3"/>
+                        </svg>
+                        Замены
+                    </a>
+
                     <a class="sidebar-link nav-reports" onclick="openReports()">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
                              stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -2243,6 +2254,23 @@ body.auth-pending main,body.auth-pending header,body.auth-pending aside{visibili
                     <span class="shortcut">2</span>
                 </button>
 
+                <!-- NEW: кнопка «Замены» на главной -->
+                <button class="menu-button replacements" onclick="openReplacements()">
+                    <span class="icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M7 7h11l-3-3"/>
+                            <path d="M17 17H6l3 3"/>
+                        </svg>
+                    </span>
+                    <span class="button-content">
+                        <span class="button-title">Замены</span>
+                        <span class="button-description">
+                            Назначение замен преподавателей и переносы занятий.
+                        </span>
+                    </span>
+                </button>
+
                 <button class="menu-button reports" onclick="openReports()">
                     <span class="icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -2669,6 +2697,7 @@ function toggleTheme() {
 
 function openAttendance()  { window.location.href = "attendance.html"; }
 function openHistory()     { window.location.href = "history.html"; }
+function openReplacements(){ window.location.href = "replacements.html"; } /* NEW */
 function openReports()     { window.location.href = "reports.html"; }
 function openStudents()    { window.location.href = "students.html"; }
 function openGroups()      { window.location.href = "groups.html"; }
@@ -3606,6 +3635,7 @@ function buildCmdItems() {
     return [
         { title: "Отметить посещаемость", sub: "Быстрое действие", icon: "teal", key: "1", action: openAttendance },
         { title: "Посещаемость", sub: "История и статистика", icon: "blue", key: "2", action: openHistory },
+        { title: "Замены", sub: "Замены преподавателей и занятий", icon: "cyan", action: openReplacements }, /* NEW */
         { title: "Отчеты", sub: "Сводки и экспорт в CSV", icon: "cyan", key: "0", action: openReports },
         { title: "Итоговая аттестация", sub: "Аттестация студентов", icon: "cap", action: openFinalAssessment },
         { title: "Студенты", sub: "Список студентов", icon: "violet", key: "3", action: openStudents },
@@ -3912,7 +3942,7 @@ async function openTelegramModal() {
     closeUserMenu();
     const overlay = document.getElementById("tgOverlay");
     const body = document.getElementById("tgBody");
-    
+
     overlay.classList.add("show");
     overlay.setAttribute("aria-hidden", "false");
     body.innerHTML = `<div style="text-align:center;color:var(--text-light)">Загрузка...</div>`;
@@ -3945,7 +3975,7 @@ async function openTelegramModal() {
 
         // Не привязан
         const login = userData?.login || 'ваш_логин';
-        
+
         body.innerHTML = `
             <div class="tg-step">
                 <div class="tg-step-num">1</div>
@@ -3976,7 +4006,7 @@ async function openTelegramModal() {
                 </div>
             </div>
         `;
-        
+
         // Автоформат ввода в верхний регистр
         document.getElementById('tgCodeInput').addEventListener('input', function(e) {
             e.target.value = e.target.value.toUpperCase();
@@ -4018,15 +4048,15 @@ async function submitTgCode() {
         }
 
         const data = snap.data();
-        
+
         if (data.used) {
             throw new Error("Этот код уже был использован");
         }
-        
+
         if (data.expiresAt.toMillis() < Date.now()) {
             throw new Error("Срок действия кода истёк");
         }
-        
+
         if (data.uid !== auth.currentUser.uid) {
             throw new Error("Код принадлежит другому аккаунту");
         }
@@ -4055,7 +4085,7 @@ async function submitTgCode() {
         // Успех
         showToast("Telegram успешно привязан!");
         document.getElementById("tgMenuText").textContent = "Telegram привязан";
-        
+
         // Обновляем окно
         setTimeout(() => {
             openTelegramModal();
@@ -4078,7 +4108,7 @@ async function unlinkTelegram() {
         await db.collection("users").doc(auth.currentUser.uid).update({
             telegram: firebase.firestore.FieldValue.delete()
         });
-        
+
         showToast("Telegram отвязан");
         document.getElementById("tgMenuText").textContent = "Связать Telegram";
         closeTelegramModal();

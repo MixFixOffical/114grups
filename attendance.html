@@ -476,6 +476,7 @@ header {
 .student-card.swiping { transition: none; }
 .student-card.present { background: var(--green-soft); }
 .student-card.absent  { background: var(--red-soft); }
+.student-card.late    { background: var(--amber-soft); }
 
 .student-card::before {
     content: ""; position: absolute;
@@ -485,6 +486,7 @@ header {
 }
 .student-card.present::before { background: var(--green); }
 .student-card.absent::before  { background: var(--red); }
+.student-card.late::before    { background: var(--amber); }
 
 .student-index {
     width: 34px; height: 34px; flex-shrink: 0;
@@ -495,6 +497,7 @@ header {
 }
 .student-card.present .student-index { background: #fff; color: var(--green); }
 .student-card.absent  .student-index { background: #fff; color: var(--red); }
+.student-card.late    .student-index { background: #fff; color: var(--amber); }
 
 .student-info { flex: 1; min-width: 0; }
 .student-name {
@@ -518,6 +521,7 @@ header {
 .student-status-badge.absent  { background: #fff; color: var(--red);   border-color: rgba(185,28,28,.25); }
 .student-status-badge.uv      { background: #fff; color: var(--green); border-color: rgba(4,120,87,.25); }
 .student-status-badge.bolezn  { background: #fff; color: var(--violet); border-color: rgba(109,40,217,.25); }
+.student-status-badge.late    { background: #fff; color: var(--amber); border-color: rgba(180,83,9,.3); }
 
 .student-action {
     width: 46px; height: 46px; flex-shrink: 0;
@@ -530,6 +534,7 @@ header {
 }
 .student-card.present .student-action { background: var(--green); color: #fff; border-color: var(--green); }
 .student-card.absent .student-action { background: var(--red); color: #fff; border-color: var(--red); }
+.student-card.late .student-action { background: var(--amber); color: #fff; border-color: var(--amber); }
 
 .swipe-hint {
     display: flex; align-items: center; gap: 8px;
@@ -588,6 +593,7 @@ tr:hover td:first-child { background: var(--surface-2); }
 .status-empty { background: var(--surface-2); color: var(--text-3); border-color: var(--border); }
 .status-present { background: var(--green-soft); color: var(--green); border-color: rgba(4,120,87,.25); }
 .status-absent { background: var(--red-soft); color: var(--red); border-color: rgba(185,28,28,.25); }
+.status-late { background: var(--amber-soft); color: var(--amber); border-color: rgba(180,83,9,.3); font-size: 14px; }
 .attendance-cell:active .status { transform: scale(.94); }
 
 /* =========================================================
@@ -639,6 +645,7 @@ tr:hover td:first-child { background: var(--surface-2); }
 .choice-button:hover { background: var(--surface-2); }
 .choice-button.present { background: var(--green-soft); border-color: rgba(4,120,87,.25); }
 .choice-button.absent { background: var(--red-soft); border-color: rgba(185,28,28,.25); }
+.choice-button.late { background: var(--amber-soft); border-color: rgba(180,83,9,.3); }
 .choice-icon {
     width: 48px; height: 48px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
@@ -646,6 +653,7 @@ tr:hover td:first-child { background: var(--surface-2); }
 }
 .present-icon { background: var(--green); color: #fff; }
 .absent-icon  { background: var(--red);   color: #fff; }
+.late-icon    { background: var(--amber); color: #fff; }
 .whole-day-icon { background: var(--amber-soft); color: var(--amber); }
 .delete-icon { background: var(--surface-2); color: var(--text-2); }
 .choice-text strong { display: block; font-size: 14.5px; margin-bottom: 3px; font-weight: 600; }
@@ -1021,6 +1029,10 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
             <div class="choice-icon present-icon">✓</div>
             <div class="choice-text"><strong>Присутствовал</strong><span>Студент был на паре</span></div>
         </button>
+        <button class="choice-button late" onclick="chooseLate()">
+            <div class="choice-icon late-icon">⏰</div>
+            <div class="choice-text"><strong>Опоздал</strong><span>Был на паре, но опоздал</span></div>
+        </button>
         <button class="choice-button absent" onclick="chooseAbsent()">
             <div class="choice-icon absent-icon">✕</div>
             <div class="choice-text"><strong>Отсутствовал</strong><span>Указать причину</span></div>
@@ -1167,6 +1179,9 @@ const AUTO_REASONS = {
     bolezn: "Больничный"
 };
 
+/* Статусы, при которых пара считается отмеченной (для прогресса и чипов) */
+const MARKED_STATUSES = ["present", "absent", "late"];
+
 const $ = (id) => document.getElementById(id);
 
 const datePicker = $("datePicker");
@@ -1277,7 +1292,7 @@ function getReplacement(l) {
     return { discipline, teacher };
 }
 
-/* Текст для мест без HTML: «Физика (Заменено: Математика, заменён: Иванов И.И.)» */
+/* Текст для мест без HTML */
 function getLessonTitleText(d, l) {
     const orig = getOriginalDiscipline(d, l);
     const rep = getReplacement(l);
@@ -1721,7 +1736,7 @@ function renderLessonChips() {
         let marked = 0;
         filtered.forEach(s => {
             const d = getLessonData(s.id, l);
-            if (d.status === "present" || d.status === "absent") marked++;
+            if (MARKED_STATUSES.includes(d.status)) marked++;
         });
         const pct = totalStudents ? Math.round((marked / totalStudents) * 100) : 0;
         const hasRepl = !!getReplacement(l);
@@ -1753,7 +1768,6 @@ function updateDisciplineBanner() {
         return;
     }
     const time = getLessonTime(dayIndex, currentLesson);
-    const rep = getReplacement(currentLesson);
     $("disciplineName").innerHTML = getLessonTitleHtml(dayIndex, currentLesson);
     $("disciplineTime").textContent = time.text;
     disciplineBanner.classList.add("show");
@@ -1766,7 +1780,7 @@ function updateProgress() {
     const lesson = currentLesson || 1;
     filtered.forEach(s => {
         const d = getLessonData(s.id, lesson);
-        if (d.status === "present" || d.status === "absent") marked++;
+        if (MARKED_STATUSES.includes(d.status)) marked++;
     });
     const pct = total ? Math.round((marked / total) * 100) : 0;
 
@@ -1790,6 +1804,11 @@ function renderStudentsList(filtered) {
             statusBadge = `<span class="student-status-badge present">✓ Присутствовал</span>`;
             actionIcon = "✓";
             actionLabel = "Присутствовал";
+        } else if (d.status === "late") {
+            cardClass = "late";
+            statusBadge = `<span class="student-status-badge late">⏰ Опоздал</span>`;
+            actionIcon = "⏰";
+            actionLabel = "Опоздал";
         } else if (d.status === "absent") {
             cardClass = "absent";
             let typeText = "Н Неуважит.";
@@ -1866,7 +1885,7 @@ function openCellMenu(student, lesson) {
     selectedStudent = student; selectedLesson = lesson;
     const d = getLessonData(student.id, lesson);
     $("choiceStudent").textContent = `${student.name} • ${lesson} пара`;
-    $("deleteButton").style.display = (d.status === "present" || d.status === "absent") ? "flex" : "none";
+    $("deleteButton").style.display = MARKED_STATUSES.includes(d.status) ? "flex" : "none";
     $("choiceOverlay").classList.add("active");
 }
 window.openCellMenu = openCellMenu;
@@ -1966,6 +1985,7 @@ function render() {
             const d = getLessonData(student.id, l);
             let cls = "status-empty", txt = "—";
             if (d.status === "present") { cls = "status-present"; txt = "✓"; }
+            if (d.status === "late")    { cls = "status-late";    txt = "О"; }
             if (d.status === "absent") {
                 cls = "status-absent";
                 txt = d.absentType === "uv" ? "Н/У" : d.absentType === "bolezn" ? "Н/Б" : "Н";
@@ -2023,6 +2043,20 @@ async function choosePresent() {
     } catch (e) { console.error(e); showToast("Ошибка сохранения", "error"); }
 }
 window.choosePresent = choosePresent;
+
+async function chooseLate() {
+    if (!selectedStudent) return;
+    closeChoice();
+    try {
+        const d = getStudentDay(selectedStudent.id);
+        const ls = { ...(d.lessons || {}) };
+        ls[String(selectedLesson)] = { status: "late", absentType: "", reason: "" };
+        await saveStudentDay(selectedStudent, ls);
+        render();
+        showToast("⏰ Опоздание сохранено", "warning");
+    } catch (e) { console.error(e); showToast("Ошибка сохранения", "error"); }
+}
+window.chooseLate = chooseLate;
 
 function selectAbsentType(t) {
     const prev = selectedAbsentType;

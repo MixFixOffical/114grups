@@ -767,6 +767,7 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
 .status.show { display: block; }
 .status.success { background: var(--green); }
 .status.error { background: var(--red); }
+.status.warning { background: var(--amber); }
 
 /* =========================================================
    BOTTOM SHEET
@@ -1262,6 +1263,13 @@ body.scope-semester .semester-view { display: block; }
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
                 Отчёты
             </button>
+            <button class="btn-secondary" onclick="reloadAll(true)" title="Обновить данные из базы">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 12a9 9 0 1 1-3-6.7"/>
+                    <path d="M21 3v6h-6"/>
+                </svg>
+                Обновить
+            </button>
             <button class="btn-back" onclick="goBack()" title="Вернуться в главное меню">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M19 12H5M11 6l-6 6 6 6"/>
@@ -1451,12 +1459,62 @@ let activeMobileDay = 0;
 const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 const HOURS_PER_LESSON = 2;
 const SEM_PRINT_W = 270;
-const LATE_LIMIT_MIN = 20;   // опоздание больше этого → О/Н
+const LATE_LIMIT_MIN = 20;
 
 const AUTO_REASONS = {
     uv: "Уважительная причина",
     bolezn: "Больничный"
 };
+
+/* =========================================================
+   LOCAL CACHE
+========================================================= */
+const CACHE_VERSION = "v1";
+const CACHE_TTL = 1000 * 60 * 60 * 24; // 24 часа
+const CACHE_PREFIX = `att_journal_${CACHE_VERSION}_`;
+
+function cacheKey(name, extra = "") {
+    return CACHE_PREFIX + name + (extra ? "_" + extra : "");
+}
+
+function cacheGet(name, extra = "") {
+    try {
+        const raw = localStorage.getItem(cacheKey(name, extra));
+        if (!raw) return null;
+        const obj = JSON.parse(raw);
+        if (!obj || obj.v !== CACHE_VERSION) return null;
+        if (obj.exp && Date.now() > obj.exp) return null;
+        return obj.d;
+    } catch (e) { return null; }
+}
+
+function cacheSet(name, data, extra = "") {
+    try {
+        localStorage.setItem(cacheKey(name, extra), JSON.stringify({
+            v: CACHE_VERSION,
+            t: Date.now(),
+            exp: Date.now() + CACHE_TTL,
+            d: data
+        }));
+    } catch (e) {
+        try {
+            Object.keys(localStorage).forEach(k => {
+                if (k.startsWith(CACHE_PREFIX)) localStorage.removeItem(k);
+            });
+            localStorage.setItem(cacheKey(name, extra), JSON.stringify({
+                v: CACHE_VERSION, t: Date.now(), exp: Date.now() + CACHE_TTL, d: data
+            }));
+        } catch (_) {}
+    }
+}
+
+function cacheClearAll() {
+    try {
+        Object.keys(localStorage).forEach(k => {
+            if (k.startsWith(CACHE_PREFIX)) localStorage.removeItem(k);
+        });
+    } catch (e) {}
+}
 
 /* =========================================================
    THEME
@@ -1551,20 +1609,17 @@ function vibrate(ms) {
     }
 }
 
-/* Минуты от начала суток из строки "8:30" / "08:30" */
 function parseHM(v) {
     const m = /^(\d{1,2})[:.](\d{2})/.exec(String(v ?? "").trim());
     return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 }
 
-/* Сокращённое название: слова длиннее 4 букв обрезаются до 4 + точка */
 function shortName(name) {
     const words = String(name || "").trim().split(/\s+/).filter(Boolean);
     if (!words.length) return "—";
     return words.map(w => w.length > 4 ? w.slice(0, 4) + "." : w).join(" ");
 }
 
-/* Сокращённое название пары по настройкам группы на дату записи */
 function getLessonShortName(dateStr, lesson) {
     const dayIdx = new Date(dateStr + "T00:00:00").getDay();
     const dayName = days[dayIdx - 1];
@@ -1605,9 +1660,6 @@ function getCurrentGroup() {
     return userGroups.find(g => g.id === currentGroupId) || null;
 }
 
-/* =========================================================
-   Семестры по номеру группы: 111 → 1,2  214 → 3,4  311 → 5,6  411 → 7,8
-========================================================= */
 function getSemestersForGroup(groupName) {
     const m = String(groupName || "").trim().match(/^(\d)/);
     if (!m) return { first: 1, second: 2 };
@@ -1621,36 +1673,48 @@ function groupsFromSnapshot(s) {
     return s.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-async function loadUserAndGroups() {
+async function loadUserAndGroups(force = false) {
     currentUid = auth.currentUser ? auth.currentUser.uid : null;
     if (!currentUid) {
         userRole = null; userGroups = []; currentGroupId = null; return;
     }
 
-    const userSnap = await getDoc(doc(db, "users", currentUid));
-    const userData = userSnap.exists() ? userSnap.data() : {};
-    userRole = userData.role || "starosta";
-
-    let groupsMap = new Map();
-
-    if (userRole === "admin") {
-        const snap = await getDocs(collection(db, "groups"));
-        groupsFromSnapshot(snap).filter(g => g.active !== false).forEach(g => groupsMap.set(g.id, g));
-    } else if (userRole === "curator") {
-        const snap = await getDocs(query(collection(db, "groups"), where("curatorId", "==", currentUid)));
-        groupsFromSnapshot(snap).filter(g => g.active !== false).forEach(g => groupsMap.set(g.id, g));
-    } else {
-        const [sA, sB] = await Promise.all([
-            getDocs(query(collection(db, "groups"), where("starostaId", "==", currentUid))),
-            getDocs(query(collection(db, "groups"), where("leaderId", "==", currentUid)))
-        ]);
-        [...groupsFromSnapshot(sA), ...groupsFromSnapshot(sB)]
-            .filter(g => g.active !== false)
-            .forEach(g => groupsMap.set(g.id, g));
+    // роль
+    let role = force ? null : cacheGet("userRole", currentUid);
+    if (!role) {
+        const userSnap = await getDoc(doc(db, "users", currentUid));
+        const userData = userSnap.exists() ? userSnap.data() : {};
+        role = userData.role || "starosta";
+        cacheSet("userRole", role, currentUid);
     }
+    userRole = role;
 
-    userGroups = Array.from(groupsMap.values())
-        .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ru"));
+    // группы
+    let groups = force ? null : cacheGet("groups", currentUid);
+    if (!groups) {
+        let groupsMap = new Map();
+
+        if (userRole === "admin") {
+            const snap = await getDocs(collection(db, "groups"));
+            groupsFromSnapshot(snap).filter(g => g.active !== false).forEach(g => groupsMap.set(g.id, g));
+        } else if (userRole === "curator") {
+            const snap = await getDocs(query(collection(db, "groups"), where("curatorId", "==", currentUid)));
+            groupsFromSnapshot(snap).filter(g => g.active !== false).forEach(g => groupsMap.set(g.id, g));
+        } else {
+            const [sA, sB] = await Promise.all([
+                getDocs(query(collection(db, "groups"), where("starostaId", "==", currentUid))),
+                getDocs(query(collection(db, "groups"), where("leaderId", "==", currentUid)))
+            ]);
+            [...groupsFromSnapshot(sA), ...groupsFromSnapshot(sB)]
+                .filter(g => g.active !== false)
+                .forEach(g => groupsMap.set(g.id, g));
+        }
+
+        groups = Array.from(groupsMap.values())
+            .sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ru"));
+        cacheSet("groups", groups, currentUid);
+    }
+    userGroups = groups;
 
     const remembered = sessionStorage.getItem("selectedGroupId");
     if (remembered && userGroups.some(g => g.id === remembered)) currentGroupId = remembered;
@@ -1724,11 +1788,18 @@ window.switchGroup = async (groupId) => {
 };
 
 /* =========================================================
-   LOAD DATA
+   LOAD DATA (with cache)
 ========================================================= */
-async function loadSettings() {
+async function loadSettings(force = false) {
     settings = { schedule: {}, disciplines: {}, bells: {}, semester1: {}, semester2: {} };
     if (!currentGroupId) return;
+
+    let cached = force ? null : cacheGet("settings", currentGroupId);
+    if (cached) {
+        settings = cached;
+        return;
+    }
+
     try {
         const snap = await getDoc(doc(db, "groupSettings", currentGroupId));
         if (snap.exists()) {
@@ -1741,12 +1812,23 @@ async function loadSettings() {
                 semester2: d.semester2 || {}
             };
         }
-    } catch (e) { console.error(e); showStatus("Не удалось загрузить настройки", "error"); }
+        cacheSet("settings", settings, currentGroupId);
+    } catch (e) {
+        console.error(e);
+        showStatus("Не удалось загрузить настройки", "error");
+    }
 }
 
-async function loadStudents() {
+async function loadStudents(force = false) {
     students = [];
     if (!currentGroupId) return;
+
+    let cached = force ? null : cacheGet("students", currentGroupId);
+    if (cached) {
+        students = cached;
+        return;
+    }
+
     const g = getCurrentGroup();
     const explicitIds = g && Array.isArray(g.studentIds) ? g.studentIds.map(String) : [];
 
@@ -1758,16 +1840,22 @@ async function loadStudents() {
 
     let byExplicit = [];
     if (explicitIds.length > 0) {
-        const full = await getDocs(collection(db, "students"));
-        byExplicit = full.docs
-            .filter(d => explicitIds.includes(String(d.id)))
-            .map(d => ({ id: d.id, ...d.data() }));
+        // добираем студентов, явно прописанных в группе, но без совпадающего groupId
+        const idsNeeded = explicitIds.filter(id => !byGroupId.some(s => String(s.id) === id));
+        if (idsNeeded.length > 0) {
+            const full = await getDocs(collection(db, "students"));
+            byExplicit = full.docs
+                .filter(d => idsNeeded.includes(String(d.id)))
+                .map(d => ({ id: d.id, ...d.data() }));
+        }
     }
 
     const map = new Map();
     [...byGroupId, ...byExplicit].forEach(s => map.set(s.id, s));
     students = Array.from(map.values());
     students.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "ru"));
+
+    cacheSet("students", students, currentGroupId);
 }
 
 function getStudentName(studentId) {
@@ -1786,10 +1874,17 @@ function normalizeStatus(status) {
 
 /* =========================================================
    LOAD ATTENDANCE
+   Кэшируем по ключу группы: attendance_{groupId}.
 ========================================================= */
-async function loadAttendance() {
+async function loadAttendance(force = false) {
     attendance = {};
     if (!currentGroupId || students.length === 0) return;
+
+    let cached = force ? null : cacheGet("attendance", currentGroupId);
+    if (cached) {
+        attendance = cached;
+        return;
+    }
 
     const studentIdsSet = new Set(students.map(s => String(s.id)));
 
@@ -1861,6 +1956,7 @@ async function loadAttendance() {
             }
         });
 
+        cacheSet("attendance", attendance, currentGroupId);
         console.log(`[attendance] загружено отметок: ${Object.keys(attendance).length}`);
     } catch (e) {
         console.error("Ошибка загрузки посещаемости:", e);
@@ -1871,7 +1967,6 @@ async function loadAttendance() {
 /* =========================================================
    LESSON START / LATENESS
 ========================================================= */
-/* Начало пары из звонков группы. null, если не настроено */
 function getLessonStartMin(dateStr, lesson) {
     const dayIdx = new Date(dateStr + "T00:00:00").getDay();
     const dayName = days[dayIdx - 1];
@@ -1891,7 +1986,6 @@ function getLessonStartMin(dateStr, lesson) {
     return parseHM(start);
 }
 
-/* Опоздание в минутах или null, если не удалось определить */
 function calcLateness(dateStr, lesson, arrivalTime) {
     const arr = parseHM(arrivalTime);
     const st = getLessonStartMin(dateStr, lesson);
@@ -1899,15 +1993,6 @@ function calcLateness(dateStr, lesson, arrivalTime) {
     return arr - st;
 }
 
-/*
-   Что получится при сохранении опоздания.
-   excused = уважительная причина:
-     - опоздание ≤ 20 мин → «О/У» (опоздание, уважительное)
-     - опоздание > 20 мин → «Н/У» (уважительная неявка)
-   без уважительной:
-     - ≤ 20 мин → «О»
-     - > 20 мин → «О/Н» (неявка)
-*/
 function buildLateMark(arrivalTime, dateStr, lesson, excused) {
     const late = calcLateness(dateStr, lesson, arrivalTime);
     const base = { arrivalTime, excused: !!excused };
@@ -2005,6 +2090,7 @@ async function saveLessonMark(date, studentId, lessonNum, markData) {
             updatedAt: meta.updatedAt
         };
     }
+    cacheSet("attendance", attendance, currentGroupId);
 }
 
 /* =========================================================
@@ -2164,7 +2250,6 @@ function getMarkDisplay(record) {
     return { mark: "—", cls: "empty-mark" };
 }
 
-/* Время прихода под отметкой (для опозданий) */
 function arrLine(rec) {
     return rec && rec.arrivalTime
         ? `<span class="arr-t">${escapeHtml(rec.arrivalTime)}</span>`
@@ -2422,7 +2507,6 @@ function renderMobile() {
 
 /* =========================================================
    INFO POPUP (VIEW)
-   Показывает: номер пары + сокращённое название
 ========================================================= */
 function lateDetailText(rec) {
     const arr = rec.arrivalTime ? `Пришёл в ${rec.arrivalTime}` : "Время прихода не указано";
@@ -2561,7 +2645,6 @@ function closeMarkSheet() {
 }
 window.closeMarkSheet = closeMarkSheet;
 
-/* Подсказка: что получится при сохранении опоздания */
 function updateArrivalHint() {
     const hint = document.getElementById("arrivalHint");
     const t = document.getElementById("arrivalInput").value;
@@ -3187,12 +3270,40 @@ function showStatus(msg, type = "") {
 }
 
 /* =========================================================
+   RELOAD (кнопка «Обновить»)
+========================================================= */
+async function reloadAll(force = true) {
+    if (!currentGroupId) return;
+    if (force) {
+        cacheClearAll();
+        showStatus("Обновление данных...");
+    }
+    try {
+        await loadSettings(force);
+        await loadStudents(force);
+        await loadAttendance(force);
+        updateWeekRange();
+        renderTable();
+        renderMobile();
+        renderWeekList();
+        updateSemesterInfo();
+        resetViewSemester();
+        if (currentScope === "semester") renderSemesterView();
+        if (force) showStatus("Данные обновлены", "success");
+    } catch (e) {
+        console.error(e);
+        showStatus("Ошибка обновления", "error");
+    }
+}
+window.reloadAll = reloadAll;
+
+/* =========================================================
    START
 ========================================================= */
 async function start() {
     try {
         weekStart = getMonday(new Date());
-        await loadUserAndGroups();
+        await loadUserAndGroups(false);
         renderGroupSwitcher();
 
         if (!currentGroupId) {
@@ -3201,9 +3312,9 @@ async function start() {
             return;
         }
 
-        await loadSettings();
-        await loadStudents();
-        await loadAttendance();
+        await loadSettings(false);
+        await loadStudents(false);
+        await loadAttendance(false);
 
         updateWeekRange();
         renderTable();

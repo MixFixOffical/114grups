@@ -1214,7 +1214,7 @@ const settingsCache = new Map();
 
 let students = [], allStudents = [], allGroupsData = [], userGroups = [];
 let userRole = null, selectedGroupId = "", settings = {}, attendance = {};
-let replacements = {};   // замены для selectedDate + selectedGroupId: { "1": {discipline, teacher}, ... }
+let replacements = {};
 let selectedDate = "", selectedStudent = null, selectedLesson = null, selectedAction = null;
 let selectedAbsentType = "neuv", quickMode = null, studentFilter = "";
 let currentLesson = 0;
@@ -1229,7 +1229,6 @@ const AUTO_REASONS = {
     bolezn: "Больничный"
 };
 
-/* Статусы, при которых пара считается отмеченной (для прогресса и чипов) */
 const MARKED_STATUSES = ["present", "absent", "late"];
 
 const $ = (id) => document.getElementById(id);
@@ -1241,6 +1240,60 @@ const lessonChipsEl = $("lessonChips");
 const disciplineBanner = $("disciplineBanner");
 const reasonInput = $("reasonInput");
 const reasonHint = $("reasonHint");
+
+/* =========================================================
+   LOCAL CACHE
+========================================================= */
+const CACHE_VERSION = "v1";
+const CACHE_TTL = 1000 * 60 * 60 * 24;
+const CACHE_PREFIX = `att_${CACHE_VERSION}_`;
+
+function cacheKey(name, extra = "") {
+    return CACHE_PREFIX + name + (extra ? "_" + extra : "");
+}
+
+function cacheGet(name, extra = "") {
+    try {
+        const raw = localStorage.getItem(cacheKey(name, extra));
+        if (!raw) return null;
+        const obj = JSON.parse(raw);
+        if (!obj || obj.v !== CACHE_VERSION) return null;
+        if (obj.exp && Date.now() > obj.exp) return null;
+        return obj.d;
+    } catch (e) { return null; }
+}
+
+function cacheSet(name, data, extra = "") {
+    try {
+        localStorage.setItem(cacheKey(name, extra), JSON.stringify({
+            v: CACHE_VERSION,
+            t: Date.now(),
+            exp: Date.now() + CACHE_TTL,
+            d: data
+        }));
+    } catch (e) {
+        try {
+            Object.keys(localStorage).forEach(k => {
+                if (k.startsWith(CACHE_PREFIX)) localStorage.removeItem(k);
+            });
+            localStorage.setItem(cacheKey(name, extra), JSON.stringify({
+                v: CACHE_VERSION, t: Date.now(), exp: Date.now() + CACHE_TTL, d: data
+            }));
+        } catch (_) {}
+    }
+}
+
+function cacheClearAll() {
+    try {
+        Object.keys(localStorage).forEach(k => {
+            if (k.startsWith(CACHE_PREFIX)) localStorage.removeItem(k);
+        });
+    } catch (e) {}
+}
+
+function uidKey() {
+    return currentUser?.uid || "anon";
+}
 
 /* =========================================================
    HELPERS
@@ -1272,7 +1325,6 @@ function vibrate(ms) {
     }
 }
 
-/* Минуты из строки "8:30" / "08:30" */
 function parseHM(v) {
     const m = /^(\d{1,2})[:.](\d{2})/.exec(String(v ?? "").trim());
     return m ? Number(m[1]) * 60 + Number(m[2]) : null;
@@ -1332,13 +1384,11 @@ function firstValue(obj, keys) {
     return "";
 }
 
-/* Исходная дисциплина из настроек группы; пустая строка, если не настроена */
 function getOriginalDiscipline(d, l) {
     const c = getLessonConfig(d, l);
     return String(firstValue(c, ["discipline","subject","name","title","lessonName"]) || "").trim();
 }
 
-/* Замена пары; null, если замены нет */
 function getReplacement(l) {
     const r = replacements[String(l)];
     if (!r || typeof r !== "object") return null;
@@ -1348,7 +1398,6 @@ function getReplacement(l) {
     return { discipline, teacher };
 }
 
-/* Текст для мест без HTML */
 function getLessonTitleText(d, l) {
     const orig = getOriginalDiscipline(d, l);
     const rep = getReplacement(l);
@@ -1357,7 +1406,6 @@ function getLessonTitleText(d, l) {
     return orig ? `${orig} (${replPart})` : `(${replPart})`;
 }
 
-/* HTML-версия для банера, шапки таблицы и окна занятия */
 function getLessonTitleHtml(d, l) {
     const orig = getOriginalDiscipline(d, l);
     const rep = getReplacement(l);
@@ -1410,28 +1458,23 @@ function normalizeLessons(raw) {
     return out;
 }
 
-async function loadReplacements() {
-    replacements = {};
-    if (!selectedGroupId || !selectedDate) return;
-    try {
-        const snap = await getDoc(doc(db, "replacements", `${selectedDate}_${selectedGroupId}`));
-        if (snap.exists()) replacements = normalizeLessons((snap.data() || {}).lessons);
-    } catch (e) {
-        console.error("replacements:", e);
-        showToast(`Не удалось прочитать замены: ${e?.code || e?.message || ""}`, "warning");
-    }
-}
-
 /* =========================================================
-   DATA LOADING
+   DATA LOADING (with cache)
 ========================================================= */
 async function resolveHomePage(user) {
-    let role = null;
-    try {
-        const snap = await getDoc(doc(db, "users", user.uid));
-        userDocCache = snap.exists() ? snap.data() : null;
-        role = userDocCache ? userDocCache.role : null;
-    } catch (e) { return "home.html"; }
+    const cached = cacheGet("userRole", user.uid);
+    let role = cached;
+
+    if (!role) {
+        try {
+            const snap = await getDoc(doc(db, "users", user.uid));
+            userDocCache = snap.exists() ? snap.data() : null;
+            role = userDocCache ? userDocCache.role : null;
+            cacheSet("userRole", role, user.uid);
+        } catch (e) { return "home.html"; }
+    } else {
+        userDocCache = { role };
+    }
 
     if (role === "admin") {
         try {
@@ -1453,19 +1496,26 @@ async function loadGroupsAndRole(force = false) {
     if (groupsLoaded && !force) return;
     if (!currentUser) return;
 
-    if (!userDocCache || force) {
+    const cachedRole = cacheGet("userRole", currentUser.uid);
+    if (force || !cachedRole || !userDocCache) {
         try {
             const s = await getDoc(doc(db, "users", currentUser.uid));
             userDocCache = s.exists() ? s.data() : null;
+            cacheSet("userRole", userDocCache ? userDocCache.role : null, currentUser.uid);
         } catch (e) { console.error(e); }
     }
     userRole = userDocCache ? (userDocCache.role || null) : null;
 
-    try {
-        const g = await getDocs(collection(db, "groups"));
-        allGroupsData = g.docs.map(i => ({ id: i.id, ...i.data() }));
-        allGroupsData.sort((a,b) => String(a.name||"").localeCompare(String(b.name||""),"ru"));
-    } catch (e) { console.error(e); }
+    let groupsFromCache = force ? null : cacheGet("groups");
+    if (!groupsFromCache) {
+        try {
+            const g = await getDocs(collection(db, "groups"));
+            groupsFromCache = g.docs.map(i => ({ id: i.id, ...i.data() }));
+            cacheSet("groups", groupsFromCache);
+        } catch (e) { console.error(e); groupsFromCache = []; }
+    }
+    allGroupsData = groupsFromCache;
+    allGroupsData.sort((a,b) => String(a.name||"").localeCompare(String(b.name||""),"ru"));
 
     if (userRole === "admin") userGroups = allGroupsData;
     else userGroups = allGroupsData.filter(g => g.curatorId === currentUser.uid || g.starostaId === currentUser.uid || g.leaderId === currentUser.uid);
@@ -1504,8 +1554,8 @@ groupSelect.addEventListener("change", async function() {
     selectedGroupId = this.value;
     localStorage.setItem("selectedGroupId", selectedGroupId);
     applyGroupFilter();
-    await loadSettings();
-    await loadReplacements();
+    await loadSettings(false);
+    await loadReplacements(false);
     currentLesson = 0;
     render();
 });
@@ -1519,14 +1569,36 @@ function applyGroupFilter() {
     students.sort((a,b) => String(a.name||a.fullName||a.fio||"").localeCompare(String(b.name||b.fullName||b.fio||""),"ru"));
 }
 
-async function loadSettings() {
+async function loadStudents(force = false) {
+    if (force || !studentsLoaded) {
+        let list = force ? null : cacheGet("students");
+        if (!list) {
+            const snap = await getDocs(collection(db, "students"));
+            list = snap.docs.map(i => ({ id: i.id, ...i.data() }));
+            cacheSet("students", list);
+        }
+        allStudents = list;
+        studentsLoaded = true;
+    }
+    applyGroupFilter();
+}
+
+async function loadSettings(force = false) {
     settings = { schedule: {}, disciplines: {}, bells: {}, semester1: {}, semester2: {} };
     if (!selectedGroupId) return;
 
-    if (settingsCache.has(selectedGroupId)) {
+    if (!force && settingsCache.has(selectedGroupId)) {
         settings = settingsCache.get(selectedGroupId);
         return;
     }
+
+    let fromCache = force ? null : cacheGet("settings", selectedGroupId);
+    if (fromCache) {
+        settings = fromCache;
+        settingsCache.set(selectedGroupId, settings);
+        return;
+    }
+
     try {
         const snap = await getDoc(doc(db, "groupSettings", selectedGroupId));
         if (snap.exists()) {
@@ -1537,24 +1609,26 @@ async function loadSettings() {
             };
         }
         settingsCache.set(selectedGroupId, settings);
+        cacheSet("settings", settings, selectedGroupId);
     } catch (e) { console.error(e); }
 }
 
-async function loadStudents(force = false) {
-    if (force || !studentsLoaded) {
-        const snap = await getDocs(collection(db, "students"));
-        allStudents = snap.docs.map(i => ({ id: i.id, ...i.data() }));
-        studentsLoaded = true;
-    }
-    applyGroupFilter();
-}
-
-async function loadAttendance() {
+async function loadAttendance(force = false) {
     attendance = {};
     if (!selectedDate) return;
+
+    let cached = force ? null : cacheGet("attendance", selectedDate);
+    if (cached) {
+        attendance = cached;
+        return;
+    }
+
     try {
         const snap = await getDoc(doc(db, "attendance", selectedDate));
-        if (!snap.exists()) return;
+        if (!snap.exists()) {
+            cacheSet("attendance", {}, selectedDate);
+            return;
+        }
         const data = snap.data() || {};
         if (data.students && typeof data.students === "object") {
             Object.values(data.students).forEach(r => {
@@ -1580,7 +1654,29 @@ async function loadAttendance() {
             };
         });
         if (data.date && data.studentId) attendance[`${data.date}_${data.studentId}`] = data;
+        cacheSet("attendance", attendance, selectedDate);
     } catch (e) { console.error(e); }
+}
+
+async function loadReplacements(force = false) {
+    replacements = {};
+    if (!selectedGroupId || !selectedDate) return;
+
+    const key = `${selectedDate}_${selectedGroupId}`;
+    let cached = force ? null : cacheGet("replacements", key);
+    if (cached) {
+        replacements = cached;
+        return;
+    }
+
+    try {
+        const snap = await getDoc(doc(db, "replacements", key));
+        if (snap.exists()) replacements = normalizeLessons((snap.data() || {}).lessons);
+        cacheSet("replacements", replacements, key);
+    } catch (e) {
+        console.error("replacements:", e);
+        showToast(`Не удалось прочитать замены: ${e?.code || e?.message || ""}`, "warning");
+    }
 }
 
 function getStudentDay(sid) {
@@ -1619,6 +1715,7 @@ async function saveStudentDay(student, lessons) {
         date: selectedDate, groupId: selectedGroupId,
         lessons, semester: period.semester, attestation: period.attestation
     };
+    cacheSet("attendance", attendance, selectedDate);
 
     notifyStudents(selectedDate, selectedGroupId, { studentId: student.id }).catch(() => {});
 }
@@ -1675,7 +1772,7 @@ async function deleteAttendance() {
 window.deleteAttendance = deleteAttendance;
 
 /* =========================================================
-   LATE (опоздание со временем прихода и уважительностью)
+   LATE
 ========================================================= */
 function openLate(student, lesson) {
     vibrate(15);
@@ -1748,7 +1845,6 @@ function disableQuickMode() {
 window.enableQuickMode = enableQuickMode;
 window.disableQuickMode = disableQuickMode;
 
-/* Единая точка: тап по студенту в зависимости от режима */
 function tapCell(student, lesson) {
     if (quickMode === "present") { quickPresent(student, lesson); return; }
     if (quickMode === "absent") { quickAbsent(student, lesson); return; }
@@ -1757,7 +1853,7 @@ function tapCell(student, lesson) {
 }
 
 /* =========================================================
-   SWIPE CARDS (MOBILE)
+   SWIPE CARDS
 ========================================================= */
 const SWIPE_THRESHOLD = 90;
 
@@ -1903,7 +1999,6 @@ function updateProgress() {
     $("progressFill").style.width = pct + "%";
 }
 
-/* Строка времени прихода для карточки */
 function arrivalSuffix(d) {
     return d.arrivalTime ? ` · ${escapeHtml(d.arrivalTime)}` : "";
 }
@@ -2306,8 +2401,8 @@ async function changeDate(newDate) {
     selectedDate = newDate;
     datePicker.value = selectedDate;
     currentLesson = 0;
-    await loadAttendance();
-    await loadReplacements();
+    await loadAttendance(false);
+    await loadReplacements(false);
     render();
 }
 
@@ -2334,14 +2429,22 @@ async function reloadData(force = true) {
     refreshBtn.classList.add("spin");
     try {
         await authReady;
-        if (force) settingsCache.clear();
+
+        if (force) {
+            cacheClearAll();
+            settingsCache.clear();
+            groupsLoaded = false;
+            studentsLoaded = false;
+        }
+
         await loadGroupsAndRole(force);
         populateGroupSelect();
         await loadStudents(force);
-        await loadSettings();
-        await loadAttendance();
-        await loadReplacements();
+        await loadSettings(force);
+        await loadAttendance(force);
+        await loadReplacements(force);
         render();
+        if (force) showToast("Данные обновлены из базы", "success");
     } catch (e) {
         console.error(e);
         tableContainer.innerHTML = `<div class="empty"><div class="empty-icon">⚠️</div><div class="empty-title">Ошибка загрузки</div><div>Не удалось получить данные из Firebase.</div></div>`;
@@ -2451,7 +2554,6 @@ $("searchClear").addEventListener("click", () => {
     render();
 });
 
-/* Нижняя панель на телефоне всегда доступна: режимы работают без скрытой быстрой панели */
 function refreshMobileBarState() {
     const bar = $("mobileActionBar");
     if (!bar) return;

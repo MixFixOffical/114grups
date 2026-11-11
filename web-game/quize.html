@@ -958,7 +958,7 @@
   }
 
   /* ---------- Выход со страницы и нарушения ---------- */
-  // Обычный квиз: два выхода со страницы = исключение.
+  // Обычный квиз: защита от списывания отключена полностью.
   // Квиз с MasterCode или СКР (строгий режим): полноэкранный режим, любой уход из него,
   // смена вкладки или окна и снимок экрана — нарушение. Первое — предупреждение, второе — исключение.
   const isStrict = () => !!(quiz && (quiz.masterCode || quiz.gradeMode));
@@ -976,7 +976,9 @@
 
   function registerViolation(reason) {
     if (DEMO || !playerId || excluded || gameOver) return;
-    if (!isStrict() && !countdownDone) return;
+    // Защита от списывания работает ТОЛЬКО для СКР-тестов и MasterCode.
+    // В обычных квизах выходы со страницы не считаются и не приводят к исключению.
+    if (!isStrict()) return;
     const now = Date.now();
     // Одно действие часто даёт два события сразу (blur и visibilitychange), считаем его один раз
     if (now - lastViolation < 1500) return;
@@ -987,8 +989,7 @@
       return;
     }
     updateDoc(playerRef(), { exits: exitCount }).catch((e) => console.error(e));
-    if (isStrict()) showWarning(reason, exitCount);
-    else $('qStatus').textContent = 'Вы покинули страницу. Следующий выход — и система безопасности исключит вас из теста.';
+    showWarning(reason, exitCount);
   }
 
   document.addEventListener('visibilitychange', () => {

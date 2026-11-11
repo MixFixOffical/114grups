@@ -1623,73 +1623,87 @@ function buildAtHTML(c, list){
     const marks = list.map(st => (S.marks[st.id] || {})[key] ?? "");
     const n = v => marks.filter(m => m === v).length;
     const group = S.group ? (S.group.name || S.groupId) : "";
-    const subjLine = [c.code, atSubj].filter(Boolean).map(esc).join(" ");
-    const specLine = [atCfg.specialtyCode, atCfg.specialtyName].filter(Boolean).map(esc).join(" ");
+    const subjVal = [c.code, atSubj].filter(Boolean).map(esc).join(" ");
+    const specVal = [atCfg.specialtyCode, atCfg.specialtyName].filter(Boolean).map(esc).join(" ");
     const rows = list.map((st, i) => `<tr>
-            <td class="c">${i + 1}</td>
-            <td class="l">${esc(st.name)}</td>
-            <td></td>
-            <td class="c">${esc(AT_MARK_TXT[marks[i]] || "")}</td>
-            <td></td>
-        </tr>`).join("");
-    const zach = n("зач") + n("незач");
+        <td class="n">${i + 1}.</td>
+        <td class="nm">${esc(st.name)}</td>
+        <td></td>
+        <td class="n">${esc(AT_MARK_TXT[marks[i]] || "")}</td>
+        <td></td>
+    </tr>`).join("");
     return `<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <title>АТ ведомость — ${esc(group)} — ${esc(atSubj)}</title>
 <style>
-    @page{ size:A4 portrait; margin:14mm 14mm 14mm 24mm; }
+    @page{ size:A4 portrait; margin:7.5mm 12.5mm 10mm 17.5mm; }
     *{ box-sizing:border-box; }
-    body{ font-family:"Times New Roman","DejaVu Serif",serif; color:#000; font-size:12pt; margin:0; }
-    .org{ text-align:center; }
-    .ttl{ text-align:center; font-weight:700; font-size:14pt; margin-top:10px; }
-    .kind{ text-align:center; font-weight:700; margin-top:4px; }
-    .kind-hint{ text-align:center; font-size:9.5pt; margin-bottom:12px; }
-    .fld{ margin:5px 0; line-height:1.35; }
-    .fld b{ font-weight:700; text-decoration:underline; }
-    table{ width:100%; border-collapse:collapse; margin-top:10px; font-size:11pt; }
-    th,td{ border:1px solid #000; padding:3px 5px; vertical-align:middle; }
-    th{ font-weight:700; font-size:10pt; text-align:center; }
-    td.c{ text-align:center; }
-    td.l{ text-align:left; }
-    tbody td{ height:7mm; }
-    sup{ font-size:8pt; }
+    html,body{ margin:0; padding:0; }
+    body{ font-family:"Times New Roman",Times,serif; color:#000; font-size:12pt; line-height:1.15; }
+    .c{ text-align:center; }
+    .big{ font-size:13pt; }
+    .ln{ display:flex; align-items:baseline; white-space:nowrap; }
+    .ln .lbl{ margin-right:4pt; }
+    .fill{ flex:1; border-bottom:1px solid #000; padding:0 3pt; min-height:1.15em; }
+    .u{ display:inline-block; min-width:14pt; text-align:center; border-bottom:1px solid #000; padding:0 2pt; }
+    sup{ font-size:8pt; line-height:0; vertical-align:super; }
+    table{ border-collapse:collapse; table-layout:fixed; width:174.6mm; margin-top:6pt; }
+    col.c1{ width:16.5mm; } col.c2{ width:74.5mm; } col.c3{ width:26.9mm; } col.c4{ width:26.2mm; } col.c5{ width:30.5mm; }
+    th,td{ border:0.5pt solid #000; padding:0 3pt; vertical-align:middle; overflow:hidden; }
+    th{ font-size:12pt; font-weight:400; text-align:center; line-height:1.1; }
+    tr.hd{ height:63pt; }
+    tbody tr{ height:12.8pt; }
+    tbody td{ font-size:11.5pt; line-height:12.8pt; height:12.8pt; white-space:nowrap; }
+    td.n{ text-align:center; }
+    td.nm{ text-align:left; padding-left:4pt; }
     thead{ display:table-header-group; }
+    tbody{ display:table-row-group; }
     tr{ page-break-inside:avoid; }
-    .sum{ margin-top:10px; }
-    .foot{ margin-top:12px; font-size:8.5pt; line-height:1.3; }
+    .sum{ margin-top:27pt; }
+    .foot{ margin-top:12pt; }
+    .foot div{ margin:0 0 0 0; }
+    .foot .num{ font-size:11pt; }
+    .foot .txt{ font-size:12pt; }
 </style>
 </head>
 <body>
-<div class="org">ГОУ СПО «Тираспольский техникум информатики и права»</div>
-<div class="ttl">АТТЕСТАЦИОННАЯ ВЕДОМОСТЬ</div>
-<div class="kind">${esc(c.kind)}</div>
-<div class="kind-hint">экзамена/комплексного экзамена/дифференцированного зачета/зачета</div>
-<div class="fld">по дисциплине <b>${subjLine}</b></div>
-<div class="fld">по профессии/специальности <b>${specLine}</b></div>
-<div class="fld">в группе <b>${esc(group)}</b></div>
-<div class="fld">Фамилия, имя, отчество экзаменатора <b>${esc(c.examiner)}</b></div>
-<div class="fld">Дата проведения аттестации «___» ________ 20__ г.</div>
-<div class="fld">Дата внесения в ведомость оценок «___» ________ 20__ г.<sup>1</sup></div>
-<div class="fld">На аттестацию явились, допущенные к нему ______ чел., не явились ${n("н")} чел.</div>
+<div class="c big">ГОУ СПО «Тираспольский техникум информатики и права»</div>
+<div class="c big" style="margin-top:12pt">АТТЕСТАЦИОННАЯ ВЕДОМОСТЬ</div>
+<div class="c" style="font-size:14pt; border-bottom:1px solid #000; margin-top:0">${esc(c.kind)}</div>
+<div class="c" style="font-size:9pt">экзамена/комплексного экзамена/дифференцированного зачета/зачета</div>
+
+<div class="ln" style="margin-top:9pt"><span class="lbl">по дисциплине</span><span class="fill">${subjVal}</span></div>
+<div class="ln"><span class="lbl">по профессии/специальности</span><span class="fill">${specVal}</span></div>
+<div class="ln"><span class="lbl">в группе</span><span class="fill">${esc(group)}</span></div>
+<div class="ln"><span class="lbl">Фамилия, имя, отчество экзаменатора</span><span class="fill">${esc(c.examiner)}</span></div>
+<div>Дата проведения аттестации «___» __ ________ 20_ г.</div>
+<div>Дата внесения в ведомость оценок «___» __________ 20__г.<sup>(1)</sup></div>
+<div>На аттестацию явились, допущенные к нему _______ чел., не явились <span class="u">${n("н")}</span> чел.</div>
+
 <table>
-<thead><tr>
-    <th style="width:8%">№</th>
+<colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"></colgroup>
+<thead>
+<tr class="hd">
+    <th>№</th>
     <th>Ф.И.О. обучающихся<sup>2</sup></th>
-    <th style="width:16%">№ билета, варианта, задания<sup>3</sup></th>
-    <th style="width:18%">Оценка/ Отметка<sup>4</sup></th>
-    <th style="width:18%">Подпись экзаменатора</th>
-</tr></thead>
+    <th>№ билета, варианта, задания<sup>3</sup></th>
+    <th>Оценка/ Отметка<sup>4</sup></th>
+    <th>Подпись экзаменатора</th>
+</tr>
+</thead>
 <tbody>${rows}</tbody>
 </table>
-<div class="sum">На «5» ${n("5")} чел., «4» ${n("4")} чел., «3» ${n("3")} чел., «2» ${n("2")} чел.${zach ? ` · зачтено ${n("зач")} чел., не зачтено ${n("незач")} чел.` : ""}</div>
-<div class="fld" style="margin-top:16px">Проверено зам. директора по УР ____________ «___» ____________ 20__ г.</div>
+
+<div class="sum">На «5» <span class="u">${n("5")}</span> чел., «4» <span class="u">${n("4")}</span> чел., «3» <span class="u">${n("3")}</span> чел., «2» <span class="u">${n("2")}</span> чел.</div>
+<div>Проверено зам. директора по УР ___________ «___» __________ 20__г.</div>
+
 <div class="foot">
-1 заполняется при проведении промежуточной аттестации в письменной форме<br>
-2 заполняется учебной частью в соответствии со списочным составом группы на момент аттестации<br>
-3 согласно контрольно-оценочным средствам<br>
-4 явившимся проставляется в зависимости от формы аттестации: зачтено/не зачтено или 5(отлично), 4(хорошо), 3(удовлетворительно), 2(неудовлетворительно); не явившимся делается отметка: «не явился»; не допущенным делается отметка: «не допущен»
+<div><span class="num">1 </span><span class="txt">заполняется при проведении промежуточной аттестации в письменной форме</span></div>
+<div><span class="num">2 </span><span class="txt">заполняется учебной частью в соответствии со списочным составом группы на момент аттестации</span></div>
+<div><span class="num">3 </span><span class="txt">согласно контрольно-оценочным средствам</span></div>
+<div><span class="num">4 </span><span class="txt">явившимся проставляется в зависимости от формы аттестации: зачтено/не зачтено или 5(отлично), 4(хорошо), 3(удовлетворительно), 2(неудовлетворительно); не явившимся делается отметка: «не явился»; не допущенным делается отметка: «не допущен»</span></div>
 </div>
 </body>
 </html>`;

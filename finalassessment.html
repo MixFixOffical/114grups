@@ -1199,9 +1199,9 @@ async function saveMark(sid, subj, newVal, el){
    ПЕЧАТЬ ВЕДОМОСТИ
 ========================================================= */
 function buildPrintHTML(){
-    const sc        = 1;                           // одна колонка на каждую колонку в списке
-    const cw        = S.cellMm + "mm";             // ширина колонки = сторона квадратной клетки
-    const vh        = "40mm";                      // высота шапки с вертикальным названием предмета
+    const sc        = 1;
+    const cw        = S.cellMm + "mm";
+    const vh        = "40mm";
     const cols      = S.printCols;
     const groupName = S.group ? (S.group.name || S.groupId) : "—";
     const semTitle  = semesterTitle(S.semNo);
@@ -1246,7 +1246,6 @@ function buildPrintHTML(){
         </tr>`;
     }
 
-    // названия предметов — внизу таблицы, перенос по словам
     const tfoot = `
         <tr>
             <td colspan="2" class="foot-label">Тип занятия</td>
@@ -1618,6 +1617,9 @@ function openAtModal(){
 }
 function closeAtModal(){ $("atModal").classList.remove("show"); }
 
+/* =========================================================
+   ТОЧНАЯ КОПИЯ WORD-ВЕДОМОСТИ (АТ)
+   ========================================================= */
 function buildAtHTML(c, list){
     const key = keyOf(atSubj);
     const marks = list.map(st => (S.marks[st.id] || {})[key] ?? "");
@@ -1625,6 +1627,7 @@ function buildAtHTML(c, list){
     const group = S.group ? (S.group.name || S.groupId) : "";
     const subjVal = [c.code, atSubj].filter(Boolean).map(esc).join(" ");
     const specVal = [atCfg.specialtyCode, atCfg.specialtyName].filter(Boolean).map(esc).join(" ");
+
     const rows = list.map((st, i) => `<tr>
         <td class="n">${i + 1}.</td>
         <td class="nm">${esc(st.name)}</td>
@@ -1632,60 +1635,224 @@ function buildAtHTML(c, list){
         <td class="n">${esc(AT_MARK_TXT[marks[i]] || "")}</td>
         <td></td>
     </tr>`).join("");
+
     return `<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
 <title>АТ ведомость — ${esc(group)} — ${esc(atSubj)}</title>
 <style>
-    @page{ size:A4 portrait; margin:7.5mm 12.5mm 10mm 17.5mm; }
-    *{ box-sizing:border-box; }
-    html,body{ margin:0; padding:0; }
-    body{ font-family:"Times New Roman",Times,serif; color:#000; font-size:12pt; line-height:1.15; }
-    .c{ text-align:center; }
-    .big{ font-size:13pt; }
-    .ln{ display:flex; align-items:baseline; white-space:nowrap; }
-    .ln .lbl{ margin-right:4pt; }
-    .fill{ flex:1; border-bottom:1px solid #000; padding:0 3pt; min-height:1.15em; }
-    .u{ display:inline-block; min-width:14pt; text-align:center; border-bottom:1px solid #000; padding:0 2pt; }
-    sup{ font-size:8pt; line-height:0; vertical-align:super; }
-    table{ border-collapse:collapse; table-layout:fixed; width:174.6mm; margin-top:6pt; }
-    col.c1{ width:16.5mm; } col.c2{ width:74.5mm; } col.c3{ width:26.9mm; } col.c4{ width:26.2mm; } col.c5{ width:30.5mm; }
-    th,td{ border:0.5pt solid #000; padding:0 3pt; vertical-align:middle; overflow:hidden; }
-    th{ font-size:12pt; font-weight:400; text-align:center; line-height:1.1; }
-    tr.hd{ height:63pt; }
-    tbody tr{ height:12.8pt; }
-    tbody td{ font-size:11.5pt; line-height:12.8pt; height:12.8pt; white-space:nowrap; }
-    td.n{ text-align:center; }
-    td.nm{ text-align:left; padding-left:4pt; }
-    thead{ display:table-header-group; }
-    tbody{ display:table-row-group; }
-    tr{ page-break-inside:avoid; }
-    .sum{ margin-top:27pt; }
-    .foot{ margin-top:12pt; }
-    .foot div{ margin:0 0 0 0; }
-    .foot .num{ font-size:11pt; }
-    .foot .txt{ font-size:12pt; }
+    @page{
+        size: A4 portrait;
+        margin: 10mm 10mm 10mm 20mm;
+    }
+    *{ box-sizing: border-box; }
+    html, body{ margin:0; padding:0; }
+    body{
+        font-family: "Times New Roman", Times, serif;
+        font-size: 11pt;
+        line-height: 1.0;
+        color: #000;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* ---- Шапка ---- */
+    .org{
+        text-align: center;
+        font-size: 11pt;
+        line-height: 1.0;
+        margin: 0 0 10pt 0;
+    }
+    .title{
+        text-align: center;
+        font-size: 14pt;
+        font-weight: normal;
+        line-height: 1.0;
+        margin: 0 0 6pt 0;
+    }
+    .form-line{
+        text-align: center;
+        font-size: 11pt;
+        line-height: 1.0;
+        text-decoration: underline;
+        text-underline-offset: 1pt;
+        margin: 0 0 2pt 0;
+    }
+    .form-hint{
+        text-align: center;
+        font-size: 8pt;
+        line-height: 1.0;
+        margin: 0 0 8pt 0;
+    }
+
+    /* ---- Поля с линиями (по дисциплине и т.д.) ---- */
+    .field-line{
+        display: flex;
+        align-items: baseline;
+        font-size: 11pt;
+        line-height: 1.0;
+        margin: 0 0 2pt 0;
+        white-space: nowrap;
+    }
+    .field-line .lbl{
+        flex: none;
+        margin-right: 4pt;
+    }
+    .field-line .fill{
+        flex: 1;
+        min-width: 0;
+        border-bottom: 0.5pt solid #000;
+        text-align: center;
+        padding: 0 2pt;
+        min-height: 1.1em;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* ---- Даты и явка ---- */
+    .date-line{
+        font-size: 11pt;
+        line-height: 1.0;
+        margin: 6pt 0 0 0;
+    }
+    .date-line .u{
+        display: inline-block;
+        min-width: 14pt;
+        text-align: center;
+        border-bottom: 0.5pt solid #000;
+        padding: 0 1pt;
+    }
+    .attend{
+        font-size: 11pt;
+        line-height: 1.0;
+        margin: 2pt 0 0 0;
+    }
+    .attend .u{
+        display: inline-block;
+        min-width: 18pt;
+        text-align: center;
+        border-bottom: 0.5pt solid #000;
+        padding: 0 1pt;
+    }
+
+    /* ---- Таблица ---- */
+    table{
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        margin-top: 6pt;
+        font-size: 11pt;
+        line-height: 1.0;
+    }
+    col.c1{ width: 15mm; }
+    col.c2{ width: 75mm; }
+    col.c3{ width: 25mm; }
+    col.c4{ width: 25mm; }
+    col.c5{ width: 25mm; }
+
+    th, td{
+        border: 0.5pt solid #000;
+        padding: 1pt 2pt;
+        vertical-align: middle;
+        overflow: hidden;
+        font-size: 11pt;
+        line-height: 1.0;
+    }
+    thead th{
+        font-weight: normal;
+        text-align: center;
+        height: 60pt;
+        vertical-align: middle;
+        padding: 1pt;
+    }
+    thead th .sup{ font-size: 8pt; vertical-align: super; line-height: 0; }
+
+    tbody tr{ height: 14.2pt; }
+    tbody td{
+        height: 14.2pt;
+        white-space: nowrap;
+        font-size: 11pt;
+        line-height: 14.2pt;
+    }
+    td.n{ text-align: center; }
+    td.nm{ text-align: left; padding-left: 3pt; }
+
+    /* ---- Итоги ---- */
+    .totals{
+        font-size: 11pt;
+        line-height: 1.0;
+        margin: 10pt 0 0 0;
+    }
+    .totals .u{
+        display: inline-block;
+        min-width: 16pt;
+        text-align: center;
+        border-bottom: 0.5pt solid #000;
+        padding: 0 1pt;
+    }
+    .check-line{
+        font-size: 11pt;
+        line-height: 1.0;
+        margin: 3pt 0 0 0;
+    }
+
+    /* ---- Сноски ---- */
+    .footnotes{
+        margin-top: 10pt;
+        font-size: 10pt;
+        line-height: 1.0;
+    }
+    .footnotes .fn{
+        display: flex;
+        align-items: flex-start;
+        margin: 0 0 1pt 0;
+    }
+    .footnotes .num{
+        flex: none;
+        width: 12pt;
+        text-align: right;
+        padding-right: 2pt;
+        font-size: 7pt;
+        vertical-align: super;
+        line-height: 1.0;
+        margin-top: 1pt;
+    }
+    .footnotes .txt{
+        flex: 1;
+        font-size: 10pt;
+        line-height: 1.0;
+    }
+
+    /* ---- Печать ---- */
+    thead{ display: table-header-group; }
+    tbody{ display: table-row-group; }
+    tr{ page-break-inside: avoid; }
+    @media print{
+        body{ padding: 0; }
+    }
 </style>
 </head>
 <body>
-<div class="c big">ГОУ СПО «Тираспольский техникум информатики и права»</div>
-<div class="c big" style="margin-top:12pt">АТТЕСТАЦИОННАЯ ВЕДОМОСТЬ</div>
-<div class="c" style="font-size:14pt; border-bottom:1px solid #000; margin-top:0">${esc(c.kind)}</div>
-<div class="c" style="font-size:9pt">экзамена/комплексного экзамена/дифференцированного зачета/зачета</div>
 
-<div class="ln" style="margin-top:9pt"><span class="lbl">по дисциплине</span><span class="fill">${subjVal}</span></div>
-<div class="ln"><span class="lbl">по профессии/специальности</span><span class="fill">${specVal}</span></div>
-<div class="ln"><span class="lbl">в группе</span><span class="fill">${esc(group)}</span></div>
-<div class="ln"><span class="lbl">Фамилия, имя, отчество экзаменатора</span><span class="fill">${esc(c.examiner)}</span></div>
-<div>Дата проведения аттестации «___» __ ________ 20_ г.</div>
-<div>Дата внесения в ведомость оценок «___» __________ 20__г.<sup>(1)</sup></div>
-<div>На аттестацию явились, допущенные к нему _______ чел., не явились <span class="u">${n("н")}</span> чел.</div>
+<div class="org">ГОУ СПО «Тираспольский техникум информатики и права»</div>
+<div class="title">АТТЕСТАЦИОННАЯ ВЕДОМОСТЬ</div>
+<div class="form-line">${esc(c.kind)}</div>
+<div class="form-hint">экзамена/комплексного экзамена/дифференцированного зачета/зачета</div>
+
+<div class="field-line"><span class="lbl">по дисциплине</span><span class="fill">${subjVal}</span></div>
+<div class="field-line"><span class="lbl">по профессии/специальности</span><span class="fill">${specVal}</span></div>
+<div class="field-line"><span class="lbl">в группе</span><span class="fill">${esc(group)}</span></div>
+<div class="field-line"><span class="lbl">Фамилия, имя, отчество экзаменатора</span><span class="fill">${esc(c.examiner)}</span></div>
+
+<div class="date-line">Дата проведения аттестации «<span class="u">&nbsp;</span>» <span class="u">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 20<span class="u">&nbsp;</span> г.</div>
+<div class="date-line">Дата внесения в ведомость оценок «<span class="u">&nbsp;</span>» <span class="u">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 20<span class="u">&nbsp;&nbsp;</span>г.<sup>1</sup></div>
+<div class="attend">На аттестацию явились, допущенные к нему <span class="u">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> чел., не явились <span class="u">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> чел.</div>
 
 <table>
 <colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"><col class="c5"></colgroup>
 <thead>
-<tr class="hd">
+<tr>
     <th>№</th>
     <th>Ф.И.О. обучающихся<sup>2</sup></th>
     <th>№ билета, варианта, задания<sup>3</sup></th>
@@ -1696,15 +1863,16 @@ function buildAtHTML(c, list){
 <tbody>${rows}</tbody>
 </table>
 
-<div class="sum">На «5» <span class="u">${n("5")}</span> чел., «4» <span class="u">${n("4")}</span> чел., «3» <span class="u">${n("3")}</span> чел., «2» <span class="u">${n("2")}</span> чел.</div>
-<div>Проверено зам. директора по УР ___________ «___» __________ 20__г.</div>
+<div class="totals">На «5» <span class="u">${n("5")}</span> чел., «4» <span class="u">${n("4")}</span> чел., «3» <span class="u">${n("3")}</span> чел., «2» <span class="u">${n("2")}</span> чел.</div>
+<div class="check-line">Проверено зам. директора по УР <span class="u">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> «<span class="u">&nbsp;</span>» <span class="u">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span> 20<span class="u">&nbsp;&nbsp;</span>г.</div>
 
-<div class="foot">
-<div><span class="num">1 </span><span class="txt">заполняется при проведении промежуточной аттестации в письменной форме</span></div>
-<div><span class="num">2 </span><span class="txt">заполняется учебной частью в соответствии со списочным составом группы на момент аттестации</span></div>
-<div><span class="num">3 </span><span class="txt">согласно контрольно-оценочным средствам</span></div>
-<div><span class="num">4 </span><span class="txt">явившимся проставляется в зависимости от формы аттестации: зачтено/не зачтено или 5(отлично), 4(хорошо), 3(удовлетворительно), 2(неудовлетворительно); не явившимся делается отметка: «не явился»; не допущенным делается отметка: «не допущен»</span></div>
+<div class="footnotes">
+    <div class="fn"><span class="num">1</span><span class="txt">заполняется при проведении промежуточной аттестации в письменной форме</span></div>
+    <div class="fn"><span class="num">2</span><span class="txt">заполняется учебной частью в соответствии со списочным составом группы на момент аттестации</span></div>
+    <div class="fn"><span class="num">3</span><span class="txt">согласно контрольно-оценочным средствам</span></div>
+    <div class="fn"><span class="num">4</span><span class="txt">явившимся проставляется в зависимости от формы аттестации: зачтено/не зачтено или 5(отлично), 4(хорошо), 3(удовлетворительно), 2(неудовлетворительно); не явившимся делается отметка: «не явился»; не допущенным делается отметка: «не допущен»</span></div>
 </div>
+
 </body>
 </html>`;
 }

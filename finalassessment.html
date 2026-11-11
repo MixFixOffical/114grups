@@ -263,6 +263,23 @@ td.num{color:var(--text-light);width:36px}
 }
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
+/* ---------- АТ ВЕДОМОСТЬ: модальное окно ---------- */
+.at-modal{position:fixed;inset:0;background:rgba(15,23,42,.45);display:none;align-items:flex-start;justify-content:center;padding:24px 12px;z-index:200;overflow-y:auto}
+.at-modal.show{display:flex}
+.at-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);width:min(860px,100%);padding:16px 18px;box-shadow:0 10px 30px rgba(15,23,42,.25)}
+.at-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.at-grid .field{min-width:0}
+.at-grid input,.at-grid select{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface-2);color:var(--text);font-size:13.5px}
+.at-ro{padding:9px 10px;border:1px dashed var(--border);border-radius:var(--radius-sm);font-size:13.5px;color:var(--text);background:var(--surface-3)}
+.at-list{max-height:380px;overflow-y:auto;border:1px solid var(--border-soft);border-radius:var(--radius-sm)}
+.at-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border-soft);font-size:13.5px;cursor:pointer}
+.at-row:last-child{border-bottom:none}
+.at-row input{width:16px;height:16px;flex:none}
+.at-row.off .at-nm{color:var(--text-light);text-decoration:line-through}
+.at-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.at-actions{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+.at-count{font-size:12px;color:var(--text-secondary)}
+
 /* ---------- MOBILE (до 700px) ---------- */
 .mobile-only{display:none}
 @media (max-width:700px){
@@ -370,6 +387,7 @@ td.num{color:var(--text-light);width:36px}
                     <div class="table-sub" id="tableSub">—</div>
                 </div>
                 <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+                    <button class="ghost-btn" id="atBtn" type="button" style="display:none" title="Аттестационная ведомость с оценками">АТ ВЕДОМОСТИ</button>
                     <button class="print-btn" id="printBtn" type="button" title="Сгенерировать и распечатать ведомость">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15">
                             <path d="M6 9V2h12v7"/>
@@ -443,6 +461,33 @@ td.num{color:var(--text-light);width:36px}
             <ul class="log" id="logList"></ul>
         </section>
     </aside>
+</div>
+
+<div class="at-modal" id="atModal" role="dialog" aria-modal="true" aria-labelledby="atTitle">
+    <div class="at-box">
+        <div class="table-head" style="padding:0">
+            <div>
+                <div class="table-title" id="atTitle">АТ ведомость</div>
+                <div class="table-sub">Выберите предмет — данные подставятся автоматически. Код специальности и ФИО экзаменатора запоминаются.</div>
+            </div>
+            <button class="ghost-btn" id="atClose" type="button">Закрыть</button>
+        </div>
+        <div class="at-grid">
+            <div class="field"><label for="atSubj">Предмет</label><select id="atSubj"></select></div>
+            <div class="field"><label for="atKind">Форма аттестации</label><select id="atKind"></select></div>
+            <div class="field"><label for="atCode">Шифр дисциплины</label><input id="atCode" type="text" placeholder="напр. ОДБ.07"></div>
+            <div class="field"><label>Группа</label><div class="at-ro" id="atGroup">—</div></div>
+            <div class="field"><label for="atSpecCode">Код специальности</label><input id="atSpecCode" type="text" placeholder="напр. 40.02.04"></div>
+            <div class="field"><label for="atSpecName">Специальность</label><input id="atSpecName" type="text" placeholder="напр. Юриспруденция"></div>
+            <div class="field" style="grid-column:1 / -1"><label for="atExam">ФИО экзаменатора</label><input id="atExam" type="text" placeholder="Фамилия Имя Отчество"></div>
+        </div>
+        <div class="table-sub" style="margin-bottom:8px">Снимите галочку у студентов, которые не сдают этот предмет (например, другая подгруппа). Оценки берутся из текущей ведомости.</div>
+        <div class="at-list" id="atStudents"></div>
+        <div class="at-actions">
+            <span class="at-count" id="atCount"></span>
+            <button class="print-btn" id="atPrint" type="button">Печать АТ ведомости</button>
+        </div>
+    </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -694,6 +739,7 @@ async function selectGroup(gid){
     fillSemesterSelect();
 
     await Promise.all([loadSettings(), loadStudents()]);
+    await loadAtCfg();
     fillPeriodSelect();
     setupRights();
     syncMobileSubject();
@@ -1042,6 +1088,7 @@ function renderMobile(){
 
 function render(){
     renderHeader();
+    if ($("atModal").classList.contains("show")) renderAtModal();
     if (isMobile()) {
         renderMobile();
     } else {
@@ -1449,6 +1496,249 @@ document.addEventListener("keydown", e => {
     if (["input", "select", "textarea"].includes(tag)) return;
     if (e.key === "1") setType("attestation");
     if (e.key === "2") setType("semester");
+});
+
+/* =========================================================
+   АТ ВЕДОМОСТЬ (аттестационная ведомость, форма с оценками)
+========================================================= */
+const AT_KINDS = ["Зачета", "Дифференцированного зачета", "Экзамена", "Комплексного экзамена"];
+const AT_MARK_TXT = { "5": "5", "4": "4", "3": "3", "2": "2", "зач": "зачтено", "незач": "не зачтено", "н": "не явился" };
+const AT_COLL = "atStatements";
+let atCfg = { specialtyCode: "", specialtyName: "", subj: {} };
+let atSubj = "";
+
+$("atKind").innerHTML = AT_KINDS.map(k => `<option value="${esc(k)}">${esc(k)}</option>`).join("");
+
+function syncAtBtn(){
+    $("atBtn").style.display = (S.gRole && S.gRole !== "parent") ? "" : "none";
+}
+function atLocalKey(gid){ return "atcfg_" + gid; }
+
+function atSubjCfg(subj){
+    const v = atCfg.subj[keyOf(subj)] || {};
+    return {
+        code: v.code || "",
+        kind: AT_KINDS.includes(v.kind) ? v.kind : AT_KINDS[0],
+        examiner: v.examiner || "",
+        excluded: Array.isArray(v.excluded) ? v.excluded : []
+    };
+}
+
+async function saveAtCfg(gid, body){
+    try { localStorage.setItem(atLocalKey(gid), body); } catch (e) {}
+    try {
+        await db.collection(AT_COLL).doc(gid).set({
+            ...JSON.parse(body),
+            groupId: gid,
+            updatedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            updatedBy: S.uid
+        });
+    } catch (e) {
+        console.error(e);
+        toast("Не удалось сохранить данные АТ ведомости в базу (сохранено в этом браузере)");
+    }
+}
+
+async function loadAtCfg(){
+    atCfg = { specialtyCode: "", specialtyName: "", subj: {} };
+    atSubj = "";
+    closeAtModal();
+    syncAtBtn();
+    if (!S.groupId || !S.gRole) return;
+    const gid = S.groupId;
+    let data = null;
+    try {
+        const d = await db.collection(AT_COLL).doc(gid).get();
+        if (d.exists) data = d.data();
+    } catch (e) { console.warn("АТ: база недоступна, читаем локальную копию", e); }
+    if (!data) {
+        try { data = JSON.parse(localStorage.getItem(atLocalKey(gid)) || "null"); } catch (e) { data = null; }
+    }
+    if (gid !== S.groupId) return;
+    if (data && typeof data === "object") {
+        atCfg = { specialtyCode: data.specialtyCode || "", specialtyName: data.specialtyName || "", subj: data.subj || {} };
+    }
+}
+
+/* переносим значения полей в память и сохраняем */
+function commitAt(){
+    if (!S.groupId || !atSubj) return;
+    atCfg.specialtyCode = $("atSpecCode").value.trim();
+    atCfg.specialtyName = $("atSpecName").value.trim();
+    atCfg.subj[keyOf(atSubj)] = {
+        ...atSubjCfg(atSubj),
+        code: $("atCode").value.trim(),
+        kind: $("atKind").value,
+        examiner: $("atExam").value.trim()
+    };
+    saveAtCfg(S.groupId, JSON.stringify(atCfg));
+}
+
+function fillAtFields(){
+    const c = atSubjCfg(atSubj);
+    $("atSubj").value = atSubj;
+    $("atKind").value = c.kind;
+    $("atCode").value = c.code;
+    $("atExam").value = c.examiner;
+    $("atSpecCode").value = atCfg.specialtyCode;
+    $("atSpecName").value = atCfg.specialtyName;
+}
+
+function renderAtModal(){
+    if (!atSubj) return;
+    const c = atSubjCfg(atSubj);
+    const key = keyOf(atSubj);
+    let inc = 0;
+    $("atStudents").innerHTML = S.students.map(st => {
+        const on = !c.excluded.includes(st.id);
+        if (on) inc++;
+        const val = (S.marks[st.id] || {})[key] ?? "";
+        return `<label class="at-row${on ? "" : " off"}">
+            <input type="checkbox" data-sid="${esc(st.id)}" ${on ? "checked" : ""}>
+            <span class="at-nm">${esc(st.name)}</span>
+            ${markViewHTML(val)}
+        </label>`;
+    }).join("");
+    $("atCount").textContent = `В ведомости: ${inc} из ${S.students.length}`;
+}
+
+function openAtModal(){
+    if (S.accessDenied || !S.gRole || S.gRole === "parent") { toast("Нет доступа"); return; }
+    if (!S.groupId) { toast("Сначала выберите группу"); return; }
+    if (!S.subjects.length) { toast("В настройках группы нет дисциплин для этого семестра"); return; }
+    if (!S.students.length) { toast("В группе нет студентов"); return; }
+    if (!S.subjects.includes(atSubj)) {
+        atSubj = S.subjects.includes(S.mobileSubject) ? S.mobileSubject : S.subjects[0];
+    }
+    $("atSubj").innerHTML = S.subjects.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join("");
+    $("atGroup").textContent = S.group ? (S.group.name || S.groupId) : "—";
+    fillAtFields();
+    $("atModal").classList.add("show");
+    renderAtModal();
+}
+function closeAtModal(){ $("atModal").classList.remove("show"); }
+
+function buildAtHTML(c, list){
+    const key = keyOf(atSubj);
+    const marks = list.map(st => (S.marks[st.id] || {})[key] ?? "");
+    const n = v => marks.filter(m => m === v).length;
+    const group = S.group ? (S.group.name || S.groupId) : "";
+    const subjLine = [c.code, atSubj].filter(Boolean).map(esc).join(" ");
+    const specLine = [atCfg.specialtyCode, atCfg.specialtyName].filter(Boolean).map(esc).join(" ");
+    const rows = list.map((st, i) => `<tr>
+            <td class="c">${i + 1}</td>
+            <td class="l">${esc(st.name)}</td>
+            <td></td>
+            <td class="c">${esc(AT_MARK_TXT[marks[i]] || "")}</td>
+            <td></td>
+        </tr>`).join("");
+    const zach = n("зач") + n("незач");
+    return `<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>АТ ведомость — ${esc(group)} — ${esc(atSubj)}</title>
+<style>
+    @page{ size:A4 portrait; margin:14mm 14mm 14mm 24mm; }
+    *{ box-sizing:border-box; }
+    body{ font-family:"Times New Roman","DejaVu Serif",serif; color:#000; font-size:12pt; margin:0; }
+    .org{ text-align:center; }
+    .ttl{ text-align:center; font-weight:700; font-size:14pt; margin-top:10px; }
+    .kind{ text-align:center; font-weight:700; margin-top:4px; }
+    .kind-hint{ text-align:center; font-size:9.5pt; margin-bottom:12px; }
+    .fld{ margin:5px 0; line-height:1.35; }
+    .fld b{ font-weight:700; text-decoration:underline; }
+    table{ width:100%; border-collapse:collapse; margin-top:10px; font-size:11pt; }
+    th,td{ border:1px solid #000; padding:3px 5px; vertical-align:middle; }
+    th{ font-weight:700; font-size:10pt; text-align:center; }
+    td.c{ text-align:center; }
+    td.l{ text-align:left; }
+    tbody td{ height:7mm; }
+    sup{ font-size:8pt; }
+    thead{ display:table-header-group; }
+    tr{ page-break-inside:avoid; }
+    .sum{ margin-top:10px; }
+    .foot{ margin-top:12px; font-size:8.5pt; line-height:1.3; }
+</style>
+</head>
+<body>
+<div class="org">ГОУ СПО «Тираспольский техникум информатики и права»</div>
+<div class="ttl">АТТЕСТАЦИОННАЯ ВЕДОМОСТЬ</div>
+<div class="kind">${esc(c.kind)}</div>
+<div class="kind-hint">экзамена/комплексного экзамена/дифференцированного зачета/зачета</div>
+<div class="fld">по дисциплине <b>${subjLine}</b></div>
+<div class="fld">по профессии/специальности <b>${specLine}</b></div>
+<div class="fld">в группе <b>${esc(group)}</b></div>
+<div class="fld">Фамилия, имя, отчество экзаменатора <b>${esc(c.examiner)}</b></div>
+<div class="fld">Дата проведения аттестации «___» ________ 20__ г.</div>
+<div class="fld">Дата внесения в ведомость оценок «___» ________ 20__ г.<sup>1</sup></div>
+<div class="fld">На аттестацию явились, допущенные к нему ______ чел., не явились ${n("н")} чел.</div>
+<table>
+<thead><tr>
+    <th style="width:8%">№</th>
+    <th>Ф.И.О. обучающихся<sup>2</sup></th>
+    <th style="width:16%">№ билета, варианта, задания<sup>3</sup></th>
+    <th style="width:18%">Оценка/ Отметка<sup>4</sup></th>
+    <th style="width:18%">Подпись экзаменатора</th>
+</tr></thead>
+<tbody>${rows}</tbody>
+</table>
+<div class="sum">На «5» ${n("5")} чел., «4» ${n("4")} чел., «3» ${n("3")} чел., «2» ${n("2")} чел.${zach ? ` · зачтено ${n("зач")} чел., не зачтено ${n("незач")} чел.` : ""}</div>
+<div class="fld" style="margin-top:16px">Проверено зам. директора по УР ____________ «___» ____________ 20__ г.</div>
+<div class="foot">
+1 заполняется при проведении промежуточной аттестации в письменной форме<br>
+2 заполняется учебной частью в соответствии со списочным составом группы на момент аттестации<br>
+3 согласно контрольно-оценочным средствам<br>
+4 явившимся проставляется в зависимости от формы аттестации: зачтено/не зачтено или 5(отлично), 4(хорошо), 3(удовлетворительно), 2(неудовлетворительно); не явившимся делается отметка: «не явился»; не допущенным делается отметка: «не допущен»
+</div>
+</body>
+</html>`;
+}
+
+function openHtmlPrint(html){
+    const win = window.open("", "_blank", "width=1000,height=800");
+    if (!win) { toast("Разрешите всплывающие окна для печати"); return; }
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    let done = false;
+    const go = () => { if (done) return; done = true; try { win.focus(); win.print(); } catch (e) {} };
+    win.onload = () => setTimeout(go, 200);
+    setTimeout(go, 600);
+}
+
+function printAt(){
+    commitAt();
+    const c = atSubjCfg(atSubj);
+    const list = S.students.filter(st => !c.excluded.includes(st.id));
+    if (!list.length) { toast("Не выбран ни один студент"); return; }
+    if (!atCfg.specialtyCode) { toast("Введите код специальности"); $("atSpecCode").focus(); return; }
+    if (!c.examiner) { toast("Введите ФИО экзаменатора"); $("atExam").focus(); return; }
+    openHtmlPrint(buildAtHTML(c, list));
+}
+
+$("atBtn").addEventListener("click", openAtModal);
+$("atClose").addEventListener("click", closeAtModal);
+$("atPrint").addEventListener("click", printAt);
+$("atModal").addEventListener("click", e => { if (e.target.id === "atModal") closeAtModal(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeAtModal(); });
+$("atSubj").addEventListener("change", e => {
+    commitAt();
+    atSubj = e.target.value;
+    fillAtFields();
+    renderAtModal();
+});
+["atKind", "atCode", "atExam", "atSpecCode", "atSpecName"].forEach(id =>
+    $(id).addEventListener("change", commitAt));
+$("atStudents").addEventListener("change", e => {
+    const cb = e.target.closest("input[data-sid]");
+    if (!cb) return;
+    const c = atSubjCfg(atSubj);
+    const ex = new Set(c.excluded);
+    if (cb.checked) ex.delete(cb.dataset.sid); else ex.add(cb.dataset.sid);
+    atCfg.subj[keyOf(atSubj)] = { ...c, excluded: [...ex] };
+    commitAt();
+    renderAtModal();
 });
 </script>
 </body>

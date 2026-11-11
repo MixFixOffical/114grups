@@ -32,6 +32,8 @@
     --violet-soft: #f5f3ff;
     --cyan: #0e7490;
     --cyan-soft: #ecfeff;
+    --teal: #047857;
+    --teal-soft: #ecfdf5;
 
     --text: #0f172a;
     --text-2: #475569;
@@ -237,6 +239,7 @@ header {
 }
 .quick-present { background: var(--green-soft); color: var(--green); border: 1px solid rgba(4,120,87,.2); }
 .quick-absent { background: var(--red-soft); color: var(--red); border: 1px solid rgba(185,28,28,.2); }
+.quick-late { background: var(--amber-soft); color: var(--amber); border: 1px solid rgba(180,83,9,.3); }
 .quick-cancel { display: none; background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
 .quick-panel.active { border-color: var(--accent); }
 .quick-panel.active .quick-cancel { display: block; }
@@ -244,6 +247,7 @@ header {
 .quick-panel.active .quick-mode-label { display: inline-flex; }
 .quick-panel.active[data-mode="present"] .quick-mode-label { background: var(--green-soft); color: var(--green); }
 .quick-panel.active[data-mode="absent"] .quick-mode-label { background: var(--red-soft); color: var(--red); }
+.quick-panel.active[data-mode="late"] .quick-mode-label { background: var(--amber-soft); color: var(--amber); }
 
 /* =========================================================
    LESSON PICKER
@@ -509,6 +513,7 @@ header {
     font-size: 11.5px;
     color: var(--text-2);
     display: flex; align-items: center; gap: 5px;
+    flex-wrap: wrap;
 }
 .student-status-badge {
     display: inline-flex; align-items: center; gap: 3px;
@@ -522,6 +527,7 @@ header {
 .student-status-badge.uv      { background: #fff; color: var(--green); border-color: rgba(4,120,87,.25); }
 .student-status-badge.bolezn  { background: #fff; color: var(--violet); border-color: rgba(109,40,217,.25); }
 .student-status-badge.late    { background: #fff; color: var(--amber); border-color: rgba(180,83,9,.3); }
+.student-status-badge.excused { background: #fff; color: var(--teal); border-color: rgba(4,120,87,.25); }
 
 .student-action {
     width: 46px; height: 46px; flex-shrink: 0;
@@ -583,17 +589,20 @@ tr:hover td:first-child { background: var(--surface-2); }
 .status {
     min-width: 40px; height: 40px; width: fit-content;
     padding: 0 6px; margin: auto;
-    display: flex; align-items: center; justify-content: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
     border-radius: var(--r-sm); font-size: 14px; font-weight: 700;
     transition: transform .12s ease;
     pointer-events: none;
     border: 1px solid transparent;
+    line-height: 1.05;
 }
 .status-absent { font-size: 11.5px; }
 .status-empty { background: var(--surface-2); color: var(--text-3); border-color: var(--border); }
 .status-present { background: var(--green-soft); color: var(--green); border-color: rgba(4,120,87,.25); }
 .status-absent { background: var(--red-soft); color: var(--red); border-color: rgba(185,28,28,.25); }
 .status-late { background: var(--amber-soft); color: var(--amber); border-color: rgba(180,83,9,.3); font-size: 14px; }
+.status-late.excused { background: var(--teal-soft); color: var(--teal); border-color: rgba(4,120,87,.25); }
+.arr-t { font-size: 9.5px; font-weight: 600; opacity: .85; line-height: 1.1; }
 .attendance-cell:active .status { transform: scale(.94); }
 
 /* =========================================================
@@ -716,6 +725,22 @@ tr:hover td:first-child { background: var(--surface-2); }
 .modal-cancel { background: var(--surface-2); color: var(--text-2); border: 1px solid var(--border); }
 .modal-cancel:hover { background: var(--border-soft); color: var(--text); }
 
+.time-input {
+    width: 100%; height: 46px; padding: 0 12px;
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    background: var(--surface-2); color: var(--text);
+    font-size: 16px; font-weight: 600; outline: none;
+}
+.time-input:focus { border-color: var(--accent); }
+
+.excuse-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 12px;
+    font-size: 14px; font-weight: 600; color: var(--text);
+    cursor: pointer;
+}
+.excuse-row input { width: 18px; height: 18px; accent-color: var(--teal); }
+
 /* Lesson info */
 .lesson-big-icon { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; border-radius: var(--r-md); background: var(--surface-2); font-size: 22px; }
 .lesson-info-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
@@ -769,7 +794,9 @@ tr:hover td:first-child { background: var(--surface-2); }
 }
 .mab-present { background: var(--green); color: #fff; }
 .mab-absent  { background: var(--red);   color: #fff; }
+.mab-late    { background: var(--amber); color: #fff; }
 .mab-cancel  { flex: 0 0 48px !important; background: var(--surface-2); color: var(--text-2); font-size: 18px; border: 1px solid var(--border); }
+.mab-active  { outline: 3px solid rgba(29,78,216,.35); outline-offset: 1px; }
 
 /* =========================================================
    SCROLL TOP
@@ -973,6 +1000,7 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
         </div>
         <div class="quick-actions">
             <button class="quick-button quick-present" onclick="enableQuickMode('present')">✓ Присутствие</button>
+            <button class="quick-button quick-late" onclick="enableQuickMode('late')">⏰ Опоздание</button>
             <button class="quick-button quick-absent" onclick="enableQuickMode('absent')">Н Отсутствие</button>
             <button class="quick-button quick-cancel" onclick="disableQuickMode()">✕ Отмена</button>
         </div>
@@ -1016,6 +1044,7 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
 
 <div class="mobile-action-bar" id="mobileActionBar">
     <button class="mab-present" id="mabPresent">✓ Присутствие</button>
+    <button class="mab-late" id="mabLate">⏰ Опоздание</button>
     <button class="mab-absent" id="mabAbsent">Н Отсутствие</button>
     <button class="mab-cancel" id="mabCancel" aria-label="Отмена">✕</button>
 </div>
@@ -1031,7 +1060,7 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
         </button>
         <button class="choice-button late" onclick="chooseLate()">
             <div class="choice-icon late-icon">⏰</div>
-            <div class="choice-text"><strong>Опоздал</strong><span>Был на паре, но опоздал</span></div>
+            <div class="choice-text"><strong>Опоздал</strong><span>Время прихода и уважительность</span></div>
         </button>
         <button class="choice-button absent" onclick="chooseAbsent()">
             <div class="choice-icon absent-icon">✕</div>
@@ -1072,6 +1101,26 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
         <div class="modal-actions">
             <button class="modal-cancel" onclick="closeReason()">Отмена</button>
             <button class="save-button" onclick="saveAbsent()">💾 Сохранить</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="lateOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title">Опоздание</div>
+            <button class="close-button" onclick="closeLate()">✕</button>
+        </div>
+        <div class="modal-info">
+            <div class="modal-info-row"><span>Студент</span><span id="lateStudent">—</span></div>
+            <div class="modal-info-row"><span>Пара</span><span id="lateLesson">—</span></div>
+        </div>
+        <label class="reason-label" for="lateTimeInput">Время прихода:</label>
+        <input type="time" id="lateTimeInput" class="time-input">
+        <label class="excuse-row"><input type="checkbox" id="lateExcused"> Уважительная причина</label>
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeLate()">Отмена</button>
+            <button class="save-button" onclick="saveLate()">💾 Сохранить</button>
         </div>
     </div>
 </div>
@@ -1170,6 +1219,7 @@ let selectedDate = "", selectedStudent = null, selectedLesson = null, selectedAc
 let selectedAbsentType = "neuv", quickMode = null, studentFilter = "";
 let currentLesson = 0;
 let hintShown = localStorage.getItem("swipeHintShown") === "1";
+let lateTarget = null;
 
 const days = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
 const dayNames = ["Воскресенье","Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
@@ -1220,6 +1270,12 @@ function vibrate(ms) {
     if (navigator.vibrate) {
         try { navigator.vibrate(ms); } catch (e) {}
     }
+}
+
+/* Минуты из строки "8:30" / "08:30" */
+function parseHM(v) {
+    const m = /^(\d{1,2})[:.](\d{2})/.exec(String(v ?? "").trim());
+    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
 }
 
 /* =========================================================
@@ -1619,16 +1675,66 @@ async function deleteAttendance() {
 window.deleteAttendance = deleteAttendance;
 
 /* =========================================================
+   LATE (опоздание со временем прихода и уважительностью)
+========================================================= */
+function openLate(student, lesson) {
+    vibrate(15);
+    lateTarget = { student, lesson };
+    const old = getLessonData(student.id, lesson);
+    $("lateStudent").textContent = student.name;
+    $("lateLesson").textContent = `${lesson} пара • ${getLessonTitleText(getDayIndex(selectedDate), lesson)}`;
+    $("lateTimeInput").value = old.arrivalTime || "";
+    $("lateExcused").checked = !!old.excused;
+    $("lateOverlay").classList.add("active");
+}
+
+function closeLate() {
+    $("lateOverlay").classList.remove("active");
+    lateTarget = null;
+}
+
+async function saveLate() {
+    if (!lateTarget) return;
+    const t = $("lateTimeInput").value;
+    if (!t) { showToast("Укажите время прихода", "error"); return; }
+    const { student, lesson } = lateTarget;
+    try {
+        vibrate(20);
+        const d = getStudentDay(student.id);
+        const ls = { ...(d.lessons || {}) };
+        ls[String(lesson)] = {
+            status: "late",
+            absentType: "",
+            reason: $("lateExcused").checked ? "Уважительная причина" : "",
+            arrivalTime: t,
+            excused: $("lateExcused").checked
+        };
+        await saveStudentDay(student, ls);
+        closeLate();
+        render();
+        showToast($("lateExcused").checked ? "⏰ Опоздание (уважит.) сохранено" : "⏰ Опоздание сохранено", "warning");
+    } catch (e) { console.error(e); showToast("Ошибка сохранения", "error"); }
+}
+window.closeLate = closeLate;
+window.saveLate = saveLate;
+
+/* =========================================================
    QUICK MODE
 ========================================================= */
+const QUICK_LABELS = {
+    present: "Режим присутствия",
+    absent: "Режим отсутствия",
+    late: "Режим опоздания"
+};
+
 function enableQuickMode(mode) {
     quickMode = mode;
     const panel = $("quickPanel");
-    const label = $("quickModeLabel");
     panel.classList.add("active");
     panel.dataset.mode = mode;
-    label.textContent = mode === "present" ? "Режим присутствия" : "Режим отсутствия";
-    showToast(mode === "present" ? "Режим присутствия" : "Режим отсутствия", "success");
+    $("quickModeLabel").textContent = QUICK_LABELS[mode];
+    refreshMobileBarState();
+    showToast(QUICK_LABELS[mode], "success");
 }
 function disableQuickMode() {
     quickMode = null;
@@ -1636,10 +1742,19 @@ function disableQuickMode() {
     panel.classList.remove("active");
     panel.dataset.mode = "";
     $("quickModeLabel").textContent = "Режим не выбран";
+    refreshMobileBarState();
     showToast("Режим выключен");
 }
 window.enableQuickMode = enableQuickMode;
 window.disableQuickMode = disableQuickMode;
+
+/* Единая точка: тап по студенту в зависимости от режима */
+function tapCell(student, lesson) {
+    if (quickMode === "present") { quickPresent(student, lesson); return; }
+    if (quickMode === "absent") { quickAbsent(student, lesson); return; }
+    if (quickMode === "late") { openLate(student, lesson); return; }
+    openCellMenu(student, lesson);
+}
 
 /* =========================================================
    SWIPE CARDS (MOBILE)
@@ -1788,6 +1903,11 @@ function updateProgress() {
     $("progressFill").style.width = pct + "%";
 }
 
+/* Строка времени прихода для карточки */
+function arrivalSuffix(d) {
+    return d.arrivalTime ? ` · ${escapeHtml(d.arrivalTime)}` : "";
+}
+
 function renderStudentsList(filtered) {
     const lesson = currentLesson || 1;
     studentsListEl.innerHTML = "";
@@ -1806,7 +1926,9 @@ function renderStudentsList(filtered) {
             actionLabel = "Присутствовал";
         } else if (d.status === "late") {
             cardClass = "late";
-            statusBadge = `<span class="student-status-badge late">⏰ Опоздал</span>`;
+            statusBadge = d.excused
+                ? `<span class="student-status-badge excused">⏰ Опоздал (уважит.)${arrivalSuffix(d)}</span>`
+                : `<span class="student-status-badge late">⏰ Опоздал${arrivalSuffix(d)}</span>`;
             actionIcon = "⏰";
             actionLabel = "Опоздал";
         } else if (d.status === "absent") {
@@ -1847,7 +1969,7 @@ function renderStudentsList(filtered) {
 
         actionBtn.addEventListener("click", (e) => {
             e.stopPropagation();
-            openCellMenu(student, lesson);
+            tapCell(student, lesson);
         });
 
         let tapMoved = false;
@@ -1866,13 +1988,13 @@ function renderStudentsList(filtered) {
         }, { passive: true });
         cardEl.addEventListener("touchend", () => {
             if (!tapMoved) {
-                openCellMenu(student, lesson);
+                tapCell(student, lesson);
             }
         });
 
         cardEl.addEventListener("click", (e) => {
             if (e.target.closest(".student-action")) return;
-            openCellMenu(student, lesson);
+            tapCell(student, lesson);
         });
 
         attachSwipeHandlers(cardEl, student, lesson);
@@ -1889,11 +2011,6 @@ function openCellMenu(student, lesson) {
     $("choiceOverlay").classList.add("active");
 }
 window.openCellMenu = openCellMenu;
-
-function parseHM(v) {
-    const m = /^(\d{1,2})[:.](\d{2})/.exec(String(v ?? "").trim());
-    return m ? Number(m[1]) * 60 + Number(m[2]) : null;
-}
 
 function getCurrentLessonInfo(dayIndex, count) {
     const none = { lesson: 0, state: "none" };
@@ -1985,12 +2102,17 @@ function render() {
             const d = getLessonData(student.id, l);
             let cls = "status-empty", txt = "—";
             if (d.status === "present") { cls = "status-present"; txt = "✓"; }
-            if (d.status === "late")    { cls = "status-late";    txt = "О"; }
+            if (d.status === "late")    {
+                cls = d.excused ? "status-late excused" : "status-late";
+                txt = d.excused ? "О/У" : "О";
+            }
             if (d.status === "absent") {
                 cls = "status-absent";
                 txt = d.absentType === "uv" ? "Н/У" : d.absentType === "bolezn" ? "Н/Б" : "Н";
             }
-            html += `<td class="attendance-cell ${l === nowCol ? 'now-col' : ''}" onclick="window.openCell('${escapeJs(student.id)}', ${l})"><div class="status ${cls}">${txt}</div></td>`;
+            const arr = d.arrivalTime && d.status === "late"
+                ? `<span class="arr-t">${escapeHtml(d.arrivalTime)}</span>` : "";
+            html += `<td class="attendance-cell ${l === nowCol ? 'now-col' : ''}" onclick="window.openCell('${escapeJs(student.id)}', ${l})"><div class="status ${cls}">${txt}${arr}</div></td>`;
         }
         html += `</tr>`;
     });
@@ -2017,9 +2139,7 @@ function render() {
 window.openCell = async function(studentId, lesson) {
     const student = students.find(s => s.id === studentId);
     if (!student) return;
-    if (quickMode === "present") { await quickPresent(student, lesson); return; }
-    if (quickMode === "absent") { quickAbsent(student, lesson); return; }
-    openCellMenu(student, lesson);
+    tapCell(student, lesson);
 };
 
 /* =========================================================
@@ -2044,17 +2164,10 @@ async function choosePresent() {
 }
 window.choosePresent = choosePresent;
 
-async function chooseLate() {
+function chooseLate() {
     if (!selectedStudent) return;
     closeChoice();
-    try {
-        const d = getStudentDay(selectedStudent.id);
-        const ls = { ...(d.lessons || {}) };
-        ls[String(selectedLesson)] = { status: "late", absentType: "", reason: "" };
-        await saveStudentDay(selectedStudent, ls);
-        render();
-        showToast("⏰ Опоздание сохранено", "warning");
-    } catch (e) { console.error(e); showToast("Ошибка сохранения", "error"); }
+    openLate(selectedStudent, selectedLesson);
 }
 window.chooseLate = chooseLate;
 
@@ -2178,7 +2291,6 @@ function openLessonInfo(lesson) {
     $("lessonInfoSubtitle").textContent = `${getDayName(selectedDate)} • ${formatDateRu(selectedDate)}`;
     $("lessonDiscipline").innerHTML = getLessonTitleHtml(dayIndex, lesson)
         + (rep ? `<div class="repl-tag">замена</div>` : "");
-    $("lessonTime").textContent = time.text;
     $("lessonStart").textContent = time.start;
     $("lessonEnd").textContent = time.end;
     $("lessonInfoOverlay").classList.add("active");
@@ -2319,10 +2431,11 @@ window.scrollToTop = scrollToTop;
    EVENT LISTENERS
 ========================================================= */
 document.addEventListener("keydown", e => {
-    if (e.key === "Escape") { closeChoice(); closeReason(); closeLessonInfo(); }
+    if (e.key === "Escape") { closeChoice(); closeReason(); closeLate(); closeLessonInfo(); }
 });
 
 $("reasonOverlay").addEventListener("click", e => { if (e.target.id === "reasonOverlay") closeReason(); });
+$("lateOverlay").addEventListener("click", e => { if (e.target.id === "lateOverlay") closeLate(); });
 $("lessonInfoOverlay").addEventListener("click", e => { if (e.target.id === "lessonInfoOverlay") closeLessonInfo(); });
 
 $("studentSearch").addEventListener("input", function() {
@@ -2338,24 +2451,26 @@ $("searchClear").addEventListener("click", () => {
     render();
 });
 
-function updateMobileBar() {
+/* Нижняя панель на телефоне всегда доступна: режимы работают без скрытой быстрой панели */
+function refreshMobileBarState() {
     const bar = $("mobileActionBar");
     if (!bar) return;
-    if (quickMode && window.innerWidth <= 768) {
-        bar.classList.add("show");
-    } else {
-        bar.classList.remove("show");
-    }
+    bar.classList.toggle("show", window.innerWidth <= 768);
+    $("mabPresent").classList.toggle("mab-active", quickMode === "present");
+    $("mabLate").classList.toggle("mab-active", quickMode === "late");
+    $("mabAbsent").classList.toggle("mab-active", quickMode === "absent");
 }
 
-$("mabPresent").addEventListener("click", () => enableQuickMode("present"));
-$("mabAbsent").addEventListener("click", () => enableQuickMode("absent"));
-$("mabCancel").addEventListener("click", () => { disableQuickMode(); updateMobileBar(); });
-
-const origEnable = enableQuickMode;
-const origDisable = disableQuickMode;
-window.enableQuickMode = (m) => { origEnable(m); updateMobileBar(); };
-window.disableQuickMode = () => { origDisable(); updateMobileBar(); };
+$("mabPresent").addEventListener("click", () => {
+    quickMode === "present" ? disableQuickMode() : enableQuickMode("present");
+});
+$("mabLate").addEventListener("click", () => {
+    quickMode === "late" ? disableQuickMode() : enableQuickMode("late");
+});
+$("mabAbsent").addEventListener("click", () => {
+    quickMode === "absent" ? disableQuickMode() : enableQuickMode("absent");
+});
+$("mabCancel").addEventListener("click", () => disableQuickMode());
 
 window.addEventListener("scroll", () => {
     const btn = $("scrollTop");
@@ -2364,7 +2479,7 @@ window.addEventListener("scroll", () => {
 }, { passive: true });
 
 window.addEventListener("resize", () => {
-    updateMobileBar();
+    refreshMobileBarState();
 });
 
 /* =========================================================
@@ -2376,6 +2491,7 @@ async function start() {
     datePicker.value = selectedDate;
     updateClock();
     setInterval(updateClock, 1000);
+    refreshMobileBarState();
     try { await reloadData(false); }
     catch (e) { console.error(e); }
     setTimeout(() => {

@@ -466,7 +466,7 @@ table.journal tbody tr:hover td:not(.student-cell):not(.present):not(.absent):no
     position: relative;
     font-weight: 600;
     font-size: 14px;
-    height: 40px;
+    min-height: 40px;
 }
 .lesson-cell:hover {
     background: var(--accent-soft);
@@ -474,11 +474,20 @@ table.journal tbody tr:hover td:not(.student-cell):not(.present):not(.absent):no
 }
 .lesson-cell.present { color: var(--green); background: var(--green-soft); font-size: 17px; }
 .lesson-cell.late { color: var(--amber); background: var(--amber-soft); font-size: 17px; }
+.lesson-cell.late.excused { color: var(--teal); background: var(--teal-soft); }
 .lesson-cell.absent { color: var(--red); background: var(--red-soft); font-size: 13px; }
 .lesson-cell.absent.uv  { color: var(--teal); background: var(--teal-soft); }
 .lesson-cell.absent.bolezn { color: var(--violet); background: var(--violet-soft); }
 .lesson-cell.absent.opozd { color: var(--amber); background: var(--red-soft); font-size: 12px; }
 .lesson-cell.empty-mark { color: var(--text-3); }
+
+.arr-t {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1.1;
+    opacity: .85;
+}
 
 body.mode-edit .lesson-cell:hover {
     background: var(--accent-soft);
@@ -610,6 +619,10 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
 }
 .mobile-lesson.late .mobile-lesson-mark,
 .mobile-lesson.late .mobile-lesson-num { color: var(--amber); }
+
+.mobile-lesson.late.excused { background: var(--teal-soft); border-color: var(--teal); }
+.mobile-lesson.late.excused .mobile-lesson-mark,
+.mobile-lesson.late.excused .mobile-lesson-num { color: var(--teal); }
 
 .mobile-lesson.absent {
     background: var(--red-soft);
@@ -860,6 +873,14 @@ tr.total-row td.student-cell { color: var(--accent-dark); }
 }
 .arrival-hint.ok { color: var(--amber); background: var(--amber-soft); border-color: rgba(180,83,9,.3); }
 .arrival-hint.bad { color: var(--red); background: var(--red-soft); border-color: rgba(185,28,28,.25); }
+
+.excuse-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 12px;
+    font-size: 13.5px; font-weight: 600; color: var(--text);
+    cursor: pointer;
+}
+.excuse-row input { width: 18px; height: 18px; accent-color: var(--teal); }
 
 .sheet-actions { display: flex; gap: 8px; margin-top: 14px; }
 .sheet-actions button {
@@ -1177,9 +1198,9 @@ body.scope-semester .semester-view { display: block; }
                 <span id="groupSwitcherSlot"><span class="group-static">Загрузка...</span></span>
             </div>
             <div class="group-field">
-                <span class="group-field-label">Классный руководитель:</span>
+                <span class="group-field-label">Класс. рук.:</span>
                 <input type="text" id="curatorPrintName" class="curator-name-input"
-                       placeholder="ФИО куратора" disabled oninput="onCuratorNameEdited()">
+                       placeholder="ФИО класс. рук." disabled oninput="onCuratorNameEdited()">
             </div>
         </div>
 
@@ -1372,6 +1393,7 @@ body.scope-semester .semester-view { display: block; }
             <label class="reason-label" for="arrivalInput">Время прихода:</label>
             <input type="time" id="arrivalInput" class="arrival-input">
             <div class="arrival-hint" id="arrivalHint">Укажите время прихода</div>
+            <label class="excuse-row"><input type="checkbox" id="lateExcused"> Уважительная причина</label>
         </div>
 
         <div class="reason-form" id="reasonForm">
@@ -1533,6 +1555,26 @@ function vibrate(ms) {
 function parseHM(v) {
     const m = /^(\d{1,2})[:.](\d{2})/.exec(String(v ?? "").trim());
     return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+}
+
+/* Сокращённое название: слова длиннее 4 букв обрезаются до 4 + точка */
+function shortName(name) {
+    const words = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return "—";
+    return words.map(w => w.length > 4 ? w.slice(0, 4) + "." : w).join(" ");
+}
+
+/* Сокращённое название пары по настройкам группы на дату записи */
+function getLessonShortName(dateStr, lesson) {
+    const dayIdx = new Date(dateStr + "T00:00:00").getDay();
+    const dayName = days[dayIdx - 1];
+    if (!dayName) return "—";
+    const d = settings.disciplines?.[dayName];
+    const item = Array.isArray(d) ? d[lesson - 1] : (d?.[String(lesson)] ?? d?.[lesson]);
+    const name = item && typeof item === "object"
+        ? (item.discipline || item.subject || item.name || "")
+        : (item || "");
+    return shortName(name);
 }
 
 /* =========================================================
@@ -1778,6 +1820,7 @@ async function loadAttendance() {
                     reason: String(reason),
                     arrivalTime: ld.arrivalTime || "",
                     lateMin: ld.lateMin ?? null,
+                    excused: !!ld.excused,
                     semester: meta.semester || "",
                     attestation: meta.attestation || "",
                     updatedAt: meta.updatedAt || ""
@@ -1856,21 +1899,33 @@ function calcLateness(dateStr, lesson, arrivalTime) {
     return arr - st;
 }
 
-/* Что получится при сохранении опоздания */
-function buildLateMark(arrivalTime, dateStr, lesson) {
+/*
+   Что получится при сохранении опоздания.
+   excused = уважительная причина:
+     - опоздание ≤ 20 мин → «О/У» (опоздание, уважительное)
+     - опоздание > 20 мин → «Н/У» (уважительная неявка)
+   без уважительной:
+     - ≤ 20 мин → «О»
+     - > 20 мин → «О/Н» (неявка)
+*/
+function buildLateMark(arrivalTime, dateStr, lesson, excused) {
     const late = calcLateness(dateStr, lesson, arrivalTime);
+    const base = { arrivalTime, excused: !!excused };
 
-    if (late === null) {
-        return { status: "late", absentType: "", reason: "", arrivalTime, lateMin: null };
-    }
-    if (late <= LATE_LIMIT_MIN) {
-        return { status: "late", absentType: "", reason: "", arrivalTime, lateMin: Math.max(0, late) };
+    if (late === null || late <= LATE_LIMIT_MIN) {
+        return {
+            ...base,
+            status: "late",
+            absentType: "",
+            reason: excused ? "Уважительная причина" : "",
+            lateMin: late === null ? null : Math.max(0, late)
+        };
     }
     return {
+        ...base,
         status: "absent",
-        absentType: "opozd",
-        reason: `Опоздание ${late} мин (больше ${LATE_LIMIT_MIN} мин)`,
-        arrivalTime,
+        absentType: excused ? "uv" : "opozd",
+        reason: `Опоздание ${late} мин (больше ${LATE_LIMIT_MIN} мин)${excused ? ", уважительная причина" : ""}`,
         lateMin: late
     };
 }
@@ -1901,7 +1956,8 @@ async function saveLessonMark(date, studentId, lessonNum, markData) {
             absentType: markData.absentType || "",
             reason: markData.reason || "",
             arrivalTime: markData.arrivalTime || "",
-            lateMin: markData.lateMin ?? null
+            lateMin: markData.lateMin ?? null,
+            excused: !!markData.excused
         };
     }
 
@@ -1944,6 +2000,7 @@ async function saveLessonMark(date, studentId, lessonNum, markData) {
             reason: markData.reason || "",
             arrivalTime: markData.arrivalTime || "",
             lateMin: markData.lateMin ?? null,
+            excused: !!markData.excused,
             semester: meta.semester, attestation: meta.attestation,
             updatedAt: meta.updatedAt
         };
@@ -2092,7 +2149,11 @@ document.getElementById("viewSemester").addEventListener("change", renderSemeste
 function getMarkDisplay(record) {
     if (!record) return { mark: "—", cls: "empty-mark" };
     if (record.status === "present") return { mark: "✓", cls: "present" };
-    if (record.status === "late") return { mark: "О", cls: "late" };
+    if (record.status === "late") {
+        return record.excused
+            ? { mark: "О/У", cls: "late excused" }
+            : { mark: "О", cls: "late" };
+    }
     if (record.status === "absent") {
         const at = record.absentType || "";
         if (at === "uv") return { mark: "Н/У", cls: "absent uv" };
@@ -2101,6 +2162,13 @@ function getMarkDisplay(record) {
         return { mark: "Н", cls: "absent" };
     }
     return { mark: "—", cls: "empty-mark" };
+}
+
+/* Время прихода под отметкой (для опозданий) */
+function arrLine(rec) {
+    return rec && rec.arrivalTime
+        ? `<span class="arr-t">${escapeHtml(rec.arrivalTime)}</span>`
+        : "";
 }
 
 /* =========================================================
@@ -2209,7 +2277,7 @@ function renderTable() {
                     ? `data-student="${escapeHtml(student.id)}" data-date="${dateStr}" data-lesson="${l}"`
                     : `data-record-key="${escapeHtml(key)}"`;
 
-                html += `<td class="lesson-cell ${cls}" ${cellAttrs}>${mark}</td>`;
+                html += `<td class="lesson-cell ${cls} ${l === 0 ? "" : ""}" ${cellAttrs}>${mark}${arrLine(rec)}</td>`;
             }
         });
 
@@ -2303,11 +2371,12 @@ function renderMobile() {
                 const rec = attendance[key];
                 const { mark, cls } = getMarkDisplay(rec);
 
-                const extraClass = rec && rec.status === "absent"
-                    ? (rec.absentType === "uv" ? "uv"
+                let extraClass = "";
+                if (rec && rec.status === "absent") {
+                    extraClass = rec.absentType === "uv" ? "uv"
                         : rec.absentType === "bolezn" ? "bolezn"
-                        : rec.absentType === "opozd" ? "opozd" : "")
-                    : "";
+                        : rec.absentType === "opozd" ? "opozd" : "";
+                }
 
                 listHtml += `<button type="button" class="mobile-lesson ${cls} ${extraClass}"
                     data-student="${escapeHtml(student.id)}"
@@ -2315,6 +2384,7 @@ function renderMobile() {
                     data-lesson="${l}">
                     <span class="mobile-lesson-num">${l} пара</span>
                     <span class="mobile-lesson-mark">${mark}</span>
+                    ${arrLine(rec)}
                 </button>`;
             }
 
@@ -2352,17 +2422,21 @@ function renderMobile() {
 
 /* =========================================================
    INFO POPUP (VIEW)
-   По нажатию: для опоздания показывается время прихода
+   Показывает: номер пары + сокращённое название
 ========================================================= */
 function lateDetailText(rec) {
     const arr = rec.arrivalTime ? `Пришёл в ${rec.arrivalTime}` : "Время прихода не указано";
     const late = rec.lateMin != null ? `, опоздание ${rec.lateMin} мин` : "";
-    return arr + late;
+    const ex = rec.excused ? " (уважительная причина)" : "";
+    return arr + late + ex;
 }
 
 function describeRecord(rec) {
     if (rec.status === "late") {
-        return { title: "Опоздание (О)", text: lateDetailText(rec) };
+        return {
+            title: rec.excused ? "Опоздание (О/У)" : "Опоздание (О)",
+            text: lateDetailText(rec)
+        };
     }
     if (rec.status === "absent" && rec.absentType === "opozd") {
         return { title: "Опоздание (О/Н)", text: `${lateDetailText(rec)}. Больше ${LATE_LIMIT_MIN} мин — засчитано как неявка.` };
@@ -2383,7 +2457,8 @@ function showRecordInfo(event, cell) {
     document.getElementById("popupTitle").textContent = info.title;
     document.getElementById("popupStudent").textContent = "ФИО: " + rec.studentName;
     document.getElementById("popupDate").textContent = "Дата: " + formatDateRu(rec.date);
-    document.getElementById("popupLesson").textContent = "Пара: " + rec.lesson;
+    document.getElementById("popupLesson").textContent =
+        "Пара: " + rec.lesson + " • " + getLessonShortName(rec.date, rec.lesson);
     document.getElementById("popupReason").textContent = info.text;
 
     popup.style.display = "block";
@@ -2405,11 +2480,11 @@ function showRecordInfo(event, cell) {
 
 function showMobileRecordPopup(rec) {
     let text;
-    if (rec.status === "late") text = `О: ${lateDetailText(rec)}`;
+    if (rec.status === "late") text = `${rec.excused ? "О/У" : "О"}: ${lateDetailText(rec)}`;
     else if (rec.status === "absent" && rec.absentType === "opozd") text = `О/Н: ${lateDetailText(rec)}`;
     else if (rec.status === "absent") text = `Н: ${rec.reason || "причина не указана"}`;
     else text = "Присутствовал";
-    showStatus(text);
+    showStatus(`${rec.lesson} п. ${getLessonShortName(rec.date, rec.lesson)} — ${text}`);
 }
 
 function hidePopup() {
@@ -2450,6 +2525,7 @@ function openMarkSheet(studentId, date, lesson) {
     document.getElementById("arrivalForm").classList.remove("show");
     document.getElementById("reasonInput").value = "";
     document.getElementById("arrivalInput").value = "";
+    document.getElementById("lateExcused").checked = false;
 
     if (rec) {
         if (rec.status === "present") {
@@ -2460,6 +2536,7 @@ function openMarkSheet(studentId, date, lesson) {
             sheetState.selectedMark = "late";
             document.getElementById("arrivalForm").classList.add("show");
             document.getElementById("arrivalInput").value = rec.arrivalTime || "";
+            document.getElementById("lateExcused").checked = !!rec.excused;
             updateArrivalHint();
         } else if (rec.status === "absent") {
             const at = rec.absentType || "neuv";
@@ -2488,6 +2565,7 @@ window.closeMarkSheet = closeMarkSheet;
 function updateArrivalHint() {
     const hint = document.getElementById("arrivalHint");
     const t = document.getElementById("arrivalInput").value;
+    const excused = document.getElementById("lateExcused").checked;
     hint.classList.remove("ok", "bad");
 
     if (!t) {
@@ -2496,20 +2574,23 @@ function updateArrivalHint() {
     }
     const late = calcLateness(sheetState.date, sheetState.lesson, t);
     if (late === null) {
-        hint.textContent = "Не удалось определить начало пары (звонки не настроены): будет сохранено как «О»";
+        hint.textContent = "Не удалось определить начало пары (звонки не настроены): будет сохранено как " + (excused ? "«О/У»" : "«О»");
         hint.classList.add("ok");
         return;
     }
     if (late <= LATE_LIMIT_MIN) {
-        hint.textContent = `Опоздание ${Math.max(0, late)} мин → «О» (присутствие)`;
+        hint.textContent = `Опоздание ${Math.max(0, late)} мин → ${excused ? "«О/У»" : "«О»"} (присутствие)`;
         hint.classList.add("ok");
     } else {
-        hint.textContent = `Опоздание ${late} мин (больше ${LATE_LIMIT_MIN}) → «О/Н» (неявка)`;
+        hint.textContent = excused
+            ? `Опоздание ${late} мин (больше ${LATE_LIMIT_MIN}) → «Н/У» (уважительная неявка)`
+            : `Опоздание ${late} мин (больше ${LATE_LIMIT_MIN}) → «О/Н» (неявка)`;
         hint.classList.add("bad");
     }
 }
 
 document.getElementById("arrivalInput").addEventListener("input", updateArrivalHint);
+document.getElementById("lateExcused").addEventListener("change", updateArrivalHint);
 
 document.querySelectorAll(".mark-btn").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -2563,14 +2644,15 @@ document.getElementById("saveMarkBtn").addEventListener("click", async () => {
 
     let markData;
     if (mark === "present") {
-        markData = { status: "present", absentType: "", reason: "", arrivalTime: "", lateMin: null };
+        markData = { status: "present", absentType: "", reason: "", arrivalTime: "", lateMin: null, excused: false };
     } else if (mark === "late") {
         const t = document.getElementById("arrivalInput").value;
         if (!t) {
             showStatus("Укажите время прихода", "error");
             return;
         }
-        markData = buildLateMark(t, sheetState.date, sheetState.lesson);
+        markData = buildLateMark(t, sheetState.date, sheetState.lesson,
+                                 document.getElementById("lateExcused").checked);
     } else {
         const reasonInput = document.getElementById("reasonInput");
         let reason = reasonInput.value.trim();
@@ -2578,7 +2660,7 @@ document.getElementById("saveMarkBtn").addEventListener("click", async () => {
 
         if (!reason && AUTO_REASONS[absentType]) reason = AUTO_REASONS[absentType];
 
-        markData = { status: "absent", absentType, reason, arrivalTime: "", lateMin: null };
+        markData = { status: "absent", absentType, reason, arrivalTime: "", lateMin: null, excused: false };
     }
 
     try {
@@ -2589,8 +2671,10 @@ document.getElementById("saveMarkBtn").addEventListener("click", async () => {
 
         if (markData.status === "absent" && markData.absentType === "opozd") {
             showStatus("Опоздание больше 20 мин: сохранено как О/Н", "warning");
+        } else if (markData.status === "absent" && markData.absentType === "uv" && markData.arrivalTime) {
+            showStatus("Опоздание больше 20 мин: сохранено как Н/У", "warning");
         } else if (markData.status === "late") {
-            showStatus("Опоздание сохранено: О", "warning");
+            showStatus(markData.excused ? "Опоздание сохранено: О/У" : "Опоздание сохранено: О", "warning");
         } else {
             showStatus("Сохранено", "success");
         }
@@ -2774,8 +2858,8 @@ function buildPrintSheet(scaleFactor) {
         let cells = "";
         row.querySelectorAll(".lesson-cell").forEach(cell => {
             let mark = "";
-            if (cell.classList.contains("late")) mark = "О";
-            else if (cell.classList.contains("absent")) mark = cell.textContent.trim() || "Н";
+            if (cell.classList.contains("late")) mark = cell.classList.contains("excused") ? "О/У" : "О";
+            else if (cell.classList.contains("absent")) mark = (cell.childNodes[0]?.textContent || "").trim() || "Н";
             cells += `<td class="c-l">${mark}</td>`;
         });
 
@@ -2807,7 +2891,7 @@ function buildPrintSheet(scaleFactor) {
 
     const signatureRow = `
         <div class="pt-sign" style="height:${signHeight}mm">
-            Классный руководитель&nbsp;&nbsp;&nbsp;&nbsp;______________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="pf-name">${escapeHtml(curatorName)}</span>
+            Класс. рук.&nbsp;&nbsp;&nbsp;&nbsp;______________&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="pf-name">${escapeHtml(curatorName)}</span>
         </div>
     `;
 

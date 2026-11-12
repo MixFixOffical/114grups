@@ -90,8 +90,10 @@
 
     .row-item { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
     .row-item input[type="text"] { margin-bottom: 0; padding: 11px 14px; font-size: 15px; }
-    .row-item input[type="radio"] { appearance: none; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--purple); flex-shrink: 0; cursor: pointer; display: grid; place-items: center; }
-    .row-item input[type="radio"]:checked { background: #5cc26b; border-color: #46a955; box-shadow: inset 0 0 0 4px #fff; }
+    .row-item input[type="radio"], .row-item input[type="checkbox"] { appearance: none; width: 22px; height: 22px; flex-shrink: 0; cursor: pointer; display: grid; place-items: center; border: 2px solid var(--purple); }
+    .row-item input[type="radio"] { border-radius: 50%; }
+    .row-item input[type="checkbox"] { border-radius: 6px; }
+    .row-item input[type="radio"]:checked, .row-item input[type="checkbox"]:checked { background: #5cc26b; border-color: #46a955; box-shadow: inset 0 0 0 4px #fff; }
     .rm, .mv { width: 30px; height: 30px; border-radius: 50%; border: none; background: #f3f0fa; color: var(--purple-dark); cursor: pointer; font-size: 15px; flex-shrink: 0; }
     .mv:disabled { opacity: .35; cursor: default; }
     .ord { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 13px; color: var(--purple); width: 22px; text-align: center; flex-shrink: 0; }
@@ -137,6 +139,10 @@
     .done-actions { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
     .btn-go { text-decoration: none; display: inline-block; }
 
+    .import-box { background: rgba(255,255,255,.1); border: 2px dashed rgba(255,255,255,.45); border-radius: 16px; padding: 16px; margin-bottom: 18px; }
+    .import-box .toggle { margin-bottom: 0; }
+    .import-hint { font-size: 12px; color: var(--text-light); margin-top: 8px; line-height: 1.45; }
+
     .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(120px); background: var(--yellow); color: var(--purple-dark); font-weight: 700; padding: 14px 22px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: transform .35s ease; z-index: 60; max-width: calc(100% - 40px); text-align: center; }
     .toast.show { transform: translateX(-50%) translateY(0); }
 
@@ -174,6 +180,18 @@
     <section class="card" id="step1">
       <h1 id="step1Title">Как назовём квиз?</h1>
       <p class="lead">Название увидят игроки, а настройки определяют, как проходит квиз.</p>
+
+      <div class="import-box">
+        <label class="toggle" style="margin-bottom:0">
+          <input type="checkbox" id="importToggle" />
+          Загрузить квиз из JSON-файла
+        </label>
+        <div class="import-hint">Если включить — настройки и вопросы подставятся из файла. Текущие данные будут перезаписаны.</div>
+        <div id="importArea" hidden style="margin-top:12px">
+          <input type="file" id="importFile" accept=".json,application/json" />
+          <div class="error" id="importError" style="margin-top:8px"></div>
+        </div>
+      </div>
 
       <div class="field">
         <label class="field-label" for="titleInput">Название</label>
@@ -266,12 +284,42 @@
           <button class="type-card" data-type="choice">
             <div class="type-icon">🔘</div>
             <div class="type-name">Обычный тест</div>
-            <div class="type-desc">Вопрос и варианты ответа. Игрок выбирает правильный.</div>
+            <div class="type-desc">Вопрос и варианты ответа. Можно один или несколько правильных.</div>
           </button>
           <button class="type-card" data-type="open">
             <div class="type-icon">⌨️</div>
             <div class="type-name">Свой ответ</div>
             <div class="type-desc">Игрок вводит ответ сам. Засчитываются заданные варианты.</div>
+          </button>
+          <button class="type-card" data-type="match">
+            <div class="type-icon">🔗</div>
+            <div class="type-name">Соответствие</div>
+            <div class="type-desc">Соединить элементы из двух столбцов в правильные пары.</div>
+          </button>
+          <button class="type-card" data-type="order">
+            <div class="type-icon">🔢</div>
+            <div class="type-name">Порядок</div>
+            <div class="type-desc">Расставить элементы в правильной последовательности.</div>
+          </button>
+          <button class="type-card" data-type="fill">
+            <div class="type-icon">📝</div>
+            <div class="type-name">Пропуски</div>
+            <div class="type-desc">Заполнить пропуски в тексте. Несколько пропусков, ручной ввод или выбор.</div>
+          </button>
+          <button class="type-card" data-type="odd">
+            <div class="type-icon">🎯</div>
+            <div class="type-name">Лишний элемент</div>
+            <div class="type-desc">Выбрать элемент, который не подходит к остальным.</div>
+          </button>
+          <button class="type-card" data-type="crossword">
+            <div class="type-icon">🧩</div>
+            <div class="type-name">Кроссворд</div>
+            <div class="type-desc">Заполнить клетки словами по определениям (гориз. и верт.).</div>
+          </button>
+          <button class="type-card" data-type="schema">
+            <div class="type-icon">🕸️</div>
+            <div class="type-name">Схема связей</div>
+            <div class="type-desc">Соединить понятия связями. Проверка узлов и рёбер.</div>
           </button>
           <button class="type-card mc-only" data-type="code" hidden>
             <div class="type-icon">💻</div>
@@ -279,7 +327,7 @@
             <div class="type-desc">Игрок пишет код или исправляет готовый код.</div>
           </button>
           <button class="type-card mc-only" data-type="blocks" hidden>
-            <div class="type-icon">🧩</div>
+            <div class="type-icon">🧱</div>
             <div class="type-name">Блоки</div>
             <div class="type-desc">Игрок собирает код из блоков в правильном порядке.</div>
           </button>
@@ -343,7 +391,11 @@
     [10, '10 секунд'], [15, '15 секунд'], [20, '20 секунд'], [30, '30 секунд'],
     [45, '45 секунд'], [60, '1 минута'], [90, '1,5 минуты'], [120, '2 минуты']
   ];
-  const TYPE_NAMES = { choice: 'Обычный тест', open: 'Свой ответ', code: 'Код', blocks: 'Блоки' };
+  const TYPE_NAMES = {
+    choice: 'Обычный тест', open: 'Свой ответ', code: 'Код', blocks: 'Блоки',
+    match: 'Соответствие', order: 'Порядок', fill: 'Пропуски', odd: 'Лишний элемент',
+    crossword: 'Кроссворд', schema: 'Схема связей'
+  };
   const MC_TYPES = ['code', 'blocks'];
 
   const toTs = (v) => (v ? Timestamp.fromDate(new Date(v)) : null);
@@ -354,7 +406,6 @@
     return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
   };
 
-  // Время от 5 до 600 секунд
   const clampTime = (v) => Math.min(600, Math.max(5, Math.round(Number(v)) || 20));
 
   function readGlobalTime() {
@@ -380,7 +431,6 @@
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  // Разбивка кода на блоки: строки, числа, имена, знаки и операторы
   function tokenize(code) {
     return (code.match(/"[^"]*"|'[^']*'|[A-Za-z_]\w*|\d+(?:\.\d+)?|==|!=|<=|>=|&&|\|\||\S/g) || []);
   }
@@ -449,7 +499,10 @@
   function readGrades() {
     if (!$('skrInput').checked) return null;
     const out = {};
-    GRADE_KEYS.forEach((g) => { out[g] = $('gr' + g).value === '' ? NaN : Number($('gr' + g).value); });
+    GRADE_KEYS.forEach((g) => {
+      const v = $('gr' + g).value;
+      out[g] = v === '' ? NaN : Number(v);
+    });
     return out;
   }
 
@@ -479,6 +532,145 @@
     ['step1', 'step2', 'step3'].forEach((id, i) => { $(id).hidden = i + 1 !== n; });
     setPill(n);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ---------- JSON-импорт ---------- */
+  $('importToggle').addEventListener('change', (e) => {
+    $('importArea').hidden = !e.target.checked;
+    $('importError').textContent = '';
+  });
+
+  $('importFile').addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    $('importError').textContent = '';
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      applyImportedJson(data);
+      showToast('Квиз загружен из файла');
+    } catch (err) {
+      console.error(err);
+      $('importError').textContent = 'Не удалось прочитать файл: ' + (err.message || 'ошибка JSON');
+    } finally {
+      e.target.value = '';
+    }
+  });
+
+  function applyImportedJson(data) {
+    if (!data || typeof data !== 'object') throw new Error('Файл не содержит объект');
+    if (!data.title || typeof data.title !== 'string') throw new Error('Нет поля title');
+    if (!Array.isArray(data.questions) || !data.questions.length) throw new Error('Нет массива questions');
+
+    state.title = String(data.title).slice(0, 80);
+    state.description = String(data.description || '').slice(0, 300);
+    $('titleInput').value = state.title;
+    $('titleCount').textContent = state.title.length;
+    $('descInput').value = state.description;
+    $('descCount').textContent = state.description.length;
+
+    setGlobalTime(Number(data.timeLimit) || 20);
+    $('showAnswersInput').checked = !!data.showAnswers;
+    $('shuffleInput').checked = !!data.shuffleQuestions;
+    $('manualInput').checked = !!data.manualMode;
+    $('noPasteInput').checked = !!data.noPaste;
+    $('requireNameInput').checked = !!data.requireName;
+    $('requireGroupInput').checked = !!data.requireGroup;
+    $('masterInput').checked = !!data.masterCode;
+    $('skrInput').checked = !!data.gradeMode;
+    $('skrBox').hidden = !data.gradeMode;
+    if (data.grades) GRADE_KEYS.forEach((g) => { $('gr' + g).value = data.grades[g] ?? ''; });
+
+    state.questions = data.questions.map((raw, i) => importQuestion(raw, i));
+    applyMasterVisibility();
+    renderQuestions();
+    showStep(2);
+  }
+
+  function importQuestion(raw, i) {
+    const base = {
+      text: String(raw.text || ''),
+      points: Number(raw.points) > 0 ? Number(raw.points) : 1,
+      timeLimit: raw.timeLimit ? clampTime(raw.timeLimit) : null,
+      image: null
+    };
+    const t = raw.type;
+    if (t === 'choice') {
+      const opts = Array.isArray(raw.options) ? raw.options.map(String) : [];
+      if (opts.length < 2) throw new Error(`Вопрос ${i + 1}: нужно минимум два варианта`);
+      let correct;
+      if (Array.isArray(raw.correct)) correct = raw.correct.map(Number);
+      else if (typeof raw.correct === 'number') correct = raw.multi ? [raw.correct] : raw.correct;
+      else correct = 0;
+      const multi = Array.isArray(correct);
+      if (multi && !correct.length) throw new Error(`Вопрос ${i + 1}: укажите правильные варианты`);
+      return { ...base, type: 'choice', options: opts, correct, multi };
+    }
+    if (t === 'open') {
+      const answers = Array.isArray(raw.answers) ? raw.answers.map(String).filter(Boolean) : [];
+      if (!answers.length) throw new Error(`Вопрос ${i + 1}: укажите правильный ответ`);
+      return { ...base, type: 'open', answers };
+    }
+    if (t === 'code') {
+      const code = String(raw.code || '');
+      const hasBug = !!raw.hasBug;
+      const correctCode = String(raw.correctCode || '');
+      if (!code) throw new Error(`Вопрос ${i + 1}: введите код`);
+      if (hasBug && !correctCode) throw new Error(`Вопрос ${i + 1}: введите правильный код`);
+      return { ...base, type: 'code', code, hasBug, correctCode };
+    }
+    if (t === 'blocks') {
+      const seq = Array.isArray(raw.seq) ? raw.seq.map(String) : [];
+      const extra = Array.isArray(raw.extra) ? raw.extra.map(String) : [];
+      if (seq.length < 2) throw new Error(`Вопрос ${i + 1}: нужно минимум два блока`);
+      return { ...base, type: 'blocks', src: String(raw.src || ''), seq, extra };
+    }
+    if (t === 'match') {
+      const left = Array.isArray(raw.left) ? raw.left.map(String) : [];
+      const right = Array.isArray(raw.right) ? raw.right.map(String) : [];
+      const pairs = Array.isArray(raw.pairs) ? raw.pairs.map((p) => [Number(p[0]), Number(p[1])]) : [];
+      if (left.length < 2 || right.length < 2) throw new Error(`Вопрос ${i + 1}: нужно минимум по два элемента`);
+      if (pairs.length !== left.length) throw new Error(`Вопрос ${i + 1}: число пар должно совпадать с числом левых элементов`);
+      return { ...base, type: 'match', left, right, pairs };
+    }
+    if (t === 'order') {
+      const items = Array.isArray(raw.items) ? raw.items.map(String) : [];
+      if (items.length < 2) throw new Error(`Вопрос ${i + 1}: нужно минимум два элемента`);
+      return { ...base, type: 'order', items };
+    }
+    if (t === 'fill') {
+      const template = String(raw.template || '');
+      const blanks = Array.isArray(raw.blanks) ? raw.blanks.map((b) => (Array.isArray(b) ? b.map(String) : [String(b)])) : [];
+      if (!template.includes('{{')) throw new Error(`Вопрос ${i + 1}: в шаблоне нет пропусков {{n}}`);
+      if (!blanks.length) throw new Error(`Вопрос ${i + 1}: укажите варианты для пропусков`);
+      return { ...base, type: 'fill', template, blanks };
+    }
+    if (t === 'odd') {
+      const items = Array.isArray(raw.items) ? raw.items.map(String) : [];
+      const correct = Number(raw.correct);
+      if (items.length < 2) throw new Error(`Вопрос ${i + 1}: нужно минимум два элемента`);
+      if (!(correct >= 0 && correct < items.length)) throw new Error(`Вопрос ${i + 1}: неверный индекс лишнего`);
+      return { ...base, type: 'odd', items, correct, explain: String(raw.explain || '') };
+    }
+    if (t === 'crossword') {
+      const words = Array.isArray(raw.words) ? raw.words.map((w) => ({
+        word: String(w.word || '').toUpperCase(),
+        clue: String(w.clue || ''),
+        row: Number(w.row) || 0,
+        col: Number(w.col) || 0,
+        dir: w.dir === 'down' ? 'down' : 'across'
+      })) : [];
+      if (!words.length) throw new Error(`Вопрос ${i + 1}: нет слов кроссворда`);
+      return { ...base, type: 'crossword', words };
+    }
+    if (t === 'schema') {
+      const nodes = Array.isArray(raw.nodes) ? raw.nodes.map(String) : [];
+      const edges = Array.isArray(raw.edges) ? raw.edges.map((e) => [Number(e[0]), Number(e[1])]) : [];
+      if (nodes.length < 2) throw new Error(`Вопрос ${i + 1}: нужно минимум два узла`);
+      if (!edges.length) throw new Error(`Вопрос ${i + 1}: укажите связи`);
+      return { ...base, type: 'schema', nodes, edges };
+    }
+    throw new Error(`Вопрос ${i + 1}: неизвестный тип «${t}»`);
   }
 
   /* ---------- Фото вопросов ---------- */
@@ -538,14 +730,18 @@
   function questionBody(q, i) {
     if (q.type === 'choice') {
       return `
-        <div class="hint" style="margin:0 0 10px">Отметьте кружком правильный вариант.</div>
-        ${q.options.map((opt, j) => `
+        <div class="hint" style="margin:0 0 10px">${q.multi ? 'Отметьте галочками все правильные варианты.' : 'Отметьте кружком правильный вариант.'}</div>
+        ${q.options.map((opt, j) => {
+          const checked = q.multi ? (Array.isArray(q.correct) && q.correct.includes(j)) : q.correct === j;
+          return `
           <div class="row-item">
-            <input type="radio" name="correct-${i}" data-correct="${i}" data-idx="${j}" ${q.correct === j ? 'checked' : ''} aria-label="Правильный вариант" />
+            <input type="${q.multi ? 'checkbox' : 'radio'}" name="correct-${i}" data-correct="${i}" data-idx="${j}" ${checked ? 'checked' : ''} aria-label="Правильный вариант" />
             <input type="text" data-opt="${i}" data-idx="${j}" value="${esc(opt)}" placeholder="Вариант ${j + 1}" maxlength="120" />
             ${q.options.length > 2 ? `<button class="rm" data-rm-opt="${i}" data-idx="${j}" aria-label="Удалить вариант">×</button>` : ''}
-          </div>`).join('')}
-        ${q.options.length < MAX_OPTIONS ? `<button class="add-link" data-add-opt="${i}">+ Вариант</button>` : ''}`;
+          </div>`;
+        }).join('')}
+        ${q.options.length < MAX_OPTIONS ? `<button class="add-link" data-add-opt="${i}">+ Вариант</button>` : ''}
+        <label class="toggle" style="margin-top:10px"><input type="checkbox" data-multi="${i}" ${q.multi ? 'checked' : ''} />Несколько правильных ответов</label>`;
     }
 
     if (q.type === 'open') {
@@ -558,6 +754,123 @@
           </div>`).join('')}
         ${q.answers.length < MAX_ANSWERS ? `<button class="add-link" data-add-ans="${i}">+ Ещё вариант ответа</button>` : ''}
         <div class="hint">Регистр не важен. Пробелы по краям не учитываются.</div>`;
+    }
+
+    if (q.type === 'match') {
+      return `
+        <div class="hint" style="margin:0 0 10px">Введите пары «левый — правый». Порядок столбцов у игрока перемешивается.</div>
+        <div class="sub-label">Левые элементы</div>
+        ${q.left.map((t, j) => `
+          <div class="row-item">
+            <input type="text" data-mleft="${i}" data-idx="${j}" value="${esc(t)}" placeholder="Термин ${j + 1}" maxlength="120" />
+            ${q.left.length > 2 ? `<button class="rm" data-rm-mleft="${i}" data-idx="${j}" aria-label="Удалить">×</button>` : ''}
+          </div>`).join('')}
+        ${q.left.length < 10 ? `<button class="add-link" data-add-mleft="${i}">+ Левый элемент</button>` : ''}
+        <div class="sub-label" style="margin-top:14px">Правые элементы</div>
+        ${q.right.map((t, j) => `
+          <div class="row-item">
+            <input type="text" data-mright="${i}" data-idx="${j}" value="${esc(t)}" placeholder="Значение ${j + 1}" maxlength="120" />
+            ${q.right.length > 2 ? `<button class="rm" data-rm-mright="${i}" data-idx="${j}" aria-label="Удалить">×</button>` : ''}
+          </div>`).join('')}
+        ${q.right.length < 10 ? `<button class="add-link" data-add-mright="${i}">+ Правый элемент</button>` : ''}
+        <div class="sub-label" style="margin-top:14px">Правильные пары</div>
+        ${q.left.map((t, j) => {
+          const cur = q.pairs[j] ? q.pairs[j][1] : 0;
+          return `<div class="row-item" style="align-items:center">
+            <span style="min-width:120px;font-weight:700">${esc(t || 'Левый ' + (j + 1))}</span>
+            <span>→</span>
+            <select data-pair="${i}" data-idx="${j}" style="flex:1">
+              ${q.right.map((rt, ri) => `<option value="${ri}" ${cur === ri ? 'selected' : ''}>${esc(rt || 'Правый ' + (ri + 1))}</option>`).join('')}
+            </select>
+          </div>`;
+        }).join('')}
+        <div class="hint">Один правый элемент можно использовать в нескольких парах. Если нужны уникальные — следите сами.</div>`;
+    }
+
+    if (q.type === 'order') {
+      return `
+        <div class="hint" style="margin:0 0 10px">Элементы в правильном порядке. У игрока они перемешиваются.</div>
+        ${q.items.map((t, j) => `
+          <div class="row-item">
+            <span class="ord">${j + 1}</span>
+            <input type="text" data-oitem="${i}" data-idx="${j}" value="${esc(t)}" placeholder="Элемент ${j + 1}" maxlength="120" />
+            <button class="mv" data-oup="${i}" data-idx="${j}" ${j === 0 ? 'disabled' : ''} aria-label="Выше">↑</button>
+            <button class="mv" data-odown="${i}" data-idx="${j}" ${j === q.items.length - 1 ? 'disabled' : ''} aria-label="Ниже">↓</button>
+            ${q.items.length > 2 ? `<button class="rm" data-rm-oitem="${i}" data-idx="${j}" aria-label="Удалить">×</button>` : ''}
+          </div>`).join('')}
+        ${q.items.length < 20 ? `<button class="add-link" data-add-oitem="${i}">+ Элемент</button>` : ''}`;
+    }
+
+    if (q.type === 'fill') {
+      return `
+        <div class="hint" style="margin:0 0 10px">В тексте используйте {{1}}, {{2}} — это пропуски. Для каждого пропуска укажите варианты ответа (через запятую).</div>
+        <textarea rows="4" data-ftemplate="${i}" placeholder="HTML-документ начинается с тега {{1}}, а заголовок — {{2}}">${esc(q.template)}</textarea>
+        <div class="sub-label" style="margin-top:12px">Варианты для пропусков (по одному на строку; варианты через |)</div>
+        <textarea rows="4" data-fblanks="${i}" placeholder="html|HTML\nh1|H1|заголовок">${esc(q.blanks.map((b) => b.join('|')).join('\n'))}</textarea>
+        <div class="hint">Порядок строк соответствует {{1}}, {{2}} и т.д. Регистр не важен, пробелы по краям обрезаются.</div>`;
+    }
+
+    if (q.type === 'odd') {
+      return `
+        <div class="hint" style="margin:0 0 10px">Отметьте лишний элемент. У игрока порядок перемешивается.</div>
+        ${q.items.map((t, j) => `
+          <div class="row-item">
+            <input type="radio" name="odd-${i}" data-odd="${i}" data-idx="${j}" ${q.correct === j ? 'checked' : ''} aria-label="Лишний" />
+            <input type="text" data-oitemodd="${i}" data-idx="${j}" value="${esc(t)}" placeholder="Элемент ${j + 1}" maxlength="120" />
+            ${q.items.length > 2 ? `<button class="rm" data-rm-oitemodd="${i}" data-idx="${j}" aria-label="Удалить">×</button>` : ''}
+          </div>`).join('')}
+        ${q.items.length < 20 ? `<button class="add-link" data-add-oitemodd="${i}">+ Элемент</button>` : ''}
+        <div class="sub-label" style="margin-top:12px">Пояснение (необязательно, покажется после ответа)</div>
+        <textarea rows="2" data-odexplain="${i}" placeholder="Например: RAM — оперативная память, остальные — накопители">${esc(q.explain)}</textarea>`;
+    }
+
+    if (q.type === 'crossword') {
+      return `
+        <div class="hint" style="margin:0 0 10px">Слова, их определения и позиции в сетке. Сетка строится автоматически по координатам.</div>
+        ${q.words.map((w, j) => `
+          <div class="block-group">
+            <div class="row-item" style="align-items:center">
+              <input type="text" data-cword="${i}" data-idx="${j}" value="${esc(w.word)}" placeholder="СЛОВО" maxlength="20" style="text-transform:uppercase" />
+              <button class="rm" data-rm-cword="${i}" data-idx="${j}" aria-label="Удалить">×</button>
+            </div>
+            <input type="text" data-cclue="${i}" data-idx="${j}" value="${esc(w.clue)}" placeholder="Определение" maxlength="200" style="margin-bottom:8px" />
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <label style="font-size:13px">Строка <input type="number" min="0" max="30" value="${w.row}" data-crow="${i}" data-idx="${j}" style="width:70px;display:inline-block;padding:6px 8px" /></label>
+              <label style="font-size:13px">Столбец <input type="number" min="0" max="30" value="${w.col}" data-ccol="${i}" data-idx="${j}" style="width:70px;display:inline-block;padding:6px 8px" /></label>
+              <select data-cdir="${i}" data-idx="${j}" style="width:auto">
+                <option value="across" ${w.dir === 'across' ? 'selected' : ''}>→ горизонтально</option>
+                <option value="down" ${w.dir === 'down' ? 'selected' : ''}>↓ вертикально</option>
+              </select>
+            </div>
+          </div>`).join('')}
+        <button class="add-link" data-add-cword="${i}">+ Слово</button>
+        <div class="hint">Сетка = минимальный прямоугольник, содержащий все слова. Пересечения должны совпадать по буквам.</div>`;
+    }
+
+    if (q.type === 'schema') {
+      return `
+        <div class="hint" style="margin:0 0 10px">Узлы схемы и связи между ними. У игрока узлы перемешиваются, нужно соединить их правильно.</div>
+        <div class="sub-label">Узлы</div>
+        ${q.nodes.map((t, j) => `
+          <div class="row-item">
+            <span class="ord">${j}</span>
+            <input type="text" data-snode="${i}" data-idx="${j}" value="${esc(t)}" placeholder="Узел ${j + 1}" maxlength="120" />
+            <button class="rm" data-rm-snode="${i}" data-idx="${j}" aria-label="Удалить">×</button>
+          </div>`).join('')}
+        <button class="add-link" data-add-snode="${i}">+ Узел</button>
+        <div class="sub-label" style="margin-top:14px">Связи (пары индексов)</div>
+        ${q.edges.map((e, j) => `
+          <div class="row-item">
+            <select data-sedge-a="${i}" data-idx="${j}" style="flex:1">
+              ${q.nodes.map((n, ni) => `<option value="${ni}" ${e[0] === ni ? 'selected' : ''}>${esc(n)}</option>`).join('')}
+            </select>
+            <span>—</span>
+            <select data-sedge-b="${i}" data-idx="${j}" style="flex:1">
+              ${q.nodes.map((n, ni) => `<option value="${ni}" ${e[1] === ni ? 'selected' : ''}>${esc(n)}</option>`).join('')}
+            </select>
+            <button class="rm" data-rm-sedge="${i}" data-idx="${j}" aria-label="Удалить">×</button>
+          </div>`).join('')}
+        <button class="add-link" data-add-sedge="${i}">+ Связь</button>`;
     }
 
     if (q.type === 'code') {
@@ -605,17 +918,17 @@
       </div>`;
   }
 
-  // Предпросмотр того, что увидит участник: повторы показываются одной кнопкой с числом использований
   function blockPreview(q) {
-    const counts = new Map();
+    const map = new Map();
     [...q.seq, ...q.extra].forEach((t) => {
       const k = String(t).trim();
-      if (k) counts.set(k, (counts.get(k) || 0) + 1);
+      if (!k) return;
+      map.set(k, (map.get(k) || 0) + 1);
     });
-    if (!counts.size) return '';
+    if (!map.size) return '';
     return `
       <div class="sub-label">Блоки у участника (повторы — одна кнопка)</div>
-      <div class="uses-wrap">${[...counts].map(([t, n]) => `<span class="use-chip">${esc(t)}<b>×${n}</b></span>`).join('')}</div>`;
+      <div class="uses-wrap">${[...map].map(([t, n]) => `<span class="use-chip">${esc(t)}<b>×${n}</b></span>`).join('')}</div>`;
   }
 
   function renderQuestions() {
@@ -668,10 +981,16 @@
     btn.addEventListener('click', () => {
       const type = btn.dataset.type;
       const base = { text: '', points: 1, timeLimit: null, image: null };
-      if (type === 'choice') state.questions.push({ ...base, type, options: ['', ''], correct: 0 });
+      if (type === 'choice') state.questions.push({ ...base, type, options: ['', ''], correct: 0, multi: false });
       else if (type === 'open') state.questions.push({ ...base, type, answers: [''] });
       else if (type === 'code') state.questions.push({ ...base, type, code: '', hasBug: false, correctCode: '' });
-      else state.questions.push({ ...base, type, src: '', seq: [], extra: [] });
+      else if (type === 'blocks') state.questions.push({ ...base, type, src: '', seq: [], extra: [] });
+      else if (type === 'match') state.questions.push({ ...base, type, left: ['', ''], right: ['', ''], pairs: [[0, 0], [1, 1]] });
+      else if (type === 'order') state.questions.push({ ...base, type, items: ['', '', ''] });
+      else if (type === 'fill') state.questions.push({ ...base, type, template: '', blanks: [[''], ['']] });
+      else if (type === 'odd') state.questions.push({ ...base, type, items: ['', '', ''], correct: 0, explain: '' });
+      else if (type === 'crossword') state.questions.push({ ...base, type, words: [{ word: '', clue: '', row: 0, col: 0, dir: 'across' }] });
+      else if (type === 'schema') state.questions.push({ ...base, type, nodes: ['', ''], edges: [[0, 1]] });
 
       closeChooser();
       renderQuestions();
@@ -684,7 +1003,7 @@
     });
   });
 
-  // Ввод текста без перерисовки, чтобы не терять фокус
+  // Ввод текста без перерисовки
   $('questionList').addEventListener('input', (e) => {
     const t = e.target;
     const d = t.dataset;
@@ -698,29 +1017,64 @@
     else if (d.extra !== undefined) state.questions[+d.extra].extra[+d.idx] = t.value;
     else if (d.qcustom !== undefined) state.questions[+d.qcustom].timeLimit = clampTime(t.value);
     else if (d.points !== undefined) state.questions[+d.points].points = Math.max(0, parseInt(t.value, 10) || 0);
+    else if (d.mleft !== undefined) state.questions[+d.mleft].left[+d.idx] = t.value;
+    else if (d.mright !== undefined) state.questions[+d.mright].right[+d.idx] = t.value;
+    else if (d.oitem !== undefined) state.questions[+d.oitem].items[+d.idx] = t.value;
+    else if (d.oitemodd !== undefined) state.questions[+d.oitemodd].items[+d.idx] = t.value;
+    else if (d.odexplain !== undefined) state.questions[+d.odexplain].explain = t.value;
+    else if (d.ftemplate !== undefined) state.questions[+d.ftemplate].template = t.value;
+    else if (d.fblanks !== undefined) {
+      state.questions[+d.fblanks].blanks = t.value.split('\n').map((line) => line.split('|').map((s) => s.trim()).filter(Boolean));
+    }
+    else if (d.cword !== undefined) state.questions[+d.cword].words[+d.idx].word = t.value.toUpperCase();
+    else if (d.cclue !== undefined) state.questions[+d.cclue].words[+d.idx].clue = t.value;
+    else if (d.crow !== undefined) state.questions[+d.crow].words[+d.idx].row = Math.max(0, parseInt(t.value, 10) || 0);
+    else if (d.ccol !== undefined) state.questions[+d.ccol].words[+d.idx].col = Math.max(0, parseInt(t.value, 10) || 0);
+    else if (d.snode !== undefined) state.questions[+d.snode].nodes[+d.idx] = t.value;
     else if (d.imgfile !== undefined && t.files && t.files[0]) uploadQuestionImage(+d.imgfile, t.files[0]);
     $('step2Error').textContent = '';
   });
 
-  // Выбор, галочки и время: меняют структуру, поэтому перерисовываем
+  // Изменения структуры
   $('questionList').addEventListener('change', (e) => {
     const t = e.target;
     const d = t.dataset;
     if (d.correct !== undefined) {
-      state.questions[+d.correct].correct = +d.idx;
+      const q = state.questions[+d.correct];
+      if (q.multi) {
+        const arr = Array.isArray(q.correct) ? q.correct : [];
+        const idx = +d.idx;
+        if (t.checked) { if (!arr.includes(idx)) arr.push(idx); }
+        else { const p = arr.indexOf(idx); if (p >= 0) arr.splice(p, 1); }
+        q.correct = arr;
+      } else {
+        q.correct = +d.idx;
+      }
+    } else if (d.multi !== undefined) {
+      const q = state.questions[+d.multi];
+      q.multi = t.checked;
+      if (q.multi && !Array.isArray(q.correct)) q.correct = [q.correct];
+      else if (!q.multi && Array.isArray(q.correct)) q.correct = q.correct[0] ?? 0;
+      renderQuestions();
     } else if (d.qtime !== undefined) {
       const qq = state.questions[+d.qtime];
-      if (t.value === '-1') {
-        qq.customTime = true;
-        qq.timeLimit = qq.timeLimit || 30;
-      } else {
-        qq.customTime = false;
-        qq.timeLimit = +t.value || null;
-      }
+      if (t.value === '-1') { qq.customTime = true; qq.timeLimit = qq.timeLimit || 30; }
+      else { qq.customTime = false; qq.timeLimit = +t.value || null; }
       renderQuestions();
     } else if (d.bug !== undefined) {
       state.questions[+d.bug].hasBug = t.checked;
       renderQuestions();
+    } else if (d.pair !== undefined) {
+      state.questions[+d.pair].pairs[+d.idx][1] = +t.value;
+    } else if (d.odd !== undefined) {
+      state.questions[+d.odd].correct = +d.idx;
+    } else if (d.cdir !== undefined) {
+      state.questions[+d.cdir].words[+d.idx].dir = t.value;
+    } else if (d.sedgeA !== undefined || d.sedgeB !== undefined) {
+      const q = state.questions[+(d.sedgeA ?? d.sedgeB)];
+      const j = +d.idx;
+      if (d.sedgeA !== undefined) q.edges[j][0] = +t.value;
+      else q.edges[j][1] = +t.value;
     }
   });
 
@@ -736,7 +1090,11 @@
     else if (d.rmOpt !== undefined) {
       const qq = q(d.rmOpt); const idx = +d.idx;
       qq.options.splice(idx, 1);
-      if (qq.correct === idx) qq.correct = 0; else if (qq.correct > idx) qq.correct -= 1;
+      if (qq.multi && Array.isArray(qq.correct)) {
+        qq.correct = qq.correct.filter((x) => x !== idx).map((x) => (x > idx ? x - 1 : x));
+        if (!qq.correct.length) qq.correct = [0];
+      } else if (qq.correct === idx) qq.correct = 0;
+      else if (qq.correct > idx) qq.correct -= 1;
     }
     else if (d.addAns !== undefined) { if (q(d.addAns).answers.length < MAX_ANSWERS) q(d.addAns).answers.push(''); }
     else if (d.rmAns !== undefined) q(d.rmAns).answers.splice(+d.idx, 1);
@@ -747,22 +1105,60 @@
     }
     else if (d.addSeq !== undefined) q(d.addSeq).seq.push('');
     else if (d.rmSeq !== undefined) q(d.rmSeq).seq.splice(+d.idx, 1);
-    else if (d.up !== undefined) {
-      const s = q(d.up).seq; const j = +d.idx;
-      [s[j - 1], s[j]] = [s[j], s[j - 1]];
-    }
-    else if (d.down !== undefined) {
-      const s = q(d.down).seq; const j = +d.idx;
-      [s[j + 1], s[j]] = [s[j], s[j + 1]];
-    }
+    else if (d.up !== undefined) { const s = q(d.up).seq; const j = +d.idx; [s[j - 1], s[j]] = [s[j], s[j - 1]]; }
+    else if (d.down !== undefined) { const s = q(d.down).seq; const j = +d.idx; [s[j + 1], s[j]] = [s[j], s[j + 1]]; }
     else if (d.addExtra !== undefined) q(d.addExtra).extra.push('');
     else if (d.rmExtra !== undefined) q(d.rmExtra).extra.splice(+d.idx, 1);
+    // match
+    else if (d.addMleft !== undefined) {
+      const qq = q(d.addMleft);
+      if (qq.left.length < 10) { qq.left.push(''); qq.pairs.push([qq.left.length - 1, 0]); }
+    }
+    else if (d.rmMleft !== undefined) {
+      const qq = q(d.rmMleft); const j = +d.idx;
+      qq.left.splice(j, 1);
+      qq.pairs = qq.pairs.filter((_, k) => k !== j).map((p) => [p[0] > j ? p[0] - 1 : p[0], p[1]]);
+    }
+    else if (d.addMright !== undefined) { if (q(d.addMright).right.length < 10) q(d.addMright).right.push(''); }
+    else if (d.rmMright !== undefined) {
+      const qq = q(d.rmMright); const j = +d.idx;
+      qq.right.splice(j, 1);
+      qq.pairs = qq.pairs.map((p) => [p[0], p[1] > j ? p[1] - 1 : p[1]]);
+    }
+    // order
+    else if (d.addOitem !== undefined) { if (q(d.addOitem).items.length < 20) q(d.addOitem).items.push(''); }
+    else if (d.rmOitem !== undefined) q(d.rmOitem).items.splice(+d.idx, 1);
+    else if (d.oUp !== undefined) { const s = q(d.oUp).items; const j = +d.idx; [s[j - 1], s[j]] = [s[j], s[j - 1]]; }
+    else if (d.oDown !== undefined) { const s = q(d.oDown).items; const j = +d.idx; [s[j + 1], s[j]] = [s[j], s[j + 1]]; }
+    // odd
+    else if (d.addOitemodd !== undefined) { if (q(d.addOitemodd).items.length < 20) q(d.addOitemodd).items.push(''); }
+    else if (d.rmOitemodd !== undefined) {
+      const qq = q(d.rmOitemodd); const j = +d.idx;
+      qq.items.splice(j, 1);
+      if (qq.correct === j) qq.correct = 0;
+      else if (qq.correct > j) qq.correct -= 1;
+    }
+    // crossword
+    else if (d.addCword !== undefined) q(d.addCword).words.push({ word: '', clue: '', row: 0, col: 0, dir: 'across' });
+    else if (d.rmCword !== undefined) q(d.rmCword).words.splice(+d.idx, 1);
+    // schema
+    else if (d.addSnode !== undefined) { if (q(d.addSnode).nodes.length < 20) q(d.addSnode).nodes.push(''); }
+    else if (d.rmSnode !== undefined) {
+      const qq = q(d.rmSnode); const j = +d.idx;
+      qq.nodes.splice(j, 1);
+      qq.edges = qq.edges.filter((e) => e[0] !== j && e[1] !== j).map((e) => [e[0] > j ? e[0] - 1 : e[0], e[1] > j ? e[1] - 1 : e[1]]);
+    }
+    else if (d.addSedge !== undefined) {
+      const qq = q(d.addSedge);
+      if (qq.nodes.length >= 2) qq.edges.push([0, 1]);
+    }
+    else if (d.rmSedge !== undefined) q(d.rmSedge).edges.splice(+d.idx, 1);
     else return;
 
     renderQuestions();
   });
 
-  /* ---------- Проверка ---------- */
+  /* ---------- Валидация ---------- */
   function validate() {
     if (state.questions.length === 0) return 'Добавьте хотя бы один вопрос';
     const mc = $('masterInput').checked;
@@ -775,8 +1171,32 @@
       if (q.type === 'choice') {
         if (q.options.some((o) => !o.trim())) return `Вопрос ${n}: заполните все варианты ответа`;
         if (q.options.length < 2) return `Вопрос ${n}: нужно минимум два варианта`;
+        if (q.multi) {
+          if (!Array.isArray(q.correct) || !q.correct.length) return `Вопрос ${n}: отметьте хотя бы один правильный вариант`;
+        }
       } else if (q.type === 'open') {
         if (q.answers.every((a) => !a.trim())) return `Вопрос ${n}: введите хотя бы один правильный ответ`;
+      } else if (q.type === 'match') {
+        if (q.left.some((t) => !t.trim()) || q.right.some((t) => !t.trim())) return `Вопрос ${n}: заполните все элементы`;
+        if (q.pairs.length !== q.left.length) return `Вопрос ${n}: задайте пару для каждого левого элемента`;
+        if (q.pairs.some((p) => !(p[1] >= 0 && p[1] < q.right.length))) return `Вопрос ${n}: некорректная пара`;
+      } else if (q.type === 'order') {
+        if (q.items.length < 2 || q.items.some((t) => !t.trim())) return `Вопрос ${n}: нужно минимум два заполненных элемента`;
+      } else if (q.type === 'fill') {
+        if (!q.template.includes('{{')) return `Вопрос ${n}: в шаблоне нет пропусков {{n}}`;
+        if (!q.blanks.length || q.blanks.some((b) => !b.length || b.every((x) => !x.trim()))) return `Вопрос ${n}: укажите варианты для всех пропусков`;
+        const count = (q.template.match(/\{\{\d+\}\}/g) || []).length;
+        if (count !== q.blanks.length) return `Вопрос ${n}: в шаблоне ${count} пропусков, а вариантов ${q.blanks.length}`;
+      } else if (q.type === 'odd') {
+        if (q.items.length < 2 || q.items.some((t) => !t.trim())) return `Вопрос ${n}: нужно минимум два заполненных элемента`;
+        if (!(q.correct >= 0 && q.correct < q.items.length)) return `Вопрос ${n}: отметьте лишний элемент`;
+      } else if (q.type === 'crossword') {
+        if (!q.words.length) return `Вопрос ${n}: добавьте слова`;
+        if (q.words.some((w) => !w.word.trim() || !w.clue.trim())) return `Вопрос ${n}: заполните слово и определение`;
+      } else if (q.type === 'schema') {
+        if (q.nodes.length < 2 || q.nodes.some((t) => !t.trim())) return `Вопрос ${n}: нужно минимум два узла`;
+        if (!q.edges.length) return `Вопрос ${n}: укажите хотя бы одну связь`;
+        if (q.edges.some((e) => e[0] === e[1] || e[0] >= q.nodes.length || e[1] >= q.nodes.length)) return `Вопрос ${n}: некорректная связь`;
       } else if (q.type === 'code') {
         if (!mc) return `Вопрос ${n}: тип «Код» доступен только при MasterCode`;
         if (!q.code.trim()) return `Вопрос ${n}: введите код`;
@@ -802,16 +1222,15 @@
     return null;
   }
 
-  /* ---------- Сохранение: публичная часть и ключ ---------- */
-  // В публичном документе квиза правильных ответов НЕТ. Ключ уходит в quizzes/{code}/private/key.
-  // Участники видят только вопросы, варианты и (для блоков) перемешанный набор блоков.
-  // Повторяющийся блок — одна запись с числом использований (вхождения в ответ + лишние)
+  /* ---------- Сохранение ---------- */
   function poolWithUses(answer, extra) {
     const map = new Map();
-    [...answer, ...extra].forEach((t) => map.set(t, 0));
-    answer.forEach((t) => map.set(t, map.get(t) + 1));
-    extra.forEach((t) => map.set(t, map.get(t) + 1));
-    return shuffle([...map.entries()].map(([text, uses]) => ({ text, uses })));
+    [...answer, ...extra].forEach((t) => {
+      const k = String(t).trim();
+      if (!k) return;
+      map.set(k, (map.get(k) || 0) + 1);
+    });
+    return shuffle([...map].map(([text, uses]) => ({ text, uses })));
   }
 
   function splitQuestion(q) {
@@ -823,41 +1242,72 @@
     };
 
     if (q.type === 'choice') {
+      const correct = q.multi ? [...q.correct].sort((a, b) => a - b) : q.correct;
       return {
-        pub: { ...pub, type: 'choice', options: q.options.map((o) => o.trim()) },
-        key: { correct: q.correct }
+        pub: { ...pub, type: 'choice', options: q.options.map((o) => o.trim()), multi: !!q.multi },
+        key: { correct }
       };
     }
     if (q.type === 'open') {
-      return {
-        pub: { ...pub, type: 'open' },
-        key: { answers: q.answers.map((a) => a.trim()).filter(Boolean) }
-      };
+      return { pub: { ...pub, type: 'open' }, key: { answers: q.answers.map((a) => a.trim()).filter(Boolean) } };
     }
     if (q.type === 'code') {
       const answer = q.hasBug ? q.correctCode.trim() : q.code.trim();
       return {
-        pub: {
-          ...pub, type: 'code',
-          // Пример показываем участнику только если он нужно исправить. Иначе поле пустое.
-          starter: q.hasBug ? q.code : '',
-          hasBug: !!q.hasBug
-        },
+        pub: { ...pub, type: 'code', starter: q.hasBug ? q.code : '', hasBug: !!q.hasBug },
         key: { answer }
       };
     }
-    // blocks: в публичной части только перемешанный набор, порядок — в ключе
-    const answer = q.seq.map((b) => b.trim());
-    const extra = q.extra.map((b) => b.trim()).filter(Boolean);
+    if (q.type === 'blocks') {
+      const answer = q.seq.map((b) => b.trim());
+      const extra = q.extra.map((b) => b.trim()).filter(Boolean);
+      return {
+        pub: { ...pub, type: 'blocks', pool: poolWithUses(answer, extra) },
+        key: { answer, extra }
+      };
+    }
+    if (q.type === 'match') {
+      return {
+        pub: { ...pub, type: 'match', left: [...q.left], right: shuffle([...q.right]) },
+        key: { pairs: q.pairs.map((p) => [p[0], p[1]]), rightOriginal: [...q.right] }
+      };
+    }
+    if (q.type === 'order') {
+      return {
+        pub: { ...pub, type: 'order', items: shuffle([...q.items]) },
+        key: { answer: [...q.items] }
+      };
+    }
+    if (q.type === 'fill') {
+      return {
+        pub: { ...pub, type: 'fill', template: q.template, blanksCount: q.blanks.length },
+        key: { blanks: q.blanks.map((b) => b.filter((x) => x.trim())) }
+      };
+    }
+    if (q.type === 'odd') {
+      return {
+        pub: { ...pub, type: 'odd', items: shuffle([...q.items]) },
+        key: { correct: q.correct, explain: q.explain || '', itemsOriginal: [...q.items] }
+      };
+    }
+    if (q.type === 'crossword') {
+      return {
+        pub: { ...pub, type: 'crossword', words: q.words.map((w) => ({ word: w.word, clue: w.clue, row: w.row, col: w.col, dir: w.dir })) },
+        key: { words: q.words.map((w) => w.word) }
+      };
+    }
+    // schema
     return {
-      pub: { ...pub, type: 'blocks', pool: poolWithUses(answer, extra) },
-      key: { answer, extra }
+      pub: { ...pub, type: 'schema', nodes: shuffle([...q.nodes]) },
+      key: { nodesOriginal: [...q.nodes], edges: q.edges.map((e) => [e[0], e[1]]) }
     };
   }
 
   function buildPayload(split) {
     const mc = $('masterInput').checked;
     const skr = $('skrInput').checked;
+    const grades = readGrades();
+    const cleanGrades = grades ? Object.fromEntries(Object.entries(grades).filter(([, v]) => !Number.isNaN(v))) : null;
     return {
       title: state.title.trim(),
       description: state.description.trim(),
@@ -866,14 +1316,12 @@
       showAnswers: $('showAnswersInput').checked,
       shuffleQuestions: $('shuffleInput').checked,
       manualMode: $('manualInput').checked,
-      // Запрет вставки имеет смысл только в защищённых режимах (СКР и MasterCode).
-      // Для обычных квизов всегда false — защита от списывания по умолчанию не включается.
       noPaste: $('noPasteInput').checked && (mc || skr),
       requireName: $('requireNameInput').checked,
       requireGroup: $('requireGroupInput').checked,
       masterCode: mc,
       gradeMode: skr,
-      grades: readGrades(),
+      grades: cleanGrades,
       startsAt: toTs($('startInput').value),
       endsAt: toTs($('endInput').value),
       questions: split.map((s) => s.pub)
@@ -899,7 +1347,6 @@
       payload.updatedAt = serverTimestamp();
       await updateDoc(doc(db, 'quizzes', code), payload);
     }
-    // Ключ пишется отдельно: читать его может только владелец
     await setDoc(doc(db, 'quizzes', code, 'private', 'key'), {
       items: split.map((s) => s.key),
       updatedAt: serverTimestamp()
@@ -947,7 +1394,6 @@
   });
 
   /* ---------- Редактирование ---------- */
-  // Собираем вопрос из публичной части и ключа. Старые квизы (ответы в публичном документе) тоже открываются.
   function fromStored(pub, k) {
     const K = k || pub;
     const base = {
@@ -955,7 +1401,9 @@
       customTime: !!pub.timeLimit && !TIME_OPTIONS.some(([v]) => v === pub.timeLimit)
     };
     if (pub.type === 'choice') {
-      return { ...base, type: 'choice', options: [...pub.options], correct: K.correct ?? 0 };
+      const correct = K.correct ?? 0;
+      const multi = !!pub.multi || Array.isArray(correct);
+      return { ...base, type: 'choice', options: [...(pub.options || [])], correct: multi ? (Array.isArray(correct) ? [...correct] : [correct]) : correct, multi };
     }
     if (pub.type === 'open') {
       const answers = K.answers || [];
@@ -963,15 +1411,35 @@
     }
     if (pub.type === 'code') {
       return {
-        ...base, type: 'code',
-        hasBug: !!pub.hasBug,
+        ...base, type: 'code', hasBug: !!pub.hasBug,
         code: pub.hasBug ? (pub.starter || '') : (K.answer || ''),
         correctCode: pub.hasBug ? (K.answer || '') : ''
       };
     }
-    const answer = K.answer || [];
-    const extra = K.extra || [];
-    return { ...base, type: 'blocks', src: answer.join(' '), seq: [...answer], extra: [...extra] };
+    if (pub.type === 'blocks') {
+      const answer = K.answer || [];
+      const extra = K.extra || [];
+      return { ...base, type: 'blocks', src: (pub.src || answer.join(' ')), seq: [...answer], extra: [...extra] };
+    }
+    if (pub.type === 'match') {
+      return { ...base, type: 'match', left: [...(pub.left || [])], right: [...(K.rightOriginal || pub.right || [])], pairs: (K.pairs || []).map((p) => [...p]) };
+    }
+    if (pub.type === 'order') {
+      return { ...base, type: 'order', items: [...(K.answer || pub.items || [])] };
+    }
+    if (pub.type === 'fill') {
+      return { ...base, type: 'fill', template: pub.template || '', blanks: (K.blanks || []).map((b) => [...b]) };
+    }
+    if (pub.type === 'odd') {
+      return { ...base, type: 'odd', items: [...(K.itemsOriginal || pub.items || [])], correct: K.correct ?? 0, explain: K.explain || '' };
+    }
+    if (pub.type === 'crossword') {
+      return { ...base, type: 'crossword', words: (pub.words || []).map((w, i) => ({ ...w, word: (K.words && K.words[i]) || w.word })) };
+    }
+    if (pub.type === 'schema') {
+      return { ...base, type: 'schema', nodes: [...(K.nodesOriginal || pub.nodes || [])], edges: (K.edges || []).map((e) => [...e]) };
+    }
+    return null;
   }
 
   async function loadForEdit() {
@@ -990,7 +1458,7 @@
 
       state.title = data.title || '';
       state.description = data.description || '';
-      state.questions = (data.questions || []).map((pub, i) => fromStored(pub, items ? items[i] : null));
+      state.questions = (data.questions || []).map((pub, i) => fromStored(pub, items ? items[i] : null)).filter(Boolean);
 
       $('titleInput').value = state.title;
       $('titleCount').textContent = state.title.length;

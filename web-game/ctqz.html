@@ -122,6 +122,38 @@
     .toast.show{transform:translateX(-50%) translateY(0)}
     @media (max-width:560px){.card{padding:22px}.btn-primary,.btn-ghost{width:100%;text-align:center}.logo{font-size:17px}.logo-mark{width:34px;height:34px;font-size:18px}.btn-outline{padding:9px 14px;font-size:13px}}
     @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+    /* === Кроссворд-редактор === */
+    .cw-wrap{position:relative;user-select:none;margin:10px 0 14px;overflow:auto;padding-bottom:6px}
+    .cw-grid{display:grid;gap:2px;position:relative;touch-action:none;width:max-content}
+    .cw-cell{width:34px;height:34px;background:#f5f3fb;border:1px solid #d8cff0;border-radius:6px;display:grid;place-items:center;font-family:"Unbounded",sans-serif;font-weight:900;font-size:15px;color:var(--purple-dark);cursor:pointer;position:relative;transition:background .15s,border-color .15s}
+    .cw-cell.filled{background:#fff;border-color:var(--purple)}
+    .cw-cell.sel{background:#efeaff;border-color:var(--purple)}
+    .cw-cell.active{background:#ffe9b3;border-color:var(--orange)}
+    .cw-cell .cw-num{position:absolute;top:1px;left:2px;font-family:"Manrope",sans-serif;font-size:9px;font-weight:800;color:var(--purple);line-height:1}
+    .cw-cell input{width:100%;height:100%;border:none;background:none;text-align:center;font-family:inherit;font-size:15px;font-weight:900;color:var(--purple-dark);outline:none;padding:0;text-transform:uppercase}
+    .cw-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:6px 0 10px}
+    .cw-toolbar .inline-btn{margin:0}
+    .cw-status{font-size:13px;font-weight:700;color:var(--purple);background:#efeaff;border-radius:999px;padding:6px 12px}
+    .cw-clues{margin-top:10px}
+    .cw-clue-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+    .cw-clue-row .cw-dir{font-family:"Unbounded",sans-serif;font-weight:900;font-size:12px;color:var(--purple);width:22px;flex-shrink:0}
+    .cw-clue-row input{flex:1;background:#f5f3fb;color:var(--purple-dark);font-size:14px;padding:8px 12px}
+    .cw-legend{font-size:12px;color:#6f6790;margin-top:8px;line-height:1.45}
+
+    /* === Пропуски-редактор === */
+    .blank-editor{margin:10px 0 14px}
+    .blank-text{background:#f5f3fb;border-radius:14px;padding:14px;min-height:70px;font-size:16px;line-height:1.9;color:var(--purple-dark);outline:none;border:2px solid transparent;white-space:pre-wrap;word-wrap:break-word}
+    .blank-text:focus{border-color:var(--purple);background:#fff}
+    .blank-chip{display:inline-flex;align-items:center;gap:4px;background:#fff;border:2px solid var(--purple);border-radius:8px;padding:2px 4px 2px 8px;margin:0 3px;font-weight:800;color:var(--purple-dark);vertical-align:baseline}
+    .blank-chip .blank-rm{border:none;background:none;color:var(--purple);font-size:14px;cursor:pointer;line-height:1;padding:2px 4px;border-radius:4px}
+    .blank-chip .blank-rm:hover{background:#ffe3df;color:#b00}
+    .blank-variants{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 0}
+    .blank-row{display:flex;gap:8px;align-items:center;margin-bottom:8px;background:#f7f5fc;padding:10px;border-radius:12px}
+    .blank-row .br-num{font-family:"Unbounded",sans-serif;font-weight:900;font-size:13px;color:var(--purple);width:22px;text-align:center;flex-shrink:0}
+    .blank-row .br-variants{flex:1}
+    .blank-tools{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .blank-tools .inline-btn{margin:0}
   </style>
 </head>
 <body>
@@ -235,6 +267,7 @@
   const TIME_OPTIONS = [[0,'По умолчанию'],[10,'10 секунд'],[15,'15 секунд'],[20,'20 секунд'],[30,'30 секунд'],[45,'45 секунд'],[60,'1 минута'],[90,'1,5 минуты'],[120,'2 минуты']];
   const TYPE_NAMES = { choice:'Обычный тест', open:'Свой ответ', code:'Код', blocks:'Блоки', match:'Соответствие', order:'Порядок', fill:'Пропуски', odd:'Лишний элемент', crossword:'Кроссворд', schema:'Схема связей' };
   const MC_TYPES = ['code','blocks'];
+  const CW_SIZE_DEFAULT = 10;
   const toTs = (v) => (v ? Timestamp.fromDate(new Date(v)) : null);
   const toLocalInput = (ts) => { if (!ts || typeof ts.toDate !== 'function') return ''; const d = ts.toDate(); const p = (n) => String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
   const clampTime = (v) => Math.min(600, Math.max(5, Math.round(Number(v)) || 20));
@@ -324,9 +357,19 @@
     if (t === 'blocks'){ const seq = Array.isArray(raw.seq) ? raw.seq.map(String) : []; const extra = Array.isArray(raw.extra) ? raw.extra.map(String) : []; if (seq.length < 2) throw new Error(`Вопрос ${i+1}: нужно минимум два блока`); return { ...base, type:'blocks', src:String(raw.src||''), seq, extra }; }
     if (t === 'match'){ const left = Array.isArray(raw.left) ? raw.left.map(String) : []; const right = Array.isArray(raw.right) ? raw.right.map(String) : []; const pairs = Array.isArray(raw.pairs) ? raw.pairs.map((p) => [Number(p[0]),Number(p[1])]) : []; if (left.length < 2 || right.length < 2) throw new Error(`Вопрос ${i+1}: минимум по два элемента`); if (pairs.length !== left.length) throw new Error(`Вопрос ${i+1}: пар должно быть столько же, сколько левых`); return { ...base, type:'match', left, right, pairs }; }
     if (t === 'order'){ const items = Array.isArray(raw.items) ? raw.items.map(String) : []; if (items.length < 2) throw new Error(`Вопрос ${i+1}: минимум два элемента`); return { ...base, type:'order', items }; }
-    if (t === 'fill'){ const template = String(raw.template || ''); const blanks = Array.isArray(raw.blanks) ? raw.blanks.map((b) => Array.isArray(b) ? b.map(String) : [String(b)]) : []; if (!template.includes('{{')) throw new Error(`Вопрос ${i+1}: нет пропусков {{n}}`); if (!blanks.length) throw new Error(`Вопрос ${i+1}: укажите варианты пропусков`); return { ...base, type:'fill', template, blanks }; }
+    if (t === 'fill'){
+      const template = String(raw.template || '');
+      const blanks = Array.isArray(raw.blanks) ? raw.blanks.map((b) => Array.isArray(b) ? b.map(String) : [String(b)]) : [];
+      if (!template.includes('{{')) throw new Error(`Вопрос ${i+1}: нет пропусков`);
+      if (!blanks.length) throw new Error(`Вопрос ${i+1}: укажите варианты пропусков`);
+      return { ...base, type:'fill', template, blanks };
+    }
     if (t === 'odd'){ const items = Array.isArray(raw.items) ? raw.items.map(String) : []; const correct = Number(raw.correct); if (items.length < 2) throw new Error(`Вопрос ${i+1}: минимум два элемента`); if (!(correct >= 0 && correct < items.length)) throw new Error(`Вопрос ${i+1}: неверный индекс лишнего`); return { ...base, type:'odd', items, correct, explain:String(raw.explain||'') }; }
-    if (t === 'crossword'){ const words = Array.isArray(raw.words) ? raw.words.map((w) => ({ word:String(w.word||'').toUpperCase(), clue:String(w.clue||''), row:Number(w.row)||0, col:Number(w.col)||0, dir: w.dir === 'down' ? 'down' : 'across' })) : []; if (!words.length) throw new Error(`Вопрос ${i+1}: нет слов`); return { ...base, type:'crossword', words }; }
+    if (t === 'crossword'){
+      const words = Array.isArray(raw.words) ? raw.words.map((w) => ({ word:String(w.word||'').toUpperCase(), clue:String(w.clue||''), row:Number(w.row)||0, col:Number(w.col)||0, dir: w.dir === 'down' ? 'down' : 'across' })) : [];
+      if (!words.length) throw new Error(`Вопрос ${i+1}: нет слов`);
+      return { ...base, type:'crossword', cwSize: Number(raw.cwSize) || CW_SIZE_DEFAULT, words };
+    }
     if (t === 'schema'){ const nodes = Array.isArray(raw.nodes) ? raw.nodes.map(String) : []; const edges = Array.isArray(raw.edges) ? raw.edges.map((e) => [Number(e[0]),Number(e[1])]) : []; if (nodes.length < 2) throw new Error(`Вопрос ${i+1}: минимум два узла`); if (!edges.length) throw new Error(`Вопрос ${i+1}: укажите связи`); return { ...base, type:'schema', nodes, edges }; }
     throw new Error(`Вопрос ${i+1}: неизвестный тип «${t}»`);
   }
@@ -342,6 +385,187 @@
     try { const blob = await compressImage(file); if (blob.size > 700000){ $('step2Error').textContent = 'Фото слишком большое даже после сжатия'; return; } const dataUrl = await blobToDataUrl(blob); const imageId = `${user.uid.slice(0,8)}_${Date.now()}_${Math.random().toString(36).slice(2,8)}`; await setDoc(doc(db,'quizImages',imageId),{ data:dataUrl, ownerUid:user.uid, createdAt: serverTimestamp() }); q.image = { id:imageId, preview:dataUrl }; }
     catch (err){ console.error(err); $('step2Error').textContent = 'Не удалось загрузить фото'; }
     finally { q.uploading = false; renderQuestions(); }
+  }
+
+  /* ===== КРОССВОРД ===== */
+  function cwEnsure(q){ if (!q.cwSize) q.cwSize = CW_SIZE_DEFAULT; }
+  function cwRender(q, i){
+    cwEnsure(q);
+    const grid = document.querySelector(`[data-cwgrid="${i}"]`);
+    if (!grid) return;
+    const N = q.cwSize;
+    grid.style.gridTemplateColumns = `repeat(${N}, 34px)`;
+    grid.innerHTML = '';
+    const cells = {};
+    q.words.forEach((w, wi) => {
+      w.word.split('').forEach((ch, ci) => {
+        const r = w.dir === 'down' ? w.row + ci : w.row;
+        const c = w.dir === 'across' ? w.col + ci : w.col;
+        if (r < 0 || c < 0 || r >= N || c >= N) return;
+        const key = r + ':' + c;
+        if (!cells[key]) cells[key] = { letter:'', num:0 };
+        cells[key].letter = ch;
+        if (ci === 0 && !cells[key].num) cells[key].num = wi + 1;
+      });
+    });
+    for (let r = 0; r < N; r++){
+      for (let c = 0; c < N; c++){
+        const info = cells[r + ':' + c];
+        const cell = document.createElement('div');
+        cell.className = 'cw-cell' + (info ? ' filled' : '');
+        cell.dataset.r = r; cell.dataset.c = c;
+        if (info){
+          if (info.num) cell.innerHTML = `<span class="cw-num">${info.num}</span>`;
+          const inp = document.createElement('input');
+          inp.maxLength = 1;
+          inp.value = info.letter || '';
+          inp.dataset.cwcell = i;
+          inp.dataset.r = r; inp.dataset.c = c;
+          cell.appendChild(inp);
+        }
+        grid.appendChild(cell);
+      }
+    }
+    const clues = document.querySelector(`[data-cwclues="${i}"]`);
+    if (clues){
+      clues.innerHTML = q.words.map((w, wi) => `<div class="cw-clue-row"><span class="cw-dir">${wi+1}</span><input type="text" data-cwclue2="${i}" data-idx="${wi}" value="${esc(w.clue)}" placeholder="Определение (слово из ${w.word.length || '?'} букв)" maxlength="200" /><button class="rm" data-cwrm2="${i}" data-idx="${wi}">×</button></div>`).join('') || '<div class="hint">Слов пока нет.</div>';
+    }
+    const status = document.querySelector(`[data-cwstatus="${i}"]`);
+    if (status) status.textContent = `Слов: ${q.words.filter(w=>w.word.trim()).length} · ${N}×${N}`;
+  }
+
+  function cwCellDown(e, i){
+    const q = state.questions[i]; cwEnsure(q);
+    const cell = e.target.closest('.cw-cell');
+    if (!cell) return;
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    // ищем слово под клеткой
+    let hit = -1;
+    q.words.forEach((w, wi) => {
+      for (let k = 0; k < w.word.length; k++){
+        const rr = w.dir === 'down' ? w.row + k : w.row;
+        const cc = w.dir === 'across' ? w.col + k : w.col;
+        if (rr === r && cc === c) hit = wi;
+      }
+    });
+    q._cwDrag = { wordIdx: hit, startR: r, startC: c, moved: false, startWord: hit >= 0 ? { ...q.words[hit] } : null };
+    if (hit >= 0){
+      // визуально выделим слово
+      const grid = cell.closest('.cw-grid');
+      q.words[hit].word.split('').forEach((_, k) => {
+        const w = q.words[hit];
+        const rr = w.dir === 'down' ? w.row + k : w.row;
+        const cc = w.dir === 'across' ? w.col + k : w.col;
+        const el = grid.querySelector(`.cw-cell[data-r="${rr}"][data-c="${cc}"]`);
+        if (el) el.classList.add('sel');
+      });
+    }
+    e.preventDefault();
+  }
+  function cwCellMove(e, i){
+    const q = state.questions[i]; const d = q && q._cwDrag;
+    if (!d) return;
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const cell = el && el.closest ? el.closest('.cw-cell') : null;
+    if (!cell) return;
+    const grid = cell.closest('.cw-grid');
+    if (!grid || +grid.dataset.cwgrid !== i) return;
+    const r = +cell.dataset.r, c = +cell.dataset.c;
+    if (r === d.startR && c === d.startC) return;
+    d.moved = true;
+    if (d.wordIdx >= 0){
+      // перемещаем существующее слово
+      const w = q.words[d.wordIdx];
+      const vertical = Math.abs(r - d.startR) >= Math.abs(c - d.startC);
+      w.dir = vertical ? 'down' : 'across';
+      w.row = vertical ? Math.min(d.startR, r) : r;
+      w.col = vertical ? c : Math.min(d.startC, c);
+      cwRender(q, i);
+    } else {
+      // подсветим будущее слово
+      const vertical = Math.abs(r - d.startR) >= Math.abs(c - d.startC);
+      const len = vertical ? Math.abs(r - d.startR) + 1 : Math.abs(c - d.startC) + 1;
+      const row = Math.min(d.startR, r), col = Math.min(d.startC, c);
+      grid.querySelectorAll('.cw-cell').forEach((x) => x.classList.remove('active'));
+      for (let k = 0; k < len; k++){
+        const rr = vertical ? row + k : row;
+        const cc = vertical ? col : col + k;
+        const x = grid.querySelector(`.cw-cell[data-r="${rr}"][data-c="${cc}"]`);
+        if (x) x.classList.add('active');
+      }
+      q._cwPending = { row, col, dir: vertical ? 'down' : 'across', len };
+    }
+  }
+  function cwCellUp(e, i){
+    const q = state.questions[i]; const d = q && q._cwDrag;
+    if (!d) return;
+    q._cwDrag = null;
+    if (d.wordIdx >= 0){
+      if (!d.moved && d.startWord){ /* ничего не двигали — вернём как было */ }
+      cwRender(q, i);
+      return;
+    }
+    if (q._cwPending){
+      const p = q._cwPending; q._cwPending = null;
+      const word = prompt('Введите слово (без пробелов):', '');
+      if (word){
+        const clean = word.toUpperCase().replace(/[^А-ЯЁA-Z0-9]/g, '').slice(0, p.len);
+        if (clean.length){
+          q.words.push({ word: clean.padEnd(p.len, '_').slice(0, p.len), clue: '', row: p.row, col: p.col, dir: p.dir });
+        }
+      }
+      cwRender(q, i);
+    } else {
+      const grid = document.querySelector(`[data-cwgrid="${i}"]`);
+      grid && grid.querySelectorAll('.cw-cell').forEach((x) => x.classList.remove('active'));
+    }
+  }
+
+  /* ===== ПРОПУСКИ ===== */
+  function fillRenderEditor(q, i){
+    const host = document.querySelector(`[data-ftext="${i}"]`);
+    if (!host) return;
+    host.innerHTML = '';
+    const tpl = q.template || '';
+    let n = 0;
+    const parts = tpl.split(/(\{\{\d+\}\})/);
+    parts.forEach((p) => {
+      const m = p.match(/^\{\{(\d+)\}\}$/);
+      if (m){
+        n++;
+        const chip = document.createElement('span');
+        chip.className = 'blank-chip';
+        chip.contentEditable = 'false';
+        chip.dataset.blank = n;
+        chip.innerHTML = `[${n}]<button class="blank-rm" data-blankrm="${n}" type="button">×</button>`;
+        host.appendChild(chip);
+      } else if (p){
+        host.appendChild(document.createTextNode(p));
+      }
+    });
+    while (q.blanks.length < n) q.blanks.push(['']);
+    q.blanks.length = n;
+    fillRenderVariants(q, i);
+  }
+  function fillRenderVariants(q, i){
+    const host = document.querySelector(`[data-fvariants="${i}"]`);
+    if (!host) return;
+    host.innerHTML = q.blanks.map((b, bi) => `<div class="blank-row"><span class="br-num">${bi+1}</span><div class="br-variants"><input type="text" data-bvar="${i}" data-idx="${bi}" value="${esc(b.join('|'))}" placeholder="вариант1|вариант2" /></div></div>`).join('') || '<div class="hint">Пока нет пропусков. Выделите слово в тексте и нажмите «Сделать пропуском».</div>';
+  }
+  function fillSerialize(el){
+    let template = ''; let count = 0;
+    const walk = (node) => {
+      node.childNodes.forEach((ch) => {
+        if (ch.nodeType === 3){ template += ch.nodeValue.replace(/\u00a0/g, ' '); }
+        else if (ch.nodeType === 1){
+          if (ch.classList && ch.classList.contains('blank-chip')){ count++; template += `{{${count}}}`; }
+          else if (ch.tagName === 'BR'){ template += '\n'; }
+          else { walk(ch); }
+        }
+      });
+    };
+    walk(el);
+    return { template: template.trim(), count };
   }
 
   /* Рендер вопросов */
@@ -382,11 +606,17 @@
         ${q.items.length < 20 ? `<button class="add-link" data-add-oitem="${i}">+ Элемент</button>` : ''}`;
     }
     if (q.type === 'fill'){
-      return `<div class="hint" style="margin:0 0 10px">Используйте {{1}}, {{2}} для пропусков. Для каждого пропуска — варианты через |.</div>
-        <textarea rows="4" data-ftemplate="${i}" placeholder="HTML-документ начинается с тега {{1}}, а заголовок — {{2}}">${esc(q.template)}</textarea>
-        <div class="sub-label" style="margin-top:12px">Варианты для пропусков (по строке на пропуск, варианты через |)</div>
-        <textarea rows="4" data-fblanks="${i}" placeholder="html|HTML\nh1|H1|заголовок">${esc(q.blanks.map((b) => b.join('|')).join('\n'))}</textarea>
-        <div class="hint">Порядок строк = {{1}}, {{2}}. Регистр не важен.</div>`;
+      return `<div class="hint" style="margin:0 0 10px">Напишите текст, выделите слово (или часть) и нажмите «Сделать пропуском». Белые квадратики можно удалять кнопкой ×.</div>
+        <div class="blank-editor">
+          <div class="blank-text" contenteditable="true" data-ftext="${i}" spellcheck="false"></div>
+          <div class="blank-tools">
+            <button class="inline-btn" data-fmake="${i}">Сделать пропуском выделенное</button>
+            <button class="inline-btn" data-fclear="${i}">Очистить поле</button>
+          </div>
+          <div class="sub-label" style="margin-top:14px">Правильные ответы для пропусков</div>
+          <div data-fvariants="${i}"></div>
+        </div>
+        <div class="hint">Регистр не важен. Можно указать несколько вариантов через | (например: html|HTML).</div>`;
     }
     if (q.type === 'odd'){
       return `<div class="hint" style="margin:0 0 10px">Отметьте лишний элемент.</div>
@@ -396,9 +626,17 @@
         <textarea rows="2" data-odexplain="${i}" placeholder="Почему этот элемент лишний">${esc(q.explain)}</textarea>`;
     }
     if (q.type === 'crossword'){
-      return `<div class="hint" style="margin:0 0 10px">Слова, определения и позиции в сетке.</div>
-        ${q.words.map((w, j) => `<div class="block-group"><div class="row-item"><input type="text" data-cword="${i}" data-idx="${j}" value="${esc(w.word)}" placeholder="СЛОВО" maxlength="20" style="text-transform:uppercase" /><button class="rm" data-rm-cword="${i}" data-idx="${j}">×</button></div><input type="text" data-cclue="${i}" data-idx="${j}" value="${esc(w.clue)}" placeholder="Определение" maxlength="200" style="margin-bottom:8px" /><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label style="font-size:13px">Строка <input type="number" min="0" max="30" value="${w.row}" data-crow="${i}" data-idx="${j}" style="width:70px;display:inline-block;padding:6px 8px" /></label><label style="font-size:13px">Столбец <input type="number" min="0" max="30" value="${w.col}" data-ccol="${i}" data-idx="${j}" style="width:70px;display:inline-block;padding:6px 8px" /></label><select data-cdir="${i}" data-idx="${j}" style="width:auto"><option value="across" ${w.dir==='across'?'selected':''}>→ горизонтально</option><option value="down" ${w.dir==='down'?'selected':''}>↓ вертикально</option></select></div></div>`).join('')}
-        <button class="add-link" data-add-cword="${i}">+ Слово</button>`;
+      return `<div class="hint" style="margin:0 0 10px">Зажмите клетку и потяните по сетке, чтобы создать слово. Существующее слово можно перетащить за любую его клетку.</div>
+        <div class="cw-toolbar">
+          <span class="cw-status" data-cwstatus="${i}">Слов: 0</span>
+          <button class="inline-btn" data-cwadd="${i}">+ Добавить слово</button>
+          <button class="inline-btn" data-cwresize="${i}">± Размер сетки</button>
+          <button class="inline-btn" data-cwclear="${i}">Очистить сетку</button>
+        </div>
+        <div class="cw-wrap"><div class="cw-grid" data-cwgrid="${i}"></div></div>
+        <div class="cw-legend">Сетка 10×10. Буквы в клетках можно править напрямую.</div>
+        <div class="sub-label">Определения</div>
+        <div class="cw-clues" data-cwclues="${i}"></div>`;
     }
     if (q.type === 'schema'){
       return `<div class="hint" style="margin:0 0 10px">Узлы и связи между ними. У игрока узлы перемешиваются.</div>
@@ -426,6 +664,10 @@
     const list = $('questionList');
     if (state.questions.length === 0){ list.innerHTML = '<div class="empty-q">Вопросов пока нет. Нажмите «+ Добавить вопрос».</div>'; return; }
     list.innerHTML = state.questions.map((q, i) => `<div class="q-card"><div class="q-head"><span class="q-num">${i+1}</span><span class="q-type">${TYPE_NAMES[q.type]}</span><button class="q-del" data-del="${i}">×</button></div><input type="text" data-text="${i}" value="${esc(q.text)}" placeholder="Текст вопроса" maxlength="200" /><div class="img-row">${q.image ? `<div class="img-preview">${q.image.preview ? `<img src="${q.image.preview}" alt="" />` : ''}<button class="img-rm" data-imgrm="${i}">×</button></div>` : ''}<label class="add-img">${q.uploading ? 'Загружаем…' : (q.image ? 'Заменить фото' : '+ Добавить фото')}<input type="file" accept="image/*" data-imgfile="${i}" hidden ${q.uploading?'disabled':''} /></label></div><div class="time-row"><label class="time-label">Время</label><select data-qtime="${i}">${TIME_OPTIONS.map(([v,label]) => `<option value="${v}" ${(!q.customTime && (q.timeLimit||0)===v)?'selected':''}>${label}</option>`).join('')}<option value="-1" ${q.customTime?'selected':''}>Другое</option></select>${q.customTime ? `<input type="number" class="custom-q" data-qcustom="${i}" min="5" max="600" value="${q.timeLimit||30}" /><span class="time-label">сек</span>` : ''}<label class="time-label">Баллов</label><input type="number" class="pts-input" data-points="${i}" min="0" max="100" value="${q.points ?? 1}" /></div>${questionBody(q,i)}</div>`).join('');
+    state.questions.forEach((q, i) => {
+      if (q.type === 'crossword') cwRender(q, i);
+      if (q.type === 'fill') fillRenderEditor(q, i);
+    });
   }
 
   function openChooser(){ applyMasterVisibility(); $('chooser').hidden = false; $('addQuestionBtn').hidden = true; $('chooser').scrollIntoView({ behavior:'smooth', block:'center' }); }
@@ -442,9 +684,9 @@
       else if (type === 'blocks') state.questions.push({ ...base, type, src:'', seq:[], extra:[] });
       else if (type === 'match') state.questions.push({ ...base, type, left:['',''], right:['',''], pairs:[[0,0],[1,1]] });
       else if (type === 'order') state.questions.push({ ...base, type, items:['','',''] });
-      else if (type === 'fill') state.questions.push({ ...base, type, template:'', blanks:[[''],['']] });
+      else if (type === 'fill') state.questions.push({ ...base, type, template:'', blanks:[] });
       else if (type === 'odd') state.questions.push({ ...base, type, items:['','',''], correct:0, explain:'' });
-      else if (type === 'crossword') state.questions.push({ ...base, type, words:[{ word:'', clue:'', row:0, col:0, dir:'across' }] });
+      else if (type === 'crossword') state.questions.push({ ...base, type, cwSize: CW_SIZE_DEFAULT, words:[] });
       else if (type === 'schema') state.questions.push({ ...base, type, nodes:['',''], edges:[[0,1]] });
       closeChooser(); renderQuestions(); $('step2Error').textContent = '';
       const cards = document.querySelectorAll('.q-card'); const last = cards[cards.length-1];
@@ -453,8 +695,42 @@
     });
   });
 
+  /* ===== Общие input-обработчики ===== */
   $('questionList').addEventListener('input', (e) => {
     const t = e.target; const d = t.dataset;
+
+    // кроссворд: буквы в клетках
+    if (t.matches('input[data-cwcell]')){
+      const i = +t.dataset.cwcell; const q = state.questions[i];
+      const r = +t.dataset.r, c = +t.dataset.c;
+      const ch = (t.value || '').toUpperCase().replace(/[^А-ЯЁA-Z0-9]/g,'').slice(-1);
+      t.value = ch;
+      q.words.forEach((w) => {
+        for (let k = 0; k < w.word.length; k++){
+          const rr = w.dir === 'down' ? w.row + k : w.row;
+          const cc = w.dir === 'across' ? w.col + k : w.col;
+          if (rr === r && cc === c){
+            w.word = w.word.slice(0,k) + (ch || '_') + w.word.slice(k+1);
+          }
+        }
+      });
+      // перерисовать без потери фокуса — просто обновим статус
+      const status = document.querySelector(`[data-cwstatus="${i}"]`);
+      if (status) status.textContent = `Слов: ${q.words.filter(w=>w.word.trim()).length} · ${q.cwSize||CW_SIZE_DEFAULT}×${q.cwSize||CW_SIZE_DEFAULT}`;
+      return;
+    }
+    // кроссворд: определения
+    if (t.matches('input[data-cwclue2]')){
+      state.questions[+t.dataset.cwclue2].words[+t.dataset.idx].clue = t.value;
+      return;
+    }
+    // пропуски: варианты ответов
+    if (t.matches('input[data-bvar]')){
+      const q = state.questions[+t.dataset.bvar];
+      q.blanks[+t.dataset.idx] = t.value.split('|').map((s) => s.trim()).filter(Boolean);
+      return;
+    }
+
     if (d.text !== undefined) state.questions[+d.text].text = t.value;
     else if (d.opt !== undefined) state.questions[+d.opt].options[+d.idx] = t.value;
     else if (d.ans !== undefined) state.questions[+d.ans].answers[+d.idx] = t.value;
@@ -470,12 +746,6 @@
     else if (d.oitem !== undefined) state.questions[+d.oitem].items[+d.idx] = t.value;
     else if (d.oitemodd !== undefined) state.questions[+d.oitemodd].items[+d.idx] = t.value;
     else if (d.odexplain !== undefined) state.questions[+d.odexplain].explain = t.value;
-    else if (d.ftemplate !== undefined) state.questions[+d.ftemplate].template = t.value;
-    else if (d.fblanks !== undefined) state.questions[+d.fblanks].blanks = t.value.split('\n').map((line) => line.split('|').map((s) => s.trim()).filter(Boolean));
-    else if (d.cword !== undefined) state.questions[+d.cword].words[+d.idx].word = t.value.toUpperCase();
-    else if (d.cclue !== undefined) state.questions[+d.cclue].words[+d.idx].clue = t.value;
-    else if (d.crow !== undefined) state.questions[+d.crow].words[+d.idx].row = Math.max(0, parseInt(t.value,10)||0);
-    else if (d.ccol !== undefined) state.questions[+d.ccol].words[+d.idx].col = Math.max(0, parseInt(t.value,10)||0);
     else if (d.snode !== undefined) state.questions[+d.snode].nodes[+d.idx] = t.value;
     else if (d.imgfile !== undefined && t.files && t.files[0]) uploadQuestionImage(+d.imgfile, t.files[0]);
     $('step2Error').textContent = '';
@@ -498,6 +768,56 @@
 
   $('questionList').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return; const d = b.dataset; const q = (k) => state.questions[+k];
+
+    // === кроссворд ===
+    if (d.cwadd !== undefined){ const idx = +d.cwadd; const qq = q(idx); cwEnsure(qq); qq.words.push({ word:'', clue:'', row:0, col:0, dir:'across' }); cwRender(qq, idx); return; }
+    if (d.cwresize !== undefined){ const idx = +d.cwresize; const qq = q(idx); cwEnsure(qq); qq.cwSize = qq.cwSize >= 16 ? 8 : qq.cwSize + 2; cwRender(qq, idx); return; }
+    if (d.cwclear !== undefined){ const idx = +d.cwclear; const qq = q(idx); qq.words = []; cwRender(qq, idx); return; }
+    if (d.cwrm2 !== undefined){ const idx = +d.cwrm2; const qq = q(idx); qq.words.splice(+d.idx, 1); cwRender(qq, idx); return; }
+
+    // === пропуски ===
+    if (d.fmake !== undefined){
+      const idx = +d.fmake; const qq = q(idx);
+      const host = document.querySelector(`[data-ftext="${idx}"]`);
+      if (!host) return;
+      const sel = window.getSelection();
+      if (!sel.rangeCount || !host.contains(sel.anchorNode)){ showToast('Выделите слово в поле'); return; }
+      const range = sel.getRangeAt(0);
+      if (range.collapsed){ showToast('Выделите слово'); return; }
+      const text = range.toString();
+      if (!text.trim()){ showToast('Выделите слово'); return; }
+      range.deleteContents();
+      const wrap = document.createElement('span');
+      wrap.className = 'blank-chip'; wrap.contentEditable = 'false';
+      const num = qq.blanks.length + 1;
+      wrap.dataset.blank = num;
+      wrap.innerHTML = `[${num}]<button class="blank-rm" data-blankrm="${num}" type="button">×</button>`;
+      range.insertNode(wrap);
+      qq.blanks.push([text.trim()]);
+      sel.removeAllRanges();
+      const ser = fillSerialize(host);
+      qq.template = ser.template;
+      while (qq.blanks.length > ser.count) qq.blanks.pop();
+      fillRenderVariants(qq, idx);
+      return;
+    }
+    if (d.fclear !== undefined){ const idx = +d.fclear; const qq = q(idx); qq.template = ''; qq.blanks = []; fillRenderEditor(qq, idx); return; }
+    if (d.blankrm !== undefined){
+      const chip = b.closest('.blank-chip');
+      if (chip) chip.remove();
+      const card = b.closest('.q-card');
+      const fEl = card.querySelector('[data-ftext]');
+      if (!fEl) return;
+      const idx = +fEl.dataset.ftext; const qq = q(idx);
+      const ser = fillSerialize(fEl);
+      qq.template = ser.template;
+      while (qq.blanks.length > ser.count) qq.blanks.pop();
+      while (qq.blanks.length < ser.count) qq.blanks.push(['']);
+      fillRenderEditor(qq, idx);
+      return;
+    }
+
+    // === обычные ===
     if (d.imgrm !== undefined) q(d.imgrm).image = null;
     else if (d.del !== undefined) state.questions.splice(+d.del, 1);
     else if (d.addOpt !== undefined){ if (q(d.addOpt).options.length < MAX_OPTIONS) q(d.addOpt).options.push(''); }
@@ -521,14 +841,53 @@
     else if (d.oDown !== undefined){ const s = q(d.oDown).items; const j = +d.idx; [s[j+1],s[j]] = [s[j],s[j+1]]; }
     else if (d.addOitemodd !== undefined){ if (q(d.addOitemodd).items.length < 20) q(d.addOitemodd).items.push(''); }
     else if (d.rmOitemodd !== undefined){ const qq = q(d.rmOitemodd); const j = +d.idx; qq.items.splice(j,1); if (qq.correct === j) qq.correct = 0; else if (qq.correct > j) qq.correct -= 1; }
-    else if (d.addCword !== undefined) q(d.addCword).words.push({ word:'', clue:'', row:0, col:0, dir:'across' });
-    else if (d.rmCword !== undefined) q(d.rmCword).words.splice(+d.idx,1);
     else if (d.addSnode !== undefined){ if (q(d.addSnode).nodes.length < 20) q(d.addSnode).nodes.push(''); }
     else if (d.rmSnode !== undefined){ const qq = q(d.rmSnode); const j = +d.idx; qq.nodes.splice(j,1); qq.edges = qq.edges.filter((e) => e[0] !== j && e[1] !== j).map((e) => [e[0] > j ? e[0]-1 : e[0], e[1] > j ? e[1]-1 : e[1]]); }
     else if (d.addSedge !== undefined){ const qq = q(d.addSedge); if (qq.nodes.length >= 2) qq.edges.push([0,1]); }
     else if (d.rmSedge !== undefined) q(d.rmSedge).edges.splice(+d.idx,1);
     else return;
     renderQuestions();
+  });
+
+  /* ===== Кроссворд: drag&drop ===== */
+  $('questionList').addEventListener('mousedown', (e) => {
+    if (e.target.matches('input[data-cwcell]')) return;
+    const cell = e.target.closest('.cw-cell');
+    if (!cell) return;
+    const grid = cell.closest('.cw-grid');
+    if (!grid) return;
+    if (e.button !== 0) return;
+    cwCellDown(e, +grid.dataset.cwgrid);
+  });
+  document.addEventListener('mousemove', (e) => {
+    const active = document.querySelector('.cw-grid');
+    if (!active) return;
+    const i = +active.dataset.cwgrid;
+    if (state.questions[i] && state.questions[i]._cwDrag) cwCellMove(e, i);
+  });
+  document.addEventListener('mouseup', (e) => {
+    const active = document.querySelector('.cw-grid');
+    if (!active) return;
+    const i = +active.dataset.cwgrid;
+    if (state.questions[i] && state.questions[i]._cwDrag) cwCellUp(e, i);
+  });
+  $('questionList').addEventListener('touchstart', (e) => {
+    const cell = e.target.closest('.cw-cell'); if (!cell) return;
+    const grid = cell.closest('.cw-grid'); if (!grid) return;
+    const i = +grid.dataset.cwgrid;
+    cwCellDown({ target: cell, preventDefault(){} }, i);
+    if (e.touches[0]){ const t = e.touches[0]; cwCellMove({ clientX:t.clientX, clientY:t.clientY }, i); }
+  }, { passive:true });
+  $('questionList').addEventListener('touchmove', (e) => {
+    const active = document.querySelector('.cw-grid'); if (!active) return;
+    const i = +active.dataset.cwgrid;
+    if (!state.questions[i] || !state.questions[i]._cwDrag) return;
+    const t = e.touches[0]; if (t) cwCellMove({ clientX:t.clientX, clientY:t.clientY }, i);
+  }, { passive:true });
+  $('questionList').addEventListener('touchend', (e) => {
+    const active = document.querySelector('.cw-grid'); if (!active) return;
+    const i = +active.dataset.cwgrid;
+    if (state.questions[i] && state.questions[i]._cwDrag) cwCellUp(e, i);
   });
 
   function validate(){
@@ -541,9 +900,25 @@
       else if (q.type === 'open'){ if (q.answers.every((a) => !a.trim())) return `Вопрос ${n}: введите правильный ответ`; }
       else if (q.type === 'match'){ if (q.left.some((t) => !t.trim()) || q.right.some((t) => !t.trim())) return `Вопрос ${n}: заполните все элементы`; if (q.pairs.length !== q.left.length) return `Вопрос ${n}: задайте пару для каждого левого`; if (q.pairs.some((p) => !(p[1] >= 0 && p[1] < q.right.length))) return `Вопрос ${n}: некорректная пара`; }
       else if (q.type === 'order'){ if (q.items.length < 2 || q.items.some((t) => !t.trim())) return `Вопрос ${n}: минимум два заполненных элемента`; }
-      else if (q.type === 'fill'){ if (!q.template.includes('{{')) return `Вопрос ${n}: нет пропусков`; if (!q.blanks.length || q.blanks.some((b) => !b.length || b.every((x) => !x.trim()))) return `Вопрос ${n}: укажите варианты пропусков`; const count = (q.template.match(/\{\{\d+\}\}/g) || []).length; if (count !== q.blanks.length) return `Вопрос ${n}: пропусков ${count}, а вариантов ${q.blanks.length}`; }
+      else if (q.type === 'fill'){
+        const count = (q.template.match(/\{\{\d+\}\}/g) || []).length;
+        if (!count) return `Вопрос ${n}: добавьте хотя бы один пропуск`;
+        if (q.blanks.length !== count) return `Вопрос ${n}: число пропусков не совпадает`;
+        if (q.blanks.some((b) => !b.length || b.every((x) => !x.trim()))) return `Вопрос ${n}: укажите правильные ответы для пропусков`;
+      }
       else if (q.type === 'odd'){ if (q.items.length < 2 || q.items.some((t) => !t.trim())) return `Вопрос ${n}: минимум два заполненных элемента`; if (!(q.correct >= 0 && q.correct < q.items.length)) return `Вопрос ${n}: отметьте лишний`; }
-      else if (q.type === 'crossword'){ if (!q.words.length) return `Вопрос ${n}: добавьте слова`; if (q.words.some((w) => !w.word.trim() || !w.clue.trim())) return `Вопрос ${n}: заполните слово и определение`; }
+      else if (q.type === 'crossword'){
+        const N = q.cwSize || CW_SIZE_DEFAULT;
+        const valid = q.words.filter((w) => w.word.trim() && w.clue.trim());
+        if (!valid.length) return `Вопрос ${n}: добавьте хотя бы одно слово с определением`;
+        for (const w of valid){
+          for (let k = 0; k < w.word.length; k++){
+            const r = w.dir === 'down' ? w.row + k : w.row;
+            const c = w.dir === 'across' ? w.col + k : w.col;
+            if (r < 0 || c < 0 || r >= N || c >= N) return `Вопрос ${n}: слово «${w.word}» выходит за сетку`;
+          }
+        }
+      }
       else if (q.type === 'schema'){ if (q.nodes.length < 2 || q.nodes.some((t) => !t.trim())) return `Вопрос ${n}: минимум два узла`; if (!q.edges.length) return `Вопрос ${n}: укажите хотя бы одну связь`; if (q.edges.some((e) => e[0] === e[1] || e[0] >= q.nodes.length || e[1] >= q.nodes.length)) return `Вопрос ${n}: некорректная связь`; }
       else if (q.type === 'code'){ if (!mc) return `Вопрос ${n}: «Код» только с MasterCode`; if (!q.code.trim()) return `Вопрос ${n}: введите код`; if (q.hasBug && !q.correctCode.trim()) return `Вопрос ${n}: введите правильный код`; }
       else if (q.type === 'blocks'){ if (!mc) return `Вопрос ${n}: «Блоки» только с MasterCode`; if (q.seq.length < 2 || q.seq.some((b) => !b.trim())) return `Вопрос ${n}: минимум два блока`; }
@@ -575,7 +950,7 @@
     if (q.type === 'order') return { pub: { ...pub, type:'order', items: [...q.items], shuffleItems: true }, key: { answer: [...q.items] } };
     if (q.type === 'fill') return { pub: { ...pub, type:'fill', template: q.template, blanksCount: q.blanks.length }, key: { blanks: q.blanks.map((b) => b.filter((x) => x.trim())) } };
     if (q.type === 'odd') return { pub: { ...pub, type:'odd', items: [...q.items], shuffleItems: true }, key: { correct: q.correct, explain: q.explain || '' } };
-    if (q.type === 'crossword') return { pub: { ...pub, type:'crossword', words: q.words.map((w) => ({ word: w.word, clue: w.clue, row: w.row, col: w.col, dir: w.dir })) }, key: { words: q.words.map((w) => w.word) } };
+    if (q.type === 'crossword') return { pub: { ...pub, type:'crossword', cwSize: q.cwSize || CW_SIZE_DEFAULT, words: q.words.map((w) => ({ word: w.word, clue: w.clue, row: w.row, col: w.col, dir: w.dir })) }, key: { words: q.words.map((w) => w.word) } };
     return { pub: { ...pub, type:'schema', nodes: [...q.nodes], shuffleNodes: true }, key: { edges: q.edges.map((e) => [e[0], e[1]]) } };
   }
 
@@ -622,7 +997,7 @@
     if (pub.type === 'order') return { ...base, type:'order', items:[...(K.answer || pub.items || [])] };
     if (pub.type === 'fill') return { ...base, type:'fill', template: pub.template || '', blanks:(K.blanks || []).map((b) => [...b]) };
     if (pub.type === 'odd') return { ...base, type:'odd', items:[...(pub.items || [])], correct: K.correct ?? 0, explain: K.explain || '' };
-    if (pub.type === 'crossword'){ return { ...base, type:'crossword', words:(pub.words || []).map((w, i) => ({ ...w, word:(K.words && K.words[i]) || w.word })) }; }
+    if (pub.type === 'crossword'){ return { ...base, type:'crossword', cwSize: pub.cwSize || CW_SIZE_DEFAULT, words:(pub.words || []).map((w, i) => ({ ...w, word:(K.words && K.words[i]) || w.word })) }; }
     if (pub.type === 'schema') return { ...base, type:'schema', nodes:[...(pub.nodes || [])], edges:(K.edges || []).map((e) => [...e]) };
     return null;
   }

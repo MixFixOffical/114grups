@@ -774,14 +774,14 @@ function exportCsv() {
 
 /* =========================================================
    ПОМОЩНИК КЛАССНОГО РУКОВОДИТЕЛЯ
-   Для каждой группы вводятся: сколько писали и сколько получили 5/4/3/2.
+   Для каждой группы вводятся: сколько писали, сколько получили 5/4/3/2 и сколько «н/а».
    Считаем:
      - проценты по каждой оценке (от «писали»), округление до 0,1
      - успеваемость = (на 5 + на 4 + на 3) / писали × 100
      - качество знаний = (на 5 + на 4) / писали × 100
-     - СОУ = (5·кол-во «5» + 4·кол-во «4» + 3·кол-во «3» + 2·кол-во «2») / (5 × писали) × 100
-       (делим на 5 — максимальную оценку, чтобы получить процент; округление до 0,01)
-     - средний балл = (5·кол-во «5» + 4·кол-во «4» + 3·кол-во «3» + 2·кол-во «2») / писали, округление до 0,01
+     - СОУ = (100·n5 + 64·n4 + 36·n3 + 16·n2 + 7·n(н/а)) / общее число учащихся, округление до 0,01
+       общее число учащихся = писали + «н/а»
+     - средний балл = (5·n5 + 4·n4 + 3·n3 + 2·n2) / писали, округление до 0,01
    Проверки:
      - сумма оценок должна равняться «писали»
      - сумма процентов должна быть 100% (допускается 99,9% — из-за округления)
@@ -790,11 +790,12 @@ function exportCsv() {
 
 const helperState = {
     groups: ["111", "112", "113", "114", "115"],
-    data: {}           // группа -> { wrote, c5, c4, c3, c2 }
+    data: {}           // группа -> { wrote, c5, c4, c3, c2, na }
 };
 
 const GRADES = [5, 4, 3, 2];
-const EMPTY_DATA = () => ({ wrote: 0, c5: 0, c4: 0, c3: 0, c2: 0 });
+const SOU_WEIGHTS = { 5: 100, 4: 64, 3: 36, 2: 16, na: 7 };
+const EMPTY_DATA = () => ({ wrote: 0, c5: 0, c4: 0, c3: 0, c2: 0, na: 0 });
 
 function hData(g) {
     if (!helperState.data[g]) helperState.data[g] = EMPTY_DATA();
@@ -805,16 +806,22 @@ function fmtPct(v) {
     return v === null || v === undefined ? "—" : v.toFixed(1) + "%";
 }
 
-function fmtPct2(v) {
-    return v === null || v === undefined ? "—" : v.toFixed(2) + "%";
+function fmtNum2(v) {
+    return v === null || v === undefined ? "—" : v.toFixed(2);
 }
 
-// Чистый расчёт по набору данных { wrote, c5, c4, c3, c2 }
+// Чистый расчёт по набору данных { wrote, c5, c4, c3, c2, na }
 function calcData(d) {
     const wrote = d.wrote || 0;
+    const na = d.na || 0;
     const cnt = { 5: d.c5 || 0, 4: d.c4 || 0, 3: d.c3 || 0, 2: d.c2 || 0 };
     const sum = GRADES.reduce((s, k) => s + cnt[k], 0);
-    const res = { wrote, cnt, sum, pct: null, psum: null, success: null, quality: null, sou: null, avg: null, errors: [], warnings: [] };
+    const res = {
+        wrote, na, cnt, sum,
+        pct: null, psum: null,
+        success: null, quality: null, sou: null, avg: null,
+        errors: [], warnings: []
+    };
 
     if (wrote <= 0) {
         if (sum > 0) res.errors.push("Введите количество писавших");
@@ -846,8 +853,12 @@ function calcData(d) {
 
     res.success = Math.round((cnt[5] + cnt[4] + cnt[3]) / wrote * 1000) / 10;
     res.quality = Math.round((cnt[5] + cnt[4]) / wrote * 1000) / 10;
-    res.sou = Math.round(weighted / (5 * wrote) * 10000) / 100;
     res.avg = Math.round(weighted / wrote * 100) / 100;
+
+    const total = wrote + na;
+    const souSum = cnt[5] * SOU_WEIGHTS[5] + cnt[4] * SOU_WEIGHTS[4] + cnt[3] * SOU_WEIGHTS[3]
+                 + cnt[2] * SOU_WEIGHTS[2] + na * SOU_WEIGHTS.na;
+    res.sou = total > 0 ? Math.round(souSum / total * 100) / 100 : null;
 
     return res;
 }
@@ -870,6 +881,13 @@ function renderGroupResults(g) {
             <td class="num">${r.pct ? fmtPct(r.pct[k]) : "—"}</td>
         </tr>`).join("");
 
+    const naRow = `
+        <tr>
+            <td>н/а</td>
+            <td class="num">${r.na}</td>
+            <td class="num">—</td>
+        </tr>`;
+
     const msgs = [
         ...r.errors.map(t => `<div class="msg err">⚠ ${esc(t)}</div>`),
         ...r.warnings.map(t => `<div class="msg warn">${esc(t)}</div>`)
@@ -881,6 +899,7 @@ function renderGroupResults(g) {
                 <thead><tr><th>Оценка</th><th class="num">Кол-во</th><th class="num">Доля</th></tr></thead>
                 <tbody>
                     ${rows}
+                    ${naRow}
                     <tr class="total">
                         <td>Итого</td>
                         <td class="num">${r.sum}</td>
@@ -900,11 +919,11 @@ function renderGroupResults(g) {
             </div>
             <div class="stat">
                 <div class="stat-label">Степень обученности (СОУ)</div>
-                <div class="stat-value">${fmtPct2(r.sou)}</div>
+                <div class="stat-value">${fmtNum2(r.sou)}</div>
             </div>
             <div class="stat">
                 <div class="stat-label">Средний балл</div>
-                <div class="stat-value">${r.avg === null ? "—" : r.avg.toFixed(2)}</div>
+                <div class="stat-value">${fmtNum2(r.avg)}</div>
             </div>
         </div>
         ${msgs}`;
@@ -936,8 +955,8 @@ function renderHelperSummary() {
             <td class="num">${cell(r, 2)}</td>
             <td class="num">${fmtPct(r.success)}</td>
             <td class="num">${fmtPct(r.quality)}</td>
-            <td class="num">${fmtPct2(r.sou)}</td>
-            <td class="num">${r.avg === null ? "—" : r.avg.toFixed(2)}</td>
+            <td class="num">${fmtNum2(r.sou)}</td>
+            <td class="num">${fmtNum2(r.avg)}</td>
             <td>${status}</td>
         </tr>`;
     };
@@ -948,7 +967,7 @@ function renderHelperSummary() {
     const tot = EMPTY_DATA();
     helperState.groups.forEach(g => {
         const d = hData(g);
-        ["wrote", "c5", "c4", "c3", "c2"].forEach(f => tot[f] += d[f] || 0);
+        ["wrote", "c5", "c4", "c3", "c2", "na"].forEach(f => tot[f] += d[f] || 0);
     });
     if (tot.wrote > 0) {
         lines.push(rowHtml("Итого", calcData(tot), true));
@@ -986,6 +1005,9 @@ function renderHelperGroups() {
                     </label>
                     <label class="field"><span>На 2</span>
                         <input type="number" min="0" data-g="${esc(g)}" data-f="c2" value="${v("c2")}">
+                    </label>
+                    <label class="field"><span>н/а</span>
+                        <input type="number" min="0" data-g="${esc(g)}" data-f="na" value="${v("na")}">
                     </label>
                 </div>
                 <div data-results="${esc(g)}"></div>

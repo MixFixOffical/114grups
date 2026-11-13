@@ -101,6 +101,18 @@ button,input,select{font-family:inherit;font-size:13px}
 .head h1{margin-top:8px;font-size:22px;font-weight:700;letter-spacing:-.4px}
 .head .sub{margin-top:4px;color:var(--text-secondary);font-size:13px}
 
+/* ---------- mode switch ---------- */
+.mode-switch{
+    display:inline-flex;gap:4px;margin-top:12px;padding:3px;
+    background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);
+}
+.mode-btn{
+    height:30px;padding:0 14px;border:none;border-radius:6px;cursor:pointer;
+    background:transparent;color:var(--text-secondary);font-weight:500;
+}
+.mode-btn:hover{color:var(--text)}
+.mode-btn.active{background:var(--accent-dark);color:#fff}
+
 /* ---------- cards ---------- */
 .card{
     background:var(--surface);
@@ -162,6 +174,7 @@ tbody tr:hover td{background:var(--surface-2)}
 td.name{font-weight:500;max-width:340px;overflow:hidden;text-overflow:ellipsis}
 tr.risk td{background:var(--red-soft)}
 tr.risk td.name{color:var(--red)}
+tr.total td{font-weight:600;background:var(--surface-2)}
 
 .pct{display:inline-block;min-width:58px;text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
 .pct.bad{color:var(--red)}
@@ -184,10 +197,41 @@ tr.risk td.name{color:var(--red)}
 .btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
 .btn.primary{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
 .btn.primary:hover{background:var(--accent);border-color:var(--accent)}
+.btn.small{height:28px;padding:0 10px;font-size:12px}
 .search{width:220px;height:36px}
 
 .note{margin-top:4px;font-size:12px;color:var(--text-light);min-height:16px}
 .note.error{color:var(--red)}
+
+/* ---------- helper mode ---------- */
+.add-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+.add-row input{
+    height:36px;width:180px;padding:0 10px;border-radius:var(--radius-sm);
+    border:1px solid var(--border);background:var(--surface-2);color:var(--text);
+}
+.add-row input:focus{outline:none;border-color:var(--accent)}
+.plus{
+    width:36px;height:36px;border-radius:var(--radius-sm);cursor:pointer;
+    border:1px solid var(--border);background:var(--surface);color:var(--accent);
+    font-size:20px;line-height:1;font-weight:600;
+}
+.plus:hover{background:var(--surface-2);border-color:var(--accent)}
+.settings{margin-bottom:16px}
+.settings .filters-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.groups-grid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;margin-bottom:16px;
+}
+.groups-grid .card{margin-bottom:0}
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:14px}
+.metrics .stat{padding:10px 12px}
+.metrics .stat-value{font-size:18px}
+.msg{margin-top:10px;padding:8px 10px;border-radius:var(--radius-sm);font-size:12.5px;line-height:1.45}
+.msg.err{background:var(--red-soft);color:var(--red)}
+.msg.warn{background:var(--amber-soft);color:var(--amber)}
+.tag-ok{color:var(--green);font-weight:600}
+.tag-err{color:var(--red);font-weight:600}
+.cell-sub{color:var(--text-light);font-size:12px;margin-left:4px}
+.grade-table th,.grade-table td{padding:7px 12px}
 
 /* ---------- loader ---------- */
 .loader{
@@ -200,21 +244,24 @@ tr.risk td.name{color:var(--red)}
 /* ---------- responsive ---------- */
 @media (max-width:1024px){
     .filters-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .settings .filters-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
     .summary{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
 @media (max-width:640px){
     .wrap{padding:16px 16px 36px}
-    .filters-grid{grid-template-columns:1fr}
+    .filters-grid,.settings .filters-grid{grid-template-columns:1fr}
     .summary{grid-template-columns:1fr 1fr}
     .search{width:100%}
     .card-head .actions{width:100%}
     .card-head .actions .btn{flex:1}
+    .groups-grid{grid-template-columns:1fr}
+    .add-row input{width:100%;flex:1}
 }
 
 /* ---------- print ---------- */
 @media print{
     body{background:#fff;color:#000}
-    .back,.filters,.card-head .actions,.note{display:none!important}
+    .back,.filters,.card-head .actions,.note,.mode-switch,.add-row{display:none!important}
     .card,.stat{box-shadow:none;border-color:#ccc;background:#fff}
     tr.risk td{background:#fff}
 }
@@ -230,78 +277,132 @@ tr.risk td.name{color:var(--red)}
         <a class="back" href="adminhome.html">← Панель управления</a>
         <h1>Отчёты</h1>
         <p class="sub">Посещаемость по группам и студентам за выбранный период</p>
+        <div class="mode-switch" role="tablist">
+            <button class="mode-btn active" data-mode="reports" role="tab">Отчёты</button>
+            <button class="mode-btn" data-mode="helper" role="tab">Помощник · кл. рук.</button>
+        </div>
     </header>
 
-    <section class="card">
-        <div class="pad">
-            <div class="presets" id="presets">
-                <button class="chip" data-preset="7">7 дней</button>
-                <button class="chip" data-preset="30">30 дней</button>
-                <button class="chip" data-preset="month">Текущий месяц</button>
+    <!-- ===================== РЕЖИМ: ОТЧЁТЫ ===================== -->
+    <div id="reportsMode">
+        <section class="card">
+            <div class="pad">
+                <div class="presets" id="presets">
+                    <button class="chip" data-preset="7">7 дней</button>
+                    <button class="chip" data-preset="30">30 дней</button>
+                    <button class="chip" data-preset="month">Текущий месяц</button>
+                </div>
+                <div class="filters-grid filters">
+                    <label class="field"><span>С даты</span><input type="date" id="dateFrom"></label>
+                    <label class="field"><span>По дату</span><input type="date" id="dateTo"></label>
+                    <label class="field"><span>Группа</span>
+                        <select id="groupSelect"><option value="">Все группы</option></select>
+                    </label>
+                    <label class="field"><span>Порог риска, %</span>
+                        <input type="number" id="threshold" min="0" max="100" value="60">
+                    </label>
+                </div>
             </div>
-            <div class="filters-grid filters">
-                <label class="field"><span>С даты</span><input type="date" id="dateFrom"></label>
-                <label class="field"><span>По дату</span><input type="date" id="dateTo"></label>
-                <label class="field"><span>Группа</span>
-                    <select id="groupSelect"><option value="">Все группы</option></select>
-                </label>
-                <label class="field"><span>Порог риска, %</span>
-                    <input type="number" id="threshold" min="0" max="100" value="60">
-                </label>
+        </section>
+
+        <section class="summary" id="summary" aria-live="polite"></section>
+
+        <section class="card">
+            <div class="card-head">
+                <h2>По группам</h2>
             </div>
-        </div>
-    </section>
-
-    <section class="summary" id="summary" aria-live="polite"></section>
-
-    <section class="card">
-        <div class="card-head">
-            <h2>По группам</h2>
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Группа</th>
-                        <th class="num">Студентов</th>
-                        <th>Посещаемость</th>
-                        <th class="num">Пропусков</th>
-                        <th class="num">Уважит.</th>
-                        <th class="num">Неуважит.</th>
-                    </tr>
-                </thead>
-                <tbody id="groupsBody"></tbody>
-            </table>
-        </div>
-    </section>
-
-    <section class="card">
-        <div class="card-head">
-            <h2>По студентам</h2>
-            <div class="actions">
-                <input type="search" class="search" id="search" placeholder="Поиск по ФИО">
-                <button class="btn primary" id="exportBtn">Экспорт CSV</button>
-                <button class="btn" id="printBtn">Печать</button>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Группа</th>
+                            <th class="num">Студентов</th>
+                            <th>Посещаемость</th>
+                            <th class="num">Пропусков</th>
+                            <th class="num">Уважит.</th>
+                            <th class="num">Неуважит.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="groupsBody"></tbody>
+                </table>
             </div>
-        </div>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Студент</th>
-                        <th>Группа</th>
-                        <th class="num">Отметок</th>
-                        <th class="num">Присутствий</th>
-                        <th class="num">Пропусков</th>
-                        <th>Посещаемость</th>
-                    </tr>
-                </thead>
-                <tbody id="studentsBody"></tbody>
-            </table>
-        </div>
-    </section>
+        </section>
 
-    <p class="note" id="note"></p>
+        <section class="card">
+            <div class="card-head">
+                <h2>По студентам</h2>
+                <div class="actions">
+                    <input type="search" class="search" id="search" placeholder="Поиск по ФИО">
+                    <button class="btn primary" id="exportBtn">Экспорт CSV</button>
+                    <button class="btn" id="printBtn">Печать</button>
+                </div>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Студент</th>
+                            <th>Группа</th>
+                            <th class="num">Отметок</th>
+                            <th class="num">Присутствий</th>
+                            <th class="num">Пропусков</th>
+                            <th>Посещаемость</th>
+                        </tr>
+                    </thead>
+                    <tbody id="studentsBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <p class="note" id="note"></p>
+    </div>
+
+    <!-- ===================== РЕЖИМ: ПОМОЩНИК КЛ. РУК. ===================== -->
+    <div id="helperMode" hidden>
+
+        <section class="card settings">
+            <div class="card-head"><h2>Настройки расчёта</h2></div>
+            <div class="pad">
+                <div class="filters-grid">
+                    <label class="field"><span>Вид контроля</span>
+                        <input type="text" id="controlName" value="Входной контроль">
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <div class="add-row">
+            <input type="text" id="newGroup" placeholder="Номер группы, например 116">
+            <button class="plus" id="addGroupBtn" title="Добавить группу">+</button>
+            <p class="note" id="helperNote"></p>
+        </div>
+
+        <div class="groups-grid" id="groupGrid"></div>
+
+        <section class="card">
+            <div class="card-head">
+                <h2 id="summaryTitle">Сводка · Входной контроль</h2>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Группа</th>
+                            <th class="num">Писали</th>
+                            <th class="num">На 5</th>
+                            <th class="num">На 4</th>
+                            <th class="num">На 3</th>
+                            <th class="num">На 2</th>
+                            <th class="num">Качество знаний</th>
+                            <th class="num">СОУ</th>
+                            <th>Проверка</th>
+                        </tr>
+                    </thead>
+                    <tbody id="helperSummaryBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </div>
 </main>
 
 <script>
@@ -668,7 +769,298 @@ function exportCsv() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/* ---------- события ---------- */
+/* =========================================================
+   ПОМОЩНИК КЛАССНОГО РУКОВОДИТЕЛЯ
+   Для каждой группы вводятся: сколько писали и сколько получили 5/4/3/2.
+   Считаем:
+     - проценты по каждой оценке (от «писали»), округление до 0,1
+     - качество знаний = (на 5 + на 4) / писали × 100
+     - СОУ = (5·кол-во «5» + 4·кол-во «4» + 3·кол-во «3» + 2·кол-во «2») / (5 × писали) × 100
+       (делим на 5 — максимальную оценку, чтобы получить процент; округление до 0,01)
+   Проверки:
+     - сумма оценок должна равняться «писали»
+     - сумма процентов должна быть 100% (допускается 99,9% — из-за округления)
+   Не рассчитывается, пока не введено «писали».
+========================================================= */
+
+const helperState = {
+    groups: ["111", "112", "113", "114", "115"],
+    data: {}           // группа -> { wrote, c5, c4, c3, c2 }
+};
+
+const GRADES = [5, 4, 3, 2];
+const EMPTY_DATA = () => ({ wrote: 0, c5: 0, c4: 0, c3: 0, c2: 0 });
+
+function hData(g) {
+    if (!helperState.data[g]) helperState.data[g] = EMPTY_DATA();
+    return helperState.data[g];
+}
+
+function fmtPct(v) {
+    return v === null || v === undefined ? "—" : v.toFixed(1) + "%";
+}
+
+function fmtPct2(v) {
+    return v === null || v === undefined ? "—" : v.toFixed(2) + "%";
+}
+
+// Чистый расчёт по набору данных { wrote, c5, c4, c3, c2 }
+function calcData(d) {
+    const wrote = d.wrote || 0;
+    const cnt = { 5: d.c5 || 0, 4: d.c4 || 0, 3: d.c3 || 0, 2: d.c2 || 0 };
+    const sum = GRADES.reduce((s, k) => s + cnt[k], 0);
+    const res = { wrote, cnt, sum, pct: null, psum: null, quality: null, sou: null, errors: [], warnings: [] };
+
+    if (wrote <= 0) {
+        if (sum > 0) res.errors.push("Введите количество писавших");
+        return res;
+    }
+
+    if (sum !== wrote) {
+        res.errors.push(`Сумма оценок (${sum}) не равна количеству писавших (${wrote})`);
+    }
+
+    res.pct = {};
+    let psum = 0;
+    GRADES.forEach(k => {
+        res.pct[k] = Math.round(cnt[k] / wrote * 1000) / 10;
+        psum += res.pct[k];
+    });
+    psum = Math.round(psum * 10) / 10;
+    res.psum = psum;
+
+    if (psum === 100) {
+        // всё сходится
+    } else if (psum === 99.9) {
+        res.warnings.push("Сумма процентов 99,9% — из-за округления до десятых");
+    } else {
+        res.errors.push(`Сумма процентов ${psum.toFixed(1)}%, должна быть 100%`);
+    }
+
+    res.quality = Math.round((cnt[5] + cnt[4]) / wrote * 1000) / 10;
+    const weighted = GRADES.reduce((s, k) => s + k * cnt[k], 0);
+    res.sou = Math.round(weighted / (5 * wrote) * 10000) / 100;
+
+    return res;
+}
+
+function renderGroupResults(g) {
+    const box = document.querySelector(`[data-results="${CSS.escape(g)}"]`);
+    if (!box) return;
+
+    const r = calcData(hData(g));
+
+    if (r.wrote <= 0 && !r.errors.length) {
+        box.innerHTML = `<div class="empty" style="padding:14px 0">Введите количество писавших — расчёт появится здесь</div>`;
+        return;
+    }
+
+    const rows = GRADES.map(k => `
+        <tr>
+            <td>На ${k}</td>
+            <td class="num">${r.cnt[k]}</td>
+            <td class="num">${r.pct ? fmtPct(r.pct[k]) : "—"}</td>
+        </tr>`).join("");
+
+    const msgs = [
+        ...r.errors.map(t => `<div class="msg err">⚠ ${esc(t)}</div>`),
+        ...r.warnings.map(t => `<div class="msg warn">${esc(t)}</div>`)
+    ].join("");
+
+    box.innerHTML = `
+        <div class="table-wrap">
+            <table class="grade-table">
+                <thead><tr><th>Оценка</th><th class="num">Кол-во</th><th class="num">Доля</th></tr></thead>
+                <tbody>
+                    ${rows}
+                    <tr class="total">
+                        <td>Итого</td>
+                        <td class="num">${r.sum}</td>
+                        <td class="num">${fmtPct(r.psum)}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="metrics">
+            <div class="stat">
+                <div class="stat-label">Качество знаний</div>
+                <div class="stat-value">${fmtPct(r.quality)}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">СОУ</div>
+                <div class="stat-value">${fmtPct2(r.sou)}</div>
+            </div>
+        </div>
+        ${msgs}`;
+}
+
+function renderHelperSummary() {
+    const body = $("helperSummaryBody");
+    $("summaryTitle").textContent = `Сводка · ${$("controlName").value.trim() || "Контроль"}`;
+
+    if (!helperState.groups.length) {
+        body.innerHTML = `<tr><td colspan="9" class="empty">Нет групп — добавьте через «+»</td></tr>`;
+        return;
+    }
+
+    const cell = (r, k) => `${r.cnt[k]}<span class="cell-sub">${r.pct ? fmtPct(r.pct[k]) : "—"}</span>`;
+
+    const lines = helperState.groups.map(g => {
+        const r = calcData(hData(g));
+        const ok = r.wrote > 0 && r.errors.length === 0;
+        const status = r.wrote <= 0
+            ? `<span class="cell-sub">нет данных</span>`
+            : ok ? `<span class="tag-ok">✓ верно</span>` : `<span class="tag-err">ошибка</span>`;
+        return `
+        <tr>
+            <td class="name">${esc(g)}</td>
+            <td class="num">${r.wrote || "—"}</td>
+            <td class="num">${cell(r, 5)}</td>
+            <td class="num">${cell(r, 4)}</td>
+            <td class="num">${cell(r, 3)}</td>
+            <td class="num">${cell(r, 2)}</td>
+            <td class="num">${fmtPct(r.quality)}</td>
+            <td class="num">${fmtPct2(r.sou)}</td>
+            <td>${status}</td>
+        </tr>`;
+    });
+
+    // Итог по всем группам
+    const tot = EMPTY_DATA();
+    helperState.groups.forEach(g => {
+        const d = hData(g);
+        ["wrote", "c5", "c4", "c3", "c2"].forEach(f => tot[f] += d[f] || 0);
+    });
+    const t = calcData(tot);
+    if (tot.wrote > 0) {
+        lines.push(`
+        <tr class="total">
+            <td>Итого</td>
+            <td class="num">${t.wrote}</td>
+            <td class="num">${cell(t, 5)}</td>
+            <td class="num">${cell(t, 4)}</td>
+            <td class="num">${cell(t, 3)}</td>
+            <td class="num">${cell(t, 2)}</td>
+            <td class="num">${fmtPct(t.quality)}</td>
+            <td class="num">${fmtPct2(t.sou)}</td>
+            <td>${t.errors.length ? `<span class="tag-err">ошибка</span>` : `<span class="tag-ok">✓ верно</span>`}</td>
+        </tr>`);
+    }
+
+    body.innerHTML = lines.join("");
+}
+
+function renderHelperGroups() {
+    helperState.groups.sort((a, b) => a.localeCompare(b, "ru", { numeric: true }));
+    const grid = $("groupGrid");
+
+    grid.innerHTML = helperState.groups.map(g => {
+        const d = hData(g);
+        const v = k => (d[k] ? d[k] : "");
+        return `
+        <section class="card">
+            <div class="card-head">
+                <h2>Группа ${esc(g)}</h2>
+                <button class="btn small" data-remove="${esc(g)}">Удалить</button>
+            </div>
+            <div class="pad">
+                <div class="filters-grid">
+                    <label class="field"><span>Писали</span>
+                        <input type="number" min="0" data-g="${esc(g)}" data-f="wrote" value="${v("wrote")}">
+                    </label>
+                    <label class="field"><span>На 5</span>
+                        <input type="number" min="0" data-g="${esc(g)}" data-f="c5" value="${v("c5")}">
+                    </label>
+                    <label class="field"><span>На 4</span>
+                        <input type="number" min="0" data-g="${esc(g)}" data-f="c4" value="${v("c4")}">
+                    </label>
+                    <label class="field"><span>На 3</span>
+                        <input type="number" min="0" data-g="${esc(g)}" data-f="c3" value="${v("c3")}">
+                    </label>
+                    <label class="field"><span>На 2</span>
+                        <input type="number" min="0" data-g="${esc(g)}" data-f="c2" value="${v("c2")}">
+                    </label>
+                </div>
+                <div data-results="${esc(g)}"></div>
+            </div>
+        </section>`;
+    }).join("");
+
+    helperState.groups.forEach(renderGroupResults);
+    renderHelperSummary();
+}
+
+function addHelperGroup() {
+    const input = $("newGroup");
+    const name = input.value.trim();
+    const note = $("helperNote");
+    if (!name) {
+        note.textContent = "Введите номер группы";
+        note.classList.add("error");
+        return;
+    }
+    if (helperState.groups.includes(name)) {
+        note.textContent = "Такая группа уже есть";
+        note.classList.add("error");
+        return;
+    }
+    helperState.groups.push(name);
+    hData(name);
+    input.value = "";
+    note.textContent = "";
+    note.classList.remove("error");
+    renderHelperGroups();
+}
+
+function removeHelperGroup(g) {
+    helperState.groups = helperState.groups.filter(x => x !== g);
+    delete helperState.data[g];
+    renderHelperGroups();
+}
+
+function setMode(mode) {
+    $("reportsMode").hidden = mode !== "reports";
+    $("helperMode").hidden = mode !== "helper";
+    document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+}
+
+function parseCoef(v, fallback) {
+    const n = parseFloat(String(v).replace(",", "."));
+    return isNaN(n) ? fallback : n;
+}
+
+function initHelper() {
+    const grid = $("groupGrid");
+
+    grid.addEventListener("input", e => {
+        const g = e.target.dataset.g;
+        const f = e.target.dataset.f;
+        if (!g || !f) return;
+        hData(g)[f] = Math.max(0, parseInt(e.target.value, 10) || 0);
+        renderGroupResults(g);
+        renderHelperSummary();
+    });
+
+    grid.addEventListener("click", e => {
+        const g = e.target.dataset.remove;
+        if (g) removeHelperGroup(g);
+    });
+
+    $("addGroupBtn").addEventListener("click", addHelperGroup);
+    $("newGroup").addEventListener("keydown", e => {
+        if (e.key === "Enter") addHelperGroup();
+    });
+
+    $("controlName").addEventListener("input", renderHelperSummary);
+
+    document.querySelectorAll(".mode-btn").forEach(b => {
+        b.addEventListener("click", () => setMode(b.dataset.mode));
+    });
+
+    renderHelperGroups();
+}
+
+/* ---------- события отчётов ---------- */
 
 function bindEvents() {
     document.querySelectorAll(".chip").forEach(btn => {
@@ -703,6 +1095,8 @@ function bindEvents() {
 }
 
 /* ---------- старт: доступ только администратору ---------- */
+
+initHelper();
 
 auth.onAuthStateChanged(async user => {
     if (!user) {

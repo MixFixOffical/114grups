@@ -143,12 +143,13 @@ button,input,select{font-family:inherit;font-size:13px}
 }
 .field{display:flex;flex-direction:column;gap:6px;min-width:0}
 .field span{font-size:11.5px;font-weight:600;color:var(--text-secondary);letter-spacing:.2px}
-.field input,.field select,.search{
+.field input,.field select,.search,.select{
     height:38px;padding:0 10px;border-radius:var(--radius-sm);
     border:1px solid var(--border);background:var(--surface-2);color:var(--text);
     width:100%;min-width:0;
 }
-.field input:focus,.field select:focus,.search:focus{outline:none;border-color:var(--accent)}
+.select{width:280px;height:36px}
+.field input:focus,.field select:focus,.search:focus,.select:focus{outline:none;border-color:var(--accent)}
 
 /* ---------- summary ---------- */
 .summary{
@@ -195,6 +196,7 @@ tr.total td{font-weight:600;background:var(--surface-2)}
     border:1px solid var(--border);background:var(--surface);color:var(--text-secondary);font-weight:500;
 }
 .btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
+.btn:disabled{opacity:.55;cursor:default}
 .btn.primary{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
 .btn.primary:hover{background:var(--accent);border-color:var(--accent)}
 .btn.small{height:28px;padding:0 10px;font-size:12px}
@@ -202,6 +204,8 @@ tr.total td{font-weight:600;background:var(--surface-2)}
 
 .note{margin-top:4px;font-size:12px;color:var(--text-light);min-height:16px}
 .note.error{color:var(--red)}
+.save-row{margin-top:14px;align-items:center}
+.save-row .note{margin-top:0}
 
 /* ---------- helper mode ---------- */
 .add-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
@@ -252,6 +256,7 @@ tr.total td{font-weight:600;background:var(--surface-2)}
     .filters-grid,.settings .filters-grid{grid-template-columns:1fr}
     .summary{grid-template-columns:1fr 1fr}
     .search{width:100%}
+    .select{width:100%}
     .card-head .actions{width:100%}
     .card-head .actions .btn{flex:1}
     .groups-grid{grid-template-columns:1fr}
@@ -261,7 +266,7 @@ tr.total td{font-weight:600;background:var(--surface-2)}
 /* ---------- print ---------- */
 @media print{
     body{background:#fff;color:#000}
-    .back,.filters,.card-head .actions,.note,.mode-switch,.add-row{display:none!important}
+    .back,.filters,.card-head .actions,.note,.mode-switch,.add-row,.save-row,.saved-card{display:none!important}
     .card,.stat{box-shadow:none;border-color:#ccc;background:#fff}
     tr.risk td{background:#fff}
 }
@@ -365,10 +370,28 @@ tr.total td{font-weight:600;background:var(--surface-2)}
             <div class="pad">
                 <div class="filters-grid">
                     <label class="field"><span>Вид контроля</span>
-                        <input type="text" id="controlName" value="Входной контроль">
+                        <input type="text" id="controlName" value="ВХК1-И">
                     </label>
                 </div>
+                <div class="actions save-row">
+                    <button class="btn primary" id="saveBtn">Сохранить сводку</button>
+                    <p class="note" id="saveNote"></p>
+                </div>
             </div>
+        </section>
+
+        <section class="card saved-card">
+            <div class="card-head">
+                <h2>Сохранённые сводки</h2>
+                <div class="actions">
+                    <select class="select" id="savedSelect">
+                        <option value="">— выберите —</option>
+                    </select>
+                    <button class="btn" id="loadBtn">Загрузить</button>
+                    <button class="btn" id="refreshBtn">Обновить</button>
+                </div>
+            </div>
+            <div class="pad"><p class="note" id="savedNote"></p></div>
         </section>
 
         <div class="add-row">
@@ -381,7 +404,7 @@ tr.total td{font-weight:600;background:var(--surface-2)}
 
         <section class="card">
             <div class="card-head">
-                <h2 id="summaryTitle">Сводка · Входной контроль</h2>
+                <h2 id="summaryTitle">Сводка · ВХК1-И</h2>
             </div>
             <div class="table-wrap">
                 <table>
@@ -786,6 +809,7 @@ function exportCsv() {
      - сумма оценок должна равняться «писали»
      - сумма процентов должна быть 100% (допускается 99,9% — из-за округления)
    Не рассчитывается, пока не введено «писали».
+   Сохранение: коллекция controlResults, документ = одна сводка (вид контроля + строки по группам + результаты).
 ========================================================= */
 
 const helperState = {
@@ -1047,6 +1071,131 @@ function removeHelperGroup(g) {
     renderHelperGroups();
 }
 
+/* ---------- сохранение и загрузка сводок ---------- */
+
+function setSaveNote(text, isError) {
+    const el = $("saveNote");
+    el.textContent = text || "";
+    el.classList.toggle("error", !!isError);
+}
+
+function setSavedNote(text, isError) {
+    const el = $("savedNote");
+    el.textContent = text || "";
+    el.classList.toggle("error", !!isError);
+}
+
+async function saveSummary() {
+    const name = $("controlName").value.trim();
+    if (!name) {
+        setSaveNote("Введите вид контроля", true);
+        return;
+    }
+    if (!helperState.groups.length) {
+        setSaveNote("Нет групп для сохранения", true);
+        return;
+    }
+
+    const rows = helperState.groups.map(g => {
+        const d = hData(g);
+        return { group: g, wrote: d.wrote || 0, c5: d.c5 || 0, c4: d.c4 || 0, c3: d.c3 || 0, c2: d.c2 || 0, na: d.na || 0 };
+    });
+
+    const results = helperState.groups.map(g => {
+        const r = calcData(hData(g));
+        return {
+            group: g,
+            success: r.success,
+            quality: r.quality,
+            sou: r.sou,
+            avg: r.avg,
+            ok: r.wrote > 0 && r.errors.length === 0
+        };
+    });
+
+    const totalData = EMPTY_DATA();
+    rows.forEach(r => ["wrote", "c5", "c4", "c3", "c2", "na"].forEach(f => totalData[f] += r[f]));
+    const hasErrors = results.some(r => !r.ok) || calcData(totalData).errors.length > 0;
+
+    const btn = $("saveBtn");
+    btn.disabled = true;
+    setSaveNote("Сохранение…");
+    try {
+        await db.collection("controlResults").add({
+            name,
+            rows,
+            results,
+            hasErrors,
+            savedAt: firebase.firestore.FieldValue.serverTimestamp(),
+            savedBy: auth.currentUser ? auth.currentUser.uid : null
+        });
+        setSaveNote(hasErrors ? "Сохранено, но есть ошибки проверки" : "Сводка сохранена");
+        loadSavedList();
+    } catch (e) {
+        console.error(e);
+        setSaveNote("Не удалось сохранить. Проверьте доступ к коллекции «controlResults» в Firestore.", true);
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function loadSavedList() {
+    const sel = $("savedSelect");
+    setSavedNote("Загрузка списка…");
+    try {
+        const snap = await db.collection("controlResults").orderBy("savedAt", "desc").limit(50).get();
+        sel.innerHTML = `<option value="">— выберите —</option>` + snap.docs.map(d => {
+            const x = d.data() || {};
+            const when = x.savedAt && x.savedAt.toDate
+                ? x.savedAt.toDate().toLocaleString("ru", { dateStyle: "short", timeStyle: "short" })
+                : "";
+            const mark = x.hasErrors ? " ⚠" : "";
+            return `<option value="${esc(d.id)}">${esc(x.name || "Без названия")}${mark} · ${esc(when)}</option>`;
+        }).join("");
+        setSavedNote(snap.empty ? "Сохранённых сводок пока нет" : "");
+    } catch (e) {
+        console.error(e);
+        setSavedNote("Не удалось загрузить список сводок.", true);
+    }
+}
+
+async function loadSelectedSummary() {
+    const id = $("savedSelect").value;
+    if (!id) {
+        setSavedNote("Выберите сводку из списка", true);
+        return;
+    }
+    try {
+        const snap = await db.collection("controlResults").doc(id).get();
+        const x = snap.data();
+        if (!x) {
+            setSavedNote("Сводка не найдена", true);
+            return;
+        }
+
+        helperState.groups = (x.rows || []).map(r => String(r.group));
+        helperState.data = {};
+        (x.rows || []).forEach(r => {
+            helperState.data[String(r.group)] = {
+                wrote: r.wrote || 0,
+                c5: r.c5 || 0,
+                c4: r.c4 || 0,
+                c3: r.c3 || 0,
+                c2: r.c2 || 0,
+                na: r.na || 0
+            };
+        });
+
+        $("controlName").value = x.name || "";
+        renderHelperGroups();
+        setSavedNote(`Загружено: ${x.name || "без названия"}`);
+        setSaveNote("");
+    } catch (e) {
+        console.error(e);
+        setSavedNote("Не удалось загрузить сводку.", true);
+    }
+}
+
 function setMode(mode) {
     $("reportsMode").hidden = mode !== "reports";
     $("helperMode").hidden = mode !== "helper";
@@ -1076,6 +1225,9 @@ function initHelper() {
     });
 
     $("controlName").addEventListener("input", renderHelperSummary);
+    $("saveBtn").addEventListener("click", saveSummary);
+    $("loadBtn").addEventListener("click", loadSelectedSummary);
+    $("refreshBtn").addEventListener("click", loadSavedList);
 
     document.querySelectorAll(".mode-btn").forEach(b => {
         b.addEventListener("click", () => setMode(b.dataset.mode));
@@ -1118,7 +1270,7 @@ function bindEvents() {
     $("printBtn").addEventListener("click", () => window.print());
 }
 
-/* ---------- старт: доступ только администратору ---------- */
+/* ---------- старт: доступ только администратору и куратору ---------- */
 
 initHelper();
 
@@ -1181,6 +1333,7 @@ auth.onAuthStateChanged(async user => {
     bindEvents();
     setPreset("30");
     loadPeriod();
+    loadSavedList();
 });
 </script>
 </body>

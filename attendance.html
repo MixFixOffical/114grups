@@ -151,6 +151,37 @@ header {
 }
 .online-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); }
 
+/* ===== OFFLINE QUEUE BADGE ===== */
+.sync-badge {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: var(--r-sm);
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--amber-soft);
+    color: var(--amber);
+    border: 1px solid rgba(180,83,9,.3);
+    cursor: pointer;
+    white-space: nowrap;
+}
+.sync-badge.show { display: inline-flex; }
+.sync-badge.syncing { background: var(--accent-soft); color: var(--accent); border-color: #bfdbfe; }
+.sync-badge.error { background: var(--red-soft); color: var(--red); border-color: rgba(185,28,28,.25); }
+
+.online-status.offline { background: var(--amber-soft); color: var(--amber); border-color: rgba(180,83,9,.3); }
+.online-status.offline .online-dot { background: var(--amber); }
+
+.student-card.pending-sync {
+    outline: 2px dashed rgba(180,83,9,.5);
+    outline-offset: -2px;
+}
+td.attendance-cell.pending-sync .status {
+    outline: 2px dashed rgba(180,83,9,.5);
+    outline-offset: -2px;
+}
+
 /* =========================================================
    CONTAINER
 ========================================================= */
@@ -320,7 +351,6 @@ header {
     transition: width .3s var(--ease);
 }
 
-/* Блок дисциплины под выбором пары */
 .discipline-banner {
     display: none;
     align-items: center; gap: 12px;
@@ -336,7 +366,6 @@ header {
 .discipline-name { font-size: 14px; font-weight: 600; color: var(--text); margin-top: 2px; word-break: break-word; }
 .discipline-time { font-size: 11.5px; color: var(--text-2); margin-top: 2px; }
 
-/* Замена в тексте */
 .repl-wrap { color: var(--cyan); font-weight: 600; }
 .repl-text { color: var(--cyan); }
 .repl-tag { display: inline-block; margin-top: 3px; font-size: 9px; font-weight: 700; letter-spacing: .3px; color: var(--cyan); text-transform: uppercase; }
@@ -906,9 +935,12 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
         </div>
     </div>
     <div class="header-right">
-        <div class="online-status">
+        <div class="sync-badge" id="syncBadge" onclick="flushOfflineQueue(true)" title="Синхронизировать сейчас">
+            ⏳ <span id="syncBadgeText">0</span>
+        </div>
+        <div class="online-status" id="onlineStatus">
             <span class="online-dot"></span>
-            <span>Онлайн</span>
+            <span id="onlineStatusText">Онлайн</span>
         </div>
     </div>
 </header>
@@ -1293,6 +1325,70 @@ function cacheClearAll() {
 
 function uidKey() {
     return currentUser?.uid || "anon";
+}
+
+/* =========================================================
+   OFFLINE QUEUE
+========================================================= */
+const OFFLINE_QUEUE_KEY = "att_offline_queue_v1";
+const OFFLINE_MAX_AGE = 1000 * 60 * 60 * 24 * 7; // 7 дней
+
+let syncingNow = false;
+
+function getOfflineQueue() {
+    try {
+        const raw = localStorage.getItem(OFFLINE_QUEUE_KEY);
+        if (!raw) return [];
+        const arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        const now = Date.now();
+        return arr.filter(item => item && item.ts && now - item.ts < OFFLINE_MAX_AGE);
+    } catch (e) { return []; }
+}
+
+function saveOfflineQueue(queue) {
+    try {
+        if (!queue.length) {
+            localStorage.removeItem(OFFLINE_QUEUE_KEY);
+        } else {
+            localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(queue));
+        }
+    } catch (e) { console.warn("offline queue save:", e); }
+    updateSyncBadge();
+}
+
+function enqueueOffline(entry) {
+    const queue = getOfflineQueue();
+    const idx = queue.findIndex(q =>
+        q.date === entry.date && q.studentId === entry.studentId
+    );
+    if (idx >= 0) queue[idx] = entry;
+    else queue.push(entry);
+    saveOfflineQueue(queue);
+}
+
+function removeFromQueue(predicate) {
+    const queue = getOfflineQueue().filter(q => !predicate(q));
+    saveOfflineQueue(queue);
+}
+
+function updateSyncBadge() {
+    const badge = $("syncBadge");
+    const text = $("syncBadgeText");
+    if (!badge || !text) return;
+    const queue = getOfflineQueue();
+    const count = queue.length;
+    text.textContent = String(count);
+    badge.classList.toggle("show", count > 0);
+    badge.classList.toggle("error", false);
+    badge.classList.toggle("syncing", syncingNow);
+}
+
+function getPendingSet() {
+    const queue = getOfflineQueue();
+    const set = new Set();
+    queue.forEach(q => set.add(`${q.date}_${q.studentId}`));
+    return set;
 }
 
 /* =========================================================
@@ -1701,15 +1797,7 @@ async function saveStudentDay(student, lessons) {
         semester: period.semester, attestation: period.attestation
     };
 
-    try {
-        await updateDoc(ref, new FieldPath("students", student.id), studentRecord,
-            "date", meta.date, "groupId", meta.groupId,
-            "semester", meta.semester, "attestation", meta.attestation);
-    } catch (e) {
-        if (e && e.code === "not-found") {
-            await setDoc(ref, { ...meta, students: { [student.id]: studentRecord } });
-        } else { throw e; }
-    }
+    // Оптимистично обновляем локальный стейт сразу
     attendance[`${selectedDate}_${student.id}`] = {
         studentId: student.id, studentName: student.name || "",
         date: selectedDate, groupId: selectedGroupId,
@@ -1717,8 +1805,150 @@ async function saveStudentDay(student, lessons) {
     };
     cacheSet("attendance", attendance, selectedDate);
 
+    // Если офлайн — в очередь и выходим
+    if (!navigator.onLine) {
+        enqueueOffline({
+            type: "saveStudentDay",
+            date: selectedDate,
+            groupId: selectedGroupId,
+            studentId: student.id,
+            studentName: student.name || "",
+            lessons,
+            semester: period.semester,
+            attestation: period.attestation,
+            ts: Date.now()
+        });
+        showToast("📥 Сохранено офлайн — синхронизируется позже", "warning");
+        return { offline: true };
+    }
+
+    // Онлайн — пишем в Firestore
+    try {
+        await updateDoc(ref, new FieldPath("students", student.id), studentRecord,
+            "date", meta.date, "groupId", meta.groupId,
+            "semester", meta.semester, "attestation", meta.attestation);
+    } catch (e) {
+        if (e && e.code === "not-found") {
+            await setDoc(ref, { ...meta, students: { [student.id]: studentRecord } });
+        } else if (e && (e.code === "unavailable" || e.code === "deadline-exceeded" || e.code === "network-request-failed")) {
+            enqueueOffline({
+                type: "saveStudentDay",
+                date: selectedDate, groupId: selectedGroupId,
+                studentId: student.id, studentName: student.name || "",
+                lessons, semester: period.semester, attestation: period.attestation,
+                ts: Date.now()
+            });
+            showToast("📥 Сеть недоступна — сохранено офлайн", "warning");
+            return { offline: true };
+        } else {
+            throw e;
+        }
+    }
+
     notifyStudents(selectedDate, selectedGroupId, { studentId: student.id }).catch(() => {});
+    return { offline: false };
 }
+
+/* =========================================================
+   OFFLINE QUEUE FLUSH
+========================================================= */
+async function flushOfflineQueue(manual = false) {
+    if (syncingNow) return;
+    if (!navigator.onLine) {
+        if (manual) showToast("Нет соединения — синхронизация невозможна", "warning");
+        return;
+    }
+    const queue = getOfflineQueue();
+    if (!queue.length) {
+        if (manual) showToast("Всё синхронизировано", "success");
+        return;
+    }
+
+    syncingNow = true;
+    updateSyncBadge();
+    const badge = $("syncBadge");
+    if (badge) badge.classList.add("syncing");
+
+    let ok = 0, fail = 0;
+
+    for (const entry of queue) {
+        try {
+            const ref = doc(db, "attendance", entry.date);
+            const studentRecord = {
+                studentId: entry.studentId,
+                studentName: entry.studentName || "",
+                lessons: entry.lessons,
+                updatedAt: new Date().toISOString()
+            };
+            try {
+                await updateDoc(ref, new FieldPath("students", entry.studentId), studentRecord,
+                    "date", entry.date, "groupId", entry.groupId,
+                    "semester", entry.semester, "attestation", entry.attestation);
+            } catch (e) {
+                if (e && e.code === "not-found") {
+                    await setDoc(ref, {
+                        date: entry.date, groupId: entry.groupId,
+                        semester: entry.semester, attestation: entry.attestation,
+                        students: { [entry.studentId]: studentRecord }
+                    });
+                } else {
+                    throw e;
+                }
+            }
+            removeFromQueue(q => q.date === entry.date && q.studentId === entry.studentId);
+            ok++;
+        } catch (e) {
+            console.warn("offline flush item failed:", e);
+            fail++;
+            if (e && (e.code === "permission-denied" || e.code === "invalid-argument")) {
+                removeFromQueue(q => q.date === entry.date && q.studentId === entry.studentId);
+            }
+        }
+    }
+
+    syncingNow = false;
+    if (badge) badge.classList.remove("syncing");
+    updateSyncBadge();
+
+    if (selectedDate) {
+        await loadAttendance(true);
+        render();
+    }
+
+    if (manual || ok || fail) {
+        if (ok && !fail) showToast(`✅ Синхронизировано: ${ok}`, "success");
+        else if (ok && fail) showToast(`Синхронизировано: ${ok}, ошибок: ${fail}`, "warning");
+        else if (!ok && fail) showToast(`Не удалось синхронизировать: ${fail}`, "error");
+    }
+}
+window.flushOfflineQueue = flushOfflineQueue;
+
+/* =========================================================
+   ONLINE / OFFLINE UI
+========================================================= */
+function updateOnlineUI() {
+    const status = $("onlineStatus");
+    const text = $("onlineStatusText");
+    if (!status || !text) return;
+    if (navigator.onLine) {
+        status.classList.remove("offline");
+        text.textContent = "Онлайн";
+    } else {
+        status.classList.add("offline");
+        text.textContent = "Офлайн";
+    }
+    updateSyncBadge();
+}
+
+window.addEventListener("online", () => {
+    updateOnlineUI();
+    showToast("Соединение восстановлено", "success");
+    flushOfflineQueue(false);
+});
+window.addEventListener("offline", () => {
+    updateOnlineUI();
+    showToast("Нет сети — отметки сохранятся локально", "warning");
+});
 
 /* =========================================================
    ACTIONS
@@ -2006,9 +2236,11 @@ function arrivalSuffix(d) {
 function renderStudentsList(filtered) {
     const lesson = currentLesson || 1;
     studentsListEl.innerHTML = "";
+    const pendingSet = getPendingSet();
 
     filtered.forEach((student, idx) => {
         const d = getLessonData(student.id, lesson);
+        const isPending = pendingSet.has(`${selectedDate}_${student.id}`);
         let cardClass = "";
         let statusBadge = `<span class="student-status-badge">Не отмечен</span>`;
         let actionIcon = "○";
@@ -2046,7 +2278,7 @@ function renderStudentsList(filtered) {
 
         wrap.innerHTML = `
             <div class="student-swipe-bg"></div>
-            <div class="student-card ${cardClass}">
+            <div class="student-card ${cardClass} ${isPending ? "pending-sync" : ""}">
                 <div class="student-index">${idx + 1}</div>
                 <div class="student-info">
                     <div class="student-name">${escapeHtml(student.name || "Без имени")}</div>
@@ -2179,6 +2411,7 @@ function render() {
     }
 
     const filtered = getFilteredStudents();
+    const pendingSet = getPendingSet();
 
     let html = `<table><thead><tr><th>Студент</th>`;
     for (let l = 1; l <= lessonCount; l++) {
@@ -2192,6 +2425,7 @@ function render() {
     html += `</tr></thead><tbody>`;
 
     filtered.forEach((student, idx) => {
+        const isPending = pendingSet.has(`${selectedDate}_${student.id}`);
         html += `<tr><td><span class="student-number">${idx+1}</span><span class="student-name">${escapeHtml(student.name || "Без имени")}</span></td>`;
         for (let l = 1; l <= lessonCount; l++) {
             const d = getLessonData(student.id, l);
@@ -2207,7 +2441,7 @@ function render() {
             }
             const arr = d.arrivalTime && d.status === "late"
                 ? `<span class="arr-t">${escapeHtml(d.arrivalTime)}</span>` : "";
-            html += `<td class="attendance-cell ${l === nowCol ? 'now-col' : ''}" onclick="window.openCell('${escapeJs(student.id)}', ${l})"><div class="status ${cls}">${txt}${arr}</div></td>`;
+            html += `<td class="attendance-cell ${l === nowCol ? 'now-col' : ''} ${isPending ? 'pending-sync' : ''}" onclick="window.openCell('${escapeJs(student.id)}', ${l})"><div class="status ${cls}">${txt}${arr}</div></td>`;
         }
         html += `</tr>`;
     });
@@ -2594,8 +2828,11 @@ async function start() {
     updateClock();
     setInterval(updateClock, 1000);
     refreshMobileBarState();
+    updateOnlineUI();
+    updateSyncBadge();
     try { await reloadData(false); }
     catch (e) { console.error(e); }
+    if (navigator.onLine) setTimeout(() => flushOfflineQueue(false), 1500);
     setTimeout(() => {
         const l = $("pageLoader");
         if (l) l.classList.add("hidden");

@@ -136,6 +136,7 @@
     .lb-rank{font-family:"Unbounded",sans-serif;font-weight:900;width:28px}
     .lb-name{flex:1;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .lb-score{font-weight:900;color:var(--yellow)}
+    .lb-me{background:rgba(255,210,63,.22)}
     .ov{position:fixed;inset:0;background:rgba(10,0,30,.8);display:flex;align-items:center;justify-content:center;z-index:99;padding:16px}
     .ov[hidden]{display:none!important}
     .ov-card{background:#fff;color:var(--purple-dark);border-radius:20px;padding:26px;max-width:420px;text-align:center}
@@ -190,7 +191,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, collection, query, where, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, collection, query, where, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { downloadCertificate, gradeFor } from "./cert.js";
 
   const firebaseConfig = { apiKey: "AIzaSyAHuLu3Ud4YFzWXlwkCUtrgOPvFINFTJPw", authDomain: "sokrat-7c938.firebaseapp.com", projectId: "sokrat-7c938", storageBucket: "sokrat-7c938.firebasestorage.app", messagingSenderId: "19858604945", appId: "1:19858604945:web:8ec6dc1a81dba35c481030", measurementId: "G-B3SDDN1T50" };
@@ -204,6 +205,7 @@
   const MAX_EXITS = 2;
   const EXIT_REASON = 'Два выхода со страницы во время теста';
   const storageKey = (r) => `izi_player_${code}_${r}`;
+  const BOARD_TOP = 10;
 
   let quiz = null, order = [], round = 1, playerId = null, playerName = '', playerGroup = '', playerKey = '';
   let attempt = 1, exitCount = 0, excluded = false, gameOver = false, gameStatus = 'waiting';
@@ -211,6 +213,7 @@
   let shownPos = -1, shownStartedMs = 0, curPos = -1, curQ = null, answered = false, timerId = null;
   let chosen = [], pool = [], myGrade = null, retakeCtx = null, retakeOrigin = 'join', certData = null, demoScore = 0, demoKey = null;
   let unsubGame = null, unsubRetake = null, unsubOwnPlayer = null, unsubAnswer = null, unsubQres = null, hostCorrectText = '';
+  let myScore = 0;
 
   function show(id){ ['joinScreen','lobbyScreen','countdownScreen','questionScreen','doneScreen','excludedScreen','errorScreen'].forEach((s) => { $(s).hidden = s !== id; }); $('retakeForm').hidden = true; }
   const fmt = (ts) => ts.toDate().toLocaleString('ru-RU',{day:'numeric',month:'long',hour:'2-digit',minute:'2-digit'});
@@ -269,9 +272,6 @@
     }
     if (q.type === 'order'){
       if (!Array.isArray(value)) return false;
-      const map = q.__shuffleMap || [];
-      const orig = value.map((_, i) => map[i] != null ? map[i] : i);
-      // value — тексты в порядке, который выбрал игрок; нужно сравнить с q.answer
       return value.length === q.answer.length && value.every((v, i) => String(v) === String(q.answer[i]));
     }
     if (q.type === 'fill'){ if (!Array.isArray(value)) return false; return q.blanks.every((opts, i) => (opts || []).some((o) => normText(o) === normText(value[i]))); }
@@ -308,12 +308,11 @@
   }
   function demoQuestion(i){ const p = quiz.questions[i]; const k = demoKey?.[i]; return k ? { ...p, ...k } : p; }
 
-  /* Клиентское перемешивание: строим __shuffleMap и перемешанные массивы */
   function prepareShuffles(q){
     if (q.type === 'match' && q.shuffleRight){
       const idx = q.right.map((_, i) => i);
       const sh = shuffle(idx);
-      q.__shuffleMap = sh; // позиция в перемешанном -> исходный индекс
+      q.__shuffleMap = sh;
       q.__rightShuffled = sh.map((i) => q.right[i]);
     } else if (q.type === 'order' && q.shuffleItems){
       const idx = q.items.map((_, i) => i);
@@ -365,7 +364,7 @@
         const ps = await getDoc(doc(db,'games',code,'rounds',String(round),'players',savedId));
         if (ps.exists()){
           const p = ps.data();
-          playerId = savedId; playerName = p.name; playerGroup = p.group || ''; playerKey = p.key; attempt = p.attempt || 1; exitCount = p.exits || 0; excluded = !!p.excluded;
+          playerId = savedId; playerName = p.name; playerGroup = p.group || ''; playerKey = p.key; attempt = p.attempt || 1; exitCount = p.exits || 0; excluded = !!p.excluded; myScore = p.score || 0;
           if (excluded){ watchGame(); return showExcluded(); }
         } else sessionStorage.removeItem(storageKey(round));
       }
@@ -396,7 +395,7 @@
         $('joinRetake').hidden = !canAsk; return;
       }
       const newAttempt = same.length ? maxAttempt + 1 : 1;
-      const ref = await addDoc(base, { name, group, key, attempt: newAttempt, ended: false, excluded: false, exits: 0, joinedAt: serverTimestamp() });
+      const ref = await addDoc(base, { name, group, key, attempt: newAttempt, ended: false, excluded: false, exits: 0, score: 0, joinedAt: serverTimestamp() });
       if (approved) await updateDoc(reqRef, { status: 'used' });
       beginAttempt(ref.id, name, group, newAttempt);
     } catch (err){ console.error(err); $('joinError').textContent = 'Не удалось войти в игру.'; }
@@ -407,7 +406,7 @@
 
   function beginAttempt(id, name, group, att){
     playerId = id; playerName = name; playerGroup = group; playerKey = keyOf(name, group); attempt = att;
-    exitCount = 0; excluded = false; gameOver = false; answered = false; shownPos = -1; certData = null;
+    exitCount = 0; excluded = false; gameOver = false; answered = false; shownPos = -1; certData = null; myScore = 0;
     sessionStorage.setItem(storageKey(round), id); setLobbyText(); show('lobbyScreen');
     if (gameStatus === 'finished'){ finish(); return; }
     if (started) applyLatest(); else maybeStartGame();
@@ -441,7 +440,7 @@
     if (unsubOwnPlayer){ unsubOwnPlayer(); unsubOwnPlayer = null; }
     if (unsubAnswer){ unsubAnswer(); unsubAnswer = null; }
     if (unsubQres){ unsubQres(); unsubQres = null; }
-    started = false; countdownDone = false; gameOver = false; answered = false; shownPos = -1; latestPos = -1; latestStartedMs = 0; exitCount = 0; attempt = 1; certData = null;
+    started = false; countdownDone = false; gameOver = false; answered = false; shownPos = -1; latestPos = -1; latestStartedMs = 0; exitCount = 0; attempt = 1; certData = null; myScore = 0;
     playerId = sessionStorage.getItem(storageKey(round));
     if (playerId){ setLobbyText(); show('lobbyScreen'); } else { $('joinError').textContent = ''; $('joinRetake').hidden = true; $('joinNote').hidden = true; show('joinScreen'); }
   }
@@ -464,7 +463,6 @@
     shownPos = pos; shownStartedMs = startedMs || 0; curPos = pos; curQ = quiz.questions[order[pos]]; answered = false; chosen = []; pool = []; hostCorrectText = '';
     if (unsubAnswer){ unsubAnswer(); unsubAnswer = null; }
     if (unsubQres){ unsubQres(); unsubQres = null; }
-    // Клиентское перемешивание (для match/order/odd/schema)
     prepareShuffles(curQ);
 
     show('questionScreen');
@@ -678,8 +676,16 @@
   function startTimer(seconds, endAt, onEnd){
     clearInterval(timerId);
     const total = seconds * 1000; const bar = $('timerBar'); const label = $('timerLabel');
-    const tick = () => { const left = Math.max(0, endAt - Date.now()); bar.style.width = (left / total * 100) + '%'; label.textContent = Math.ceil(left / 1000); if (left <= 0){ clearInterval(timerId); onEnd(); } };
-    tick(); timerId = setInterval(tick, 100);
+    let lastBar = -1, lastLabel = -1;
+    const tick = () => {
+      const left = Math.max(0, endAt - Date.now());
+      const pct = Math.round(left / total * 100);
+      if (pct !== lastBar){ bar.style.width = pct + '%'; lastBar = pct; }
+      const sec = Math.ceil(left / 1000);
+      if (sec !== lastLabel){ label.textContent = sec; lastLabel = sec; }
+      if (left <= 0){ clearInterval(timerId); onEnd(); }
+    };
+    tick(); timerId = setInterval(tick, 250);
   }
   function lockAnswers(text){ answered = true; document.querySelectorAll('#qAnswers button, #qAnswers input, #qAnswers textarea, #qAnswers select').forEach((el) => { el.disabled = true; }); $('qStatus').textContent = text; }
   function endQuestion(statusText){ if (answered) return; lockAnswers(statusText); onQuestionEnded(); }
@@ -694,7 +700,7 @@
     unsubAnswer = onSnapshot(answerRef(pos), (snap) => {
       if (!snap.exists()) return; const a = snap.data(); if (a.correct === undefined) return;
       if (quiz.showAnswers){ const msg = a.correct ? `Верно! +${a.points || 0}` : 'Неверно'; $('qStatus').textContent = hostCorrectText ? `${msg}\n${hostCorrectText}` : msg; }
-      unsubAnswer(); unsubAnswer = null; refreshRating();
+      unsubAnswer(); unsubAnswer = null;
     });
   }
   async function submitAnswer(value){
@@ -711,7 +717,14 @@
       onQuestionEnded(); refreshRating(); return;
     }
     lockAnswers('Ответ отправлен. Результат появится после проверки.');
-    try { await setDoc(answerRef(curPos), { q: curPos, player: playerId, answer: value, answeredAt: serverTimestamp() }); watchOwnAnswer(curPos); }
+    try {
+      const extra = {};
+      if (curQ.type === 'match' || curQ.type === 'order' || curQ.type === 'odd' || curQ.type === 'schema') {
+        extra.shuffleMap = curQ.__shuffleMap || [];
+      }
+      await setDoc(answerRef(curPos), { q: curPos, player: playerId, answer: value, ...extra, answeredAt: serverTimestamp() });
+      watchOwnAnswer(curPos);
+    }
     catch (err){ console.error(err); $('qStatus').textContent = 'Ответ не сохранился. Обновите страницу.'; }
   }
 
@@ -726,7 +739,7 @@
     updateDoc(playerRef(), { exits: exitCount }).catch((e) => console.error(e)); showWarning(reason, exitCount);
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') registerViolation('переход на другую вкладку'); });
-  window.addEventListener('blur', () => { if (isStrict()) registerViolation('окно потеряло фокус'); });
+  window.addEventListener('blur', () => { if (isStrict() && document.visibilityState === 'visible') registerViolation('окно потеряло фокус'); });
   document.addEventListener('fullscreenchange', () => { if (isStrict() && document.fullscreenEnabled && !document.fullscreenElement) registerViolation('выход из полноэкранного режима'); });
   ['copy','cut','paste','contextmenu'].forEach((ev) => document.addEventListener(ev, (e) => { if (isStrict() && playerId && !gameOver && !excluded && !DEMO) e.preventDefault(); }, true));
   document.addEventListener('keydown', (e) => {
@@ -751,39 +764,61 @@
   }
   function showExcluded(){ $('exText').textContent = 'Вас исключила система безопасности. Повторно пройти нельзя.'; show('excludedScreen'); }
 
-  async function loadScores(){
-    const base = ['games', code, 'rounds', String(round)];
-    const [answersSnap, playersSnap] = await Promise.all([ getDocs(collection(db, ...base, 'answers')), getDocs(collection(db, ...base, 'players')) ]);
-    const scores = {};
-    answersSnap.forEach((d) => { const a = d.data(); if (typeof a.points === 'number') scores[a.player] = (scores[a.player] || 0) + a.points; });
-    return playersSnap.docs.map((d) => ({ id: d.id, name: d.data().name, score: scores[d.id] || 0, excluded: !!d.data().excluded })).filter((p) => !p.excluded || p.id === playerId).sort((a,b) => b.score - a.score);
+  async function loadTop(){
+    const col = collection(db,'games',code,'rounds',String(round),'players');
+    const snap = await getDocs(query(col, orderBy('score','desc'), limit(BOARD_TOP)));
+    return snap.docs.map((d) => ({ id: d.id, name: d.data().name, score: d.data().score || 0 }));
+  }
+  function renderTopBoard(el, list, meId){
+    const top = list.slice(0, BOARD_TOP);
+    const inTop = top.some((p) => p.id === meId);
+    let html = top.map((p, i) => `<div class="lb-row${p.id === meId ? ' lb-me' : ''}"><span class="lb-rank">${i + 1}</span><span class="lb-name">${esc(p.name)}${p.id === meId ? ' (вы)' : ''}</span><span class="lb-score">${p.score}</span></div>`).join('');
+    if (!inTop && meId){
+      const me = list.find((p) => p.id === meId);
+      if (me){
+        const place = list.findIndex((p) => p.id === meId) + 1;
+        html += `<div class="lb-row lb-me"><span class="lb-rank">${place}</span><span class="lb-name">${esc(me.name)} (вы)</span><span class="lb-score">${me.score}</span></div>`;
+      }
+    }
+    el.innerHTML = html;
   }
   async function refreshRating(){
     if (DEMO){ $('ratingLine').textContent = `Ваши баллы: ${demoScore}`; return; }
     if (!playerId) return;
-    try { const list = await loadScores(); const i = list.findIndex((p) => p.id === playerId); $('ratingLine').textContent = i >= 0 ? `Ваши баллы: ${list[i].score} · место ${i + 1} из ${list.length}` : ''; }
-    catch (err){ console.error(err); }
+    $('ratingLine').textContent = `Ваши баллы: ${myScore}`;
   }
-  function renderBoard(el, list){ el.innerHTML = list.length ? list.map((p, i) => `<div class="lb-row"><span class="lb-rank">${i + 1}</span><span class="lb-name">${esc(p.name)}${p.id === playerId ? ' (вы)' : ''}</span><span class="lb-score">${p.score}</span></div>`).join('') : ''; }
+  function renderBoard(el, list){ renderTopBoard(el, list, playerId); }
 
   const imageCache = {};
-  async function loadImageData(id){ if (imageCache[id] !== undefined) return imageCache[id]; const snap = await getDoc(doc(db,'quizImages',id)); const data = snap.exists() ? snap.data().data : null; imageCache[id] = data; return data; }
+  async function loadImageData(id){
+    if (imageCache[id] !== undefined) return imageCache[id];
+    try { const cached = sessionStorage.getItem('izi_img_' + id); if (cached){ imageCache[id] = cached; return cached; } } catch (e) {}
+    const snap = await getDoc(doc(db,'quizImages',id)); const data = snap.exists() ? snap.data().data : null;
+    imageCache[id] = data;
+    if (data){ try { sessionStorage.setItem('izi_img_' + id, data); } catch (e) {} }
+    return data;
+  }
 
   function watchOwnPlayer(){
     if (unsubOwnPlayer || DEMO) return;
     unsubOwnPlayer = onSnapshot(playerRef(), async (snap) => {
-      const p = snap.data(); if (!p || p.excluded || certData) return;
-      if (!p.certNo){ $('certNote').textContent = 'Сертификат появится, когда организатор завершит тест.'; return; }
+      const p = snap.data(); if (!p) return;
+      myScore = p.score || 0;
+      if (!gameOver) { $('ratingLine').textContent = `Ваши баллы: ${myScore}`; }
+      if (p.excluded){ if (!excluded){ excluded = true; gameOver = true; showExcluded(); } return; }
+      if (certData) return;
+      if (!p.certNo){ if (gameOver) $('certNote').textContent = 'Сертификат появится, когда организатор завершит тест.'; return; }
       try { const cs = await getDoc(doc(db,'certificates',p.certNo)); if (cs.exists()){ certData = toDraw(cs.data()); $('doneCert').hidden = false; $('certNote').textContent = ''; showFinalRating(); } }
       catch (err){ console.error(err); }
     });
   }
   async function showFinalRating(){
     try {
-      const list = await loadScores(); renderBoard($('doneBoard'), list);
-      const i = list.findIndex((p) => p.id === playerId); if (i < 0) return;
-      const me = list[i]; myGrade = quiz.gradeMode ? gradeFor(me.score, quiz.grades) : null; retakeCtx = { attempt, grade: myGrade };
-      $('doneRating').textContent = `Ваш итог: ${me.score} баллов · место ${i + 1} из ${list.length}`;
+      const top = await loadTop();
+      const myPlace = top.findIndex((p) => p.id === playerId);
+      renderTopBoard($('doneBoard'), top, playerId);
+      myGrade = quiz.gradeMode ? gradeFor(myScore, quiz.grades) : null; retakeCtx = { attempt, grade: myGrade };
+      $('doneRating').textContent = `Ваш итог: ${myScore} баллов${myPlace >= 0 ? ` · место ${myPlace + 1}` : ''}`;
       $('doneGrade').textContent = quiz.gradeMode ? `Ваша оценка: ${myGrade}` : '';
       $('doneRetake').hidden = !(quiz.gradeMode && retakeAllowed(myGrade));
     } catch (err){ console.error(err); }

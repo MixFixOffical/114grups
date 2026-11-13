@@ -393,8 +393,10 @@ tr.total td{font-weight:600;background:var(--surface-2)}
                             <th class="num">На 4</th>
                             <th class="num">На 3</th>
                             <th class="num">На 2</th>
+                            <th class="num">Успеваемость</th>
                             <th class="num">Качество знаний</th>
                             <th class="num">СОУ</th>
+                            <th class="num">Средний балл</th>
                             <th>Проверка</th>
                         </tr>
                     </thead>
@@ -419,7 +421,8 @@ const state = {
     docsCount: 0,
     search: "",
     groupFilter: "",
-    threshold: 60
+    threshold: 60,
+    lastRows: []
 };
 
 const $ = id => document.getElementById(id);
@@ -611,7 +614,7 @@ function pctHtml(pct, threshold) {
     return `<span class="pct ${cls}">${pct.toFixed(1)}%</span><span class="bar"><i class="${cls}" style="width:${Math.min(pct, 100)}%"></i></span>`;
 }
 
-function renderSummary(rows, groups) {
+function renderSummary(rows) {
     const t = state.threshold;
     const total = rows.reduce((s, r) => s + r.total, 0);
     const present = rows.reduce((s, r) => s + r.present, 0);
@@ -692,7 +695,7 @@ function renderStudents(rows) {
 function renderAll() {
     const rows = buildRows();
     const groups = buildGroups(rows);
-    renderSummary(rows, groups);
+    renderSummary(rows);
     renderGroups(groups);
     renderStudents(rows);
     state.lastRows = rows;
@@ -774,9 +777,11 @@ function exportCsv() {
    Для каждой группы вводятся: сколько писали и сколько получили 5/4/3/2.
    Считаем:
      - проценты по каждой оценке (от «писали»), округление до 0,1
+     - успеваемость = (на 5 + на 4 + на 3) / писали × 100
      - качество знаний = (на 5 + на 4) / писали × 100
      - СОУ = (5·кол-во «5» + 4·кол-во «4» + 3·кол-во «3» + 2·кол-во «2») / (5 × писали) × 100
        (делим на 5 — максимальную оценку, чтобы получить процент; округление до 0,01)
+     - средний балл = (5·кол-во «5» + 4·кол-во «4» + 3·кол-во «3» + 2·кол-во «2») / писали, округление до 0,01
    Проверки:
      - сумма оценок должна равняться «писали»
      - сумма процентов должна быть 100% (допускается 99,9% — из-за округления)
@@ -809,7 +814,7 @@ function calcData(d) {
     const wrote = d.wrote || 0;
     const cnt = { 5: d.c5 || 0, 4: d.c4 || 0, 3: d.c3 || 0, 2: d.c2 || 0 };
     const sum = GRADES.reduce((s, k) => s + cnt[k], 0);
-    const res = { wrote, cnt, sum, pct: null, psum: null, quality: null, sou: null, errors: [], warnings: [] };
+    const res = { wrote, cnt, sum, pct: null, psum: null, success: null, quality: null, sou: null, avg: null, errors: [], warnings: [] };
 
     if (wrote <= 0) {
         if (sum > 0) res.errors.push("Введите количество писавших");
@@ -837,9 +842,12 @@ function calcData(d) {
         res.errors.push(`Сумма процентов ${psum.toFixed(1)}%, должна быть 100%`);
     }
 
-    res.quality = Math.round((cnt[5] + cnt[4]) / wrote * 1000) / 10;
     const weighted = GRADES.reduce((s, k) => s + k * cnt[k], 0);
+
+    res.success = Math.round((cnt[5] + cnt[4] + cnt[3]) / wrote * 1000) / 10;
+    res.quality = Math.round((cnt[5] + cnt[4]) / wrote * 1000) / 10;
     res.sou = Math.round(weighted / (5 * wrote) * 10000) / 100;
+    res.avg = Math.round(weighted / wrote * 100) / 100;
 
     return res;
 }
@@ -883,12 +891,20 @@ function renderGroupResults(g) {
         </div>
         <div class="metrics">
             <div class="stat">
+                <div class="stat-label">Успеваемость</div>
+                <div class="stat-value">${fmtPct(r.success)}</div>
+            </div>
+            <div class="stat">
                 <div class="stat-label">Качество знаний</div>
                 <div class="stat-value">${fmtPct(r.quality)}</div>
             </div>
             <div class="stat">
-                <div class="stat-label">СОУ</div>
+                <div class="stat-label">Степень обученности (СОУ)</div>
                 <div class="stat-value">${fmtPct2(r.sou)}</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Средний балл</div>
+                <div class="stat-value">${r.avg === null ? "—" : r.avg.toFixed(2)}</div>
             </div>
         </div>
         ${msgs}`;
@@ -899,31 +915,34 @@ function renderHelperSummary() {
     $("summaryTitle").textContent = `Сводка · ${$("controlName").value.trim() || "Контроль"}`;
 
     if (!helperState.groups.length) {
-        body.innerHTML = `<tr><td colspan="9" class="empty">Нет групп — добавьте через «+»</td></tr>`;
+        body.innerHTML = `<tr><td colspan="11" class="empty">Нет групп — добавьте через «+»</td></tr>`;
         return;
     }
 
     const cell = (r, k) => `${r.cnt[k]}<span class="cell-sub">${r.pct ? fmtPct(r.pct[k]) : "—"}</span>`;
 
-    const lines = helperState.groups.map(g => {
-        const r = calcData(hData(g));
+    const rowHtml = (name, r, isTotal) => {
         const ok = r.wrote > 0 && r.errors.length === 0;
         const status = r.wrote <= 0
             ? `<span class="cell-sub">нет данных</span>`
             : ok ? `<span class="tag-ok">✓ верно</span>` : `<span class="tag-err">ошибка</span>`;
         return `
-        <tr>
-            <td class="name">${esc(g)}</td>
+        <tr${isTotal ? ' class="total"' : ""}>
+            <td class="${isTotal ? "" : "name"}">${esc(name)}</td>
             <td class="num">${r.wrote || "—"}</td>
             <td class="num">${cell(r, 5)}</td>
             <td class="num">${cell(r, 4)}</td>
             <td class="num">${cell(r, 3)}</td>
             <td class="num">${cell(r, 2)}</td>
+            <td class="num">${fmtPct(r.success)}</td>
             <td class="num">${fmtPct(r.quality)}</td>
             <td class="num">${fmtPct2(r.sou)}</td>
+            <td class="num">${r.avg === null ? "—" : r.avg.toFixed(2)}</td>
             <td>${status}</td>
         </tr>`;
-    });
+    };
+
+    const lines = helperState.groups.map(g => rowHtml(g, calcData(hData(g)), false));
 
     // Итог по всем группам
     const tot = EMPTY_DATA();
@@ -931,20 +950,8 @@ function renderHelperSummary() {
         const d = hData(g);
         ["wrote", "c5", "c4", "c3", "c2"].forEach(f => tot[f] += d[f] || 0);
     });
-    const t = calcData(tot);
     if (tot.wrote > 0) {
-        lines.push(`
-        <tr class="total">
-            <td>Итого</td>
-            <td class="num">${t.wrote}</td>
-            <td class="num">${cell(t, 5)}</td>
-            <td class="num">${cell(t, 4)}</td>
-            <td class="num">${cell(t, 3)}</td>
-            <td class="num">${cell(t, 2)}</td>
-            <td class="num">${fmtPct(t.quality)}</td>
-            <td class="num">${fmtPct2(t.sou)}</td>
-            <td>${t.errors.length ? `<span class="tag-err">ошибка</span>` : `<span class="tag-ok">✓ верно</span>`}</td>
-        </tr>`);
+        lines.push(rowHtml("Итого", calcData(tot), true));
     }
 
     body.innerHTML = lines.join("");
@@ -1022,11 +1029,6 @@ function setMode(mode) {
     $("reportsMode").hidden = mode !== "reports";
     $("helperMode").hidden = mode !== "helper";
     document.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
-}
-
-function parseCoef(v, fallback) {
-    const n = parseFloat(String(v).replace(",", "."));
-    return isNaN(n) ? fallback : n;
 }
 
 function initHelper() {

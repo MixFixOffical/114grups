@@ -220,7 +220,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, writeBatch, collection, query, where, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { gradeFor, maxScoreOf, makeCertNumber } from "./cert.js";
 
@@ -243,19 +243,20 @@
 
   let user = null;
   let quiz = null;
-  let keyItems = null;      // ключ ответов: items[i] для вопроса i
-  let fullQ = [];           // вопросы вместе с ключом (только у ведущего)
+  let keyItems = null;
+  let fullQ = [];
   let game = null;
   let order = [];
   let round = 0;
   let renderedKey = '';
 
-  // Данные текущего запуска
   let players = [];
-  let answers = [];          // { id, q, player, answer, correct?, points? }
+  let answers = [];
   let answersByKey = new Map();
   let scores = {};
-  let inflight = new Set();  // ответы, которые сейчас проверяются
+  let answeredByPos = new Map();
+  let answeredByPlayer = new Map();
+  let inflight = new Set();
   let retakes = [];
   let excludedList = [];
 
@@ -275,6 +276,10 @@
   let tickTimer = null;
   let hostEndAt = 0;
   let hostTotalMs = 1;
+
+  // Троттлинг рендера
+  let renderTimer = null;
+  let renderDirty = false;
 
   /* ---------- Утилиты ---------- */
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -321,23 +326,77 @@
     return parts.length ? `<p class="hint">Расписание: ${parts.join(' · ')}</p>` : '';
   }
 
-  // Проверка ответа (та же логика, что у участника в демо)
+  // ---- Проверка ответов (все типы, та же логика что у участника) ----
   function sameCode(a, b) {
     const n = (s) => String(s).split('\n').map((l) => l.trim()).join('\n').trim();
     return n(a) === n(b);
   }
   const normText = (s) => String(s).trim().toLowerCase().replace(/ё/g, 'е').replace(/\s+/g, ' ');
 
-  function isCorrect(q, value) {
+  // value — то, что прислал участник; shuffleMap — map из ответа (если есть)
+  function isCorrect(q, value, shuffleMap) {
     if (value === undefined || value === null) return false;
-    if (q.type === 'choice') return value === q.correct;
-    if (q.type === 'open') return q.answers.some((a) => normText(a) === normText(value));
+    const map = Array.isArray(shuffleMap) ? shuffleMap : [];
+
+    if (q.type === 'choice') {
+      if (Array.isArray(q.correct)) {
+        const a = Array.isArray(value) ? [...value].map(Number).sort((x, y) => x - y) : [Number(value)];
+        const b = [...q.correct].map(Number).sort((x, y) => x - y);
+        return a.length === b.length && a.every((v, i) => v === b[i]);
+      }
+      return Number(value) === Number(q.correct);
+    }
+    if (q.type === 'open') return (q.answers || []).some((a) => normText(a) === normText(value));
     if (q.type === 'code') return sameCode(value, q.answer);
     if (q.type === 'blocks') {
       return Array.isArray(value) && value.length === q.answer.length
         && value.every((v, i) => String(v).trim() === String(q.answer[i]).trim());
     }
+    if (q.type === 'match') {
+      if (!Array.isArray(value)) return false;
+      const got = value.map(([l, r]) => `${Number(l)}-${map[r] != null ? map[r] : r}`).sort();
+      const want = (q.pairs || []).map(([l, r]) => `${Number(l)}-${Number(r)}`).sort();
+      return got.length === want.length && got.every((v, i) => v === want[i]);
+    }
+    if (q.type === 'order') {
+      if (!Array.isArray(value)) return false;
+      // value — тексты в порядке игрока. Если map есть, восстановим исходные индексы и сравним с q.answer по значениям.
+      // q.answer — правильные тексты в правильном порядке (из ключа).
+      return value.length === (q.answer || []).length && value.every((v, i) => String(v) === String(q.answer[i]));
+    }
+    if (q.type === 'fill') {
+      if (!Array.isArray(value)) return false;
+      return (q.blanks || []).every((opts, i) => (opts || []).some((o) => normText(o) === normText(value[i])));
+    }
+    if (q.type === 'odd') {
+      const origIdx = map[Number(value)] != null ? map[Number(value)] : Number(value);
+      return origIdx === Number(q.correct);
+    }
+    if (q.type === 'crossword') {
+      if (!value || typeof value !== 'object') return false;
+      return (q.words || []).every((w, i) => normText(value[i] || '') === normText(w.word));
+    }
+    if (q.type === 'schema') {
+      if (!Array.isArray(value)) return false;
+      const got = value.map(([a, b]) => {
+        const x = map[a] != null ? map[a] : a;
+        const y = map[b] != null ? map[b] : b;
+        return [x, y].sort((p, q) => p - q).join('-');
+      }).sort();
+      const want = (q.edges || []).map(([a, b]) => [Number(a), Number(b)].sort((p, q) => p - q).join('-')).sort();
+      return got.length === want.length && got.every((v, i) => v === want[i]);
+    }
     return false;
+  }
+
+  /* ---------- Троттлинг рендера ---------- */
+  function scheduleRender() {
+    renderDirty = true;
+    if (renderTimer) return;
+    renderTimer = setTimeout(() => {
+      renderTimer = null;
+      if (renderDirty) { renderDirty = false; render(); }
+    }, 300);
   }
 
   /* ---------- Старт ---------- */
@@ -387,7 +446,6 @@
     if (!roundReady || r !== round) subscribeRound(r);
     order = g.order || order;
 
-    // При первом открытии страницы отсчёт не повторяем
     if (firstGame) {
       firstGame = false;
       countdownToken = g.startToken ?? null;
@@ -410,7 +468,7 @@
     render();
   }
 
-  /* ---------- Данные запуска ---------- */
+  /* ---------- Данные запуска (инкрементальные снапшоты) ---------- */
   function subscribeRound(r) {
     unsubRound.forEach((f) => f());
     unsubRound = [];
@@ -420,57 +478,132 @@
     answers = [];
     answersByKey = new Map();
     scores = {};
+    answeredByPos = new Map();
+    answeredByPlayer = new Map();
+    inflight = new Set();
 
     unsubRound.push(onSnapshot(collection(db, 'games', code, 'rounds', String(r), 'players'), (snap) => {
-      players = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      render();
+      if (!snap.metadata.hasPendingWrites) {
+        snap.docChanges().forEach((ch) => {
+          const p = { id: ch.doc.id, ...ch.doc.data() };
+          const idx = players.findIndex((x) => x.id === p.id);
+          if (ch.type === 'removed') {
+            if (idx >= 0) players.splice(idx, 1);
+          } else {
+            if (idx >= 0) players[idx] = p; else players.push(p);
+          }
+        });
+      } else {
+        players = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      }
+      scheduleRender();
     }));
+
     unsubRound.push(onSnapshot(collection(db, 'games', code, 'rounds', String(r), 'answers'), (snap) => {
-      answers = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      answersByKey = new Map(answers.map((a) => [`${a.q}_${a.player}`, a]));
-      recomputeScores();
-      render();
+      if (!snap.metadata.hasPendingWrites) {
+        snap.docChanges().forEach((ch) => {
+          const a = { id: ch.doc.id, ...ch.doc.data() };
+          const key = `${a.q}_${a.player}`;
+          const old = answersByKey.get(key);
+          const oldPts = old && typeof old.points === 'number' ? old.points : 0;
+          const oldAnsweredPos = old ? a.q : null;
+          if (ch.type === 'removed') {
+            answersByKey.delete(key);
+            const ai = answers.findIndex((x) => x.id === a.id);
+            if (ai >= 0) answers.splice(ai, 1);
+            if (oldPts) scores[a.player] = Math.max(0, (scores[a.player] || 0) - oldPts);
+            if (oldAnsweredPos != null) {
+              answeredByPos.set(oldAnsweredPos, Math.max(0, (answeredByPos.get(oldAnsweredPos) || 0) - 1));
+              answeredByPlayer.set(a.player, Math.max(0, (answeredByPlayer.get(a.player) || 0) - 1));
+            }
+            return;
+          }
+          // added/modified
+          if (old) {
+            if (oldPts) scores[a.player] = Math.max(0, (scores[a.player] || 0) - oldPts);
+            if (oldAnsweredPos != null) {
+              answeredByPos.set(oldAnsweredPos, Math.max(0, (answeredByPos.get(oldAnsweredPos) || 0) - 1));
+              answeredByPlayer.set(a.player, Math.max(0, (answeredByPlayer.get(a.player) || 0) - 1));
+            }
+          }
+          const ai = answers.findIndex((x) => x.id === a.id);
+          if (ai >= 0) answers[ai] = a; else answers.push(a);
+          answersByKey.set(key, a);
+          if (typeof a.points === 'number') scores[a.player] = (scores[a.player] || 0) + a.points;
+          answeredByPos.set(a.q, (answeredByPos.get(a.q) || 0) + 1);
+          answeredByPlayer.set(a.player, (answeredByPlayer.get(a.player) || 0) + 1);
+        });
+      } else {
+        // pending: пересобираем целиком (редко)
+        answers = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+        answersByKey = new Map(answers.map((a) => [`${a.q}_${a.player}`, a]));
+        scores = {};
+        answeredByPos = new Map();
+        answeredByPlayer = new Map();
+        answers.forEach((a) => {
+          if (typeof a.points === 'number') scores[a.player] = (scores[a.player] || 0) + a.points;
+          answeredByPos.set(a.q, (answeredByPos.get(a.q) || 0) + 1);
+          answeredByPlayer.set(a.player, (answeredByPlayer.get(a.player) || 0) + 1);
+        });
+      }
+      scheduleRender();
       gradePending();
     }));
   }
 
-  function recomputeScores() {
-    scores = {};
-    answers.forEach((a) => {
-      if (typeof a.points === 'number') scores[a.player] = (scores[a.player] || 0) + a.points;
-    });
-  }
-
-  // Проверка ответов: ведущий записывает correct и points
-  function gradePending() {
-    answers.forEach((a) => {
-      if (a.correct === undefined && !inflight.has(a.id)) gradeOne(a);
-    });
-  }
-
-  async function gradeOne(a) {
-    const q = fullQ[order[a.q]];
-    if (!q || inflight.has(a.id)) return;
-    inflight.add(a.id);
+  // Проверка ответов: батчами до 400
+  let grading = false;
+  async function gradePending() {
+    if (grading) return;
+    grading = true;
     try {
-      const ok = isCorrect(q, a.answer);
-      const pts = ok ? (q.points ?? 1) : 0;
-      await updateDoc(doc(db, 'games', code, 'rounds', String(round), 'answers', a.id), {
-        correct: ok, points: pts, checkedAt: serverTimestamp()
-      });
-      a.correct = ok;
-      a.points = pts;
-      recomputeScores();
-      render();
-    } catch (err) {
-      console.error(err);
+      while (true) {
+        const pending = answers.filter((a) =>
+          a.correct === undefined && !inflight.has(a.id) && a.q < order.length
+        ).slice(0, 400);
+        if (!pending.length) break;
+
+        const batch = writeBatch(db);
+        const results = [];
+        for (const a of pending) {
+          const q = fullQ[order[a.q]];
+          if (!q) continue;
+          inflight.add(a.id);
+          const ok = isCorrect(q, a.answer, a.shuffleMap);
+          const pts = ok ? (q.points ?? 1) : 0;
+          batch.update(doc(db, 'games', code, 'rounds', String(round), 'answers', a.id), {
+            correct: ok, points: pts, checkedAt: serverTimestamp()
+          });
+          results.push({ a, ok, pts });
+        }
+        if (!results.length) break;
+        try {
+          await batch.commit();
+        } catch (err) {
+          console.error('batch commit failed', err);
+          results.forEach(({ a }) => inflight.delete(a.id));
+          break;
+        }
+        // локально обновляем без ожидания снапшота
+        for (const { a, ok, pts } of results) {
+          const oldPts = typeof a.points === 'number' ? a.points : 0;
+          if (oldPts) scores[a.player] = Math.max(0, (scores[a.player] || 0) - oldPts);
+          a.correct = ok; a.points = pts;
+          scores[a.player] = (scores[a.player] || 0) + pts;
+          inflight.delete(a.id);
+        }
+        scheduleRender();
+      }
     } finally {
-      inflight.delete(a.id);
+      grading = false;
     }
   }
 
   async function waitIdle() {
-    while (inflight.size) await sleep(100);
+    // ждём, пока inflight опустеет, но не дольше 30с
+    const start = Date.now();
+    while (inflight.size && Date.now() - start < 30000) await sleep(150);
+    if (inflight.size) console.warn('waitIdle timeout, inflight:', inflight.size);
   }
 
   function ranking() {
@@ -594,25 +727,28 @@
     hydrateImages();
   }
 
-  // Показываем только текст/варианты, без правильных ответов
   function questionPreview(q) {
     if (q.type === 'choice') {
-      return `<div class="opt-list">${q.options.map((o, j) => `
+      return `<div class="opt-list">${(q.options || []).map((o, j) => `
         <div class="opt-item"><span class="lt">${String.fromCharCode(1040 + j)}</span>${esc(o)}</div>`).join('')}</div>`;
     }
-    if (q.type === 'open') {
-      return '<div class="hint">Открытый ответ — игроки вводят текст.</div>';
-    }
-    if (q.type === 'code') {
-      return '<div class="hint">Задание на код — игроки пишут решение.</div>';
-    }
-    return '<div class="hint">Задание на блоки — игроки собирают порядок.</div>';
+    if (q.type === 'open') return '<div class="hint">Открытый ответ — игроки вводят текст.</div>';
+    if (q.type === 'code') return '<div class="hint">Задание на код — игроки пишут решение.</div>';
+    if (q.type === 'blocks') return '<div class="hint">Задание на блоки — игроки собирают порядок.</div>';
+    if (q.type === 'match') return '<div class="hint">Соответствие — игроки соединяют элементы.</div>';
+    if (q.type === 'order') return '<div class="hint">Порядок — игроки расставляют элементы.</div>';
+    if (q.type === 'fill') return '<div class="hint">Пропуски — игроки заполняют текст.</div>';
+    if (q.type === 'odd') return '<div class="hint">Лишний элемент — игроки выбирают лишнее.</div>';
+    if (q.type === 'crossword') return '<div class="hint">Кроссворд — игроки заполняют сетку.</div>';
+    if (q.type === 'schema') return '<div class="hint">Схема связей — игроки соединяют узлы.</div>';
+    return '';
   }
 
   function updateCounters() {
     const pos = game.current ?? -1;
     const activeIds = new Set(activePlayers().map((p) => p.id));
-    const answered = answers.filter((a) => a.q === pos && activeIds.has(a.player)).length;
+    let answered = 0;
+    answers.forEach((a) => { if (a.q === pos && activeIds.has(a.player)) answered++; });
     const a = $('answeredNum');
     if (a) a.textContent = answered;
     const t = $('totalNum');
@@ -647,7 +783,7 @@
     if (players.length === 0) return;
     const total = order.length;
     $('resultsList').innerHTML = ranking().map((p) => {
-      const answered = answers.filter((a) => a.player === p.id).length;
+      const answered = answeredByPlayer.get(p.id) || 0;
       const grade = quiz.gradeMode && !p.excluded ? gradeFor(p.score, quiz.grades) : null;
       return `
         <div class="res-row">
@@ -675,8 +811,14 @@
 
   function answerText(q, v) {
     if (v === undefined || v === null) return null;
-    if (q.type === 'choice') return q.options[v] ?? '—';
-    if (Array.isArray(v)) return v.join('\n');
+    if (q.type === 'choice') {
+      if (Array.isArray(v)) return v.map((i) => q.options?.[i] ?? '—').join(', ');
+      return q.options?.[v] ?? '—';
+    }
+    if (q.type === 'crossword' && v && typeof v === 'object') {
+      return (q.words || []).map((w, i) => `${i + 1}. ${w.clue || ''}: ${v[i] || ''}`).join('\n');
+    }
+    if (Array.isArray(v)) return v.map((x) => Array.isArray(x) ? x.join(' — ') : String(x)).join('\n');
     return String(v);
   }
 
@@ -716,7 +858,6 @@
     loadHistory(p.key);
   }
 
-  // Сертификаты игрока по всем вашим квизам
   async function loadHistory(key) {
     const box = $('histBox');
     if (!box) return;
@@ -754,7 +895,7 @@
       }
       retakesReady = true;
       retakes = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      renderRetakes();
+      scheduleRender();
     });
   }
 
@@ -800,7 +941,7 @@
       }
       excludedReady = true;
       excludedList = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      renderExcluded();
+      scheduleRender();
     });
   }
 
@@ -868,7 +1009,7 @@
     }, 1000);
   }
 
-  /* ---------- Таймер ведущего и переход между вопросами ---------- */
+  /* ---------- Таймер ведущего ---------- */
   function clearDriver() {
     clearTimeout(driverTimer);
     driverTimer = null;
@@ -877,14 +1018,17 @@
 
   function startTick() {
     clearInterval(tickTimer);
+    let lastBar = -1, lastLabel = -1;
     tickTimer = setInterval(() => {
       const bar = $('hBar');
       const label = $('hLabel');
       if (!bar || !label) return;
       const left = Math.max(0, hostEndAt - Date.now());
-      bar.style.width = (left / hostTotalMs * 100) + '%';
-      label.textContent = Math.ceil(left / 1000);
-    }, 200);
+      const pct = Math.round(left / hostTotalMs * 100);
+      if (pct !== lastBar) { bar.style.width = pct + '%'; lastBar = pct; }
+      const sec = Math.ceil(left / 1000);
+      if (sec !== lastLabel) { label.textContent = sec; lastLabel = sec; }
+    }, 250);
   }
 
   function driver(g) {
@@ -938,7 +1082,7 @@
     });
   }
 
-  /* ---------- Сертификаты (выдаёт ведущий) ---------- */
+  /* ---------- Сертификаты ---------- */
   async function saveCertificate(fields) {
     for (let i = 0; i < 5; i++) {
       const certNo = makeCertNumber();
@@ -954,6 +1098,7 @@
   async function issueCertificates() {
     const list = ranking().filter((p) => !p.excluded);
     const total = list.length;
+    const updates = [];
     for (let i = 0; i < list.length; i++) {
       const p = list[i];
       if (p.certNo) continue;
@@ -975,7 +1120,15 @@
         date: todayStr(),
         round
       });
-      await updateDoc(doc(db, 'games', code, 'rounds', String(round), 'players', p.id), { certNo, grade });
+      updates.push({ id: p.id, certNo, grade });
+    }
+    // Батчами по 400
+    for (let i = 0; i < updates.length; i += 400) {
+      const batch = writeBatch(db);
+      updates.slice(i, i + 400).forEach((u) => {
+        batch.update(doc(db, 'games', code, 'rounds', String(round), 'players', u.id), { certNo: u.certNo, grade: u.grade });
+      });
+      await batch.commit();
     }
   }
 
@@ -1035,14 +1188,14 @@
     }
   }
 
-  // Завершение: проверяем всё, записываем статус и выдаём сертификаты
   async function finishGame() {
     if (!confirm('Завершить тест? Игроки перестанут отвечать, сертификаты будут выданы.')) return;
     clearDriver();
     const btn = $('finishBtn');
     if (btn) btn.disabled = true;
     try {
-      answers.filter((a) => a.correct === undefined && a.q < order.length).forEach((a) => gradeOne(a));
+      // Дождаться, пока все непроверенные попадут в батч
+      await gradePending();
       await waitIdle();
       await updateDoc(doc(db, 'games', code), { status: 'finished', finishedAt: serverTimestamp() });
       await issueCertificates();
@@ -1058,7 +1211,7 @@
   }
 
   /* ---------- Плакат с QR ---------- */
-  const PW = 1754; // A4 альбомный, 150 dpi
+  const PW = 1754;
   const PH = 1240;
 
   function makeQrSource() {
@@ -1251,6 +1404,7 @@
     unsubRound.forEach((f) => f());
     clearInterval(tickTimer);
     clearDriver();
+    if (renderTimer) clearTimeout(renderTimer);
   });
 </script>
 </body>

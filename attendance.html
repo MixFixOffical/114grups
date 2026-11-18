@@ -536,6 +536,7 @@ td.attendance-cell.pending-sync .status {
 .student-name {
     font-size: 14px; font-weight: 600; color: var(--text);
     line-height: 1.25; word-break: break-word;
+    cursor: pointer;
 }
 .student-status-line {
     margin-top: 3px;
@@ -633,6 +634,8 @@ tr:hover td:first-child { background: var(--surface-2); }
 .status-late.excused { background: var(--teal-soft); color: var(--teal); border-color: rgba(4,120,87,.25); }
 .arr-t { font-size: 9.5px; font-weight: 600; opacity: .85; line-height: 1.1; }
 .attendance-cell:active .status { transform: scale(.94); }
+.table-student-name { cursor: pointer; }
+.table-student-name:hover { color: var(--accent); text-decoration: underline; }
 
 /* =========================================================
    EMPTY / LOADING
@@ -781,6 +784,27 @@ tr:hover td:first-child { background: var(--surface-2); }
 .lesson-info-value { font-size: 13px; font-weight: 600; word-break: break-word; }
 .lesson-close { width: 100%; margin-top: 16px; padding: 13px; border-radius: var(--r-md); background: var(--surface-2); color: var(--text-2); font-weight: 600; font-size: 14px; border: 1px solid var(--border); }
 .lesson-close:hover { background: var(--border-soft); color: var(--text); }
+
+/* =========================================================
+   PROFILE — карточка студента
+========================================================= */
+#profileOverlay .modal-header { justify-content: space-between; }
+#profileOverlay .modal-title { font-size: 17px; font-weight: 700; line-height: 1.25; }
+.profile-period { margin-top: -4px; margin-bottom: 12px; font-size: 11.5px; color: var(--text-3); }
+.profile-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.profile-stat {
+    padding: 12px; border-radius: var(--r-md);
+    background: var(--surface-2); border: 1px solid var(--border);
+}
+.profile-stat-label { font-size: 11px; font-weight: 600; color: var(--text-2); margin-bottom: 4px; }
+.profile-stat-label span { font-weight: 500; color: var(--text-3); }
+.profile-stat-value { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.profile-stat-value small { font-size: 12px; font-weight: 600; color: var(--text-3); }
+.profile-stat.neuv .profile-stat-value { color: var(--red); }
+.profile-stat.uv .profile-stat-value { color: var(--green); }
+.profile-stat.bolezn .profile-stat-value { color: var(--violet); }
+.profile-stat.late .profile-stat-value { color: var(--amber); }
+.profile-loading { grid-column: 1 / -1; padding: 18px; text-align: center; font-size: 13px; color: var(--text-2); }
 
 /* =========================================================
    TOAST
@@ -953,7 +977,7 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
             <div class="hero-content">
                 <div class="hero-badge">Отметка посещаемости</div>
                 <h1>Посещаемость</h1>
-                <p>Выберите пару сверху и отметьте студентов свайпом или тапом.</p>
+                <p>Выберите пару сверху и отметьте студентов свайпом или тапом. Нажмите на ФИО, чтобы открыть профиль.</p>
             </div>
             <div class="hero-clock">
                 <div class="hero-clock-time" id="clock">00:00:00</div>
@@ -1171,6 +1195,23 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
     </div>
 </div>
 
+<!-- PROFILE -->
+<div class="modal-overlay" id="profileOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="profileName">—</div>
+            <button class="close-button" onclick="closeProfile()" aria-label="Закрыть">✕</button>
+        </div>
+        <div class="modal-info">
+            <div class="modal-info-row"><span>Группа</span><span id="profileGroup">—</span></div>
+            <div class="modal-info-row"><span>Шифр</span><span id="profileCode">—</span></div>
+            <div class="modal-info-row"><span>Родитель</span><span id="profileParents">—</span></div>
+        </div>
+        <div class="profile-period" id="profilePeriod"></div>
+        <div class="profile-stats" id="profileStats"></div>
+    </div>
+</div>
+
 <button class="scroll-top" id="scrollTop" onclick="scrollToTop()" aria-label="Наверх">↑</button>
 
 <div class="toast" id="toast"></div>
@@ -1178,7 +1219,10 @@ td.attendance-cell.now-col:hover { background: var(--green-soft); }
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc, FieldPath } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+import {
+    getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc,
+    FieldPath, query, where, documentId
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
@@ -1196,7 +1240,7 @@ const auth = getAuth(app);
 
 /* =========================================================
    NOTIFY (Telegram-бот)
-   ⚠️ Секрет должен совпадать с Cloudflare Secrets → NOTIFY_SECRET
+   ⚠️ Секрет виден в исходнике страницы. Перенесите отправку на Worker.
 ========================================================= */
 const NOTIFY_URL = "https://broken-river-4c97.vasylkivmaksim.workers.dev/notify";
 const NOTIFY_SECRET = "k7s9f2h4j8d1m5n3q6w0e7r2t5y8u1i4p3o2l1k9j8h7g6f5d4s3a2";
@@ -1804,6 +1848,7 @@ async function saveStudentDay(student, lessons) {
         lessons, semester: period.semester, attestation: period.attestation
     };
     cacheSet("attendance", attendance, selectedDate);
+    profileCache.clear();
 
     // Если офлайн — в очередь и выходим
     if (!navigator.onLine) {
@@ -1909,6 +1954,7 @@ async function flushOfflineQueue(manual = false) {
     syncingNow = false;
     if (badge) badge.classList.remove("syncing");
     updateSyncBadge();
+    profileCache.clear();
 
     if (selectedDate) {
         await loadAttendance(true);
@@ -2313,14 +2359,15 @@ function renderStudentsList(filtered) {
                 tapMoved = true;
             }
         }, { passive: true });
-        cardEl.addEventListener("touchend", () => {
-            if (!tapMoved) {
-                tapCell(student, lesson);
-            }
+        cardEl.addEventListener("touchend", (e) => {
+            if (tapMoved) return;
+            if (e.target.closest(".student-name")) { openProfile(student); return; }
+            tapCell(student, lesson);
         });
 
         cardEl.addEventListener("click", (e) => {
             if (e.target.closest(".student-action")) return;
+            if (e.target.closest(".student-name")) { openProfile(student); return; }
             tapCell(student, lesson);
         });
 
@@ -2426,7 +2473,7 @@ function render() {
 
     filtered.forEach((student, idx) => {
         const isPending = pendingSet.has(`${selectedDate}_${student.id}`);
-        html += `<tr><td><span class="student-number">${idx+1}</span><span class="student-name">${escapeHtml(student.name || "Без имени")}</span></td>`;
+        html += `<tr><td><span class="student-number">${idx+1}</span><span class="student-name table-student-name" onclick="window.openProfileById('${escapeJs(student.id)}')">${escapeHtml(student.name || "Без имени")}</span></td>`;
         for (let l = 1; l <= lessonCount; l++) {
             const d = getLessonData(student.id, l);
             let cls = "status-empty", txt = "—";
@@ -2469,6 +2516,135 @@ window.openCell = async function(studentId, lesson) {
     const student = students.find(s => s.id === studentId);
     if (!student) return;
     tapCell(student, lesson);
+};
+
+/* =========================================================
+   PROFILE — карточка студента
+========================================================= */
+const STATUS_CARDS = [
+    { key: "neuv",   label: "Н",   hint: "неуважит.", cls: "neuv" },
+    { key: "uv",     label: "Н/У", hint: "уважит.",   cls: "uv" },
+    { key: "bolezn", label: "Н/Б", hint: "болезнь",   cls: "bolezn" },
+    { key: "late",   label: "О",   hint: "опоздание", cls: "late" }
+];
+
+const profileCache = new Map();
+let profileStudentId = null;
+
+/* Текущий семестр по календарю: сентябрь–январь = 1, февраль–июнь = 2 */
+function getSemesterRange() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    if (m >= 8 || m === 0) {
+        const startY = m >= 8 ? y : y - 1;
+        return { from: `${startY}-09-01`, to: `${startY + 1}-01-31`, name: "1 семестр" };
+    }
+    return { from: `${y}-02-01`, to: `${y}-06-30`, name: "2 семестр" };
+}
+
+/* Поддерживаем и вложенный формат students.{id}, и плоский ключ "students.{id}" */
+function studentRecordOf(data, sid) {
+    return data.students?.[sid] || data[`students.${sid}`] || null;
+}
+
+async function loadStudentStats(studentId, from, to) {
+    const key = `${studentId}|${from}|${to}`;
+    if (profileCache.has(key)) return profileCache.get(key);
+
+    const snap = await getDocs(query(
+        collection(db, "attendance"),
+        where(documentId(), ">=", from),
+        where(documentId(), "<=", to)
+    ));
+
+    const counts = { neuv: 0, uv: 0, bolezn: 0, late: 0 };
+    let total = 0;
+
+    snap.forEach(d => {
+        const rec = studentRecordOf(d.data(), studentId);
+        if (!rec?.lessons) return;
+        Object.values(rec.lessons).forEach(l => {
+            if (!l?.status) return;
+            total++;
+            if (l.status === "absent") {
+                const t = ["uv", "bolezn"].includes(l.absentType) ? l.absentType : "neuv";
+                counts[t]++;
+            } else if (l.status === "late") {
+                counts.late++;
+            }
+        });
+    });
+
+    const result = { counts, total };
+    profileCache.set(key, result);
+    return result;
+}
+
+async function loadStudentParents(studentId) {
+    const snap = await getDocs(query(
+        collection(db, "links"),
+        where("studentId", "==", studentId)
+    ));
+    const parents = await Promise.all(snap.docs.map(async d => {
+        const pid = d.data().parentId;
+        if (!pid) return null;
+        const u = await getDoc(doc(db, "users", pid));
+        return u.exists() ? { id: pid, ...u.data() } : null;
+    }));
+    return parents.filter(Boolean);
+}
+
+async function openProfile(student) {
+    profileStudentId = student.id;
+
+    const group = allGroupsData.find(g => g.id === student.groupId);
+    const { from, to, name: semName } = getSemesterRange();
+
+    $("profileName").textContent = student.name || "Без имени";
+    $("profileGroup").textContent = group?.name || "Без группы";
+    $("profileCode").textContent = student.studentCode || "—";
+    $("profileParents").textContent = "…";
+    $("profilePeriod").textContent = `${semName} · ${formatDateRu(from)} — ${formatDateRu(to)}`;
+    $("profileStats").innerHTML = `<div class="profile-loading">Считаем…</div>`;
+    $("profileOverlay").classList.add("active");
+
+    try {
+        const [parents, stats] = await Promise.all([
+            loadStudentParents(student.id),
+            loadStudentStats(student.id, from, to)
+        ]);
+
+        // Пользователь уже открыл другого студента или закрыл окно
+        if (profileStudentId !== student.id) return;
+
+        $("profileParents").innerHTML = parents.length
+            ? parents.map(p => escapeHtml(p.name || "—")).join("<br>")
+            : "не привязан";
+
+        $("profileStats").innerHTML = STATUS_CARDS.map(s => `
+            <div class="profile-stat ${s.cls}">
+                <div class="profile-stat-label">${s.label} <span>${s.hint}</span></div>
+                <div class="profile-stat-value">${stats.counts[s.key]}<small> / ${stats.total}</small></div>
+            </div>`).join("");
+    } catch (e) {
+        console.error(e);
+        if (profileStudentId !== student.id) return;
+        $("profileParents").textContent = "—";
+        $("profileStats").innerHTML = `<div class="profile-loading">Не удалось загрузить данные</div>`;
+    }
+}
+
+function closeProfile() {
+    $("profileOverlay").classList.remove("active");
+    profileStudentId = null;
+}
+
+window.openProfile = openProfile;
+window.closeProfile = closeProfile;
+window.openProfileById = id => {
+    const s = students.find(x => x.id === id);
+    if (s) openProfile(s);
 };
 
 /* =========================================================
@@ -2667,6 +2843,7 @@ async function reloadData(force = true) {
         if (force) {
             cacheClearAll();
             settingsCache.clear();
+            profileCache.clear();
             groupsLoaded = false;
             studentsLoaded = false;
         }
@@ -2768,12 +2945,13 @@ window.scrollToTop = scrollToTop;
    EVENT LISTENERS
 ========================================================= */
 document.addEventListener("keydown", e => {
-    if (e.key === "Escape") { closeChoice(); closeReason(); closeLate(); closeLessonInfo(); }
+    if (e.key === "Escape") { closeChoice(); closeReason(); closeLate(); closeLessonInfo(); closeProfile(); }
 });
 
 $("reasonOverlay").addEventListener("click", e => { if (e.target.id === "reasonOverlay") closeReason(); });
 $("lateOverlay").addEventListener("click", e => { if (e.target.id === "lateOverlay") closeLate(); });
 $("lessonInfoOverlay").addEventListener("click", e => { if (e.target.id === "lessonInfoOverlay") closeLessonInfo(); });
+$("profileOverlay").addEventListener("click", e => { if (e.target.id === "profileOverlay") closeProfile(); });
 
 $("studentSearch").addEventListener("input", function() {
     studentFilter = this.value;

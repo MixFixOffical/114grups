@@ -431,6 +431,7 @@
     unsubRound.push(onSnapshot(collection(db, 'games', code, 'rounds', String(r), 'players'), (snap) => {
       players = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
       render();
+      gradePending();
     }));
     unsubRound.push(onSnapshot(collection(db, 'games', code, 'rounds', String(r), 'answers'), (snap) => {
       answers = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -456,7 +457,7 @@
   }
 
   async function gradeOne(a) {
-    const q = fullQ[order[a.q]];
+    const q = fullQ[orderOf(a.player)[a.q]];
     if (!q || inflight.has(a.id)) return;
     inflight.add(a.id);
     try {
@@ -490,6 +491,8 @@
         attempt: p.attempt || 1,
         exits: p.exits || 0,
         excluded: !!p.excluded,
+        ended: !!p.ended,
+        total: (p.order || order).length,
         certNo: p.certNo || null,
         score: scores[p.id] || 0
       }))
@@ -503,6 +506,15 @@
   /* ---------- Отрисовка ---------- */
   function render() {
     if (!game || countdownActive) return;
+
+    if (quiz.anytimeMode) {
+      renderAnytime();
+      renderBoard();
+      renderResults();
+      renderRetakes();
+      renderExcluded();
+      return;
+    }
 
     if (game.status === 'running') {
       const key = [round, game.current, game.startToken].join('|');
@@ -520,6 +532,61 @@
     renderResults();
     renderRetakes();
     renderExcluded();
+  }
+
+  /* ---------- Свободный режим: тест не запускается, участники проходят сами ---------- */
+  // У каждого участника свой порядок вопросов (он сохраняется в его записи)
+  function orderOf(playerId) {
+    return players.find((p) => p.id === playerId)?.order || order;
+  }
+
+  function renderAnytime() {
+    const open = !quiz.endsAt || Date.now() < quiz.endsAt.toMillis();
+    const chips = players.length
+      ? players.map((p) => `<span class="player ${p.excluded ? 'excl' : ''}">${esc(p.name)}${p.group ? ' · ' + esc(p.group) : ''}${p.ended ? ' ✓' : ''}</span>`).join('')
+      : '<span class="players-empty">Пока никто не проходил квиз. Передайте участникам код.</span>';
+
+    $('content').innerHTML = `
+      <h1>Свободный режим</h1>
+      <div class="quiz-title">${esc(quiz.title)}</div>
+      ${scheduleHtml()}
+      <div class="code-row"><div class="code-big">${esc(code)}</div><button class="btn-ghost" id="qrPosterBtn">QR</button></div>
+      <p class="qr-url">Или откройте ссылку: ${esc(joinUrl())}</p>
+      <div><span class="status ${open ? 'running' : 'finished'}">${open ? 'Открыт: проходят в любое время' : 'Квиз закрыт'}</span></div>
+      <p class="hint">Запускать тест не нужно. Каждый участник проходит квиз сам, по таймеру каждого вопроса. Ответы проверяются, пока эта страница открыта. Сертификаты выдаются тем, кто уже закончил (✓).</p>
+      <div class="section-title">Игроки (${activePlayers().length})</div>
+      <div class="players">${chips}</div>
+      <div class="row">
+        <button class="btn-primary" id="issueBtn">Выдать сертификаты</button>
+        <button class="btn-ghost" id="demoBtn">Демо просмотр</button>
+      </div>
+      <div class="section-title" style="margin-top:26px">Рейтинг</div>
+      <div id="lb"></div>`;
+
+    attach();
+    placeQr(false);
+  }
+
+  // Сертификаты выдаём только тем, кто уже закончил. Перед выдачей проверяем все ответы
+  async function issueAnytime() {
+    if (!confirm('Проверить ответы и выдать сертификаты тем, кто уже прошёл квиз? Тем, кто ещё проходит, сертификат выдадим при следующем нажатии.')) return;
+    const btn = $('issueBtn');
+    if (btn) btn.disabled = true;
+    try {
+      answers.filter((a) => a.correct === undefined).forEach((a) => gradeOne(a));
+      await waitIdle();
+      if (answers.some((a) => a.correct === undefined)) {
+        showToast('Не все ответы проверены. Подождите несколько секунд и нажмите ещё раз');
+        return;
+      }
+      await issueCertificates(true);
+      showToast('Сертификаты выданы тем, кто уже закончил');
+    } catch (err) {
+      console.error(err);
+      showToast('Ошибка при выдаче сертификатов. Попробуйте ещё раз');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   }
 
   function renderWaitingOrFinished() {
@@ -632,6 +699,7 @@
     $('nextBtn')?.addEventListener('click', () => advance(game.current));
     $('finishBtn')?.addEventListener('click', finishGame);
     $('demoBtn')?.addEventListener('click', openDemo);
+    $('issueBtn')?.addEventListener('click', issueAnytime);
   }
 
   function renderBoard() {
@@ -652,7 +720,6 @@
   function renderResults() {
     $('resultsCard').hidden = players.length === 0;
     if (players.length === 0) return;
-    const total = order.length;
     $('resultsList').innerHTML = ranking().map((p) => {
       const answered = answers.filter((a) => a.player === p.id).length;
       const grade = quiz.gradeMode && !p.excluded ? gradeFor(p.score, quiz.grades) : null;
@@ -667,7 +734,7 @@
           <div class="res-stats">
             <span><b>${p.score}</b> балл.</span>
             ${grade != null ? `<span class="tag">оценка ${grade}</span>` : ''}
-            <span>ответов ${answered}/${total}</span>
+            <span>ответов ${answered}/${p.total}</span>
             <span>выходов ${p.exits}</span>
           </div>
           <button class="btn-soft" data-detail="${esc(p.id)}">Подробнее</button>
@@ -696,7 +763,8 @@
     $('detailTitle').textContent = p.name || '—';
     $('detailSub').textContent = `${p.group ? 'группа ' + p.group + ' · ' : ''}попытка ${p.attempt || 1} · ${quiz.title}`;
 
-    const rows = order.map((qi, pos) => {
+    const pOrd = p.order || order;
+    const rows = pOrd.map((qi, pos) => {
       const q = fullQ[qi];
       const a = answersByKey.get(`${pos}_${id}`);
       const text = a ? answerText(q, a.answer) : null;
@@ -959,8 +1027,8 @@
     throw new Error('Не удалось создать номер сертификата');
   }
 
-  async function issueCertificates() {
-    const list = ranking().filter((p) => !p.excluded);
+  async function issueCertificates(onlyEnded = false) {
+    const list = ranking().filter((p) => !p.excluded && (!onlyEnded || p.ended));
     const total = list.length;
     for (let i = 0; i < list.length; i++) {
       const p = list[i];

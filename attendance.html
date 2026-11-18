@@ -938,7 +938,7 @@ th.lesson-header.now-col:not(.active-col){ background: var(--green-soft); color:
 .now-tag { display: inline-block; margin-top: 4px; font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; color: var(--green); }
 td.attendance-cell.now-col { background: var(--green-soft); }
 td.attendance-cell.now-col:hover { background: var(--green-soft); }
-/* ===== v2: современный вид и мобильная адаптация ===== */
+/* ===== v3: современный вид и мобильная адаптация ===== */
 :root {
     --accent: #4f46e5;
     --accent-dark: #3730a3;
@@ -992,6 +992,16 @@ td.attendance-cell.blocked .status { opacity: .4; }
     font-size: 14px; line-height: 1.5; font-weight: 600;
     background: var(--amber-soft); color: var(--amber); border: 1px solid rgba(180,83,9,.3);
 }
+.modal-sub { font-size: 12.5px; color: var(--text-2); margin: -6px 0 14px; line-height: 1.4; }
+.repl-input {
+    width: 100%; padding: 12px; min-height: 46px;
+    border: 1px solid var(--border); border-radius: var(--r-md);
+    background: var(--surface-2); color: var(--text); font-size: 15px; outline: none;
+}
+.repl-input:focus { border-color: var(--accent); }
+.chip-btn { display: inline-block; margin-top: 8px; padding: 9px 14px; min-height: 40px; border-radius: var(--r-md); font-size: 13px; font-weight: 600; }
+.chip-danger { background: var(--red-soft); color: var(--red); border: 1px solid rgba(185,28,28,.25); }
+.repl-del { background: var(--red-soft); color: var(--red); border: 1px solid rgba(185,28,28,.25); }
 @media (max-width: 768px) {
     .lesson-picker {
         position: sticky; top: 56px; z-index: 90;
@@ -1278,29 +1288,34 @@ td.attendance-cell.blocked .status { opacity: .4; }
     </div>
 </div>
 
-<!-- LESSON MENU: нажатие на номер пары -->
-<div class="menu-overlay" id="lessonMenuOverlay" onclick="if (event.target === this) closeLessonMenu()">
-    <div class="choice-menu">
-        <div class="menu-title" id="lessonMenuTitle">Пара</div>
-        <div class="menu-student" id="lessonMenuSub">—</div>
-        <button class="choice-button" onclick="lessonMenuAction('info')">
-            <div class="choice-icon delete-icon">ℹ️</div>
-            <div class="choice-text"><strong>Информация о паре</strong><span>Дисциплина и время</span></div>
-        </button>
-        <button class="choice-button" onclick="lessonMenuAction('repl')">
-            <div class="choice-icon" style="background:var(--cyan-soft);color:var(--cyan)">🔁</div>
-            <div class="choice-text"><strong>Заменить пару</strong><span>Открыть страницу замен на эту пару</span></div>
-        </button>
-        <button class="cancel-button" onclick="closeLessonMenu()">Отмена</button>
-    </div>
-</div>
-
 <!-- POPUP: отметка недоступна -->
 <div class="menu-overlay" id="blockedOverlay" onclick="if (event.target === this) closeBlocked()">
     <div class="choice-menu">
         <div class="menu-title">Отметка недоступна</div>
         <div class="alert-box" id="blockedText">—</div>
         <button class="cancel-button" onclick="closeBlocked()">Понятно</button>
+    </div>
+</div>
+
+<!-- REPL MODAL: замена пары -->
+<div class="modal-overlay" id="replOverlay" onclick="if (event.target === this) closeReplModal()">
+    <div class="modal">
+        <div class="modal-header">
+            <div class="modal-title" id="replTitle">Замена</div>
+            <button class="close-button" onclick="closeReplModal()" aria-label="Закрыть">✕</button>
+        </div>
+        <div class="modal-sub" id="replSub">—</div>
+        <label class="reason-label" for="replDiscipline">Заменено на (дисциплина)</label>
+        <input type="text" id="replDiscipline" class="repl-input" list="replDisciplineList" placeholder="Например: Физика" autocomplete="off">
+        <datalist id="replDisciplineList"></datalist>
+        <div><button type="button" class="chip-btn chip-danger" onclick="setCancelledDiscipline()">⛔ Отмена пары</button></div>
+        <label class="reason-label" for="replTeacher" style="margin-top:12px">Заменён (преподаватель)</label>
+        <input type="text" id="replTeacher" class="repl-input" placeholder="ФИО преподавателя, которого заменили" autocomplete="off">
+        <div class="modal-actions">
+            <button class="modal-cancel" onclick="closeReplModal()">Отмена</button>
+            <button class="repl-del" id="replDelBtn" onclick="deleteRepl()">Удалить</button>
+            <button class="save-button" id="replSaveBtn" onclick="saveRepl()">💾 Сохранить</button>
+        </div>
     </div>
 </div>
 
@@ -1330,7 +1345,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebas
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-auth.js";
 import {
     getFirestore, collection, getDocs, doc, getDoc, setDoc, updateDoc,
-    FieldPath, query, where, documentId
+    FieldPath, query, where, documentId, deleteField
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -2108,8 +2123,7 @@ window.addEventListener("offline", () => {
 /* =========================================================
    ACTIONS
 ========================================================= */
-/* ---------- блокировка отметок, меню пары, замены ---------- */
-const REPLACEMENTS_PAGE = "replacements.html"; // имя страницы «Замены»
+/* ---------- блокировка отметок ---------- */
 const isCancelledName = name => /^отмена/i.test(String(name || "").trim());
 
 function getLessonBlockReason(lesson) {
@@ -2137,41 +2151,114 @@ function guardLesson(lesson) {
 
 function closeBlocked() { $("blockedOverlay").classList.remove("active"); }
 
-let lessonMenuTarget = 0;
-function openLessonMenu(lesson) {
-    const dayIndex = getDayIndex(selectedDate);
-    if (!lesson || lesson > getLessonCount(dayIndex)) {
-        showAlert(`${lesson} пары нет. Замену добавить нельзя.`);
-        return;
-    }
-    lessonMenuTarget = lesson;
-    $("lessonMenuTitle").textContent = `${lesson} пара`;
-    $("lessonMenuSub").textContent = `${getDayName(selectedDate)}, ${formatDateRu(selectedDate)} • ${getLessonTitleText(dayIndex, lesson)}`;
-    $("lessonMenuOverlay").classList.add("active");
-}
-
-function closeLessonMenu() { $("lessonMenuOverlay").classList.remove("active"); }
-
-function lessonMenuAction(kind) {
-    const l = lessonMenuTarget;
-    closeLessonMenu();
-    if (kind === "info") openLessonInfo(l);
-    else goToReplacement(l);
-}
-
-function goToReplacement(lesson) {
-    if (!selectedGroupId || !selectedDate) return;
-    const dayIndex = getDayIndex(selectedDate);
-    if (!lesson || lesson > getLessonCount(dayIndex)) {
-        showAlert(`${lesson} пары нет. Замену добавить нельзя.`);
-        return;
-    }
-    const params = new URLSearchParams({
-        date: selectedDate, group: selectedGroupId, lesson: String(lesson), back: location.href
+/* ---------- замена пары (окно на этой странице) ---------- */
+function collectDisciplines() {
+    const set = new Set();
+    Object.keys(settings?.disciplines || {}).forEach(day => {
+        const d = settings.disciplines[day];
+        const items = Array.isArray(d) ? d : Object.values(d || {});
+        items.forEach(it => {
+            const v = typeof it === "string" ? it : (it?.discipline || it?.subject || it?.name || "");
+            if (v) set.add(String(v).trim());
+        });
     });
-    window.location.href = `${REPLACEMENTS_PAGE}?${params.toString()}`;
+    return [...set].sort((a, b) => a.localeCompare(b, "ru"));
 }
 
+const replKey = () => `${selectedDate}_${selectedGroupId}`;
+let replTarget = 0;
+
+function openReplModal(lesson) {
+    const dayIndex = getDayIndex(selectedDate);
+    if (!lesson || lesson > getLessonCount(dayIndex)) {
+        showAlert(`${lesson} пары нет. Замену добавить нельзя.`);
+        return;
+    }
+    if (!selectedGroupId) { showToast("Сначала выберите группу", "warning"); return; }
+    vibrate(15);
+    replTarget = lesson;
+    const rep = getReplacement(lesson) || {};
+    $("replTitle").textContent = `${lesson} пара — замена`;
+    $("replSub").textContent = `${getDayName(selectedDate)}, ${formatDateRu(selectedDate)} • ${getLessonTitleText(dayIndex, lesson)}`;
+    $("replDiscipline").value = rep.discipline || "";
+    $("replTeacher").value = rep.teacher || "";
+    $("replDisciplineList").innerHTML = collectDisciplines().map(d => `<option value="${escapeHtml(d)}">`).join("");
+    $("replDelBtn").style.display = rep.discipline ? "" : "none";
+    $("replOverlay").classList.add("active");
+}
+
+function closeReplModal() {
+    $("replOverlay").classList.remove("active");
+    replTarget = 0;
+}
+
+function setCancelledDiscipline() {
+    $("replDiscipline").value = "Отмена";
+    $("replTeacher").value = "";
+}
+
+async function saveRepl() {
+    if (!replTarget || !selectedGroupId || !selectedDate) return;
+    const discipline = $("replDiscipline").value.trim();
+    const teacher = $("replTeacher").value.trim();
+    if (!discipline) { showToast("Укажите дисциплину", "error"); return; }
+    if (!navigator.onLine) { showToast("Нет соединения — замену не сохранить", "warning"); return; }
+
+    const key = replKey();
+    const now = new Date().toISOString();
+    const entry = { discipline, teacher, updatedAt: now };
+    const btn = $("replSaveBtn");
+    btn.disabled = true;
+    try {
+        await setDoc(doc(db, "replacements", key), {
+            date: selectedDate, groupId: selectedGroupId,
+            lessons: { [String(replTarget)]: entry },
+            updatedAt: now
+        }, { merge: true });
+        replacements = { ...replacements, [String(replTarget)]: entry };
+        cacheSet("replacements", replacements, key);
+        closeReplModal();
+        render();
+        showToast("✓ Замена сохранена", "success");
+        notifyStudents(selectedDate, selectedGroupId, { force: true }).then(r => {
+            if (r.ok && r.sent) showToast(`📨 Уведомлено студентов: ${r.sent}`, "success");
+        });
+    } catch (e) {
+        console.error("replacements save:", e);
+        showToast(`Ошибка сохранения: ${e?.code || e?.message || ""}`, "error");
+    } finally {
+        btn.disabled = false;
+    }
+}
+
+async function deleteRepl() {
+    if (!replTarget || !selectedGroupId || !selectedDate) return;
+    if (!confirm("Удалить замену для этой пары?")) return;
+    const key = replKey();
+    const lesson = replTarget;
+    try {
+        try {
+            await updateDoc(doc(db, "replacements", key), { [`lessons.${lesson}`]: deleteField() });
+        } catch (e) {
+            if (e?.code !== "not-found") throw e;
+        }
+        const next = { ...replacements };
+        delete next[String(lesson)];
+        replacements = next;
+        cacheSet("replacements", replacements, key);
+        closeReplModal();
+        render();
+        showToast("Замена удалена");
+        notifyStudents(selectedDate, selectedGroupId, { force: true }).then(r => {
+            if (r.ok && r.sent) showToast(`📨 Уведомлено студентов: ${r.sent}`, "success");
+        });
+    } catch (e) {
+        console.error("replacements delete:", e);
+        showToast(`Ошибка удаления: ${e?.code || e?.message || ""}`, "error");
+    }
+}
+
+/* ---------- массовая отметка ---------- */
 async function markAllPresent() {
     if (!selectedDate || !selectedGroupId) return;
     if (!currentLesson) { showToast("Сначала выберите пару", "warning"); return; }
@@ -2197,10 +2284,11 @@ async function markAllPresent() {
     else showToast(`✓ Присутствуют: ${targets.length}`, "success");
 }
 
-window.openLessonMenu = openLessonMenu;
-window.closeLessonMenu = closeLessonMenu;
-window.lessonMenuAction = lessonMenuAction;
-window.goToReplacement = goToReplacement;
+window.openReplModal = openReplModal;
+window.closeReplModal = closeReplModal;
+window.saveRepl = saveRepl;
+window.deleteRepl = deleteRepl;
+window.setCancelledDiscipline = setCancelledDiscipline;
 window.closeBlocked = closeBlocked;
 window.markAllPresent = markAllPresent;
 
@@ -2466,7 +2554,7 @@ function updateDisciplineBanner() {
     const time = getLessonTime(dayIndex, currentLesson);
     $("disciplineName").innerHTML = getLessonTitleHtml(dayIndex, currentLesson);
     $("disciplineTime").textContent = time.text;
-    $("bannerReplBtn").onclick = () => goToReplacement(currentLesson);
+    $("bannerReplBtn").onclick = () => openReplModal(currentLesson);
     disciplineBanner.classList.add("show");
 }
 
@@ -2676,7 +2764,7 @@ function render() {
     for (let l = 1; l <= lessonCount; l++) blockedCols[l] = !!getLessonBlockReason(l);
     for (let l = 1; l <= lessonCount; l++) {
         const hasRepl = !!getReplacement(l);
-        html += `<th class="lesson-header ${l === currentLesson ? 'active-col' : ''} ${l === nowCol ? 'now-col' : ''} ${hasRepl ? 'repl-col' : ''} ${blockedCols[l] ? 'blocked-col' : ''}" title="Меню пары" onclick="window.openLessonMenu(${l})">
+        html += `<th class="lesson-header ${l === currentLesson ? 'active-col' : ''} ${l === nowCol ? 'now-col' : ''} ${hasRepl ? 'repl-col' : ''} ${blockedCols[l] ? 'blocked-col' : ''}" title="Нажмите, чтобы добавить замену" onclick="window.openReplModal(${l})">
             <span class="lesson-number">${l}</span>
             <span class="lesson-short-name">${getLessonTitleHtml(dayIndex, l)}</span>
             ${l === nowCol ? '<span class="now-tag">сейчас</span>' : ''}
@@ -3160,7 +3248,7 @@ window.scrollToTop = scrollToTop;
    EVENT LISTENERS
 ========================================================= */
 document.addEventListener("keydown", e => {
-    if (e.key === "Escape") { closeChoice(); closeReason(); closeLate(); closeLessonInfo(); closeProfile(); closeLessonMenu(); closeBlocked(); }
+    if (e.key === "Escape") { closeChoice(); closeReason(); closeLate(); closeLessonInfo(); closeProfile(); closeReplModal(); closeBlocked(); }
 });
 
 $("reasonOverlay").addEventListener("click", e => { if (e.target.id === "reasonOverlay") closeReason(); });

@@ -331,6 +331,13 @@
   function isCorrect(q, value) {
     if (value === undefined || value === null) return false;
     if (q.type === 'choice') return value === q.correct;
+    if (q.type === 'multi') {
+      // Засчитывается, только если выбраны все верные варианты и ничего лишнего
+      if (!Array.isArray(value)) return false;
+      const x = [...new Set(value)].sort((a, b) => a - b);
+      const y = [...new Set(q.correct)].sort((a, b) => a - b);
+      return x.length === y.length && x.every((v, i) => v === y[i]);
+    }
     if (q.type === 'open') return q.answers.some((a) => normText(a) === normText(value));
     if (q.type === 'code') return sameCode(value, q.answer);
     if (q.type === 'blocks') {
@@ -596,7 +603,7 @@
 
   // Показываем только текст/варианты, без правильных ответов
   function questionPreview(q) {
-    if (q.type === 'choice') {
+    if (q.type === 'choice' || q.type === 'multi') {
       return `<div class="opt-list">${q.options.map((o, j) => `
         <div class="opt-item"><span class="lt">${String.fromCharCode(1040 + j)}</span>${esc(o)}</div>`).join('')}</div>`;
     }
@@ -676,6 +683,7 @@
   function answerText(q, v) {
     if (v === undefined || v === null) return null;
     if (q.type === 'choice') return q.options[v] ?? '—';
+    if (q.type === 'multi' && Array.isArray(v)) return v.map((i) => q.options[i] ?? '—').join('\n');
     if (Array.isArray(v)) return v.join('\n');
     return String(v);
   }

@@ -421,6 +421,7 @@
   function isCorrect(q, value) {
     if (value === undefined || value === null) return false;
     if (q.type === 'choice') return value === q.correct;
+    if (q.type === 'multi') return Array.isArray(value) && sameSet(value, q.correct);
     if (q.type === 'open') return q.answers.some((a) => normText(a) === normText(value));
     if (q.type === 'code') return sameCode(value, q.answer);
     if (q.type === 'blocks') {
@@ -430,8 +431,16 @@
     return false;
   }
 
+  // Совпадают ли два набора индексов (порядок не важен, дубли не учитываются)
+  function sameSet(a, b) {
+    const x = [...new Set(a)].sort((p, r) => p - r);
+    const y = [...new Set(b)].sort((p, r) => p - r);
+    return x.length === y.length && x.every((v, i) => v === y[i]);
+  }
+
   function canCheck(q) {
     if (q.type === 'choice') return q.correct !== undefined;
+    if (q.type === 'multi') return Array.isArray(q.correct);
     if (q.type === 'open') return Array.isArray(q.answers);
     if (q.type === 'code') return q.answer !== undefined;
     return Array.isArray(q.answer);
@@ -781,6 +790,41 @@
         grid.appendChild(b);
       });
       box.appendChild(grid);
+    } else if (curQ.type === 'multi') {
+      // Несколько верных: участник отмечает варианты и отправляет ответ одной кнопкой
+      const grid = document.createElement('div');
+      grid.className = 'answers';
+      const sel = new Set();
+      curQ.options.forEach((opt, j) => {
+        const b = document.createElement('button');
+        b.className = 'opt';
+        b.dataset.idx = j;
+        const letter = document.createElement('span');
+        letter.className = 'opt-letter';
+        letter.textContent = LETTERS[j] || String(j + 1);
+        b.append(letter, document.createTextNode(opt));
+        b.addEventListener('click', () => {
+          if (sel.has(j)) { sel.delete(j); b.classList.remove('chosen'); }
+          else { sel.add(j); b.classList.add('chosen'); }
+        });
+        grid.appendChild(b);
+      });
+      const hint = document.createElement('div');
+      hint.className = 'chip-hint';
+      hint.style.marginTop = '12px';
+      hint.textContent = 'Выберите все правильные варианты, затем нажмите «Ответить»';
+      const row = document.createElement('div');
+      row.className = 'send-row';
+      const send = document.createElement('button');
+      send.className = 'btn-primary small';
+      send.id = 'multiSend';
+      send.textContent = 'Ответить';
+      send.addEventListener('click', () => {
+        if (!sel.size) { showToast('Выберите хотя бы один вариант'); return; }
+        submitAnswer([...sel].sort((a, b) => a - b));
+      });
+      row.appendChild(send);
+      box.append(grid, hint, row);
     } else if (curQ.type === 'open') {
       box.innerHTML = `
         <div class="open-row">
@@ -932,7 +976,14 @@
               else if (idx === value && !ok) b.classList.add('wrong');
             });
           }
-          if (!ok) $('qStatus').textContent += '\nПравильный ответ: ' + (fq.type === 'choice' ? fq.options[fq.correct] : fq.type === 'open' ? fq.answers[0] : fq.type === 'code' ? fq.answer : fq.answer.join('\n'));
+          if (fq.type === 'multi') {
+            document.querySelectorAll('#qAnswers .opt').forEach((b) => {
+              const idx = +b.dataset.idx;
+              if (fq.correct.includes(idx)) b.classList.add('correct');
+              else if (value.includes(idx)) b.classList.add('wrong');
+            });
+          }
+          if (!ok) $('qStatus').textContent += '\nПравильный ответ: ' + (fq.type === 'choice' ? fq.options[fq.correct] : fq.type === 'multi' ? fq.correct.map((i) => fq.options[i]).join(', ') : fq.type === 'open' ? fq.answers[0] : fq.type === 'code' ? fq.answer : fq.answer.join('\n'));
         }
       } else {
         lockAnswers('Ответ принят (проверка в демо недоступна)');

@@ -2169,6 +2169,7 @@ const replKey = () => `${selectedDate}_${selectedGroupId}`;
 let replTarget = 0;
 
 function openReplModal(lesson) {
+    if (userRole !== "admin") { showToast("Замены может вносить только администратор", "warning"); return; }
     const dayIndex = getDayIndex(selectedDate);
     if (!lesson || lesson > getLessonCount(dayIndex)) {
         showAlert(`${lesson} пары нет. Замену добавить нельзя.`);
@@ -2198,6 +2199,7 @@ function setCancelledDiscipline() {
 }
 
 async function saveRepl() {
+    if (userRole !== "admin") return;
     if (!replTarget || !selectedGroupId || !selectedDate) return;
     const discipline = $("replDiscipline").value.trim();
     const teacher = $("replTeacher").value.trim();
@@ -2232,6 +2234,7 @@ async function saveRepl() {
 }
 
 async function deleteRepl() {
+    if (userRole !== "admin") return;
     if (!replTarget || !selectedGroupId || !selectedDate) return;
     if (!confirm("Удалить замену для этой пары?")) return;
     const key = replKey();
@@ -2555,6 +2558,7 @@ function updateDisciplineBanner() {
     $("disciplineName").innerHTML = getLessonTitleHtml(dayIndex, currentLesson);
     $("disciplineTime").textContent = time.text;
     $("bannerReplBtn").onclick = () => openReplModal(currentLesson);
+    $("bannerReplBtn").style.display = userRole === "admin" ? "" : "none";
     disciplineBanner.classList.add("show");
 }
 
@@ -2764,7 +2768,7 @@ function render() {
     for (let l = 1; l <= lessonCount; l++) blockedCols[l] = !!getLessonBlockReason(l);
     for (let l = 1; l <= lessonCount; l++) {
         const hasRepl = !!getReplacement(l);
-        html += `<th class="lesson-header ${l === currentLesson ? 'active-col' : ''} ${l === nowCol ? 'now-col' : ''} ${hasRepl ? 'repl-col' : ''} ${blockedCols[l] ? 'blocked-col' : ''}" title="Нажмите, чтобы добавить замену" onclick="window.openReplModal(${l})">
+        html += `<th class="lesson-header ${l === currentLesson ? 'active-col' : ''} ${l === nowCol ? 'now-col' : ''} ${hasRepl ? 'repl-col' : ''} ${blockedCols[l] ? 'blocked-col' : ''}" title="${userRole === 'admin' ? 'Нажмите, чтобы добавить замену' : ''}" onclick="window.openReplModal(${l})">
             <span class="lesson-number">${l}</span>
             <span class="lesson-short-name">${getLessonTitleHtml(dayIndex, l)}</span>
             ${l === nowCol ? '<span class="now-tag">сейчас</span>' : ''}

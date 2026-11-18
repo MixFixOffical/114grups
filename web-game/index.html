@@ -4,6 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Изи квиз — создавай квизы бесплатно</title>
+  <!-- Определяем слабое устройство до первой отрисовки, чтобы не было рывка -->
+  <script>
+    (function () {
+      var n = navigator;
+      var weak = (n.deviceMemory && n.deviceMemory <= 2) ||
+                 (n.hardwareConcurrency && n.hardwareConcurrency <= 4) ||
+                 (n.connection && n.connection.saveData);
+      if (weak) document.documentElement.classList.add('lite');
+    })();
+  </script>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=Unbounded:wght@700;900&display=swap" rel="stylesheet" />
@@ -16,8 +26,6 @@
       --pink: #ff4d6d;
       --white: #ffffff;
       --text-light: rgba(255, 255, 255, 0.85);
-      --mx: 0;
-      --my: 0;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -27,12 +35,24 @@
     body {
       font-family: "Manrope", system-ui, sans-serif;
       color: var(--white);
-      background: linear-gradient(135deg, var(--purple-dark), var(--purple), #9b3fe8, var(--purple-dark));
-      background-size: 300% 300%;
-      animation: bgShift 14s ease-in-out infinite;
+      background: var(--purple-dark);
       min-height: 100vh;
       overflow-x: hidden;
       position: relative;
+    }
+
+    /* ---------- Градиентный фон: сдвиг через transform, а не background-position ---------- */
+    .bg-gradient {
+      position: fixed;
+      left: 0;
+      top: -100%;
+      width: 300%;
+      height: 300%;
+      z-index: 0;
+      pointer-events: none;
+      background: linear-gradient(135deg, var(--purple-dark), var(--purple), #9b3fe8, var(--purple-dark));
+      animation: bgShift 14s ease-in-out infinite;
+      will-change: transform;
     }
 
     /* ---------- Курсорное свечение ---------- */
@@ -45,10 +65,11 @@
       border-radius: 50%;
       background: radial-gradient(circle, rgba(255, 210, 63, 0.22), transparent 65%);
       pointer-events: none;
-      transform: translate(-50%, -50%);
+      transform: translate3d(-9999px, -9999px, 0);
       z-index: 1;
       transition: opacity 0.4s ease;
       mix-blend-mode: screen;
+      will-change: transform;
     }
 
     /* ---------- Анимированный фон ---------- */
@@ -58,7 +79,6 @@
       z-index: 0;
       pointer-events: none;
       overflow: hidden;
-      transform: translate(calc(var(--mx) * -22px), calc(var(--my) * -22px));
       transition: transform 0.6s cubic-bezier(.2,.7,.2,1);
     }
 
@@ -66,8 +86,8 @@
       position: absolute;
       border-radius: 50%;
       opacity: 0.55;
-      filter: blur(2px);
       animation: float 14s ease-in-out infinite;
+      will-change: transform;
     }
     .shape.s1 { width: 340px; height: 340px; background: radial-gradient(circle at 30% 30%, var(--orange), var(--pink)); top: -80px; left: -60px; animation-duration: 16s; }
     .shape.s2 { width: 240px; height: 240px; background: radial-gradient(circle at 30% 30%, var(--yellow), var(--orange)); top: 30%; right: -70px; animation-duration: 18s; animation-delay: -4s; }
@@ -79,6 +99,7 @@
       border-radius: 50%;
       border: 2px dashed rgba(255, 255, 255, 0.22);
       animation: spin 30s linear infinite;
+      will-change: transform;
     }
     .ring.r1 { width: 560px; height: 560px; top: -150px; right: -180px; }
     .ring.r2 { width: 380px; height: 380px; bottom: -120px; left: -100px; animation-direction: reverse; animation-duration: 22s; border-color: rgba(255, 210, 63, 0.3); }
@@ -94,6 +115,7 @@
       transform: translate(-50%, -50%);
       animation: morph 20s ease-in-out infinite, spinBlob 40s linear infinite;
       filter: blur(30px);
+      will-change: transform;
     }
 
     .star {
@@ -111,11 +133,12 @@
       color: rgba(255, 255, 255, 0.18);
       animation: drift 22s linear infinite;
       user-select: none;
+      will-change: transform;
     }
 
     @keyframes bgShift {
-      0%, 100% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
+      0%, 100% { transform: translate3d(0, 0, 0); }
+      50% { transform: translate3d(-66.6667%, 0, 0); }
     }
     @keyframes float {
       0%, 100% { transform: translate(0, 0) scale(1); }
@@ -205,16 +228,15 @@
       font-weight: 700;
       font-size: 15px;
       color: var(--white);
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.16);
       border: 2px solid rgba(255, 255, 255, 0.5);
       border-radius: 999px;
       padding: 10px 20px;
       cursor: pointer;
-      backdrop-filter: blur(6px);
       text-decoration: none;
       transition: background 0.2s ease, transform 0.2s ease;
     }
-    .btn-outline:hover { background: rgba(255, 255, 255, 0.22); transform: translateY(-2px); }
+    .btn-outline:hover { background: rgba(255, 255, 255, 0.26); transform: translateY(-2px); }
 
     /* ---------- Hero ---------- */
     main {
@@ -232,9 +254,8 @@
 
     .badge {
       display: inline-block;
-      background: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.18);
       border: 1px solid rgba(255, 255, 255, 0.3);
-      backdrop-filter: blur(8px);
       padding: 8px 18px;
       border-radius: 999px;
       font-size: 14px;
@@ -282,15 +303,15 @@
       position: relative;
       max-width: 380px;
       margin: 0 auto 40px;
-      background: rgba(255, 255, 255, 0.14);
+      background: rgba(255, 255, 255, 0.18);
       border: 1px solid rgba(255, 255, 255, 0.28);
-      backdrop-filter: blur(12px);
       border-radius: 24px;
       padding: 20px;
       text-align: left;
       transform: rotate(-2deg);
       box-shadow: 0 24px 60px rgba(20, 0, 60, 0.35);
       animation: fadeUp 0.9s 0.25s ease both, floaty 6s ease-in-out 1.2s infinite;
+      will-change: transform;
     }
     .demo-top {
       display: flex;
@@ -352,10 +373,12 @@
     }
     .demo-bar span {
       display: block;
+      width: 100%;
       height: 100%;
-      width: 0;
       background: linear-gradient(90deg, var(--yellow), var(--orange));
       border-radius: inherit;
+      transform: scaleX(0);
+      transform-origin: left center;
     }
     .demo-bar span.run { animation: fill 3s linear forwards; }
 
@@ -404,12 +427,13 @@
       content: "";
       position: absolute;
       top: 0;
-      left: -75%;
+      left: 0;
       width: 50%;
       height: 100%;
       background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-      transform: skewX(-20deg);
+      transform: translateX(-150%) skewX(-20deg);
       animation: shine 3.5s ease-in-out infinite;
+      pointer-events: none;
     }
     .btn-primary:hover { transform: translateY(-3px) scale(1.03); box-shadow: 0 14px 36px rgba(255, 122, 26, 0.55); }
     .btn-primary:active { transform: translateY(2px) scale(0.98); }
@@ -419,9 +443,8 @@
     .join-card {
       margin: 48px auto 0;
       max-width: 520px;
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.16);
       border: 1px solid rgba(255, 255, 255, 0.25);
-      backdrop-filter: blur(12px);
       border-radius: 24px;
       padding: 26px;
       animation: fadeUp 0.8s 0.4s ease both;
@@ -479,9 +502,8 @@
       animation: fadeUp 0.8s 0.5s ease both;
     }
     .feature {
-      background: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.16);
       border: 1px solid rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(10px);
       border-radius: 16px;
       padding: 14px 20px;
       font-size: 15px;
@@ -489,7 +511,7 @@
       cursor: default;
       transition: transform 0.25s cubic-bezier(.3,1.5,.5,1), background 0.25s ease;
     }
-    .feature:hover { transform: translateY(-6px) rotate(-2deg); background: rgba(255, 255, 255, 0.22); }
+    .feature:hover { transform: translateY(-6px) rotate(-2deg); background: rgba(255, 255, 255, 0.24); }
     .feature span { display: inline-block; margin-right: 8px; transition: transform 0.4s ease; }
     .feature:hover span { transform: rotate(360deg) scale(1.2); }
 
@@ -497,8 +519,7 @@
     .modal {
       position: fixed;
       inset: 0;
-      background: rgba(30, 6, 70, 0.6);
-      backdrop-filter: blur(6px);
+      background: rgba(30, 6, 70, 0.72);
       display: none;
       align-items: center;
       justify-content: center;
@@ -577,6 +598,7 @@
       pointer-events: none;
       z-index: 70;
       animation: fall 1.2s cubic-bezier(.2,.6,.4,1) forwards;
+      will-change: transform, opacity;
     }
 
     /* ---------- Анимации ---------- */
@@ -614,8 +636,8 @@
       to { background-position: 300% 50%; }
     }
     @keyframes shine {
-      0%, 60% { left: -75%; }
-      100% { left: 125%; }
+      0%, 60% { transform: translateX(-150%) skewX(-20deg); }
+      100% { transform: translateX(250%) skewX(-20deg); }
     }
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
@@ -623,13 +645,30 @@
       75% { transform: translateX(6px); }
     }
     @keyframes fill {
-      from { width: 0; }
-      to { width: 100%; }
+      from { transform: scaleX(0); }
+      to { transform: scaleX(1); }
     }
     @keyframes fall {
       0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
       100% { transform: translate(var(--dx), 110vh) rotate(720deg); opacity: 0; }
     }
+
+    /* ---------- Режим для слабых устройств: та же вёрстка, но без дорогих эффектов ---------- */
+    .lite .bg-gradient,
+    .lite .ring,
+    .lite .shape,
+    .lite .blob,
+    .lite .star,
+    .lite .quiz-icon,
+    .lite .cursor-glow { display: none; }
+    .lite .bg-shapes { transition: none; }
+    .lite .logo-mark,
+    .lite .badge,
+    .lite .demo,
+    .lite h1 .highlight { animation: none; }
+    .lite .demo { transform: rotate(-2deg); }
+    .lite .btn-primary::after { display: none; }
+    .lite body { background: linear-gradient(135deg, var(--purple-dark), var(--purple)); }
 
     @media (max-width: 560px) {
       .btn-login, .btn-outline { padding: 9px 14px; font-size: 13px; }
@@ -650,11 +689,14 @@
 </head>
 <body>
 
+  <!-- Градиентный фон (сдвигается через transform) -->
+  <div class="bg-gradient" aria-hidden="true"></div>
+
   <!-- Курсорное свечение -->
   <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
 
   <!-- Анимированный фон -->
-  <div class="bg-shapes" aria-hidden="true">
+  <div class="bg-shapes" id="bgShapes" aria-hidden="true">
     <div class="ring r1"></div>
     <div class="ring r2"></div>
     <div class="blob"></div>
@@ -783,7 +825,6 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
   import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
@@ -799,35 +840,49 @@
   };
 
   const app = initializeApp(firebaseConfig);
-  try { getAnalytics(app); } catch (err) { console.warn('Analytics недоступна:', err); }
   const db = getFirestore(app);
   const auth = getAuth(app);
 
-  const USER_KEY = 'izi_user';
+  // Аналитика грузится отдельно, когда браузер свободен — не мешает первому экрану
+  const runWhenIdle = (fn) => ('requestIdleCallback' in window)
+    ? requestIdleCallback(fn, { timeout: 4000 })
+    : setTimeout(fn, 2000);
+  runWhenIdle(() => {
+    import("https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js")
+      .then(({ getAnalytics }) => getAnalytics(app))
+      .catch((err) => console.warn('Analytics недоступна:', err));
+  });
 
   const $ = (id) => document.getElementById(id);
   const navGuest = $('navGuest');
   const navUser = $('navUser');
   const createBtn = $('createBtn');
+  const root = document.documentElement;
+  const lite = root.classList.contains('lite');
 
   let pendingCode = null;
 
-  /* ---------- Курсор: свечение и параллакс фона ---------- */
+  /* ---------- Курсор: свечение и параллакс фона (через rAF, один кадр — одно обновление) ---------- */
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const glow = $('cursorGlow');
-  const root = document.documentElement;
+  const bgShapes = $('bgShapes');
 
-  if (!reduceMotion && window.matchMedia('(pointer: fine)').matches) {
-    document.addEventListener('pointermove', (e) => {
-      glow.style.left = e.clientX + 'px';
-      glow.style.top = e.clientY + 'px';
+  if (!reduceMotion && !lite && window.matchMedia('(pointer: fine)').matches) {
+    let px = 0, py = 0, queued = false;
+    const flushPointer = () => {
+      queued = false;
+      glow.style.transform = `translate3d(${px - 210}px, ${py - 210}px, 0)`;
       glow.style.opacity = '1';
-      const nx = e.clientX / window.innerWidth - 0.5;
-      const ny = e.clientY / window.innerHeight - 0.5;
-      root.style.setProperty('--mx', nx.toFixed(3));
-      root.style.setProperty('--my', ny.toFixed(3));
-    });
-    document.addEventListener('pointerleave', () => { glow.style.opacity = '0'; });
+      const nx = px / window.innerWidth - 0.5;
+      const ny = py / window.innerHeight - 0.5;
+      bgShapes.style.transform = `translate3d(${(-nx * 22).toFixed(1)}px, ${(-ny * 22).toFixed(1)}px, 0)`;
+    };
+    document.addEventListener('pointermove', (e) => {
+      px = e.clientX;
+      py = e.clientY;
+      if (!queued) { queued = true; requestAnimationFrame(flushPointer); }
+    }, { passive: true });
+    document.documentElement.addEventListener('pointerleave', () => { glow.style.opacity = '0'; });
   } else {
     glow.style.display = 'none';
   }
@@ -870,14 +925,25 @@
       }
     }, 500);
   }
-  if (!reduceMotion) runDemo();
-  else demoOpts[CORRECT].classList.add('correct');
+  if (!reduceMotion) {
+    runDemo();
+    // Пока вкладка скрыта, таймер не тикает — меньше нагрузки
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) clearInterval(demoTick);
+      else runDemo();
+    });
+  } else {
+    demoOpts[CORRECT].classList.add('correct');
+  }
 
   /* ---------- Конфетти ---------- */
   function burstConfetti() {
     if (reduceMotion) return;
     const colors = ['#ffd23f', '#ff7a1a', '#ff4d6d', '#c084fc', '#3ddc97', '#ffffff'];
-    for (let i = 0; i < 60; i++) {
+    const count = lite ? 14 : 36;
+    const frag = document.createDocumentFragment();
+    const pieces = [];
+    for (let i = 0; i < count; i++) {
       const c = document.createElement('div');
       c.className = 'confetti';
       c.style.left = (window.innerWidth / 2 + (Math.random() - 0.5) * 200) + 'px';
@@ -885,9 +951,11 @@
       c.style.background = colors[i % colors.length];
       c.style.setProperty('--dx', ((Math.random() - 0.5) * 60) + 'vw');
       c.style.animationDelay = (Math.random() * 0.15) + 's';
-      document.body.appendChild(c);
-      setTimeout(() => c.remove(), 1600);
+      frag.appendChild(c);
+      pieces.push(c);
     }
+    document.body.appendChild(frag);
+    setTimeout(() => pieces.forEach((c) => c.remove()), 1600);
   }
 
   /* ---------- Состояние авторизации (Firebase Auth) ---------- */

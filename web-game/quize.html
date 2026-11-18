@@ -323,6 +323,9 @@
   let unsubOwnPlayer = null;
   let unsubAnswer = null;
   let unsubQres = null;
+  let anytime = false;     // свободный режим: проходят в любое время, без ведущего
+  let playerPos = 0;       // текущий вопрос участника в свободном режиме
+  let restored = null;     // запись участника, найденная после перезагрузки страницы
 
   /* ---------- Утилиты ---------- */
   function show(id) {
@@ -460,6 +463,7 @@
       const qs = await getDoc(doc(db, 'quizzes', code));
       if (!qs.exists()) return fail('Квиз с таким кодом не найден.');
       quiz = { questions: [], ...qs.data() };
+      anytime = !!quiz.anytimeMode;
       quiz.timeLimit = quiz.timeLimit || 20;
       $('quizTitleJoin').textContent = quiz.title;
       $('quizTitleLobby').textContent = quiz.title;
@@ -500,6 +504,9 @@
           attempt = p.attempt || 1;
           exitCount = p.exits || 0;
           excluded = !!p.excluded;
+          restored = p;
+          order = p.order || order;
+          playerPos = p.pos || 0;
           if (excluded) { watchGame(); return showExcluded(); }
         } else {
           sessionStorage.removeItem(storageKey(round));
@@ -507,6 +514,11 @@
       }
 
       applyJoinLabels();
+      if (anytime) {
+        if (playerId && restored?.ended) return finish('Вы уже прошли этот квиз.');
+        if (playerId) return startAnytime();
+        return show('joinScreen');
+      }
       watchGame();
       if (playerId) {
         setLobbyText();
@@ -570,11 +582,14 @@
       }
 
       const newAttempt = same.length ? maxAttempt + 1 : 1;
+      // В свободном режиме у каждого участника свой порядок вопросов и свой прогресс
+      const ordr = makeOrder(quiz);
       const ref = await addDoc(base, {
-        name, group, key, attempt: newAttempt, ended: false, excluded: false, exits: 0, joinedAt: serverTimestamp()
+        name, group, key, attempt: newAttempt, ended: false, excluded: false, exits: 0, joinedAt: serverTimestamp(),
+        ...(anytime ? { order: ordr, pos: 0 } : {})
       });
       if (approved) await updateDoc(reqRef, { status: 'used' });
-      beginAttempt(ref.id, name, group, newAttempt);
+      beginAttempt(ref.id, name, group, newAttempt, ordr);
     } catch (err) {
       console.error(err);
       $('joinError').textContent = 'Не удалось войти в игру. Попробуйте ещё раз';
@@ -586,7 +601,7 @@
   $('nameInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBtn').click(); });
   $('groupInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('joinBtn').click(); });
 
-  function beginAttempt(id, name, group, att) {
+  function beginAttempt(id, name, group, att, ordr) {
     playerId = id;
     playerName = name;
     playerGroup = group;
@@ -599,6 +614,11 @@
     shownPos = -1;
     certData = null;
     sessionStorage.setItem(storageKey(round), id);
+    if (anytime) {
+      order = ordr;
+      playerPos = 0;
+      return startAnytime();
+    }
     setLobbyText();
     show('lobbyScreen');
     if (gameStatus === 'finished') { finish(); return; }
@@ -1002,6 +1022,8 @@
         answeredAt: serverTimestamp()
       });
       watchOwnAnswer(curPos);
+      // В свободном режиме ведущего нет: переходим к следующему вопросу сами
+      if (anytime) { clearInterval(timerId); onQuestionEnded(); }
     } catch (err) {
       console.error(err);
       $('qStatus').textContent = 'Ответ не сохранился. Обновите страницу и попробуйте снова';
@@ -1347,6 +1369,37 @@
     watchOwnPlayer();
   }
 
+  /* ---------- Свободный режим: участник проходит сам, без ведущего ---------- */
+  function startAnytime() {
+    if (gameOver || excluded) return;
+    started = true;
+    startCountdown(() => anytimeRun(playerPos));
+  }
+
+  function anytimeRun(pos) {
+    if (gameOver || excluded) return;
+    if (quiz.endsAt && Date.now() > quiz.endsAt.toMillis()) {
+      finish('Срок проведения квиза истёк. Засчитаны ответы, отправленные до закрытия.');
+      return;
+    }
+    if (pos >= order.length) {
+      finishAnytime();
+      return;
+    }
+    playerPos = pos;
+    updateDoc(playerRef(), { pos }).catch((e) => console.error(e));
+    showQuestionAt(pos);
+  }
+
+  async function finishAnytime() {
+    try {
+      await updateDoc(playerRef(), { ended: true, pos: order.length, endedAt: serverTimestamp() });
+    } catch (err) {
+      console.error(err);
+    }
+    finish('Вы ответили на все вопросы. Итоги и сертификат появятся после проверки организатора.');
+  }
+
   /* ---------- Демо-режим ---------- */
   function demoRun(pos) {
     if (gameOver) return;
@@ -1358,6 +1411,7 @@
   }
 
   function onQuestionEnded() {
+    if (anytime && !DEMO) { setTimeout(() => anytimeRun(curPos + 1), 2000); return; }
     if (!DEMO) return;
     if (quiz.manualMode) {
       $('nextWrap').innerHTML = '<button class="btn-primary small" id="demoNext">Следующий вопрос</button>';

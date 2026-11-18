@@ -244,6 +244,8 @@
 
       <label class="toggle"><input type="checkbox" id="masterInput" />MasterCode: задания с кодом (код для исправления и сборка кода из блоков)</label>
       <div class="toggle-sub">Включает типы вопросов «Код» и «Блоки». Участникам имеет смысл требовать ФИО и группу.</div>
+      <label class="toggle"><input type="checkbox" id="anytimeInput" />Свободный режим: каждый проходит тест в любое время</label>
+      <div class="toggle-sub">Тест не нужно запускать вручную: участники заходят сами, пока квиз не закрыт (нужна дата закрытия). Сертификаты выдаёт организатор.</div>
 
       <div class="field" style="margin-top:14px">
         <label class="field-label" for="startInput">Дата и время открытия <span style="opacity:.7;font-weight:600">(необязательно)</span></label>
@@ -476,6 +478,10 @@
     const e = $('endInput').value;
     if (s && e && new Date(e) <= new Date(s)) {
       $('step1Error').textContent = 'Дата закрытия должна быть позже даты открытия';
+      return;
+    }
+    if ($('anytimeInput').checked && !e) {
+      $('step1Error').textContent = 'В свободном режиме укажите дату и время закрытия';
       return;
     }
     showStep(2);
@@ -1011,6 +1017,7 @@
       showAnswers: $('showAnswersInput').checked,
       shuffleQuestions: $('shuffleInput').checked,
       manualMode: $('manualInput').checked,
+      anytimeMode: $('anytimeInput').checked,
       // Запрет вставки имеет смысл только в защищённых режимах (СКР и MasterCode).
       // Для обычных квизов всегда false — защита от списывания по умолчанию не включается.
       noPaste: $('noPasteInput').checked && (mc || skr),
@@ -1148,6 +1155,7 @@
       $('showAnswersInput').checked = !!data.showAnswers;
       $('shuffleInput').checked = !!data.shuffleQuestions;
       $('manualInput').checked = !!data.manualMode;
+      $('anytimeInput').checked = !!data.anytimeMode;
       $('noPasteInput').checked = !!data.noPaste;
       $('requireNameInput').checked = !!data.requireName;
       $('requireGroupInput').checked = !!data.requireGroup;

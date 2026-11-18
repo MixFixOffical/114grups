@@ -95,6 +95,14 @@
     .rm, .mv { width: 30px; height: 30px; border-radius: 50%; border: none; background: #f3f0fa; color: var(--purple-dark); cursor: pointer; font-size: 15px; flex-shrink: 0; }
     .mv:disabled { opacity: .35; cursor: default; }
     .ord { font-family: "Unbounded", sans-serif; font-weight: 900; font-size: 13px; color: var(--purple); width: 22px; text-align: center; flex-shrink: 0; }
+    .row-item input[type="checkbox"] { width: 22px; height: 22px; flex-shrink: 0; accent-color: #46a955; cursor: pointer; margin: 0; }
+
+    .q-drag { width: 30px; height: 30px; border-radius: 9px; border: none; background: #f3f0fa; color: var(--purple); display: grid; place-items: center; cursor: grab; touch-action: none; flex-shrink: 0; }
+    .q-drag:hover { background: #e2d9fb; }
+    .q-drag:active { cursor: grabbing; }
+    .q-list.is-sorting { user-select: none; -webkit-user-select: none; }
+    .q-list.is-sorting .q-card { animation: none; transition: transform .2s ease, box-shadow .2s ease; }
+    .q-list.is-sorting .q-card.is-dragged { transition: none; position: relative; z-index: 20; box-shadow: 0 22px 46px rgba(20,0,60,.45); }
 
     .add-link { font-family: inherit; font-weight: 700; font-size: 14px; color: var(--purple); background: none; border: 2px dashed #c9bdf0; border-radius: 12px; padding: 10px; width: 100%; cursor: pointer; margin-top: 4px; }
     .add-link:hover { background: #f7f4ff; }
@@ -273,6 +281,11 @@
             <div class="type-name">Свой ответ</div>
             <div class="type-desc">Игрок вводит ответ сам. Засчитываются заданные варианты.</div>
           </button>
+          <button class="type-card" data-type="multi">
+            <div class="type-icon">☑️</div>
+            <div class="type-name">Несколько верных</div>
+            <div class="type-desc">Игрок отмечает все правильные варианты, а не один.</div>
+          </button>
           <button class="type-card mc-only" data-type="code" hidden>
             <div class="type-icon">💻</div>
             <div class="type-name">Код</div>
@@ -343,7 +356,7 @@
     [10, '10 секунд'], [15, '15 секунд'], [20, '20 секунд'], [30, '30 секунд'],
     [45, '45 секунд'], [60, '1 минута'], [90, '1,5 минуты'], [120, '2 минуты']
   ];
-  const TYPE_NAMES = { choice: 'Обычный тест', open: 'Свой ответ', code: 'Код', blocks: 'Блоки' };
+  const TYPE_NAMES = { choice: 'Обычный тест', multi: 'Несколько верных', open: 'Свой ответ', code: 'Код', blocks: 'Блоки' };
   const MC_TYPES = ['code', 'blocks'];
 
   const toTs = (v) => (v ? Timestamp.fromDate(new Date(v)) : null);
@@ -548,6 +561,18 @@
         ${q.options.length < MAX_OPTIONS ? `<button class="add-link" data-add-opt="${i}">+ Вариант</button>` : ''}`;
     }
 
+    if (q.type === 'multi') {
+      return `
+        <div class="hint" style="margin:0 0 10px">Отметьте все правильные варианты (галочкой). Засчитывается, только если выбраны все верные и нет лишних.</div>
+        ${q.options.map((opt, j) => `
+          <div class="row-item">
+            <input type="checkbox" data-mcorrect="${i}" data-idx="${j}" ${q.correct.includes(j) ? 'checked' : ''} aria-label="Верный вариант" />
+            <input type="text" data-opt="${i}" data-idx="${j}" value="${esc(opt)}" placeholder="Вариант ${j + 1}" maxlength="120" />
+            ${q.options.length > 2 ? `<button class="rm" data-rm-opt="${i}" data-idx="${j}" aria-label="Удалить вариант">×</button>` : ''}
+          </div>`).join('')}
+        ${q.options.length < MAX_OPTIONS ? `<button class="add-link" data-add-opt="${i}">+ Вариант</button>` : ''}`;
+    }
+
     if (q.type === 'open') {
       return `
         <div class="hint" style="margin:0 0 10px">Введите правильный ответ. Можно добавить другие варианты, которые тоже засчитываются.</div>
@@ -627,6 +652,9 @@
     list.innerHTML = state.questions.map((q, i) => `
       <div class="q-card">
         <div class="q-head">
+          <button class="q-drag" data-drag="${i}" aria-label="Перетащить вопрос" title="Перетащите, чтобы изменить порядок">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="2"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="9" cy="18" r="2"/><circle cx="15" cy="18" r="2"/></svg>
+          </button>
           <span class="q-num">${i + 1}</span>
           <span class="q-type">${TYPE_NAMES[q.type]}</span>
           <button class="q-del" data-del="${i}" aria-label="Удалить вопрос">×</button>
@@ -669,6 +697,7 @@
       const type = btn.dataset.type;
       const base = { text: '', points: 1, timeLimit: null, image: null };
       if (type === 'choice') state.questions.push({ ...base, type, options: ['', ''], correct: 0 });
+      else if (type === 'multi') state.questions.push({ ...base, type, options: ['', ''], correct: [] });
       else if (type === 'open') state.questions.push({ ...base, type, answers: [''] });
       else if (type === 'code') state.questions.push({ ...base, type, code: '', hasBug: false, correctCode: '' });
       else state.questions.push({ ...base, type, src: '', seq: [], extra: [] });
@@ -708,6 +737,12 @@
     const d = t.dataset;
     if (d.correct !== undefined) {
       state.questions[+d.correct].correct = +d.idx;
+    } else if (d.mcorrect !== undefined) {
+      const qq = state.questions[+d.mcorrect];
+      const j = +d.idx;
+      qq.correct = t.checked
+        ? [...qq.correct, j].sort((a, b) => a - b)
+        : qq.correct.filter((x) => x !== j);
     } else if (d.qtime !== undefined) {
       const qq = state.questions[+d.qtime];
       if (t.value === '-1') {
@@ -736,7 +771,9 @@
     else if (d.rmOpt !== undefined) {
       const qq = q(d.rmOpt); const idx = +d.idx;
       qq.options.splice(idx, 1);
-      if (qq.correct === idx) qq.correct = 0; else if (qq.correct > idx) qq.correct -= 1;
+      if (Array.isArray(qq.correct)) {
+        qq.correct = qq.correct.filter((x) => x !== idx).map((x) => (x > idx ? x - 1 : x));
+      } else if (qq.correct === idx) qq.correct = 0; else if (qq.correct > idx) qq.correct -= 1;
     }
     else if (d.addAns !== undefined) { if (q(d.addAns).answers.length < MAX_ANSWERS) q(d.addAns).answers.push(''); }
     else if (d.rmAns !== undefined) q(d.rmAns).answers.splice(+d.idx, 1);
@@ -762,6 +799,104 @@
     renderQuestions();
   });
 
+  /* ---------- Порядок вопросов: перетаскивание за ручку ---------- */
+  // Работает мышью и пальцем (pointer events). Координаты в координатах страницы, поэтому прокрутка не ломает расчёт.
+  let drag = null;
+  let scrollTimer = null;
+
+  function startDrag(e) {
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    const handle = e.target.closest('[data-drag]');
+    if (!handle) return;
+    e.preventDefault();
+
+    const list = $('questionList');
+    const cards = [...list.querySelectorAll('.q-card')];
+    const from = +handle.dataset.drag;
+    const rects = cards.map((c) => {
+      const r = c.getBoundingClientRect();
+      return { top: r.top + window.scrollY, height: r.height };
+    });
+    const gap = parseFloat(getComputedStyle(list).rowGap) || 16;
+
+    drag = {
+      from, to: from, cards, rects,
+      shift: rects[from].height + gap,
+      startY: e.clientY + window.scrollY,
+      pointerY: e.clientY
+    };
+    cards[from].classList.add('is-dragged');
+    list.classList.add('is-sorting');
+
+    document.addEventListener('pointermove', moveDrag);
+    document.addEventListener('pointerup', finishDrag);
+    document.addEventListener('pointercancel', finishDrag);
+    scrollTimer = setInterval(autoScroll, 16);
+  }
+
+  function moveDrag(e) {
+    if (!drag) return;
+    drag.pointerY = e.clientY;
+    updateDrag();
+  }
+
+  function updateDrag() {
+    const d = drag;
+    const dy = d.pointerY + window.scrollY - d.startY;
+    d.cards[d.from].style.transform = `translateY(${dy}px)`;
+
+    const mid = d.rects[d.from].top + d.rects[d.from].height / 2 + dy;
+    // Сколько других карточек оказалось выше перетаскиваемой — это и есть новая позиция
+    let n = 0;
+    d.cards.forEach((_, j) => {
+      if (j === d.from) return;
+      if (d.rects[j].top + d.rects[j].height / 2 < mid) n++;
+    });
+    d.to = n;
+
+    // Остальные карточки отъезжают, освобождая место
+    d.cards.forEach((c, j) => {
+      if (j === d.from) return;
+      const k = j < d.from ? j : j - 1;
+      const fk = k < n ? k : k + 1;
+      const off = fk < j ? -d.shift : fk > j ? d.shift : 0;
+      c.style.transform = off ? `translateY(${off}px)` : '';
+    });
+  }
+
+  // Прокрутка страницы, когда карточку тянут к краю экрана
+  function autoScroll() {
+    if (!drag) return;
+    const y = drag.pointerY;
+    const speed = y > window.innerHeight - 90 ? 12 : y < 90 ? -12 : 0;
+    if (speed) {
+      window.scrollBy(0, speed);
+      updateDrag();
+    }
+  }
+
+  function finishDrag() {
+    if (!drag) return;
+    const { from, to, cards } = drag;
+    drag = null;
+    clearInterval(scrollTimer);
+    scrollTimer = null;
+    document.removeEventListener('pointermove', moveDrag);
+    document.removeEventListener('pointerup', finishDrag);
+    document.removeEventListener('pointercancel', finishDrag);
+    $('questionList').classList.remove('is-sorting');
+
+    if (to !== from) {
+      const [item] = state.questions.splice(from, 1);
+      state.questions.splice(to, 0, item);
+      renderQuestions();
+    } else {
+      cards.forEach((c) => { c.style.transform = ''; c.classList.remove('is-dragged'); });
+    }
+  }
+
+  $('questionList').addEventListener('pointerdown', startDrag);
+
   /* ---------- Проверка ---------- */
   function validate() {
     if (state.questions.length === 0) return 'Добавьте хотя бы один вопрос';
@@ -775,6 +910,10 @@
       if (q.type === 'choice') {
         if (q.options.some((o) => !o.trim())) return `Вопрос ${n}: заполните все варианты ответа`;
         if (q.options.length < 2) return `Вопрос ${n}: нужно минимум два варианта`;
+      } else if (q.type === 'multi') {
+        if (q.options.some((o) => !o.trim())) return `Вопрос ${n}: заполните все варианты ответа`;
+        if (q.options.length < 2) return `Вопрос ${n}: нужно минимум два варианта`;
+        if (!q.correct.length) return `Вопрос ${n}: отметьте хотя бы один верный вариант`;
       } else if (q.type === 'open') {
         if (q.answers.every((a) => !a.trim())) return `Вопрос ${n}: введите хотя бы один правильный ответ`;
       } else if (q.type === 'code') {
@@ -826,6 +965,12 @@
       return {
         pub: { ...pub, type: 'choice', options: q.options.map((o) => o.trim()) },
         key: { correct: q.correct }
+      };
+    }
+    if (q.type === 'multi') {
+      return {
+        pub: { ...pub, type: 'multi', options: q.options.map((o) => o.trim()) },
+        key: { correct: [...q.correct].sort((a, b) => a - b) }
       };
     }
     if (q.type === 'open') {
@@ -956,6 +1101,9 @@
     };
     if (pub.type === 'choice') {
       return { ...base, type: 'choice', options: [...pub.options], correct: K.correct ?? 0 };
+    }
+    if (pub.type === 'multi') {
+      return { ...base, type: 'multi', options: [...pub.options], correct: [...(K.correct || [])] };
     }
     if (pub.type === 'open') {
       const answers = K.answers || [];

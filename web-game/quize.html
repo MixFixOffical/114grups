@@ -225,7 +225,10 @@
     <section class="screen" id="errorScreen" hidden>
       <h1>Не получилось</h1>
       <p class="lead" id="errorText"></p>
-      <a class="btn-primary" href="index.html" style="text-decoration:none;display:inline-block">На главную</a>
+      <div class="done-actions">
+        <button class="btn-primary small" id="reloadBtn">Обновить страницу</button>
+        <a class="btn-ghost plain" href="index.html">На главную</a>
+      </div>
     </section>
   </main>
 
@@ -507,7 +510,7 @@
           restored = p;
           order = p.order || order;
           playerPos = p.pos || 0;
-          if (excluded) { watchGame(); return showExcluded(); }
+          if (excluded) { watchGame(); watchRetake(playerKey); return showExcluded(); }
         } else {
           sessionStorage.removeItem(storageKey(round));
         }
@@ -553,7 +556,7 @@
     try {
       // Исключённых не пускаем
       const ex = await getDoc(excludedRef(key));
-      if (ex.exists()) { excluded = true; return showExcluded(); }
+      if (ex.exists()) { excluded = true; watchRetake(key); return showExcluded(); }
 
       const base = collection(db, 'games', code, 'rounds', String(round), 'players');
       const same = (await getDocs(query(base, where('key', '==', key)))).docs.map((d) => d.data());
@@ -630,9 +633,12 @@
   function watchGame() {
     if (unsubGame) return;
     unsubGame = onSnapshot(doc(db, 'games', code), (snap) => {
-      if (!snap.exists() || excluded) return;
+      if (!snap.exists()) return;
       const g = snap.data();
       const r = g.round || 1;
+      // Исключённый участник возвращается на вход, если организатор начал новый запуск
+      if (excluded && r !== round) resetExcludedState();
+      if (excluded) return;
 
       if (r !== round) {
         round = r;
@@ -671,7 +677,7 @@
       finish('Вопросы закончились. Ждём итоги от организатора.');
       return;
     }
-    if (latestPos !== shownPos) showQuestionAt(latestPos, questionStartedMs);
+    if (latestPos !== shownPos) safeShow(latestPos, questionStartedMs);
   }
 
   function resetForNewRound() {
@@ -699,6 +705,30 @@
       show('joinScreen');
     }
   }
+
+  // Сбрасываем состояние исключения, когда организатор разрешил перездачу или начал новый запуск
+  function resetExcludedState() {
+    excluded = false;
+    gameOver = false;
+    started = false;
+    countdownDone = false;
+    clearInterval(timerId);
+    if (playerId) sessionStorage.removeItem(storageKey(round));
+    playerId = null;
+  }
+
+  // Ошибка при показе вопроса не должна молча оставлять участника на экране «Вы в игре»
+  function safeShow(pos, startedMs) {
+    try {
+      showQuestionAt(pos, startedMs);
+    } catch (err) {
+      console.error('Не удалось показать вопрос', pos, err);
+      shownPos = -1;
+      fail('Не удалось загрузить вопрос. Нажмите «Обновить страницу», вы останетесь в игре.');
+    }
+  }
+
+  $('reloadBtn').addEventListener('click', () => location.reload());
 
   /* ---------- Обратный отсчёт ---------- */
   function startCountdown(cb) {
@@ -1118,6 +1148,7 @@
     gameOver = true;
     clearInterval(timerId);
     showExcluded();
+    watchRetake(playerKey);
     try {
       await Promise.all([
         updateDoc(playerRef(), { excluded: true, ended: true, exits: exitCount, endedAt: serverTimestamp() }),
@@ -1139,7 +1170,7 @@
   }
 
   function showExcluded() {
-    $('exText').textContent = 'Вас исключила система безопасности: вы нарушили правила прохождения квиза (покинули страницу, вышли из полноэкранного режима или переключились на другое окно). Повторно пройти этот квиз нельзя. Организатор получит уведомление.';
+    $('exText').textContent = 'Вас исключила система безопасности: вы покинули страницу, вышли из полноэкранного режима или переключились на другое окно. Организатор может разрешить перездачу, и тогда эта страница сама откроет вход. Ждите решения организатора.';
     show('excludedScreen');
   }
 
@@ -1311,16 +1342,16 @@
     }
   });
 
-  // Следим за решением организатора по запросу этого человека
+  // Следим за решением организатора по запросу этого человека (в том числе после исключения)
   function watchRetake(key) {
-    if (DEMO) return;
+    if (DEMO || !key) return;
     if (unsubRetake) unsubRetake();
     unsubRetake = onSnapshot(retakeRef(key), (snap) => {
       if (!snap.exists()) return;
       const r = snap.data();
-      if (r.status === 'approved' && r.round === round && !excluded && (!playerId || gameOver)) {
-        showApprovedJoin(r);
-      }
+      if (r.status !== 'approved' || r.round !== round) return;
+      if (excluded) resetExcludedState();
+      if (!playerId || gameOver) showApprovedJoin(r);
     }, (err) => console.error(err));
   }
 

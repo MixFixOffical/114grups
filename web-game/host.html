@@ -125,6 +125,9 @@
     .modal-card .sub { color: #6f6790; font-size: 14px; margin-bottom: 14px; }
     .modal-card .section-title { color: var(--purple-dark); margin-top: 18px; }
     .modal-card .muted { color: #6f6790; }
+    .modal-card .rq-row { background: #f5f3fb; }
+    .modal-card .rq-row b { color: var(--purple-dark); }
+    .modal-card .rq-reason { color: #6f6790; }
     .ans-row { background: #f5f3fb; border-radius: 14px; padding: 12px 14px; margin-bottom: 10px; }
     .ans-q { font-weight: 800; font-size: 15px; margin-bottom: 6px; }
     .ans-val { font-family: Consolas, "Courier New", monospace; font-size: 14px; background: #fff; border-radius: 10px; padding: 8px 10px; white-space: pre-wrap; overflow-x: auto; margin: 0 0 6px; }
@@ -136,6 +139,12 @@
     .btn-dark:hover { background: var(--purple-dark); }
     .btn-dark.btn-light { background: #e9e6f5; color: var(--purple-dark); }
     #posterCanvas { display: block; width: 100%; height: auto; border-radius: 12px; }
+
+    .toolbar { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px; }
+    .toolbar .btn-ghost { margin: 0; padding: 12px 18px; font-size: 15px; }
+    .filter-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+    .filter-row:empty { display: none; }
+    .filter-row select { font-family: inherit; font-weight: 700; font-size: 15px; color: var(--purple-dark); background: #fff; border: none; border-radius: 12px; padding: 10px 14px; }
 
     .toast { position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%) translateY(120px); background: var(--yellow); color: var(--purple-dark); font-weight: 700; padding: 14px 22px; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.25); transition: transform .35s ease; z-index: 60; max-width: calc(100% - 40px); text-align: center; }
     .toast.show { transform: translateX(-50%) translateY(0); }
@@ -166,6 +175,11 @@
   </header>
 
   <main>
+    <div class="toolbar">
+      <button class="btn-ghost" id="excBtn">Исключённые (<span id="excCount">0</span>)</button>
+      <button class="btn-ghost" id="resetBtn">Рестарт</button>
+    </div>
+
     <section class="card qr-card" id="qrCard">
       <div class="section-title">Игроки сканируют QR-код</div>
       <div class="qr-wrap"><div id="qrBox"></div></div>
@@ -181,13 +195,9 @@
       <div id="retakeList"></div>
     </section>
 
-    <section class="card list-card" id="excludedCard" hidden>
-      <div class="section-title">Исключённые игроки</div>
-      <div id="excludedList"></div>
-    </section>
-
     <section class="card list-card" id="resultsCard" hidden>
       <div class="section-title">Итоги игроков</div>
+      <div class="filter-row" id="resFilter"></div>
       <div id="resultsList"></div>
     </section>
   </main>
@@ -199,6 +209,17 @@
       <div class="sub" id="detailSub"></div>
       <div id="detailBody"></div>
       <div class="modal-actions"><button class="btn-dark btn-light" id="detailClose">Закрыть</button></div>
+    </div>
+  </div>
+
+  <!-- Исключённые игроки -->
+  <div class="modal" id="excModal" hidden>
+    <div class="modal-card">
+      <h2>Исключённые игроки</h2>
+      <div class="sub">Разрешите перездачу, и игрок сможет войти снова с новой попыткой.</div>
+      <div class="filter-row" id="excFilter"></div>
+      <div id="excModalList"></div>
+      <div class="modal-actions"><button class="btn-dark btn-light" id="excClose">Закрыть</button></div>
     </div>
   </div>
 
@@ -220,7 +241,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, collection, query, where, onSnapshot, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
   import { gradeFor, maxScoreOf, makeCertNumber } from "./cert.js";
 
@@ -258,6 +279,7 @@
   let inflight = new Set();  // ответы, которые сейчас проверяются
   let retakes = [];
   let excludedList = [];
+  let groupFilter = '';      // выбранная группа для фильтров
 
   let unsubGame = null;
   let unsubRound = [];
@@ -283,6 +305,8 @@
   const todayStr = () => new Date().toLocaleDateString('ru-RU');
   const joinUrl = () => new URL('index.html?code=' + encodeURIComponent(code), location.href).href;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const docId = (key) => key.replace(/\//g, '_');
+  const inGroup = (g) => !groupFilter || (g || '') === groupFilter;
 
   let toastTimer;
   function showToast(text) {
@@ -720,7 +744,9 @@
   function renderResults() {
     $('resultsCard').hidden = players.length === 0;
     if (players.length === 0) return;
-    $('resultsList').innerHTML = ranking().map((p) => {
+    renderFilters();
+    const list = ranking().filter((p) => inGroup(p.group));
+    $('resultsList').innerHTML = list.length ? list.map((p) => {
       const answered = answers.filter((a) => a.player === p.id).length;
       const grade = quiz.gradeMode && !p.excluded ? gradeFor(p.score, quiz.grades) : null;
       return `
@@ -739,7 +765,7 @@
           </div>
           <button class="btn-soft" data-detail="${esc(p.id)}">Подробнее</button>
         </div>`;
-    }).join('');
+    }).join('') : '<div class="muted">В этой группе нет игроков</div>';
   }
 
   $('resultsList').addEventListener('click', (e) => {
@@ -881,16 +907,87 @@
   }
 
   function renderExcluded() {
-    $('excludedCard').hidden = excludedList.length === 0;
-    $('excludedList').innerHTML = excludedList
-      .slice()
-      .sort((a, b) => tsMs(b.excludedAt) - tsMs(a.excludedAt))
-      .map((x) => `
-        <div class="ex-row">
-          ${esc(x.name)}${x.group ? `, группа ${esc(x.group)}` : ''}, квиз «${esc(x.quizTitle)}» — был исключён из-за нарушений правил квиза
-          <div class="muted" style="font-weight:400;margin-top:4px">Запуск ${esc(x.round || 1)} · выходов со страницы: ${esc(x.exits || 0)}</div>
-        </div>`).join('');
+    $('excCount').textContent = excludedList.length;
+    if (!$('excModal').hidden) renderExcludedModal();
   }
+
+  // Фильтр по группам: показывается, только если в квизе есть группы
+  function renderFilters() {
+    const gs = [...new Set([...players.map((p) => p.group), ...excludedList.map((x) => x.group)].filter(Boolean))].sort();
+    if (groupFilter && !gs.includes(groupFilter)) groupFilter = '';
+    const html = gs.length
+      ? `<span class="muted">Группа:</span><select data-group-filter><option value="">Все группы</option>${gs.map((g) => `<option value="${esc(g)}"${g === groupFilter ? ' selected' : ''}>${esc(g)}</option>`).join('')}</select>`
+      : '';
+    $('resFilter').innerHTML = html;
+    $('excFilter').innerHTML = html;
+  }
+
+  document.addEventListener('change', (e) => {
+    if (!e.target.matches || !e.target.matches('[data-group-filter]')) return;
+    groupFilter = e.target.value;
+    renderResults();
+    renderExcludedModal();
+  });
+
+  function renderExcludedModal() {
+    renderFilters();
+    const list = excludedList
+      .filter((x) => inGroup(x.group))
+      .sort((a, b) => tsMs(b.excludedAt) - tsMs(a.excludedAt));
+    $('excModalList').innerHTML = list.length ? list.map((x) => `
+      <div class="rq-row">
+        <div><b>${esc(x.name)}</b>${x.group ? ` · ${esc(x.group)}` : ''} · квиз «${esc(x.quizTitle)}»</div>
+        <div class="rq-reason">Запуск ${esc(x.round || 1)} · выходов: ${esc(x.exits || 0)}${x.reason ? ` · ${esc(x.reason)}` : ''}</div>
+        <div class="rq-actions"><button class="btn-ok" data-reperm="${esc(x.id)}">Разрешить перездачу</button></div>
+      </div>`).join('') : '<div class="muted">Исключённых нет</div>';
+  }
+
+  function openExcluded() {
+    renderExcludedModal();
+    $('excModal').hidden = false;
+  }
+
+  $('excBtn').addEventListener('click', openExcluded);
+  $('excClose').addEventListener('click', () => { $('excModal').hidden = true; });
+  $('excModal').addEventListener('click', (e) => { if (e.target === $('excModal')) $('excModal').hidden = true; });
+
+  // Разрешить перездачу исключённому: убираем запись об исключении и создаём разрешение на новую попытку
+  async function allowRetakeForExcluded(x) {
+    const mine = players.filter((p) => p.key === x.key);
+    const maxAttempt = mine.reduce((m, p) => Math.max(m, p.attempt || 1), x.attempt || 1);
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'games', code, 'excluded', x.id));
+    batch.set(doc(db, 'games', code, 'retakeRequests', docId(x.key)), {
+      name: x.name,
+      group: x.group || '',
+      key: x.key,
+      reason: 'Перездача разрешена организатором',
+      attempt: maxAttempt,
+      grade: null,
+      round,
+      status: 'approved',
+      allowedAttempt: maxAttempt + 1,
+      requestedAt: serverTimestamp(),
+      decidedAt: serverTimestamp()
+    });
+    await batch.commit();
+  }
+
+  $('excModalList').addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-reperm]');
+    if (!b) return;
+    const x = excludedList.find((v) => v.id === b.dataset.reperm);
+    if (!x || !confirm(`Разрешить перездачу для «${x.name}»?`)) return;
+    b.disabled = true;
+    try {
+      await allowRetakeForExcluded(x);
+      showToast('Перездача разрешена. Участник сможет войти снова');
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось разрешить перездачу');
+      b.disabled = false;
+    }
+  });
 
   /* ---------- QR ---------- */
   function placeQr(inSide) {
@@ -1128,6 +1225,44 @@
       showToast('Ошибка при завершении. Нажмите «Завершить тест» ещё раз');
     }
   }
+
+  /* ---------- Рестарт: очистка всего запуска (обычный и свободный режим) ---------- */
+  async function resetAll() {
+    if (!confirm('Рестарт очистит рейтинг, итоги, исключённых и запросы на перездачу. Уже выданные сертификаты сохранятся. Продолжить?')) return;
+    const btn = $('resetBtn');
+    if (btn) btn.disabled = true;
+    try {
+      clearDriver();
+      const [ex, rq] = await Promise.all([
+        getDocs(collection(db, 'games', code, 'excluded')),
+        getDocs(collection(db, 'games', code, 'retakeRequests'))
+      ]);
+      const refs = [...ex.docs, ...rq.docs].map((d) => d.ref);
+      for (let i = 0; i < refs.length; i += 400) {
+        const batch = writeBatch(db);
+        refs.slice(i, i + 400).forEach((r) => batch.delete(r));
+        await batch.commit();
+      }
+      // Новый номер запуска: старые игроки и ответы перестают показываться
+      await updateDoc(doc(db, 'games', code), {
+        status: 'waiting',
+        round: (game.round || 1) + 1,
+        current: -1,
+        order: [],
+        startedAt: null,
+        finishedAt: null,
+        startToken: null
+      });
+      showToast('Рестарт выполнен: всё очищено');
+    } catch (err) {
+      console.error(err);
+      showToast('Не удалось выполнить рестарт');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  $('resetBtn').addEventListener('click', resetAll);
 
   function openDemo() {
     window.location.href = 'quize.html?code=' + encodeURIComponent(code) + '&demo=1';

@@ -38,18 +38,18 @@ h3{font-size:15px;margin:22px 0 8px}
 .toolbar{margin:8px 0}
 .table-wrap{overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;max-height:70vh}
 table{border-collapse:separate;border-spacing:0}
-th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:6px 8px;text-align:center;white-space:nowrap;min-width:58px;background:var(--card)}
+th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:4px 3px;text-align:center;white-space:nowrap;min-width:0;background:var(--card);font-size:12px}
 th{font-weight:600;font-size:12px;color:var(--muted);position:sticky;top:0;z-index:2;background:#fafbfe}
-th.name,td.name{text-align:left;position:sticky;left:0;z-index:3;min-width:200px;max-width:260px;white-space:normal;background:var(--card);font-weight:500}
+th.name,td.name{text-align:left;position:sticky;left:0;z-index:3;min-width:150px;max-width:200px;white-space:normal;background:var(--card);font-weight:500}
 th.name{z-index:4;background:#fafbfe}
-th.colh{cursor:pointer}
-th.colh .tt{color:var(--ink);font-size:12px}
+th.colh{cursor:pointer;min-width:30px;max-width:38px;overflow:hidden}
+th.colh .tt{color:var(--ink);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 th.colh.untyped .tt{color:var(--accent)}
-th.colh .dd{font-weight:400;font-size:11px;color:var(--muted)}
+th.colh .dd{font-weight:400;font-size:10px;color:var(--muted)}
 th.sep,td.sep{background:#f7f8fb}
 th.attc{min-width:120px}
 th.attc .fl{display:block;font-weight:400;font-size:11px;margin-top:3px;cursor:pointer}
-td.mc{cursor:pointer;font-weight:600}
+td.mc{cursor:pointer;font-weight:600;min-width:30px;width:30px;max-width:30px;padding:3px 0;overflow:hidden;font-size:12px}
 td.mc:hover{outline:2px solid var(--accent);outline-offset:-2px}
 .g5{background:var(--g5)!important}
 .g4{background:var(--g4)!important}
@@ -92,6 +92,7 @@ table.info td{text-align:left;white-space:normal;vertical-align:top}
 <main>
   <!-- ПЛАН -->
   <section id="viewPlan" hidden>
+    <div class="bar"><button class="ghost" id="homeBtn">← Назад</button></div>
     <h2>Ваш план / расписание</h2>
     <div class="hint" id="planHint">Загрузка…</div>
     <div class="chips" id="planGroupChips"></div>
@@ -103,6 +104,7 @@ table.info td{text-align:left;white-space:normal;vertical-align:top}
     <div class="bar">
       <button class="ghost" id="backBtn">← План</button>
       <select id="switchSel" title="Выбрать другую группу или предмет"></select>
+      <select id="periodSel" title="Период: аттестация или семестр"></select>
       <div class="tabs">
         <button class="tab active" data-tab="grades">Оценки</button>
         <button class="tab" data-tab="info">ИНФО</button>
@@ -154,6 +156,7 @@ const DAYS = ["Понедельник","Вторник","Среда","Четве
 const NUM = ["5","4","3","2"];
 const DEFAULT_TYPES = ["КР","СМ","ИТ"];
 const ROLE_LABEL = { admin:"Администратор", admt:"АДМТ", curator:"Куратор", starosta:"Староста" };
+const HOME_BY_ROLE = { admin:"adminhome.html", admt:"admt.html", curator:"khome.html", starosta:"khome.html", parent:"phome.html", student:"home.html" };
 
 const S = {
     uid: null, name: "", role: "", isAdmin: false,
@@ -414,6 +417,7 @@ async function openSubject(entry) {
         ? "Администратор: можно выставлять и исправлять любые отметки, снимать блокировку."
         : "Отметки блокируются через 20 минут после выставления. Пустые ячейки заполняются сразу.";
     fillSwitch();
+    fillPeriod();
     setTab(S.tab);
 
     const ref = db.collection("grades").doc(docId);
@@ -431,6 +435,21 @@ function fillSwitch() {
     ).join("");
 }
 $("switchSel").addEventListener("change", e => openSubject(S.plan[+e.target.value]));
+
+// Период: 1 аттестация / 2 аттестация / N семестр. По умолчанию — текущая аттестация, если сегодня она идёт
+function fillPeriod() {
+    const c = S.cur, n = curSemNo();
+    const here = attKey(todayStr(), c.settings);
+    c.period = here === `s${n}a1` ? "a1" : here === `s${n}a2` ? "a2" : "sem";
+    $("periodSel").innerHTML =
+        `<option value="a1">1 аттестация</option>` +
+        `<option value="a2">2 аттестация</option>` +
+        `<option value="sem">${n} семестр</option>`;
+    $("periodSel").value = c.period;
+}
+$("periodSel").addEventListener("change", e => { S.cur.period = e.target.value; render(); });
+
+$("homeBtn").addEventListener("click", () => { location.href = HOME_BY_ROLE[S.role] || "khome.html"; });
 
 $("backBtn").addEventListener("click", () => {
     if (S.cur?.unsub) S.cur.unsub();
@@ -547,6 +566,9 @@ function render() {
     c.cols = buildCols(c);
     const n = curSemNo();
     c.attKeys = [`s${n}a1`, `s${n}a2`, `s${n}sem`];
+    const p = c.period || "sem";
+    c.resKeys = p === "a1" ? [c.attKeys[0]] : p === "a2" ? [c.attKeys[1]] : c.attKeys;
+    c.visCols = c.cols.filter(col => p === "sem" || col.key === c.attKeys[p === "a1" ? 0 : 1]);
     if (S.tab === "grades") { renderGrid(); renderFinal(); }
     else renderInfo();
 }
@@ -557,29 +579,29 @@ function renderGrid() {
     const typeOf = id => c.doc.meta?.[id]?.type || "";
 
     let head = `<tr><th class="name">ФИО</th>`;
-    head += c.cols.map(col => {
+    head += c.visCols.map(col => {
         const t = typeOf(col.id);
         return `<th class="colh ${t ? "" : "untyped"}" data-col="${esc(col.id)}" title="Нажмите, чтобы задать тип работы">` +
                `<div class="tt">${esc(t || "Тип…")}</div>` +
                `<div class="dd">${dm(col.date)}${col.lesson ? ` · ${col.lesson} п.` : ""}</div></th>`;
     }).join("");
     head += `<th class="sep">Ср. б.</th>`;
-    head += [k1, k2, ks].map(k =>
+    head += c.resKeys.map(k =>
         `<th class="attc"><div>${attTitle(k)}</div>` +
         `<label class="fl"><input type="checkbox" data-flag="${k}" ${c.doc.finalFlags?.[k] ? "checked" : ""}> в итоговую</label></th>`
     ).join("");
     head += `</tr>`;
 
     const body = c.students.map(st => {
-        const cells = c.cols.map(col => {
+        const cells = c.visCols.map(col => {
             const m = marksOf(st.id)[col.id];
             const li = lockInfo(m);
             const v = m?.v ?? "";
             return `<td class="mc ${markCls(v)} ${li.locked ? "locked" : ""}" data-sid="${esc(st.id)}" data-col="${esc(col.id)}">` +
                    `${esc(v)}${li.locked ? '<span class="lk">🔒</span>' : ""}</td>`;
         }).join("");
-        const avg = numericAvg(st.id, null);
-        const att = [k1, k2, ks].map(k => {
+        const avg = numericAvg(st.id, col => c.visCols.includes(col));
+        const att = c.resKeys.map(k => {
             const r = resultFor(st.id, k);
             if (r.state === "disputed") {
                 return `<td class="mc disp" data-sid="${esc(st.id)}" data-att="${k}" title="Спорная оценка: выставьте вручную">${r.avg.toFixed(2)} ⚠</td>`;

@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Журнал оценок</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#1d2330;--muted:#6b7385;--line:#e2e6ef;--accent:#3b6cf6;--g5:#d6f5df;--g4:#e6f7ea;--g3:#fff4cc;--g2:#ffe0e0;--disp:#ffd9a8;--lock:#eceff4}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+header.top{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:20}
+.brand{font-weight:700;font-size:16px}
+.who{color:var(--muted);font-size:13px}
+main{padding:16px 18px;max-width:1400px;margin:0 auto}
+h2{font-size:18px;margin:4px 0 8px}
+h3{font-size:15px;margin:22px 0 8px}
+.hint{color:var(--muted);font-size:13px;margin:6px 0 12px}
+.empty{color:var(--muted);padding:20px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:5px 12px;cursor:pointer;font:inherit;color:var(--ink)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.plan{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.plan-card{display:flex;flex-direction:column;gap:4px;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer;font:inherit;color:var(--ink)}
+.plan-card:hover{border-color:var(--accent)}
+.plan-card .ps{font-weight:600;font-size:15px}
+.plan-card .pg{color:var(--muted);font-size:13px}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.bar select{padding:7px 10px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--card);max-width:340px}
+.tabs{margin-left:auto;display:flex;gap:6px}
+.tab,.ghost,.btn{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 12px;cursor:pointer;font:inherit;color:var(--ink)}
+.tab.active{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn{background:var(--accent);color:#fff;border-color:var(--accent)}
+.subj-title{font-size:17px;font-weight:700;margin:4px 0}
+.toolbar{margin:8px 0}
+.table-wrap{overflow:auto;background:var(--card);border:1px solid var(--line);border-radius:12px;max-height:70vh}
+table{border-collapse:separate;border-spacing:0}
+th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);padding:6px 8px;text-align:center;white-space:nowrap;min-width:58px;background:var(--card)}
+th{font-weight:600;font-size:12px;color:var(--muted);position:sticky;top:0;z-index:2;background:#fafbfe}
+th.name,td.name{text-align:left;position:sticky;left:0;z-index:3;min-width:200px;max-width:260px;white-space:normal;background:var(--card);font-weight:500}
+th.name{z-index:4;background:#fafbfe}
+th.colh{cursor:pointer}
+th.colh .tt{color:var(--ink);font-size:12px}
+th.colh.untyped .tt{color:var(--accent)}
+th.colh .dd{font-weight:400;font-size:11px;color:var(--muted)}
+th.sep,td.sep{background:#f7f8fb}
+th.attc{min-width:120px}
+th.attc .fl{display:block;font-weight:400;font-size:11px;margin-top:3px;cursor:pointer}
+td.mc{cursor:pointer;font-weight:600}
+td.mc:hover{outline:2px solid var(--accent);outline-offset:-2px}
+.g5{background:var(--g5)!important}
+.g4{background:var(--g4)!important}
+.g3{background:var(--g3)!important}
+.g2{background:var(--g2)!important}
+.locked{background:var(--lock)!important;cursor:not-allowed}
+.locked:hover{outline:none}
+.lk{font-size:10px;margin-left:3px;opacity:.6}
+.disp{background:var(--disp)!important;font-size:12px}
+td.manual{font-style:italic;text-decoration:underline dotted}
+.avg{font-weight:700}
+.notif{margin-bottom:14px}
+.notif-title{font-weight:700;margin-bottom:6px}
+.note{background:#fff7e6;border:1px solid #ffd591;border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer}
+table.info{width:100%;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+table.info th{position:static;text-align:left}
+table.info td{text-align:left;white-space:normal;vertical-align:top}
+.ti{width:100%;padding:6px 8px;border:1px solid var(--line);border-radius:6px;font:inherit;margin-top:4px}
+.hwc input[type=date]{padding:4px;border:1px solid var(--line);border-radius:6px;font:inherit}
+.modal-bg{position:fixed;inset:0;background:rgba(20,24,34,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal{background:var(--card);border-radius:14px;padding:18px;max-width:420px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.2)}
+.modal h3{margin:0 0 2px}
+.modal .sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+.mbtns{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:8px}
+.mb{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:12px 6px;cursor:pointer;font:inherit;font-weight:600;color:var(--ink)}
+.mb.clear,.mb.add{grid-column:span 2}
+.mb.danger{grid-column:span 4;color:#c0392b}
+.modal .ghost{width:100%;margin-top:6px}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%) translateY(120px);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;transition:transform .25s;z-index:60;max-width:90vw}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">Журнал оценок</div>
+  <div class="who" id="who"></div>
+</header>
+
+<main>
+  <!-- ПЛАН -->
+  <section id="viewPlan" hidden>
+    <h2>Ваш план / расписание</h2>
+    <div class="hint" id="planHint">Загрузка…</div>
+    <div class="chips" id="planGroupChips"></div>
+    <div class="plan" id="planList"></div>
+  </section>
+
+  <!-- ПРЕДМЕТ -->
+  <section id="viewGrades" hidden>
+    <div class="bar">
+      <button class="ghost" id="backBtn">← План</button>
+      <select id="switchSel" title="Выбрать другую группу или предмет"></select>
+      <div class="tabs">
+        <button class="tab active" data-tab="grades">Оценки</button>
+        <button class="tab" data-tab="info">ИНФО</button>
+      </div>
+    </div>
+    <div class="subj-title" id="subjTitle"></div>
+    <div class="hint" id="rightsHint"></div>
+
+    <div id="tabGrades">
+      <div class="toolbar"><button class="ghost" id="addColBtn">+ Добавить колонку</button></div>
+      <div class="table-wrap"><table id="grid"></table></div>
+      <h3>Итоговая аттестация</h3>
+      <div class="table-wrap"><table id="finalGrid"></table></div>
+    </div>
+
+    <div id="tabInfo" hidden>
+      <div class="notif" id="notifList"></div>
+      <div id="infoList"></div>
+    </div>
+  </section>
+</main>
+
+<div class="modal-bg" id="modalBg" hidden><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   FIREBASE (тот же проект, что у остальных страниц)
+========================================================= */
+firebase.initializeApp({
+    apiKey: "AIzaSyCKMeyABL01rsQ-FcLAn81QO5TvSdxSFjU",
+    authDomain: "othets-1aa03.firebaseapp.com",
+    projectId: "othets-1aa03",
+    storageBucket: "othets-1aa03.firebasestorage.app",
+    messagingSenderId: "528392191591",
+    appId: "1:528392191591:web:1e97790e6f9f0a6e175ec2",
+    measurementId: "G-F50WVZRXZJ"
+});
+const db = firebase.firestore();
+const auth = firebase.auth();
+const FV = firebase.firestore.FieldValue;
+const FP = firebase.firestore.FieldPath;
+
+/* =========================================================
+   КОНСТАНТЫ
+========================================================= */
+const LOCK_MS = 20 * 60 * 1000;                 // блокировка отметки через 20 минут
+const DAYS = ["Понедельник","Вторник","Среда","Четверг","Пятница","Суббота"];
+const NUM = ["5","4","3","2"];
+const DEFAULT_TYPES = ["КР","СМ","ИТ"];
+const ROLE_LABEL = { admin:"Администратор", admt:"АДМТ", curator:"Куратор", starosta:"Староста" };
+
+const S = {
+    uid: null, name: "", role: "", isAdmin: false,
+    groups: {}, settingsAll: {}, replAll: {},
+    plan: [], planGroup: "", tab: "grades", cur: null
+};
+
+/* =========================================================
+   ХЕЛПЕРЫ
+========================================================= */
+const $ = id => document.getElementById(id);
+const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const norm = s => String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+const subjKey = s => norm(s).replace(/[^\p{L}\p{N}]+/gu, "_").replace(/^_+|_+$/g, "");
+const pad = n => String(n).padStart(2, "0");
+const fmt = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const parseD = s => (s ? new Date(s + "T00:00:00") : null);
+const todayStr = () => fmt(new Date());
+const dm = ds => { const [, m, d] = ds.split("-"); return `${d}.${m}`; };
+const semYear = () => { const t = new Date(); return t.getMonth() >= 8 ? t.getFullYear() : t.getFullYear() - 1; };
+const curSemNo = () => { const m = new Date().getMonth(); return (m >= 8 || m === 0) ? 1 : 2; };
+const markCls = v => ({ "5":"g5", "4":"g4", "3":"g3", "2":"g2", "зач":"g4", "незач":"g2", "н":"g2" })[String(v)] || "";
+const attTitle = k => (k.endsWith("sem") ? "Семестр" : `Аттестация ${k.slice(-1)}`);
+
+function toast(t) {
+    const el = $("toast");
+    el.textContent = t;
+    el.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+function openModal(html, onPick) {
+    $("modal").innerHTML = html;
+    $("modalBg").hidden = false;
+    $("modal").onclick = async e => {
+        const b = e.target.closest("button");
+        if (!b) return;
+        if (b.hasAttribute("data-close")) return closeModal();
+        if (onPick) await onPick(b);
+    };
+}
+function closeModal() { $("modalBg").hidden = true; $("modal").innerHTML = ""; }
+$("modalBg").addEventListener("click", e => { if (e.target.id === "modalBg") closeModal(); });
+
+/* ---------- расписание группы ---------- */
+function lessonCount(st, day) {
+    const v = st?.schedule?.[day];
+    if (v === undefined || v === null) {
+        const d = st?.disciplines?.[day];
+        return Array.isArray(d) ? d.length : 0;
+    }
+    if (Array.isArray(v)) return v.length;
+    if (typeof v === "object") {
+        if (Array.isArray(v.lessons)) return v.lessons.length;
+        if (v.count !== undefined) return Number(v.count) || 0;
+    }
+    return Number(v) || 0;
+}
+
+// Предмет и преподаватель в уроке: строка или объект {discipline, teacher|teacherId}
+function discAt(st, day, l) {
+    const d = st?.disciplines?.[day];
+    if (!d) return null;
+    const item = Array.isArray(d) ? d[l - 1] : (d[String(l)] ?? d[l]);
+    if (!item) return null;
+    if (typeof item === "string") return { name: item.trim(), teacher: "" };
+    return {
+        name: String(item.discipline ?? item.subject ?? item.name ?? item.title ?? "").trim(),
+        teacher: String(item.teacherId ?? item.teacherUid ?? item.teacher ?? "").trim()
+    };
+}
+
+// Замены: { "1": {discipline, teacher (кого заменили), substitute (кто ведёт)} }
+function normRepl(raw) {
+    const out = {};
+    if (!raw) return out;
+    const put = (k, v) => {
+        if (!v || typeof v !== "object") return;
+        const discipline = String(v.discipline ?? v.subject ?? v.name ?? "").trim();
+        if (!discipline) return;
+        out[String(k)] = {
+            discipline,
+            teacher: String(v.teacher ?? v.replacedTeacher ?? "").trim(),
+            substitute: String(v.substituteId ?? v.substitute ?? v.substituteName ?? "").trim()
+        };
+    };
+    if (Array.isArray(raw)) raw.forEach((v, i) => put(i + 1, v));
+    else Object.entries(raw).forEach(([k, v]) => put(k, v));
+    return out;
+}
+
+// Аттестационный период урока по окнам из groupSettings
+function attKey(ds, st) {
+    const d = parseD(ds);
+    const inside = p => p && p.start && p.end && d >= parseD(p.start) && d <= parseD(p.end);
+    const s1 = st?.semester1 || {}, s2 = st?.semester2 || {};
+    if (inside(s1.attestation1)) return "s1a1";
+    if (inside(s1.attestation2)) return "s1a2";
+    if (inside(s2.attestation1)) return "s2a1";
+    if (inside(s2.attestation2)) return "s2a2";
+    return "";
+}
+
+/* =========================================================
+   ВХОД И ЗАГРУЗКА
+========================================================= */
+auth.onAuthStateChanged(async user => {
+    if (!user) { location.href = "index.html"; return; }
+    S.uid = user.uid;
+    try {
+        const snap = await db.collection("users").doc(user.uid).get();
+        if (!snap.exists) return denied("Ваш аккаунт не найден в системе.");
+        const u = snap.data() || {};
+        S.role = u.role || "";
+        S.name = u.fullName || u.name || u.fio || user.email || "";
+        S.isAdmin = S.role === "admin";
+        if (S.role === "parent" || S.role === "student") {
+            return denied("Журнал оценок доступен преподавателям и администрации.");
+        }
+        $("who").textContent = `${S.name} · ${ROLE_LABEL[S.role] || S.role}`;
+        await loadPlan();
+        $("viewPlan").hidden = false;
+        renderPlan();
+    } catch (e) {
+        console.error(e);
+        denied("Ошибка загрузки: " + (e.code || e.message));
+    }
+});
+
+function denied(msg) {
+    $("viewPlan").hidden = false;
+    $("planHint").textContent = msg;
+    $("planGroupChips").innerHTML = "";
+    $("planList").innerHTML = "";
+}
+
+async function loadPlan() {
+    const [gSnap, sSnap] = await Promise.all([
+        db.collection("groups").get(),
+        db.collection("groupSettings").get()
+    ]);
+    S.groups = {};
+    gSnap.docs.forEach(d => { S.groups[d.id] = { id: d.id, ...d.data() }; });
+    S.settingsAll = {};
+    sSnap.docs.forEach(d => { S.settingsAll[d.id] = d.data() || {}; });
+
+    // Замены за учебный год: ключи вида YYYY-MM-DD_groupId
+    S.replAll = {};
+    try {
+        const from = fmt(new Date(semYear(), 7, 1));
+        const rSnap = await db.collection("replacements")
+            .where(FP.documentId(), ">=", from)
+            .where(FP.documentId(), "<=", todayStr() + "_")
+            .get();
+        rSnap.docs.forEach(d => {
+            const m = d.id.match(/^(\d{4}-\d{2}-\d{2})_(.+)$/);
+            if (!m) return;
+            const [, date, gid] = m;
+            (S.replAll[gid] ||= {})[date] = normRepl((d.data() || {}).lessons);
+        });
+    } catch (e) { console.error("replacements:", e); }
+
+    buildPlan();
+}
+
+// План: предметы, которые ведёт пользователь (по расписанию или по замене)
+function buildPlan() {
+    const map = new Map();
+    const mine = t => !!t && (t === S.uid || norm(t) === norm(S.name));
+    const add = (gid, subject) => {
+        const key = gid + "|" + subjKey(subject);
+        if (!map.has(key)) {
+            map.set(key, { gid, subject, subjKey: subjKey(subject), groupName: S.groups[gid]?.name || gid });
+        }
+    };
+
+    Object.entries(S.settingsAll).forEach(([gid, st]) => {
+        DAYS.forEach(day => {
+            const n = lessonCount(st, day);
+            for (let l = 1; l <= n; l++) {
+                const e = discAt(st, day, l);
+                if (e && e.name && (S.isAdmin || mine(e.teacher))) add(gid, e.name);
+            }
+        });
+    });
+
+    Object.entries(S.replAll).forEach(([gid, byDate]) => {
+        Object.values(byDate).forEach(lessons => {
+            Object.values(lessons).forEach(r => {
+                if (S.isAdmin || mine(r.substitute)) add(gid, r.discipline);
+            });
+        });
+    });
+
+    S.plan = [...map.values()].sort((a, b) =>
+        a.groupName.localeCompare(b.groupName, "ru") || a.subject.localeCompare(b.subject, "ru"));
+}
+
+/* =========================================================
+   ПЛАН
+========================================================= */
+function renderPlan() {
+    const groupIds = [...new Set(S.plan.map(p => p.gid))];
+    $("planHint").textContent = S.isAdmin
+        ? "Администратор: видны все предметы всех групп."
+        : (S.plan.length
+            ? "Ваши предметы по расписанию и заменам. Группа выбирается автоматически."
+            : "За вами не закреплено ни одного предмета. Отметки откроются в день замены, когда вы указаны как замещающий.");
+    $("planGroupChips").innerHTML =
+        `<button class="chip ${!S.planGroup ? "on" : ""}" data-g="">Все</button>` +
+        groupIds.map(g => `<button class="chip ${S.planGroup === g ? "on" : ""}" data-g="${esc(g)}">${esc(S.groups[g]?.name || g)}</button>`).join("");
+    const list = S.plan.filter(p => !S.planGroup || p.gid === S.planGroup);
+    $("planList").innerHTML = list.length
+        ? list.map(p => `<button class="plan-card" data-idx="${S.plan.indexOf(p)}"><span class="ps">${esc(p.subject)}</span><span class="pg">${esc(p.groupName)}</span></button>`).join("")
+        : `<div class="empty">Нет предметов.</div>`;
+}
+
+$("planGroupChips").addEventListener("click", e => {
+    const b = e.target.closest("[data-g]");
+    if (!b) return;
+    S.planGroup = b.dataset.g;
+    renderPlan();
+});
+$("planList").addEventListener("click", e => {
+    const b = e.target.closest("[data-idx]");
+    if (b) openSubject(S.plan[+b.dataset.idx]);
+});
+
+/* =========================================================
+   ОТКРЫТИЕ ПРЕДМЕТА
+========================================================= */
+async function openSubject(entry) {
+    if (S.cur?.unsub) S.cur.unsub();
+    const gid = entry.gid;
+    const group = S.groups[gid] || { id: gid, name: gid };
+
+    // Список группы: students.groupId == gid + studentIds из группы
+    const sMap = new Map();
+    try {
+        const bySnap = await db.collection("students").where("groupId", "==", gid).get();
+        bySnap.docs.forEach(d => sMap.set(d.id, d.data()));
+        const ids = (Array.isArray(group.studentIds) ? group.studentIds : []).filter(id => !sMap.has(id));
+        const extra = await Promise.all(ids.map(id => db.collection("students").doc(id).get()));
+        extra.forEach(d => { if (d.exists) sMap.set(d.id, d.data()); });
+    } catch (e) { toast("Не загрузился список группы: " + (e.code || e.message)); }
+    const students = [...sMap.entries()]
+        .map(([id, x]) => ({ id, name: x.fullName || x.name || x.fio || "Без имени" }))
+        .sort((a, b) => a.name.localeCompare(b.name, "ru"));
+
+    const docId = `${gid}__${entry.subjKey}`;
+    S.cur = { entry, gid, docId, group, students, settings: S.settingsAll[gid] || {}, doc: null, cols: [], attKeys: [], unsub: null };
+
+    $("viewPlan").hidden = true;
+    $("viewGrades").hidden = false;
+    $("subjTitle").textContent = `${entry.subject} — ${group.name || gid}`;
+    $("rightsHint").textContent = S.isAdmin
+        ? "Администратор: можно выставлять и исправлять любые отметки, снимать блокировку."
+        : "Отметки блокируются через 20 минут после выставления. Пустые ячейки заполняются сразу.";
+    fillSwitch();
+    setTab(S.tab);
+
+    const ref = db.collection("grades").doc(docId);
+    ref.set({ groupId: gid, subject: entry.subject, subjKey: entry.subjKey }, { merge: true })
+        .catch(e => toast("Ошибка журнала: " + (e.code || e.message)));
+    S.cur.unsub = ref.onSnapshot(
+        snap => { S.cur.doc = snap.exists ? (snap.data() || {}) : {}; render(); },
+        err => toast("Нет доступа к оценкам: " + (err.code || err.message))
+    );
+}
+
+function fillSwitch() {
+    $("switchSel").innerHTML = S.plan.map((p, i) =>
+        `<option value="${i}" ${p.gid === S.cur.gid && p.subjKey === S.cur.entry.subjKey ? "selected" : ""}>${esc(p.subject)} — ${esc(p.groupName)}</option>`
+    ).join("");
+}
+$("switchSel").addEventListener("change", e => openSubject(S.plan[+e.target.value]));
+
+$("backBtn").addEventListener("click", () => {
+    if (S.cur?.unsub) S.cur.unsub();
+    S.cur = null;
+    $("viewGrades").hidden = true;
+    $("viewPlan").hidden = false;
+    renderPlan();
+});
+
+function setTab(t) {
+    S.tab = t;
+    document.querySelectorAll(".tab").forEach(b => b.classList.toggle("active", b.dataset.tab === t));
+    $("tabGrades").hidden = t !== "grades";
+    $("tabInfo").hidden = t !== "info";
+    render();
+}
+document.querySelectorAll(".tab").forEach(b => b.addEventListener("click", () => setTab(b.dataset.tab)));
+
+/* =========================================================
+   КОЛОНКИ: автодобавление по расписанию и заменам
+========================================================= */
+function buildCols(c) {
+    const cols = [];
+    const today = todayStr();
+    const start = parseD(c.settings?.semester1?.start) || new Date(semYear(), 8, 1);
+    const subj = norm(c.entry.subject);
+    const repls = S.replAll[c.gid] || {};
+    const mk = (ds, l, src) => ({ id: `${ds}_${l}`, date: ds, lesson: l, source: src, key: attKey(ds, c.settings) });
+
+    for (let d = new Date(start); fmt(d) <= today; d.setDate(d.getDate() + 1)) {
+        const ds = fmt(d);
+        const day = DAYS[d.getDay() - 1];          // воскресенье — нет занятий
+        if (!day) continue;
+        const rep = repls[ds] || {};
+        const n = Math.max(lessonCount(c.settings, day), ...Object.keys(rep).map(Number), 0);
+        for (let l = 1; l <= n; l++) {
+            const r = rep[l];
+            if (r) {                                // замена: колонка только у замещающего предмета
+                if (norm(r.discipline) === subj) cols.push(mk(ds, l, "replacement"));
+                continue;
+            }
+            const e = discAt(c.settings, day, l);
+            if (e && norm(e.name) === subj) cols.push(mk(ds, l, "lesson"));
+        }
+    }
+
+    // колонки, добавленные вручную (КР/СМ/ИТ или свой тип)
+    Object.entries(c.doc.extraCols || {}).forEach(([id, x]) => {
+        cols.push({ id, date: x.date, lesson: null, source: "manual", key: attKey(x.date, c.settings) });
+    });
+
+    cols.sort((a, b) => a.date.localeCompare(b.date) || (a.lesson || 99) - (b.lesson || 99));
+    return cols;
+}
+
+/* =========================================================
+   ОТМЕТКИ, СРЕДНИЕ, АТТЕСТАЦИИ
+========================================================= */
+const marksOf = sid => (S.cur.doc.marks?.[sid] || {});
+
+function numericAvg(sid, filter) {
+    const c = S.cur;
+    const m = marksOf(sid);
+    const vals = [];
+    c.cols.forEach(col => {
+        if (filter && !filter(col)) return;
+        const x = m[col.id];
+        if (x && NUM.includes(String(x.v))) vals.push(Number(x.v));
+    });
+    return vals.length ? { avg: vals.reduce((a, b) => a + b, 0) / vals.length, n: vals.length } : null;
+}
+
+// Спорная: дробная часть среднего 0.51–0.55 — выставляется вручную
+const isDisputed = avg => {
+    const frac = Math.round((avg - Math.floor(avg)) * 100);
+    return frac >= 51 && frac <= 55;
+};
+
+function resultFor(sid, key) {
+    const c = S.cur;
+    const ov = c.doc.overrides?.[sid]?.[key];
+    if (ov !== undefined && ov !== null && ov !== "") return { v: String(ov), state: "manual" };
+
+    if (key.endsWith("sem")) {                     // семестровая — по результатам двух аттестаций
+        const base = key.slice(0, 2);
+        const parts = [resultFor(sid, base + "a1"), resultFor(sid, base + "a2")];
+        if (parts.some(p => p.state === "disputed")) return { v: "", state: "pending" };
+        const nums = parts.filter(p => p.v !== "").map(p => Number(p.v));
+        if (!nums.length) return { v: "", state: "empty" };
+        const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+        if (isDisputed(avg)) return { v: "", state: "disputed", avg };
+        return { v: String(Math.round(avg)), state: "auto", avg };
+    }
+
+    const a = numericAvg(sid, col => col.key === key);
+    if (!a) return { v: "", state: "empty" };
+    if (isDisputed(a.avg)) return { v: "", state: "disputed", avg: a.avg };
+    return { v: String(Math.round(a.avg)), state: "auto", avg: a.avg };
+}
+
+// Блокировка: через 20 минут после выставления (админ может всё)
+function lockInfo(m) {
+    if (!m || S.isAdmin) return { locked: false };
+    const left = LOCK_MS - (Date.now() - (m.at || 0));
+    return { locked: left <= 0, left };
+}
+
+/* =========================================================
+   ОТРИСОВКА
+========================================================= */
+function render() {
+    const c = S.cur;
+    if (!c || !c.doc) return;
+    c.cols = buildCols(c);
+    const n = curSemNo();
+    c.attKeys = [`s${n}a1`, `s${n}a2`, `s${n}sem`];
+    if (S.tab === "grades") { renderGrid(); renderFinal(); }
+    else renderInfo();
+}
+
+function renderGrid() {
+    const c = S.cur;
+    const [k1, k2, ks] = c.attKeys;
+    const typeOf = id => c.doc.meta?.[id]?.type || "";
+
+    let head = `<tr><th class="name">ФИО</th>`;
+    head += c.cols.map(col => {
+        const t = typeOf(col.id);
+        return `<th class="colh ${t ? "" : "untyped"}" data-col="${esc(col.id)}" title="Нажмите, чтобы задать тип работы">` +
+               `<div class="tt">${esc(t || "Тип…")}</div>` +
+               `<div class="dd">${dm(col.date)}${col.lesson ? ` · ${col.lesson} п.` : ""}</div></th>`;
+    }).join("");
+    head += `<th class="sep">Ср. б.</th>`;
+    head += [k1, k2, ks].map(k =>
+        `<th class="attc"><div>${attTitle(k)}</div>` +
+        `<label class="fl"><input type="checkbox" data-flag="${k}" ${c.doc.finalFlags?.[k] ? "checked" : ""}> в итоговую</label></th>`
+    ).join("");
+    head += `</tr>`;
+
+    const body = c.students.map(st => {
+        const cells = c.cols.map(col => {
+            const m = marksOf(st.id)[col.id];
+            const li = lockInfo(m);
+            const v = m?.v ?? "";
+            return `<td class="mc ${markCls(v)} ${li.locked ? "locked" : ""}" data-sid="${esc(st.id)}" data-col="${esc(col.id)}">` +
+                   `${esc(v)}${li.locked ? '<span class="lk">🔒</span>' : ""}</td>`;
+        }).join("");
+        const avg = numericAvg(st.id, null);
+        const att = [k1, k2, ks].map(k => {
+            const r = resultFor(st.id, k);
+            if (r.state === "disputed") {
+                return `<td class="mc disp" data-sid="${esc(st.id)}" data-att="${k}" title="Спорная оценка: выставьте вручную">${r.avg.toFixed(2)} ⚠</td>`;
+            }
+            return `<td class="mc ${markCls(r.v)} ${r.state === "manual" ? "manual" : ""}" data-sid="${esc(st.id)}" data-att="${k}">${esc(r.v)}</td>`;
+        }).join("");
+        return `<tr><td class="name">${esc(st.name)}</td>${cells}<td class="sep avg">${avg ? avg.avg.toFixed(2) : ""}</td>${att}</tr>`;
+    }).join("");
+
+    $("grid").innerHTML = `<thead>${head}</thead><tbody>${body || `<tr><td class="empty">В группе нет студентов.</td></tr>`}</tbody>`;
+}
+
+function renderFinal() {
+    const c = S.cur;
+    const keys = c.attKeys.filter(k => c.doc.finalFlags?.[k]);
+    if (!keys.length) {
+        $("finalGrid").innerHTML = `<tr><td class="hint" style="text-align:left">Отметьте «в итоговую» у аттестаций или семестра — они появятся здесь.</td></tr>`;
+        return;
+    }
+    const head = `<tr><th class="name">ФИО</th>${keys.map(k => `<th>${attTitle(k)}</th>`).join("")}</tr>`;
+    const body = c.students.map(st => `<tr><td class="name">${esc(st.name)}</td>` + keys.map(k => {
+        const r = resultFor(st.id, k);
+        return `<td class="mc ${markCls(r.v)}">${r.state === "disputed" ? "⚠ " + r.avg.toFixed(2) : esc(r.v)}</td>`;
+    }).join("") + `</tr>`).join("");
+    $("finalGrid").innerHTML = `<thead>${head}</thead><tbody>${body}</tbody>`;
+}
+
+function renderInfo() {
+    const c = S.cur;
+
+    // Уведомления: спорные оценки
+    const notes = [];
+    c.students.forEach(st => c.attKeys.forEach(k => {
+        const r = resultFor(st.id, k);
+        if (r.state === "disputed") {
+            notes.push(`<div class="note" data-sid="${esc(st.id)}" data-att="${k}">⚠ ${esc(st.name)} — ${esc(attTitle(k))}: ${r.avg.toFixed(2)}. Спорная оценка, выставьте вручную.</div>`);
+        }
+    }));
+    $("notifList").innerHTML = notes.length
+        ? `<div class="notif-title">Уведомления</div>${notes.join("")}`
+        : `<div class="hint">Уведомлений нет.</div>`;
+
+    // Новые сверху, старые снизу
+    const rows = [...c.cols].sort((a, b) => b.date.localeCompare(a.date) || (b.lesson || 0) - (a.lesson || 0));
+    $("infoList").innerHTML = rows.length
+        ? `<table class="info"><thead><tr><th>Дата</th><th>Урок</th><th>Тип</th><th>Тема урока</th><th>ДЗ (от дата → до дата)</th></tr></thead><tbody>` +
+          rows.map(col => {
+              const m = c.doc.meta?.[col.id] || {};
+              return `<tr data-col="${esc(col.id)}">` +
+                  `<td>${dm(col.date)}</td><td>${col.lesson || "—"}</td><td>${esc(m.type || "—")}</td>` +
+                  `<td><input class="ti" data-f="topic" value="${esc(m.topic || "")}" placeholder="Тема"></td>` +
+                  `<td class="hwc"><input type="date" data-f="hwFrom" value="${esc(m.hwFrom || "")}"> → ` +
+                  `<input type="date" data-f="hwTo" value="${esc(m.hwTo || "")}">` +
+                  `<input class="ti" data-f="hw" value="${esc(m.hw || "")}" placeholder="Задание"></td></tr>`;
+          }).join("") + `</tbody></table>`
+        : `<div class="empty">Уроков пока нет.</div>`;
+}
+
+/* =========================================================
+   ЗАПИСЬ
+========================================================= */
+async function setMark(sid, colId, v) {
+    const c = S.cur;
+    const cur = marksOf(sid)[colId];
+    if (cur && lockInfo(cur).locked) return toast("Отметка заблокирована: прошло 20 минут");
+    const ref = db.collection("grades").doc(c.docId);
+    try {
+        if (!v) await ref.update({ [`marks.${sid}.${colId}`]: FV.delete() });
+        else await ref.set({ marks: { [sid]: { [colId]: { v, at: Date.now(), by: S.uid, byName: S.name } } } }, { merge: true });
+    } catch (e) { toast("Не сохранено: " + (e.code || e.message)); }
+}
+
+async function setOverride(sid, key, v) {
+    const ref = db.collection("grades").doc(S.cur.docId);
+    try {
+        if (!v) await ref.update({ [`overrides.${sid}.${key}`]: FV.delete() });
+        else await ref.set({ overrides: { [sid]: { [key]: String(v) } } }, { merge: true });
+    } catch (e) { toast("Не сохранено: " + (e.code || e.message)); }
+}
+
+async function setFlag(key, on) {
+    try {
+        await db.collection("grades").doc(S.cur.docId).set({ finalFlags: { [key]: on } }, { merge: true });
+    } catch (e) { toast("Не сохранено: " + (e.code || e.message)); }
+}
+
+async function saveMeta(colId, patch) {
+    try {
+        await db.collection("grades").doc(S.cur.docId).set({ meta: { [colId]: patch } }, { merge: true });
+    } catch (e) { toast("Не сохранено: " + (e.code || e.message)); }
+}
+
+/* =========================================================
+   МЕНЮ: ОТМЕТКА, АТТЕСТАЦИЯ, ТИП РАБОТЫ
+========================================================= */
+function openMarkMenu(sid, colId) {
+    const c = S.cur;
+    const m = marksOf(sid)[colId];
+    if (lockInfo(m).locked) return toast("Отметка заблокирована: прошло 20 минут");
+    const st = c.students.find(s => s.id === sid);
+    const col = c.cols.find(x => x.id === colId);
+    const type = c.doc.meta?.[colId]?.type || "Работа";
+    const btns = ["5","4","3","2","зач","незач","н"].map(v => `<button class="mb ${markCls(v)}" data-v="${v}">${v}</button>`).join("");
+    openModal(
+        `<h3>${esc(st?.name || "")}</h3><div class="sub">${esc(type)} · ${col ? dm(col.date) : ""}</div>` +
+        `<div class="mbtns">${btns}<button class="mb clear" data-v="">Очистить</button></div>` +
+        `<button class="ghost" data-close>Отмена</button>`,
+        async b => {
+            if (b.dataset.v === undefined) return;
+            closeModal();
+            await setMark(sid, colId, b.dataset.v);
+        }
+    );
+}
+
+function openOverride(sid, key) {
+    const st = S.cur.students.find(s => s.id === sid);
+    const r = resultFor(sid, key);
+    const btns = ["5","4","3","2"].map(v => `<button class="mb ${markCls(v)}" data-v="${v}">${v}</button>`).join("");
+    openModal(
+        `<h3>${esc(st?.name || "")}</h3><div class="sub">${esc(attTitle(key))}${r.state === "disputed" ? ` · спорная (${r.avg.toFixed(2)})` : ""}</div>` +
+        `<div class="mbtns">${btns}<button class="mb clear" data-v="">Снять ручную</button></div>` +
+        `<button class="ghost" data-close>Отмена</button>`,
+        async b => {
+            if (b.dataset.v === undefined) return;
+            closeModal();
+            await setOverride(sid, key, b.dataset.v);
+        }
+    );
+}
+
+function openTypeMenu(colId) {
+    const c = S.cur;
+    const col = c.cols.find(x => x.id === colId);
+    const cur = c.doc.meta?.[colId]?.type || "";
+    const types = [...new Set([...DEFAULT_TYPES, ...(c.doc.types || [])])];
+    const btns = types.map(t => `<button class="mb ${t === cur ? "on" : ""}" data-t="${esc(t)}">${esc(t)}</button>`).join("");
+    openModal(
+        `<h3>Тип работы</h3><div class="sub">${col ? dm(col.date) + (col.lesson ? ` · ${col.lesson} п.` : "") : ""}</div>` +
+        `<div class="mbtns">${btns}<button class="mb add" data-act="add">+ Добавить свой тип</button><button class="mb clear" data-t="">Без типа</button></div>` +
+        (col?.source === "manual" ? `<div class="mbtns"><button class="mb danger" data-act="del">Удалить колонку</button></div>` : "") +
+        `<button class="ghost" data-close>Отмена</button>`,
+        async b => {
+            const ref = db.collection("grades").doc(c.docId);
+            if (b.dataset.act === "add") {
+                const name = (prompt("Название типа работы (например, «Лабораторная»):") || "").trim();
+                if (!name) return;
+                closeModal();
+                await ref.set({ types: FV.arrayUnion(name) }, { merge: true });
+                await saveMeta(colId, { type: name });
+                return;
+            }
+            if (b.dataset.act === "del") {
+                if (!confirm("Удалить эту колонку?")) return;
+                closeModal();
+                await ref.update({ [`extraCols.${colId}`]: FV.delete() });
+                return;
+            }
+            if (b.dataset.t === undefined) return;
+            closeModal();
+            await saveMeta(colId, { type: b.dataset.t });
+        }
+    );
+}
+
+$("addColBtn").addEventListener("click", () => {
+    const t = (prompt("Тип работы (КР, СМ, ИТ или свой):", "КР") || "").trim();
+    if (!t) return;
+    const id = "m" + Date.now();
+    const ref = db.collection("grades").doc(S.cur.docId);
+    ref.set({
+        extraCols: { [id]: { date: todayStr(), source: "manual" } },
+        meta: { [id]: { type: t } },
+        types: FV.arrayUnion(t)
+    }, { merge: true }).catch(e => toast("Не сохранено: " + (e.code || e.message)));
+});
+
+/* ---------- клики по таблице ---------- */
+$("grid").addEventListener("click", e => {
+    if (e.target.closest("input")) return;
+    const td = e.target.closest("td.mc");
+    const th = e.target.closest("th.colh");
+    if (td && td.dataset.col) return openMarkMenu(td.dataset.sid, td.dataset.col);
+    if (td && td.dataset.att) return openOverride(td.dataset.sid, td.dataset.att);
+    if (th) return openTypeMenu(th.dataset.col);
+});
+$("grid").addEventListener("change", e => {
+    const f = e.target.dataset.flag;
+    if (f) setFlag(f, e.target.checked);
+});
+
+$("notifList").addEventListener("click", e => {
+    const n = e.target.closest(".note");
+    if (n) openOverride(n.dataset.sid, n.dataset.att);
+});
+
+$("infoList").addEventListener("change", e => {
+    const tr = e.target.closest("tr[data-col]");
+    if (!tr || !e.target.dataset.f) return;
+    saveMeta(tr.dataset.col, { [e.target.dataset.f]: e.target.value });
+});
+
+// Обновление статуса блокировок каждые 30 секунд
+setInterval(() => { if (S.cur?.doc && S.tab === "grades") renderGrid(); }, 30000);
+</script>
+</body>
+</html>

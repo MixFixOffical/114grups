@@ -42,14 +42,14 @@ th,td{border-bottom:1px solid var(--line);border-right:1px solid var(--line);pad
 th{font-weight:600;font-size:12px;color:var(--muted);position:sticky;top:0;z-index:2;background:#fafbfe}
 th.name,td.name{text-align:left;position:sticky;left:0;z-index:3;min-width:150px;max-width:200px;white-space:normal;background:var(--card);font-weight:500}
 th.name{z-index:4;background:#fafbfe}
-th.colh{cursor:pointer;min-width:30px;max-width:38px;overflow:hidden}
+th.colh{cursor:pointer;width:30px;min-width:30px;max-width:30px;overflow:hidden;padding:4px 0}
 th.colh .tt{color:var(--ink);font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 th.colh.untyped .tt{color:var(--accent)}
 th.colh .dd{font-weight:400;font-size:10px;color:var(--muted)}
-th.sep,td.sep{background:#f7f8fb}
-th.attc{min-width:120px}
-th.attc .fl{display:block;font-weight:400;font-size:11px;margin-top:3px;cursor:pointer}
-td.mc{cursor:pointer;font-weight:600;min-width:30px;width:30px;max-width:30px;padding:3px 0;overflow:hidden;font-size:12px}
+th.sep,td.sep{background:#f7f8fb;width:30px;min-width:30px;max-width:30px;overflow:hidden;padding:4px 0;font-size:11px}
+th.attc{width:30px;min-width:30px;max-width:30px;overflow:hidden;white-space:normal;padding:4px 0;font-size:10px;line-height:1.2}
+th.attc .fl{display:block;font-weight:400;font-size:9px;margin-top:2px;cursor:pointer;white-space:normal}
+td.mc{cursor:pointer;font-weight:600;min-width:30px;width:30px;max-width:30px;padding:3px 0;overflow:hidden;font-size:11px}
 td.mc:hover{outline:2px solid var(--accent);outline-offset:-2px}
 .g5{background:var(--g5)!important}
 .g4{background:var(--g4)!important}
@@ -58,7 +58,7 @@ td.mc:hover{outline:2px solid var(--accent);outline-offset:-2px}
 .locked{background:var(--lock)!important;cursor:not-allowed}
 .locked:hover{outline:none}
 .lk{font-size:10px;margin-left:3px;opacity:.6}
-.disp{background:var(--disp)!important;font-size:12px}
+.disp{background:var(--disp)!important;font-size:10px}
 td.manual{font-style:italic;text-decoration:underline dotted}
 .avg{font-weight:700}
 .notif{margin-bottom:14px}
@@ -571,6 +571,74 @@ function render() {
     c.visCols = c.cols.filter(col => p === "sem" || col.key === c.attKeys[p === "a1" ? 0 : 1]);
     if (S.tab === "grades") { renderGrid(); renderFinal(); }
     else renderInfo();
+    syncAssessments();
+}
+
+/* =========================================================
+   СИНХРОНИЗАЦИЯ В finalassessment.html
+   Аттестации и семестровая из grades пишутся в коллекцию assessments
+   по тому же ключу, что читает finalassessment: {groupId}_s{sem}_{a1|a2|final}_{studentId}
+========================================================= */
+const keyOf = name => String(name).trim().replace(/[.\/\[\]*`~]/g, "_");
+
+// Номер семестра как в finalassessment: курс из названия группы (111 → 1 курс)
+function aSemNo(c) {
+    const m = String(c.group?.name || "").trim().match(/^(\d)/);
+    const course = m ? Number(m[1]) : 1;
+    return (course - 1) * 2 + curSemNo();
+}
+
+async function syncAssessments() {
+    const c = S.cur;
+    if (!c || !c.doc) return;
+    const sem = aSemNo(c);
+    const subjField = keyOf(c.entry.subject);
+    const first = !c.synced;
+    c.synced ||= {};
+    const partOf = key => (key.endsWith("sem") ? "final" : "a" + key.slice(-1));
+    const refOf = (sid, part) => db.collection("assessments").doc(`${c.gid}_s${sem}_${part}_${sid}`);
+
+    // что изменилось с прошлого снимка (при первом открытии — только пустые в ведомости)
+    let todo = [];
+    c.students.forEach(st => c.attKeys.forEach(key => {
+        const r = resultFor(st.id, key);
+        const v = (r.state === "disputed" || r.state === "pending") ? "" : r.v;
+        const sk = st.id + "|" + key;
+        if (!first && c.synced[sk] === v) return;
+        c.synced[sk] = v;
+        if (!v && first) return;
+        todo.push({ sid: st.id, part: partOf(key), v });
+    }));
+    if (!todo.length) return;
+
+    try {
+        if (first) {
+            const snaps = await Promise.all(todo.map(t => refOf(t.sid, t.part).get()));
+            todo = todo.filter((t, i) => {
+                const cur = (snaps[i].data()?.marks || {})[subjField];
+                return cur === undefined || cur === null || cur === "";
+            });
+            if (!todo.length) return;
+        }
+        const batch = db.batch();
+        todo.forEach(t => {
+            batch.set(refOf(t.sid, t.part), {
+                assessKey: `${c.gid}_s${sem}_${t.part}`,
+                groupId: c.gid,
+                studentId: t.sid,
+                semester: sem,
+                type: t.part === "final" ? "final" : "attestation",
+                period: t.part === "final" ? null : Number(t.part[1]),
+                updatedAt: FV.serverTimestamp(),
+                updatedBy: S.uid,
+                marks: { [subjField]: t.v || FV.delete() }
+            }, { merge: true });
+        });
+        await batch.commit();
+    } catch (e) {
+        console.error(e);
+        toast("Не отправлено в ведомость: " + (e.code || e.message));
+    }
 }
 
 function renderGrid() {

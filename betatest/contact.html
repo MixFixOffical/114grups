@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Форма обратной связи</title>
+</head>
+<body>
+
+    <form id="contact-form">
+      <div>
+        <label>Ваше имя:</label><br>
+        <input type="text" name="name" required>
+      </div>
+      <div style="margin-top: 10px;">
+        <label>Ваш Email:</label><br>
+        <input type="email" name="email" required>
+      </div>
+      <div style="margin-top: 10px;">
+        <label>Сообщение:</label><br>
+        <textarea name="message" required></textarea>
+      </div>
+      <div style="margin-top: 10px;">
+        <button type="submit" id="submit-btn">Отправить сообщение</button>
+      </div>
+    </form>
+
+    <div id="status-message" style="margin-top: 10px; font-weight: bold;"></div>
+
+    <!-- Подключаем EmailJS -->
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript">
+       (function(){
+          emailjs.init("g7F9dx2dPQX-QG2nQ"); // Ваш Public Key
+       })();
+
+       document.getElementById('contact-form').addEventListener('submit', function(event) {
+           event.preventDefault(); // Защита от перезагрузки страницы
+
+           const submitBtn = document.getElementById('submit-btn');
+           const statusMessage = document.getElementById('status-message');
+           
+           submitBtn.disabled = true;
+           submitBtn.textContent = 'Отправка...';
+
+           // Отправляем форму с вашими ID
+           emailjs.sendForm('service_pxhql77', 'template_zsec5pg', this)
+               .then(function() {
+                   statusMessage.style.color = 'green';
+                   statusMessage.textContent = 'Сообщение успешно отправлено!';
+                   document.getElementById('contact-form').reset();
+               }, function(error) {
+                   statusMessage.style.color = 'red';
+                   statusMessage.textContent = 'Ошибка отправки. Попробуйте позже.';
+                   console.log('FAILED...', error);
+               })
+               .finally(function() {
+                   submitBtn.disabled = false;
+                   submitBtn.textContent = 'Отправить сообщение';
+               });
+       });
+    </script>
+
+</body>
+</html>

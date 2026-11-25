@@ -1,0 +1,2701 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#1e293b">
+<title>Родители — Панель управления</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* ==========================================================
+   TOKENS
+   ========================================================== */
+*{margin:0;padding:0;box-sizing:border-box}
+
+:root{
+  color-scheme:light dark;
+
+  --accent:#1d4ed8;
+  --accent-dark:#1e3a8a;
+  --accent-soft:#eff6ff;
+  --accent-line:#bfdbfe;
+
+  --teal:#047857;   --teal-soft:#ecfdf5;
+  --violet:#6d28d9; --violet-soft:#f5f3ff;
+  --amber:#b45309;  --amber-soft:#fffbeb;
+  --rose:#b91c1c;   --rose-soft:#fef2f2;
+  --green:#047857;  --green-soft:#ecfdf5;
+
+  --text:#0f172a;
+  --text-secondary:#475569;
+  --text-light:#94a3b8;
+
+  --surface:#ffffff;
+  --surface-2:#f5f7fa;
+  --surface-3:#eef2f7;
+  --border:#e2e8f0;
+  --border-soft:#eef2f7;
+
+  --shadow-xs:0 1px 2px rgba(15,23,42,.05);
+  --shadow-sm:0 1px 3px rgba(15,23,42,.07);
+  --shadow-md:0 6px 16px -8px rgba(15,23,42,.15);
+  --shadow-lg:0 12px 32px -12px rgba(15,23,42,.2);
+
+  --radius-lg:14px;
+  --radius-md:10px;
+  --radius-sm:8px;
+
+  --topbar-h:60px;
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+
+[data-theme="dark"]{
+  color-scheme:dark;
+  --accent:#60a5fa;
+  --accent-dark:#1e3a8a;
+  --accent-soft:rgba(29,78,216,.15);
+  --accent-line:#1e40af;
+
+  --teal:#4ade80;   --teal-soft:rgba(4,120,87,.15);
+  --violet:#a78bfa; --violet-soft:rgba(109,40,217,.15);
+  --amber:#fbbf24;  --amber-soft:rgba(180,83,9,.15);
+  --rose:#f87171;   --rose-soft:rgba(185,28,28,.15);
+  --green:#4ade80;  --green-soft:rgba(4,120,87,.15);
+
+  --text:#e2e8f0;
+  --text-secondary:#94a3b8;
+  --text-light:#64748b;
+
+  --surface:#1e293b;
+  --surface-2:#172033;
+  --surface-3:#0f172a;
+  --border:#334155;
+  --border-soft:#1e293b;
+
+  --shadow-xs:0 1px 2px rgba(0,0,0,.3);
+  --shadow-sm:0 1px 3px rgba(0,0,0,.4);
+  --shadow-md:0 6px 16px -8px rgba(0,0,0,.5);
+  --shadow-lg:0 12px 32px -12px rgba(0,0,0,.6);
+}
+
+html{scroll-behavior:smooth}
+body{
+  min-height:100vh;
+  font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+  color:var(--text);
+  background:var(--surface-3);
+  -webkit-font-smoothing:antialiased;
+  transition:background .2s ease,color .2s ease;
+  padding-bottom:env(safe-area-inset-bottom);
+  overflow-x:hidden;
+}
+
+button{font-family:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.001ms!important;
+  }
+}
+
+/* ============ SPLASH ============ */
+.splash{
+  position:fixed;inset:0;z-index:2000;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface);
+  transition:opacity .3s ease,visibility .3s ease;
+}
+.splash.hide{opacity:0;visibility:hidden;pointer-events:none}
+.splash-box{text-align:center}
+.splash-logo{
+  width:56px;height:56px;margin:0 auto 16px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:var(--radius-lg);font-size:22px;font-weight:700;color:#fff;
+  background:var(--accent-dark);
+}
+.splash-text{font-size:13px;color:var(--text-secondary);font-weight:500}
+.splash-sub{font-size:11.5px;color:var(--text-light);margin-top:4px}
+
+/* ============ OFFLINE BANNER ============ */
+.offline-banner{
+  position:fixed;top:0;left:0;right:0;z-index:1050;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+  padding:10px 18px;
+  background:var(--rose);
+  color:#fff;font-size:12.5px;font-weight:500;
+  box-shadow:var(--shadow-md);
+  transform:translateY(-100%);
+  transition:transform .25s var(--ease);
+  flex-wrap:wrap;
+}
+.offline-banner.show{transform:translateY(0)}
+.offline-banner svg{width:16px;height:16px;flex-shrink:0}
+.offline-banner .retry-btn{
+  margin-left:10px;padding:5px 12px;
+  border:1px solid rgba(255,255,255,.4);
+  border-radius:var(--radius-sm);background:rgba(255,255,255,.1);
+  color:#fff;font-family:inherit;font-size:11.5px;
+  font-weight:600;cursor:pointer;transition:background .15s ease;
+}
+.offline-banner .retry-btn:hover{background:rgba(255,255,255,.22)}
+
+/* ============ TOP PROGRESS ============ */
+.top-progress{
+  position:fixed;top:0;left:0;right:0;height:2px;
+  background:transparent;z-index:1100;pointer-events:none;
+}
+.top-progress::after{
+  content:"";position:absolute;top:0;left:0;height:100%;width:0;
+  background:var(--accent);
+  transition:width .3s ease;
+}
+.top-progress.loading::after{width:90%;transition:width 8s cubic-bezier(.1,.8,.3,1)}
+.top-progress.done::after{width:100%;opacity:0;transition:width .2s ease,opacity .3s ease .2s}
+
+/* ============ HEADER ============ */
+header.topbar{
+  position:sticky;top:0;z-index:50;
+  height:var(--topbar-h);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;padding:0 20px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  transition:background .2s ease,border-color .2s ease;
+}
+
+.topbar-left{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+
+.btn-home{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 13px;border-radius:var(--radius-sm);
+  background:var(--surface-2);color:var(--text-secondary);
+  border:1px solid var(--border);text-decoration:none;
+  font-family:inherit;font-size:12.5px;font-weight:500;
+  cursor:pointer;flex-shrink:0;
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+.btn-home svg{width:15px;height:15px;flex-shrink:0}
+.btn-home:hover{background:var(--surface);color:var(--text);border-color:var(--text-light)}
+
+.topbar-title{display:flex;flex-direction:column;gap:2px;min-width:0;overflow:hidden}
+.topbar-title h1{font-size:15px;font-weight:600;letter-spacing:-.2px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar-title span{font-size:11.5px;font-weight:500;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.topbar-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+
+.topbar-icon-btn{
+  width:38px;height:38px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface);color:var(--text-secondary);
+  cursor:pointer;
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+  flex-shrink:0;
+}
+.topbar-icon-btn svg{width:17px;height:17px}
+.topbar-icon-btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
+.topbar-icon-btn:disabled{opacity:.5;cursor:not-allowed}
+
+.user-info{
+  display:flex;align-items:center;gap:10px;
+  padding:5px 12px 5px 5px;border-radius:var(--radius-sm);
+  background:var(--surface);border:1px solid var(--border);
+  font-size:12.5px;font-weight:500;
+  min-width:0;max-width:260px;
+}
+.user-avatar{
+  width:30px;height:30px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:var(--radius-sm);color:#fff;font-size:11.5px;font-weight:600;
+  background:var(--accent-dark);
+}
+.user-name{max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+
+.role-badge{
+  padding:3px 9px;border-radius:6px;
+  font-size:10.5px;font-weight:600;
+  letter-spacing:.03em;text-transform:uppercase;
+  background:var(--surface-2);color:var(--text-secondary);
+  border:1px solid var(--border);
+  flex-shrink:0;white-space:nowrap;
+}
+.role-badge.admin{background:var(--violet-soft);color:var(--violet);border-color:rgba(109,40,217,.25)}
+.role-badge.curator{background:var(--teal-soft);color:var(--teal);border-color:rgba(4,120,87,.25)}
+.role-badge.parent{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
+.role-badge.guest{background:var(--surface-2);color:var(--text-light);border-color:var(--border)}
+
+.theme-toggle{
+  width:38px;height:38px;
+  display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  background:var(--surface);color:var(--text-secondary);
+  cursor:pointer;position:relative;flex-shrink:0;
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+}
+.theme-toggle:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
+.theme-toggle svg{
+  width:17px;height:17px;position:absolute;
+  transition:opacity .2s ease;
+}
+.theme-toggle .icon-sun{opacity:1}
+.theme-toggle .icon-moon{opacity:0}
+[data-theme="dark"] .theme-toggle .icon-sun{opacity:0}
+[data-theme="dark"] .theme-toggle .icon-moon{opacity:1}
+
+/* ============ ACCESS BANNER ============ */
+.access-banner{
+  display:none;
+  margin:14px 24px 0;
+  padding:12px 16px;
+  border-radius:var(--radius-md);
+  background:var(--amber-soft);
+  border:1px solid rgba(180,83,9,.25);
+  color:var(--amber);
+  font-size:12.5px;font-weight:500;
+  align-items:center;gap:10px;
+}
+.access-banner.show{display:flex}
+.access-banner svg{width:18px;height:18px;flex-shrink:0}
+
+/* ============ TABS ============ */
+nav.tabs{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 24px;display:flex;gap:2px;
+  position:sticky;top:var(--topbar-h);z-index:40;
+  overflow-x:auto;scrollbar-width:none;
+  transition:background .2s ease,border-color .2s ease;
+  -webkit-overflow-scrolling:touch;
+}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{
+  background:none;border:none;padding:14px 18px;
+  font-size:13px;color:var(--text-secondary);
+  cursor:pointer;border-bottom:2px solid transparent;
+  font-weight:500;transition:color .15s ease,border-color .15s ease;font-family:inherit;
+  white-space:nowrap;display:inline-flex;align-items:center;gap:8px;
+  flex-shrink:0;
+}
+nav.tabs button:hover{color:var(--text)}
+nav.tabs button.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600}
+nav.tabs button svg{width:15px;height:15px;flex-shrink:0}
+nav.tabs button .tab-count{
+  background:var(--surface-2);color:var(--text-secondary);
+  padding:1px 7px;border-radius:var(--radius-sm);
+  font-size:10.5px;font-weight:600;margin-left:4px;
+  border:1px solid var(--border);
+}
+nav.tabs button.active .tab-count{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
+
+/* ============ MAIN ============ */
+main{
+  padding:22px 24px 60px;
+  max-width:1400px;width:100%;margin:0 auto;
+}
+.tab-content{display:none}
+.tab-content.active{display:block}
+
+/* ============ PAGE HEADER ============ */
+.page-header{
+  display:flex;align-items:flex-end;justify-content:space-between;
+  gap:16px;margin-bottom:18px;flex-wrap:wrap;
+}
+.page-header-text{min-width:0;flex:1}
+.page-header-text h2{
+  font-size:20px;font-weight:700;letter-spacing:-.3px;
+  color:var(--text);margin-bottom:4px;
+}
+.page-header-text p{font-size:12.5px;color:var(--text-secondary)}
+
+/* ============ BUTTONS ============ */
+.btn{
+  padding:9px 16px;border-radius:var(--radius-sm);border:1px solid transparent;
+  font-size:12.5px;font-weight:600;cursor:pointer;
+  transition:background .15s ease,color .15s ease,border-color .15s ease;
+  font-family:inherit;display:inline-flex;align-items:center;
+  gap:7px;white-space:nowrap;
+}
+.btn svg{width:15px;height:15px;flex-shrink:0}
+.btn kbd{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  font-size:10px;padding:2px 6px;
+  background:rgba(255,255,255,.15);
+  border-radius:4px;font-weight:600;
+  letter-spacing:.02em;margin-left:4px;
+}
+.btn-primary{
+  background:var(--accent-dark);
+  color:#fff;
+}
+.btn-primary:hover{background:var(--accent)}
+.btn-primary:disabled{opacity:.6;cursor:not-allowed}
+.btn-secondary{
+  background:var(--surface);color:var(--text-secondary);
+  border-color:var(--border);
+}
+.btn-secondary:hover{background:var(--surface-2);color:var(--text);border-color:var(--text-light)}
+.btn-sm{padding:8px 12px;font-size:12px}
+.btn-sm svg{width:14px;height:14px}
+
+.btn-icon{
+  background:none;border:none;cursor:pointer;padding:7px;
+  border-radius:var(--radius-sm);color:var(--text-light);
+  transition:background .15s ease,color .15s ease;
+  display:inline-flex;align-items:center;justify-content:center;line-height:0;
+  flex-shrink:0;
+}
+.btn-icon svg{width:16px;height:16px}
+.btn-icon:hover{background:var(--surface-2);color:var(--text)}
+.btn-icon.danger:hover{background:var(--rose-soft);color:var(--rose)}
+
+/* ============ TOOLBAR ============ */
+.toolbar{
+  display:flex;gap:10px;margin-bottom:14px;
+  flex-wrap:wrap;align-items:center;
+}
+.search-wrap{position:relative;flex:1;min-width:200px;max-width:400px}
+.search-wrap > svg{
+  position:absolute;left:13px;top:50%;transform:translateY(-50%);
+  width:16px;height:16px;color:var(--text-light);pointer-events:none;
+}
+.search-wrap input{
+  width:100%;padding:10px 38px 10px 38px;
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:13px;font-family:inherit;
+  background:var(--surface);color:var(--text);
+  transition:border-color .15s ease;
+}
+.search-wrap input::placeholder{color:var(--text-light)}
+.search-wrap input:focus{outline:none;border-color:var(--accent)}
+.search-clear{
+  position:absolute;right:8px;top:50%;transform:translateY(-50%);
+  width:22px;height:22px;display:none;
+  align-items:center;justify-content:center;
+  border:none;background:var(--surface-2);color:var(--text-light);
+  border-radius:50%;cursor:pointer;padding:0;
+  transition:background .15s ease,color .15s ease;
+}
+.search-clear:hover{background:var(--rose-soft);color:var(--rose)}
+.search-clear svg{width:12px;height:12px}
+.search-wrap input:not(:placeholder-shown) ~ .search-clear{display:flex}
+
+/* ============ STATS ============ */
+.stats-mini{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px;margin-bottom:14px;
+}
+.stat-mini{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;background:var(--surface);
+  border:1px solid var(--border);border-radius:var(--radius-md);
+  min-width:0;
+}
+.stat-mini-icon{
+  width:38px;height:38px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);
+  border:1px solid var(--border);
+}
+.stat-mini-icon svg{width:18px;height:18px}
+.stat-mini.blue .stat-mini-icon{color:var(--accent)}
+.stat-mini.violet .stat-mini-icon{color:var(--violet)}
+.stat-mini.teal .stat-mini-icon{color:var(--teal)}
+.stat-mini-body{min-width:0}
+.stat-mini-label{
+  font-size:11px;font-weight:500;
+  color:var(--text-secondary);margin-bottom:2px;
+  text-transform:uppercase;letter-spacing:.03em;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.stat-mini-value{
+  font-size:19px;font-weight:700;
+  letter-spacing:-.3px;color:var(--text);line-height:1;
+}
+
+/* ============ TABLE ============ */
+.table-wrap{
+  background:var(--surface);border-radius:var(--radius-md);
+  overflow:hidden;
+  border:1px solid var(--border);
+  display:flex;flex-direction:column;
+  min-height:0;
+}
+.table-scroll{
+  overflow:auto;
+  max-height:min(60vh,520px);
+  min-height:180px;
+  -webkit-overflow-scrolling:touch;
+}
+table{width:100%;border-collapse:collapse}
+thead{
+  background:var(--surface-2);border-bottom:1px solid var(--border);
+  position:sticky;top:0;z-index:5;
+}
+th{
+  text-align:left;padding:12px 16px;
+  font-size:10.5px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.05em;
+  color:var(--text-light);white-space:nowrap;
+  background:var(--surface-2);
+}
+td{
+  padding:12px 16px;border-bottom:1px solid var(--border-soft);
+  font-size:12.5px;vertical-align:middle;color:var(--text);
+}
+tr:last-child td{border-bottom:none}
+tbody tr{transition:background .15s ease}
+tbody tr:hover td{background:var(--surface-2)}
+tr.expandable{cursor:pointer}
+tr.expandable:hover td{background:var(--surface-2)}
+
+mark.hl{
+  background:var(--amber-soft);color:var(--amber);
+  padding:1px 3px;border-radius:3px;font-weight:600;
+}
+
+.skeleton{
+  height:12px;border-radius:4px;
+  background:var(--surface-2);
+}
+
+.empty{padding:50px 24px;text-align:center;color:var(--text-light)}
+.empty svg{width:48px;height:48px;margin:0 auto 14px;opacity:.35;display:block}
+.empty-title{font-size:14.5px;font-weight:600;color:var(--text-secondary);margin-bottom:6px}
+.empty-text{
+  font-size:12.5px;color:var(--text-light);
+  margin-bottom:16px;max-width:340px;
+  margin-left:auto;margin-right:auto;line-height:1.5;
+}
+.empty-cta{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:9px 16px;border-radius:var(--radius-sm);
+  background:var(--accent-dark);color:#fff;border:none;
+  font-family:inherit;font-size:12.5px;font-weight:600;
+  cursor:pointer;transition:background .15s ease;
+}
+.empty-cta:hover{background:var(--accent)}
+.empty-cta svg{width:15px;height:15px;margin:0;opacity:1}
+
+/* ============ BADGES ============ */
+.badge{
+  display:inline-flex;align-items:center;gap:4px;
+  padding:3px 9px;border-radius:var(--radius-sm);
+  font-size:11px;font-weight:500;
+  background:var(--surface-2);color:var(--text-secondary);
+  border:1px solid var(--border);
+  white-space:nowrap;
+}
+.badge-green{background:var(--green-soft);color:var(--green);border-color:rgba(4,120,87,.25)}
+.badge-gray{background:var(--surface-2);color:var(--text-light);border-color:var(--border)}
+.badge-violet{background:var(--violet-soft);color:var(--violet);border-color:rgba(109,40,217,.25)}
+.badge-teal{background:var(--teal-soft);color:var(--teal);border-color:rgba(4,120,87,.25)}
+.badge-amber{background:var(--amber-soft);color:var(--amber);border-color:rgba(180,83,9,.25)}
+.badge-rose{background:var(--rose-soft);color:var(--rose);border-color:rgba(185,28,28,.25)}
+
+.uid-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:3px 9px;border-radius:var(--radius-sm);
+  font-size:11px;font-weight:500;
+  background:var(--surface-2);color:var(--text-secondary);
+  cursor:pointer;transition:background .15s ease,color .15s ease;
+  border:1px solid var(--border);
+  max-width:140px;
+}
+.uid-badge span{
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.uid-badge:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
+.uid-badge svg{width:11px;height:11px;flex-shrink:0}
+
+.children-badge{
+  display:inline-flex;align-items:center;gap:5px;
+  padding:3px 9px;border-radius:var(--radius-sm);
+  font-size:11.5px;font-weight:500;
+  background:var(--surface-2);color:var(--text-secondary);
+  cursor:pointer;user-select:none;
+  transition:background .15s ease,color .15s ease;
+  border:1px solid var(--border);
+  white-space:nowrap;
+}
+.children-badge:hover{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-line)}
+.children-badge .count{font-weight:700}
+.children-badge .chevron{width:10px;height:10px;transition:transform .2s ease}
+.children-badge.open .chevron{transform:rotate(180deg)}
+.children-badge.zero{background:var(--surface-2);color:var(--text-light);cursor:default}
+.children-badge.zero:hover{background:var(--surface-2);color:var(--text-light);border-color:var(--border)}
+
+tr.expanded-row td{
+  background:var(--surface-2);padding:0;
+  border-bottom:1px solid var(--border);
+}
+.children-list{
+  padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px;
+}
+.child-chip{
+  background:var(--surface);border:1px solid var(--border);
+  padding:6px 11px;border-radius:var(--radius-sm);
+  font-size:12px;color:var(--text-secondary);
+  display:inline-flex;align-items:center;gap:8px;
+  transition:border-color .15s ease;
+  max-width:100%;
+}
+.child-chip:hover{border-color:var(--text-light)}
+.child-chip strong{color:var(--text);font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:240px}
+.child-chip .group-tag{
+  background:var(--accent-soft);color:var(--accent);
+  padding:2px 7px;border-radius:5px;
+  font-size:10.5px;font-weight:600;
+  border:1px solid var(--accent-line);
+  white-space:nowrap;
+}
+
+.actions{display:flex;gap:4px;justify-content:flex-end;flex-wrap:wrap}
+
+/* ============ PAGINATION ============ */
+.pagination{
+  display:flex;justify-content:center;align-items:center;
+  gap:6px;padding:14px;background:var(--surface-2);
+  border-top:1px solid var(--border);flex-wrap:wrap;
+}
+.pagination button{
+  background:var(--surface);border:1px solid var(--border);
+  padding:6px 11px;border-radius:var(--radius-sm);font-size:12px;
+  font-weight:500;cursor:pointer;font-family:inherit;
+  color:var(--text-secondary);transition:background .15s ease,color .15s ease,border-color .15s ease;
+  min-width:34px;display:inline-flex;
+  align-items:center;justify-content:center;
+}
+.pagination button:hover:not(:disabled){
+  background:var(--accent-soft);color:var(--accent);
+  border-color:var(--accent-line);
+}
+.pagination button:disabled{opacity:.4;cursor:not-allowed}
+.pagination button.active{
+  background:var(--accent-dark);border-color:var(--accent-dark);
+  color:#fff;
+}
+.pagination .info{margin:0 8px;font-size:11.5px;font-weight:500;color:var(--text-light)}
+
+/* ============ MODAL ============ */
+.modal-overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(15,23,42,.5);
+  z-index:100;align-items:center;justify-content:center;
+  padding:20px;
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.modal-overlay.active{display:flex}
+.modal{
+  background:var(--surface);border-radius:var(--radius-lg);
+  width:100%;max-width:460px;padding:24px;
+  box-shadow:var(--shadow-lg);
+  max-height:calc(100vh - 40px);
+  max-height:calc(100dvh - 40px);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+  border:1px solid var(--border);
+  margin:auto;
+}
+.modal-body{
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+  margin:0 -24px;
+  padding:0 24px;
+  flex:1 1 auto;
+  min-height:0;
+}
+.modal-header{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-shrink:0}
+.modal-icon{
+  width:42px;height:42px;display:flex;
+  align-items:center;justify-content:center;
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);color:var(--accent);
+  border:1px solid var(--border);
+  flex-shrink:0;
+}
+.modal-icon svg{width:20px;height:20px}
+.modal h3{font-size:16px;font-weight:600;letter-spacing:-.2px;color:var(--text)}
+.modal-subtitle{font-size:12px;color:var(--text-secondary);margin-top:2px}
+
+.form-group{margin-bottom:16px}
+.form-group > label{
+  display:block;font-size:11px;font-weight:600;
+  color:var(--text-secondary);margin-bottom:8px;
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.form-group input,
+.form-group select{
+  width:100%;padding:10px 13px;
+  border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:13px;font-family:inherit;
+  background:var(--surface);color:var(--text);
+  transition:border-color .15s ease;
+}
+.form-group input::placeholder{color:var(--text-light)}
+.form-group input:focus{
+  outline:none;border-color:var(--accent);
+}
+.form-hint{font-size:11px;color:var(--text-light);margin-top:6px}
+.form-error{
+  background:var(--rose-soft);color:var(--rose);
+  padding:10px 13px;border-radius:var(--radius-sm);
+  font-size:12px;font-weight:500;margin-bottom:16px;
+  border:1px solid rgba(185,28,28,.25);
+}
+.modal-actions{
+  display:flex;justify-content:flex-end;gap:10px;
+  margin-top:18px;padding-top:16px;
+  border-top:1px solid var(--border-soft);
+  flex-shrink:0;
+  flex-wrap:wrap;
+}
+.modal-actions .btn{flex:0 0 auto}
+
+/* ============ SEARCH SELECT ============ */
+.search-select{position:relative}
+
+.search-select-value{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:10px 13px;border:1px solid var(--border);
+  border-radius:var(--radius-sm);background:var(--surface);
+  cursor:pointer;font-size:13px;
+  transition:border-color .15s ease,background .15s ease;
+  min-height:42px;
+  gap:8px;
+}
+.search-select-value:hover{border-color:var(--text-light)}
+.search-select-value.selected{
+  background:var(--accent-soft);
+  border-color:var(--accent-line);
+  color:var(--accent);font-weight:600;
+}
+.search-select-value .placeholder{color:var(--text-light);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.search-select-value > svg{
+  width:14px;height:14px;color:var(--text-light);
+  transition:transform .2s ease;
+  flex:none;
+}
+.search-select-value.selected > svg{color:var(--accent)}
+.search-select.open .search-select-value > svg{transform:rotate(180deg)}
+
+.search-dropdown{
+  position:absolute;top:calc(100% + 6px);left:0;right:0;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius-md);box-shadow:var(--shadow-md);
+  max-height:min(320px,50vh);display:none;
+  z-index:200;overflow:hidden;
+  flex-direction:column;
+}
+.search-select.open .search-dropdown{display:flex}
+
+.search-dropdown .search-select-wrap{
+  position:relative;
+  padding:10px;
+  border-bottom:1px solid var(--border-soft);
+  position:sticky;
+  top:0;
+  background:var(--surface);
+  z-index:1;
+  flex-shrink:0;
+}
+
+.search-select-wrap > svg{
+  position:absolute;
+  left:22px;
+  top:50%;
+  transform:translateY(-50%);
+  width:15px;
+  height:15px;
+  color:var(--text-light);
+  pointer-events:none;
+  flex:none;
+}
+
+.search-select-wrap input{
+  width:100%;
+  height:38px;
+  padding:0 12px 0 36px;
+  border:1px solid var(--border);
+  border-radius:var(--radius-sm);
+  background:var(--surface-2);
+  color:var(--text);
+  font-family:inherit;
+  font-size:12.5px;
+  outline:none;
+  transition:border-color .15s ease,background .15s ease;
+}
+.search-select-wrap input:focus{
+  border-color:var(--accent);
+  background:var(--surface);
+}
+.search-select-wrap input::placeholder{color:var(--text-light)}
+
+#linkParentOptions,
+#linkStudentOptions{
+  max-height:min(240px,40vh);
+  overflow-y:auto;
+  padding:6px;
+  -webkit-overflow-scrolling:touch;
+}
+
+.search-dropdown-item{
+  padding:9px 11px;cursor:pointer;
+  font-size:12.5px;color:var(--text);
+  transition:background .12s ease,color .12s ease;
+  border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;
+}
+.search-dropdown-item:hover,
+.search-dropdown-item.highlight{background:var(--accent-soft);color:var(--accent)}
+
+.search-dropdown-item .opt-group{
+  font-size:10.5px;font-weight:600;
+  color:var(--text-light);text-transform:uppercase;
+  letter-spacing:.04em;
+}
+.search-dropdown-item:hover .opt-group,
+.search-dropdown-item.highlight .opt-group{color:var(--accent)}
+
+.search-dropdown-group{
+  padding:8px 11px 4px;
+  font-size:10.5px;font-weight:600;
+  color:var(--text-light);
+  text-transform:uppercase;letter-spacing:.05em;
+  position:sticky;top:0;
+  background:var(--surface);
+  margin:4px 0 2px;
+  z-index:1;
+}
+
+.search-dropdown-empty{
+  padding:24px 20px;text-align:center;
+  color:var(--text-light);font-size:12px;
+}
+
+/* ============ BOTTOM NAV ============ */
+.bottom-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  z-index:60;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  padding:8px 8px calc(8px + env(safe-area-inset-bottom));
+  justify-content:space-around;
+}
+.bottom-nav-btn{
+  flex:1;background:none;border:none;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;
+  gap:4px;padding:6px;border-radius:var(--radius-sm);
+  color:var(--text-secondary);
+  font-size:10.5px;font-weight:500;font-family:inherit;
+  transition:color .15s ease,background .15s ease;
+}
+.bottom-nav-btn svg{width:20px;height:20px}
+.bottom-nav-btn.active{color:var(--accent);background:var(--accent-soft)}
+.bottom-nav-btn:active{background:var(--surface-2)}
+
+/* ============ TOAST ============ */
+.toast-wrap{
+  position:fixed;bottom:24px;right:24px;
+  z-index:999;display:flex;flex-direction:column;gap:8px;
+  pointer-events:none;max-width:min(340px,calc(100vw - 32px));
+}
+.toast{
+  background:var(--text);
+  color:#fff;padding:12px 18px;border-radius:var(--radius-md);
+  font-size:12.5px;font-weight:500;
+  opacity:0;transform:translateY(12px);
+  transition:opacity .2s ease,transform .2s ease;
+  box-shadow:var(--shadow-md);
+  display:flex;align-items:center;gap:10px;
+  pointer-events:auto;
+  word-break:break-word;
+}
+.toast.show{opacity:1;transform:translateY(0)}
+.toast.error{background:var(--rose)}
+.toast.success{background:var(--green)}
+
+/* ============ FOOTER ============ */
+.footer{
+  padding:22px;
+  text-align:center;
+  color:var(--text-light);
+  font-size:11.5px;
+  border-top:1px solid var(--border);
+  margin-top:36px;
+}
+.footer strong{color:var(--text-secondary);font-weight:600}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width:1024px){
+  .table-scroll{max-height:none;min-height:200px}
+}
+
+@media (max-width:900px){
+  header.topbar{padding:0 14px;gap:8px}
+  .topbar-title span{display:none}
+  .topbar-title h1{font-size:14px}
+  .btn-home span{display:none}
+  .btn-home{padding:8px 11px}
+  nav.tabs{padding:0 12px}
+  nav.tabs button{padding:13px 13px;font-size:12.5px}
+  nav.tabs button span:not(.tab-count){display:none}
+  nav.tabs button .tab-count{margin-left:2px}
+  main{padding:18px 14px 60px}
+  .page-header-text h2{font-size:18px}
+  .user-name{max-width:90px}
+  .stat-mini{padding:12px 14px}
+  .stat-mini-value{font-size:17px}
+  .access-banner{margin-left:14px;margin-right:14px}
+}
+
+@media (max-width:700px){
+  nav.tabs{display:none}
+  .bottom-nav{display:flex}
+  main{padding-top:16px;padding-bottom:calc(90px + env(safe-area-inset-bottom))}
+  body{padding-bottom:calc(80px + env(safe-area-inset-bottom))}
+  .toast-wrap{
+    left:16px;right:16px;
+    bottom:calc(90px + env(safe-area-inset-bottom));
+    max-width:none;
+  }
+}
+
+@media (max-width:640px){
+  header.topbar{height:56px;padding:0 10px;gap:6px}
+  .user-info{padding:4px 8px 4px 4px;gap:6px;max-width:180px}
+  .user-avatar{width:28px;height:28px;font-size:11px}
+  .user-name{max-width:70px;font-size:12px}
+  .role-badge{font-size:9.5px;padding:2px 7px}
+  .theme-toggle,.topbar-icon-btn{width:36px;height:36px}
+  .theme-toggle svg,.topbar-icon-btn svg{width:16px;height:16px}
+  .modal{padding:20px;border-radius:var(--radius-md);max-height:calc(100vh - 24px);max-height:calc(100dvh - 24px)}
+  .modal-body{margin:0 -20px;padding:0 20px}
+  .modal-overlay{padding:12px}
+  .modal-actions{flex-direction:column-reverse}
+  .modal-actions .btn{width:100%;justify-content:center}
+  th,td{padding:10px 13px;font-size:12px}
+  .hide-mobile{display:none}
+  .toolbar{flex-direction:column;align-items:stretch}
+  .search-wrap{max-width:100%}
+  .toolbar .btn-sm{justify-content:center}
+  .page-header{align-items:flex-start;flex-direction:column;gap:12px}
+  .page-header .btn-primary{width:100%;justify-content:center}
+  .btn kbd{display:none}
+  .stats-mini{grid-template-columns:1fr 1fr;gap:8px}
+  .stat-mini:last-child{grid-column:1 / -1}
+  .stat-mini-icon{width:34px;height:34px}
+  .stat-mini-icon svg{width:16px;height:16px}
+  .stat-mini-value{font-size:16px}
+  .pagination button{padding:6px 10px;font-size:11.5px;min-width:30px}
+  .pagination .info{font-size:11px;margin:0 4px}
+
+  .table-wrap{background:transparent;border:none;border-radius:0}
+  .table-scroll{overflow:visible;max-height:none;min-height:0}
+  table,thead,tbody,tr,td{display:block;width:100%}
+  thead{display:none}
+  tbody tr{
+    background:var(--surface);
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    margin-bottom:10px;
+    padding:14px;
+    position:relative;
+  }
+  tbody tr:hover td{background:transparent}
+  tr.expanded-row{
+    background:var(--surface-2);
+    padding:0;
+    border:1px solid var(--border);
+  }
+  tr.expanded-row td{padding:0;border:none}
+  td{
+    padding:4px 0;
+    border-bottom:none;
+    font-size:12.5px;
+  }
+  td:first-child{display:none}
+  td:last-child{padding-top:10px;border-top:1px solid var(--border-soft);margin-top:8px}
+  .actions{justify-content:flex-start;flex-wrap:wrap}
+  .pagination{background:transparent;border:none;padding:10px 0}
+
+  .empty{padding:32px 16px}
+  .empty svg{width:40px;height:40px;margin-bottom:10px}
+  .empty-title{font-size:13.5px}
+  .empty-text{font-size:12px;margin-bottom:12px}
+  .children-list{padding:10px 12px}
+  .child-chip{padding:5px 9px;font-size:11.5px}
+  .child-chip strong{max-width:180px}
+
+  .search-dropdown{max-height:min(260px,45vh)}
+  #linkParentOptions,#linkStudentOptions{max-height:min(200px,35vh)}
+}
+
+@media (max-width:400px){
+  .btn-home svg{width:15px;height:15px}
+  .page-header-text h2{font-size:17px}
+  .stats-mini{grid-template-columns:1fr;gap:8px}
+  .stat-mini:last-child{grid-column:auto}
+  .user-info{max-width:140px;padding:3px 6px 3px 3px}
+  .user-name{max-width:56px;font-size:11.5px}
+  .role-badge{display:none}
+}
+
+@media (max-width:360px){
+  .topbar-title{display:none}
+  .user-name{max-width:80px}
+}
+</style>
+</head>
+<body>
+
+<!-- ===== SPLASH ===== -->
+<div class="splash" id="splash">
+  <div class="splash-box">
+    <div class="splash-logo">К</div>
+    <div class="splash-text">Загрузка данных…</div>
+    <div class="splash-sub">Проверяем права доступа</div>
+  </div>
+</div>
+
+<!-- ===== OFFLINE BANNER ===== -->
+<div class="offline-banner" id="offlineBanner">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M1 1l22 22"/>
+    <path d="M16.7 11.7A11 11 0 0 0 5 6.3"/>
+    <path d="M5 12.5a11 11 0 0 1 4-1.4"/>
+    <path d="M10.7 16.1a6 6 0 0 1 3.8.8"/>
+  </svg>
+  <span>Нет соединения с интернетом</span>
+  <button class="retry-btn" onclick="window.location.reload()">Обновить</button>
+</div>
+
+<!-- ===== TOP PROGRESS ===== -->
+<div class="top-progress" id="topProgress"></div>
+
+<!-- ===== HEADER ===== -->
+<header class="topbar">
+  <div class="topbar-left">
+    <a href="#" class="btn-home" title="На главную" onclick="goHome(event)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+        <polyline points="9 22 9 12 15 12 15 22"/>
+      </svg>
+      <span>На главную</span>
+    </a>
+    <div class="topbar-title">
+      <h1>Родители</h1>
+      <span id="topbarSubtitle">Управление родителями и связями</span>
+    </div>
+  </div>
+
+  <div class="topbar-actions">
+    <button class="topbar-icon-btn" id="reloadBtn" onclick="reloadData()" title="Обновить данные" aria-label="Обновить">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12a9 9 0 1 1-3-6.7L21 8"/>
+        <path d="M21 3v5h-5"/>
+      </svg>
+    </button>
+
+    <button class="theme-toggle" onclick="toggleTheme()" title="Сменить тему" aria-label="Сменить тему">
+      <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="4"/>
+        <path d="M12 2v2"/><path d="M12 20v2"/>
+        <path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/>
+        <path d="M2 12h2"/><path d="M20 12h2"/>
+        <path d="m4.93 19.07 1.41-1.41"/><path d="m17.66 6.34 1.41-1.41"/>
+      </svg>
+      <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/>
+      </svg>
+    </button>
+
+    <div class="user-info">
+      <span class="user-avatar" id="userAvatar">?</span>
+      <span class="user-name" id="userName">…</span>
+      <span class="role-badge" id="roleBadge">…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ===== ACCESS BANNER ===== -->
+<div class="access-banner" id="accessBanner">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="10"/>
+  </svg>
+  <span id="accessBannerText">Только чтение — редактирование доступно администратору.</span>
+</div>
+
+<!-- ===== TABS ===== -->
+<nav class="tabs">
+  <button class="active" data-tab="parents">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="7" r="3"/>
+      <path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+      <circle cx="17" cy="8" r="2.5"/>
+    </svg>
+    <span>Родители</span>
+    <span class="tab-count" id="tabCountParents">0</span>
+  </button>
+  <button data-tab="links">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg>
+    <span>Связи</span>
+    <span class="tab-count" id="tabCountLinks">0</span>
+  </button>
+  <button data-tab="students">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+      <circle cx="11.5" cy="7.2" r="3"/>
+    </svg>
+    <span>Студенты</span>
+    <span class="tab-count" id="tabCountStudents">0</span>
+  </button>
+</nav>
+
+<!-- ===== MAIN ===== -->
+<main>
+
+  <!-- ==== РОДИТЕЛИ ==== -->
+  <section class="tab-content active" id="tab-parents">
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2>Родители</h2>
+        <p>Управление списком родителей и их привязкой к студентам</p>
+      </div>
+      <button class="btn btn-primary" id="addParentBtn" onclick="openParentModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14"/><path d="M5 12h14"/>
+        </svg>
+        Добавить родителя
+        <kbd>Ctrl+N</kbd>
+      </button>
+    </div>
+
+    <div class="stats-mini">
+      <div class="stat-mini blue">
+        <div class="stat-mini-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="9" cy="7" r="3"/>
+            <path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+          </svg>
+        </div>
+        <div class="stat-mini-body">
+          <div class="stat-mini-label">Всего родителей</div>
+          <div class="stat-mini-value" id="statParentsCount">0</div>
+        </div>
+      </div>
+      <div class="stat-mini violet">
+        <div class="stat-mini-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </div>
+        <div class="stat-mini-body">
+          <div class="stat-mini-label">Связей</div>
+          <div class="stat-mini-value" id="statLinksCount">0</div>
+        </div>
+      </div>
+      <div class="stat-mini teal">
+        <div class="stat-mini-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+            <circle cx="11.5" cy="7.2" r="3"/>
+          </svg>
+        </div>
+        <div class="stat-mini-body">
+          <div class="stat-mini-label">Студентов</div>
+          <div class="stat-mini-value" id="statStudentsCount">0</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input type="search" id="parentsSearch" placeholder="Поиск по ФИО или email... (Ctrl+K)" oninput="onParentsSearch()" autocomplete="off">
+        <button class="search-clear" onclick="clearSearch('parents')" title="Очистить">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="exportParentsCSV()" title="Экспорт в CSV">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Экспорт
+      </button>
+      <button class="btn btn-secondary btn-sm" onclick="document.getElementById('csvParentsInput').click()" title="Импорт из CSV">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Импорт
+      </button>
+      <input type="file" id="csvParentsInput" accept=".csv" style="display:none" onchange="importParentsCSV(event)">
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>ФИО</th>
+              <th class="hide-mobile">Email</th>
+              <th style="width:150px">Детей</th>
+              <th class="hide-mobile">UID</th>
+              <th style="width:110px"></th>
+            </tr>
+          </thead>
+          <tbody id="parentsTable"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="parentsPagination"></div>
+    </div>
+  </section>
+
+  <!-- ==== СВЯЗИ ==== -->
+  <section class="tab-content" id="tab-links">
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2>Связи</h2>
+        <p>Привязка родителей к студентам</p>
+      </div>
+      <button class="btn btn-primary" id="addLinkBtn" onclick="openLinkModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14"/><path d="M5 12h14"/>
+        </svg>
+        Привязать студента
+      </button>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input type="search" id="linksSearch" placeholder="Поиск по родителю или студенту..." oninput="onLinksSearch()" autocomplete="off">
+        <button class="search-clear" onclick="clearSearch('links')" title="Очистить">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>Родитель</th>
+              <th>Студент</th>
+              <th class="hide-mobile">Группа</th>
+              <th style="width:80px"></th>
+            </tr>
+          </thead>
+          <tbody id="linksTable"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="linksPagination"></div>
+    </div>
+  </section>
+
+  <!-- ==== СТУДЕНТЫ ==== -->
+  <section class="tab-content" id="tab-students">
+    <div class="page-header">
+      <div class="page-header-text">
+        <h2>Студенты</h2>
+        <p>Список студентов и их родителей</p>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <input type="search" id="studentsSearch" placeholder="Поиск по студенту или группе..." oninput="onStudentsSearch()" autocomplete="off">
+        <button class="search-clear" onclick="clearSearch('students')" title="Очистить">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M18 6 6 18"/><path d="m6 6 12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:50px">#</th>
+              <th>Студент</th>
+              <th class="hide-mobile">Группа</th>
+              <th>Родители</th>
+            </tr>
+          </thead>
+          <tbody id="studentsTable"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="studentsPagination"></div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== FOOTER ===== -->
+<div class="footer">
+  Система <strong>KURATOR</strong> · Панель родителей
+</div>
+
+<!-- ===== МОБИЛЬНЫЙ BOTTOM NAV ===== -->
+<nav class="bottom-nav">
+  <button class="bottom-nav-btn active" data-tab="parents">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="7" r="3"/>
+      <path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+      <circle cx="17" cy="8" r="2.5"/>
+    </svg>
+    <span>Родители</span>
+  </button>
+  <button class="bottom-nav-btn" data-tab="links">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg>
+    <span>Связи</span>
+  </button>
+  <button class="bottom-nav-btn" data-tab="students">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/>
+      <circle cx="11.5" cy="7.2" r="3"/>
+    </svg>
+    <span>Студенты</span>
+  </button>
+</nav>
+
+<!-- ===== МОДАЛКА: РОДИТЕЛЬ ===== -->
+<div class="modal-overlay" id="parentModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="9" cy="7" r="3"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/>
+          <circle cx="17" cy="8" r="2.5"/>
+        </svg>
+      </div>
+      <div>
+        <h3 id="parentModalTitle">Добавить родителя</h3>
+        <div class="modal-subtitle" id="parentModalSubtitle">Заполните данные родителя</div>
+      </div>
+    </div>
+    <form id="parentForm" onsubmit="saveParent(event)" style="display:flex;flex-direction:column;flex:1;min-height:0">
+      <div class="modal-body">
+        <input type="hidden" id="parentId">
+        <div id="parentFormError" class="form-error" style="display:none"></div>
+        <div class="form-group">
+          <label for="parentName">ФИО *</label>
+          <input type="text" id="parentName" required placeholder="Иванова Мария Петровна" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label for="parentEmail">Email</label>
+          <input type="email" id="parentEmail" placeholder="parent@example.com" autocomplete="off">
+          <div class="form-hint">Используется для проверки дубликатов</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="tryCloseModal('parentModal')">Отмена</button>
+        <button type="submit" class="btn btn-primary" id="parentSaveBtn">Сохранить</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== МОДАЛКА: СВЯЗЬ ===== -->
+<div class="modal-overlay" id="linkModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+      </div>
+      <div>
+        <h3>Привязать студента</h3>
+        <div class="modal-subtitle">Выберите родителя и студента</div>
+      </div>
+    </div>
+    <form id="linkForm" onsubmit="saveLink(event)" style="display:flex;flex-direction:column;flex:1;min-height:0">
+      <div class="modal-body">
+        <div id="linkFormError" class="form-error" style="display:none"></div>
+
+        <div class="form-group">
+          <label>Родитель *</label>
+          <div class="search-select" id="linkParentSelect">
+            <div class="search-select-value" onclick="toggleParentSelect()">
+              <span class="placeholder" id="linkParentLabel">— выберите родителя —</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </div>
+            <div class="search-dropdown" id="linkParentDropdown">
+              <div class="search-select-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input type="text" id="linkParentSearch" placeholder="Поиск родителя..." autocomplete="off" oninput="filterParentOptions()">
+              </div>
+              <div id="linkParentOptions"></div>
+            </div>
+          </div>
+          <input type="hidden" id="linkParent" required>
+        </div>
+
+        <div class="form-group">
+          <label>Студент *</label>
+          <div class="search-select" id="linkStudentSelect">
+            <div class="search-select-value" onclick="toggleStudentSelect()">
+              <span class="placeholder" id="linkStudentLabel">— выберите студента —</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m6 9 6 6 6-6"/>
+              </svg>
+            </div>
+            <div class="search-dropdown" id="linkStudentDropdown">
+              <div class="search-select-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+                </svg>
+                <input type="text" id="linkStudentSearch" placeholder="Поиск студента..." autocomplete="off" oninput="filterStudentOptions()">
+              </div>
+              <div id="linkStudentOptions"></div>
+            </div>
+          </div>
+          <input type="hidden" id="linkStudent" required>
+          <div class="form-hint" id="linkStudentHint"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="tryCloseModal('linkModal')">Отмена</button>
+        <button type="submit" class="btn btn-primary" id="linkSaveBtn">Привязать</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- ===== FIREBASE SDK ===== -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="beta-core.js"></script>
+<script src="firebase-config.js"></script>
+
+<script>
+/* ==========================================================
+   PARENTS — Логика страницы
+   ========================================================== */
+
+/* ===================== STATE ===================== */
+let currentUser = null;
+let isAdmin = false;
+let isCurator = false;
+let canEdit = false;
+let curatorGroupIds = [];
+let curatorStudentIds = new Set();
+
+let parents = [];
+let students = [];
+let groups = {};
+let links = [];
+
+let studentMap = new Map();
+let parentMap = new Map();
+let groupMap = new Map();
+
+let sortedParents = [];
+let sortedStudents = [];
+
+const PAGE_SIZE = 15;
+const pagination = { parents: 1, links: 1, students: 1 };
+const filters = { parents: '', links: '', students: '' };
+
+let expandedParents = new Set();
+let selectedParentId = null;
+let selectedStudentId = null;
+let isReloading = false;
+
+/* ===================== HELPERS ===================== */
+const $ = id => document.getElementById(id);
+
+function showLoading(v){
+  const tp = $('topProgress');
+  if (!tp) return;
+  if (v){
+    tp.classList.remove('done');
+    tp.classList.add('loading');
+  } else {
+    tp.classList.remove('loading');
+    tp.classList.add('done');
+    setTimeout(() => tp.classList.remove('done'), 500);
+  }
+}
+
+function toast(msg, type = ''){
+  const wrap = $('toastWrap');
+  if (!wrap) return;
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.textContent = msg;
+  wrap.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('show'));
+  setTimeout(() => {
+    el.classList.remove('show');
+    setTimeout(() => el.remove(), 300);
+  }, 2800);
+}
+
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
+}
+
+function norm(s){ return String(s ?? '').toLowerCase().trim(); }
+
+function showFormError(id, msg){
+  const el = $(id);
+  if (!el) return;
+  if (msg){ el.textContent = msg; el.style.display = 'block'; }
+  else { el.style.display = 'none'; }
+}
+
+function sortByName(a, b, field){
+  const na = norm(a?.[field] ?? a?.name ?? '');
+  const nb = norm(b?.[field] ?? b?.name ?? '');
+  return na.localeCompare(nb, 'ru');
+}
+
+function sortByGroupThenName(a, b, nameField){
+  const ga = groups[a?.groupId] || '';
+  const gb = groups[b?.groupId] || '';
+  const gcmp = String(ga).localeCompare(String(gb), 'ru', { numeric: true });
+  if (gcmp !== 0) return gcmp;
+  return sortByName(a, b, nameField);
+}
+
+function getInitials(fio){
+  const parts = String(fio ?? '').trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  if (parts.length === 1) return parts[0][0].toUpperCase();
+  return '?';
+}
+
+function highlight(text, query){
+  const s = String(text ?? '');
+  if (!query) return esc(s);
+  const q = String(query).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (!q) return esc(s);
+  const re = new RegExp(`(${q})`, 'gi');
+  // Экранируем построчно, чтобы не сломать HTML
+  return s.split(re).map((part, i) => i % 2 === 1 ? `<mark class="hl">${esc(part)}</mark>` : esc(part)).join('');
+}
+
+function emptyState(icon, title, text, colspan, cta){
+  const ctaHtml = cta
+    ? `<button class="empty-cta" onclick="${cta.onclick}">
+         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+           <path d="M12 5v14"/><path d="M5 12h14"/>
+         </svg>
+         ${esc(cta.label)}
+       </button>`
+    : '';
+  return `<tr><td colspan="${colspan}">
+    <div class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">${icon}</svg>
+      <div class="empty-title">${esc(title)}</div>
+      <div class="empty-text">${esc(text)}</div>
+      ${ctaHtml}
+    </div>
+  </td></tr>`;
+}
+
+function copyToClipboard(text){
+  if (navigator.clipboard?.writeText){
+    navigator.clipboard.writeText(text)
+      .then(() => toast('UID скопирован', 'success'))
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); toast('UID скопирован', 'success'); }
+  catch (e) { toast('Не удалось скопировать', 'error'); }
+  document.body.removeChild(ta);
+}
+
+/* ===================== ПЕРЕХОД НА ГЛАВНУЮ ===================== */
+function goHome(e){
+  if (e) e.preventDefault();
+
+  const role = currentUser?.role || '';
+  const routes = {
+    admin:   'adminhome.html',
+    curator: 'home.html',
+    parent:  'phome.html'
+  };
+  window.location.href = routes[role] || 'login.html';
+}
+
+/* ===================== ЗАГРУЗКА ===================== */
+async function loadAll(){
+  showLoading(true);
+  try {
+    const db = firebase.firestore();
+
+    const grSnap = await db.collection('groups').get();
+    groups = {};
+    groupMap.clear();
+    grSnap.docs.forEach(d => {
+      const data = d.data();
+      groups[d.id] = data.name || d.id;
+      groupMap.set(d.id, data);
+    });
+
+    if (isCurator && currentUser?.uid){
+      curatorGroupIds = [];
+      grSnap.docs.forEach(d => {
+        if (d.data().curatorId === currentUser.uid) curatorGroupIds.push(d.id);
+      });
+      curatorStudentIds = new Set();
+      curatorGroupIds.forEach(gid => {
+        const g = groupMap.get(gid);
+        (g?.studentIds || []).forEach(sid => curatorStudentIds.add(sid));
+      });
+    }
+
+    const studSnap = await db.collection('students').get();
+    students = [];
+    studentMap.clear();
+    studSnap.docs.forEach(d => {
+      const s = { id: d.id, ...d.data() };
+      studentMap.set(d.id, s);
+      if (isCurator){
+        if (curatorStudentIds.has(d.id) || curatorGroupIds.includes(s.groupId)) students.push(s);
+      } else if (isAdmin) {
+        students.push(s);
+      }
+    });
+
+    const parSnap = await db.collection('users').where('role', '==', 'parent').get();
+    parents = [];
+    parentMap.clear();
+    parSnap.docs.forEach(d => {
+      const p = { id: d.id, ...d.data() };
+      parentMap.set(p.id, p);
+      parents.push(p);
+    });
+
+    const linksSnap = await db.collection('links').get();
+    links = [];
+    const studentIdsSet = new Set(students.map(s => s.id));
+    linksSnap.docs.forEach(d => {
+      const l = { id: d.id, ...d.data() };
+      if (isCurator){
+        if (studentIdsSet.has(l.studentId)) links.push(l);
+      } else if (isAdmin) {
+        links.push(l);
+      }
+    });
+
+    if (isCurator){
+      const visibleParentIds = new Set(links.map(l => l.parentId));
+      parents = parents.filter(p => visibleParentIds.has(p.id));
+    }
+
+    sortedParents = [...parents].sort((a, b) => sortByName(a, b, 'name'));
+    sortedStudents = [...students].sort((a, b) => sortByGroupThenName(a, b, 'fullName'));
+
+    $('statParentsCount').textContent = parents.length;
+    $('statLinksCount').textContent = links.length;
+    $('statStudentsCount').textContent = students.length;
+    $('tabCountParents').textContent = parents.length;
+    $('tabCountLinks').textContent = links.length;
+    $('tabCountStudents').textContent = students.length;
+
+    if (isCurator){
+      $('topbarSubtitle').textContent = 'Куратор · только студенты ваших групп';
+    } else if (isAdmin){
+      $('topbarSubtitle').textContent = 'Полный доступ';
+    }
+
+    document.querySelectorAll('#addParentBtn, #addLinkBtn').forEach(btn => {
+      btn.style.display = canEdit ? '' : 'none';
+    });
+
+    renderParents();
+    renderLinks();
+    renderStudents();
+  } catch (e){
+    console.error(e);
+    toast('Ошибка загрузки: ' + (e.message || e), 'error');
+  } finally {
+    showLoading(false);
+    const sp = $('splash');
+    if (sp) sp.classList.add('hide');
+  }
+}
+
+async function reloadData(){
+  if (isReloading) return;
+  isReloading = true;
+  const btn = $('reloadBtn');
+  if (btn) btn.disabled = true;
+  toast('Обновление данных...');
+  try {
+    await loadAll();
+    toast('Данные обновлены', 'success');
+  } finally {
+    isReloading = false;
+    if (btn) btn.disabled = false;
+  }
+}
+
+/* ===================== ОБЩИЕ ===================== */
+function getChildrenOfParent(parentId){
+  const seen = new Set();
+  const out = [];
+  for (const l of links){
+    if (l.parentId !== parentId) continue;
+    if (seen.has(l.studentId)) continue;
+    seen.add(l.studentId);
+    const s = studentMap.get(l.studentId);
+    if (s) out.push(s);
+  }
+  return out;
+}
+function getParentsOfStudent(studentId){
+  const seen = new Set();
+  const out = [];
+  for (const l of links){
+    if (l.studentId !== studentId) continue;
+    if (seen.has(l.parentId)) continue;
+    seen.add(l.parentId);
+    const p = parentMap.get(l.parentId);
+    if (p) out.push(p);
+  }
+  return out;
+}
+
+function clampPage(tabKey, total){
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (pagination[tabKey] > pages) pagination[tabKey] = pages;
+  if (pagination[tabKey] < 1) pagination[tabKey] = 1;
+}
+
+function renderPagination(containerId, total, current, onChange){
+  const el = $(containerId);
+  if (!el) return;
+  const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  if (total <= PAGE_SIZE){ el.innerHTML = ''; return; }
+
+  let html = `<button ${current===1?'disabled':''} data-page="${current-1}">← Назад</button>`;
+  const maxVisible = 5;
+  let start = Math.max(1, current - Math.floor(maxVisible/2));
+  let end = Math.min(pages, start + maxVisible - 1);
+  if (end - start + 1 < maxVisible) start = Math.max(1, end - maxVisible + 1);
+
+  if (start > 1) html += `<button data-page="1">1</button>${start > 2 ? '<span class="info">…</span>' : ''}`;
+  for (let i = start; i <= end; i++){
+    html += `<button data-page="${i}" class="${i===current?'active':''}">${i}</button>`;
+  }
+  if (end < pages) html += `${end < pages-1 ? '<span class="info">…</span>' : ''}<button data-page="${pages}">${pages}</button>`;
+  html += `<button ${current===pages?'disabled':''} data-page="${current+1}">Вперёд →</button>`;
+  html += `<span class="info">Всего: ${total}</span>`;
+
+  el.innerHTML = html;
+  el.querySelectorAll('button[data-page]').forEach(btn => {
+    btn.onclick = () => onChange(Number(btn.dataset.page));
+  });
+}
+
+/* ===================== РОДИТЕЛИ ===================== */
+function renderParents(){
+  const tb = $('parentsTable');
+  if (!tb) return;
+  const search = norm(filters.parents);
+
+  let list = sortedParents.filter(p =>
+    !search ||
+    norm(p.name).includes(search) ||
+    norm(p.email).includes(search)
+  );
+
+  const total = list.length;
+  clampPage('parents', total);
+  const start = (pagination.parents - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
+
+  if (!total){
+    tb.innerHTML = parents.length
+      ? emptyState(
+          '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+          'Ничего не найдено',
+          'Попробуйте изменить запрос или очистить поиск',
+          6
+        )
+      : emptyState(
+          '<circle cx="9" cy="7" r="3"/><path d="M3 20v-1a5 5 0 0 1 5-5h2a5 5 0 0 1 5 5v1"/><circle cx="17" cy="8" r="2.5"/>',
+          'Пока нет родителей',
+          canEdit ? 'Добавьте первого родителя, чтобы начать работу' : 'Администратор ещё не добавил родителей',
+          6,
+          canEdit ? { label: 'Добавить родителя', onclick: 'openParentModal()' } : null
+        );
+    renderPagination('parentsPagination', 0, 1, () => {});
+    return;
+  }
+
+  tb.innerHTML = pageItems.map((p, i) => {
+    const childCount = getChildrenOfParent(p.id).length;
+    const isExpanded = expandedParents.has(p.id);
+    const children = isExpanded ? getChildrenOfParent(p.id) : [];
+
+    const childBadge = childCount > 0
+      ? `<button class="children-badge ${isExpanded ? 'open' : ''}" data-toggle-parent="${p.id}">
+          <span class="count">${childCount}</span>
+          <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+            <path d="m6 9 6 6 6-6"/>
+          </svg>
+         </button>`
+      : `<span class="children-badge zero">— нет</span>`;
+
+    const uidShort = p.id.slice(0, 8) + '…';
+
+    const editBtns = canEdit
+      ? `<button class="btn-icon" data-edit-parent="${p.id}" title="Редактировать">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M12 20h9"/>
+             <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4Z"/>
+           </svg>
+         </button>
+         <button class="btn-icon danger" data-remove-parent="${p.id}" title="Удалить">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M3 6h18"/>
+             <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+           </svg>
+         </button>`
+      : '';
+
+    let html = `
+      <tr class="${childCount ? 'expandable' : ''}" data-id="${p.id}">
+        <td><span style="color:var(--text-light);font-weight:600">${start + i + 1}</span></td>
+        <td><strong>${highlight(p.name || '—', filters.parents)}</strong></td>
+        <td class="hide-mobile">${highlight(p.email || '—', filters.parents)}</td>
+        <td>${childBadge}</td>
+        <td class="hide-mobile">
+          <button class="uid-badge" data-copy-uid="${p.id}" title="Нажмите, чтобы скопировать">
+            <span>${esc(uidShort)}</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+          </button>
+        </td>
+        <td><div class="actions">${editBtns}</div></td>
+      </tr>
+    `;
+
+    if (isExpanded && children.length){
+      const sortedChildren = [...children].sort((a, b) => sortByGroupThenName(a, b, 'fullName'));
+      html += `
+        <tr class="expanded-row">
+          <td colspan="6">
+            <div class="children-list">
+              ${sortedChildren.map(c => {
+                const gr = groups[c.groupId] || c.groupId || '';
+                return `<span class="child-chip">
+                  <strong>${esc(c.fullName || c.name || c.id)}</strong>
+                  ${gr ? `<span class="group-tag">${esc(gr)}</span>` : ''}
+                </span>`;
+              }).join('')}
+            </div>
+          </td>
+        </tr>
+      `;
+    }
+    return html;
+  }).join('');
+
+  renderPagination('parentsPagination', total, pagination.parents, p => {
+    pagination.parents = p;
+    renderParents();
+  });
+}
+
+function toggleParent(id){
+  if (expandedParents.has(id)) expandedParents.delete(id);
+  else expandedParents.add(id);
+  renderParents();
+}
+
+function onParentsSearch(){
+  filters.parents = $('parentsSearch').value;
+  pagination.parents = 1;
+  renderParents();
+}
+
+/* ===================== СВЯЗИ ===================== */
+function renderLinks(){
+  const tb = $('linksTable');
+  if (!tb) return;
+  const search = norm(filters.links);
+
+  let list = links.filter(l => {
+    if (!search) return true;
+    const parent = parentMap.get(l.parentId);
+    const student = studentMap.get(l.studentId);
+    return norm(parent?.name).includes(search)
+        || norm(student?.fullName).includes(search)
+        || norm(student?.name).includes(search);
+  });
+
+  list.sort((a, b) => {
+    const sA = studentMap.get(a.studentId);
+    const sB = studentMap.get(b.studentId);
+    return sortByGroupThenName(sA || {}, sB || {}, 'fullName');
+  });
+
+  const total = list.length;
+  clampPage('links', total);
+  const start = (pagination.links - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
+
+  if (!total){
+    tb.innerHTML = links.length
+      ? emptyState(
+          '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+          'Ничего не найдено',
+          'Попробуйте изменить запрос',
+          5
+        )
+      : emptyState(
+          '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+          'Пока нет связей',
+          canEdit ? 'Привяжите студента к родителю, чтобы начать' : 'Связи появятся здесь после добавления',
+          5,
+          canEdit ? { label: 'Привязать студента', onclick: 'openLinkModal()' } : null
+        );
+    renderPagination('linksPagination', 0, 1, () => {});
+    return;
+  }
+
+  tb.innerHTML = pageItems.map((l, i) => {
+    const parent = parentMap.get(l.parentId);
+    const student = studentMap.get(l.studentId);
+    const groupName = student ? (groups[student.groupId] || student.groupId || '—') : '—';
+
+    const removeBtn = canEdit
+      ? `<button class="btn-icon danger" data-remove-link="${l.id}" title="Отвязать">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+             <path d="M3 6h18"/>
+             <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+           </svg>
+         </button>`
+      : '';
+
+    return `
+      <tr>
+        <td><span style="color:var(--text-light);font-weight:600">${start + i + 1}</span></td>
+        <td><strong>${highlight(parent?.name || '— (удалён)', filters.links)}</strong></td>
+        <td>${highlight(student?.fullName || student?.name || '— (удалён)', filters.links)}</td>
+        <td class="hide-mobile"><span class="badge badge-green">${esc(groupName)}</span></td>
+        <td><div class="actions">${removeBtn}</div></td>
+      </tr>
+    `;
+  }).join('');
+
+  renderPagination('linksPagination', total, pagination.links, p => {
+    pagination.links = p;
+    renderLinks();
+  });
+}
+
+function onLinksSearch(){
+  filters.links = $('linksSearch').value;
+  pagination.links = 1;
+  renderLinks();
+}
+
+/* ===================== СТУДЕНТЫ ===================== */
+function renderStudents(){
+  const tb = $('studentsTable');
+  if (!tb) return;
+  const search = norm(filters.students);
+
+  let list = sortedStudents.filter(s => {
+    if (!search) return true;
+    const gr = groups[s.groupId] || '';
+    return norm(s.fullName).includes(search)
+        || norm(s.name).includes(search)
+        || norm(gr).includes(search);
+  });
+
+  const total = list.length;
+  clampPage('students', total);
+  const start = (pagination.students - 1) * PAGE_SIZE;
+  const pageItems = list.slice(start, start + PAGE_SIZE);
+
+  if (!total){
+    tb.innerHTML = emptyState(
+      '<path d="M16.5 20v-1.2a4 4 0 0 0-4-4h-1a4 4 0 0 0-4 4V20"/><circle cx="11.5" cy="7.2" r="3"/>',
+      students.length ? 'Ничего не найдено' : 'Нет студентов',
+      students.length ? 'Попробуйте изменить запрос' : 'Студенты появятся здесь после добавления',
+      4
+    );
+    renderPagination('studentsPagination', 0, 1, () => {});
+    return;
+  }
+
+  tb.innerHTML = pageItems.map((s, i) => {
+    const parentList = getParentsOfStudent(s.id).sort((a, b) => sortByName(a, b, 'name'));
+    const gr = groups[s.groupId] || s.groupId || '—';
+    const parentsHtml = parentList.length
+      ? parentList.map(p => `<span class="child-chip">${esc(p.name || p.id)}</span>`).join(' ')
+      : `<span class="badge badge-gray">нет родителей</span>`;
+    return `
+      <tr>
+        <td><span style="color:var(--text-light);font-weight:600">${start + i + 1}</span></td>
+        <td><strong>${highlight(s.fullName || s.name || s.id, filters.students)}</strong></td>
+        <td class="hide-mobile"><span class="badge badge-green">${highlight(gr, filters.students)}</span></td>
+        <td><div style="display:flex;flex-wrap:wrap;gap:6px">${parentsHtml}</div></td>
+      </tr>
+    `;
+  }).join('');
+
+  renderPagination('studentsPagination', total, pagination.students, p => {
+    pagination.students = p;
+    renderStudents();
+  });
+}
+
+function onStudentsSearch(){
+  filters.students = $('studentsSearch').value;
+  pagination.students = 1;
+  renderStudents();
+}
+
+function clearSearch(tab){
+  const map = { parents: 'parentsSearch', links: 'linksSearch', students: 'studentsSearch' };
+  const el = $(map[tab]);
+  if (el){ el.value = ''; el.focus(); }
+  filters[tab] = '';
+  pagination[tab] = 1;
+  if (tab === 'parents') renderParents();
+  if (tab === 'links') renderLinks();
+  if (tab === 'students') renderStudents();
+}
+
+/* ===================== ДЕЛЕГИРОВАНИЕ КЛИКОВ ===================== */
+document.addEventListener('click', e => {
+  const target = e.target.closest('[data-toggle-parent],[data-edit-parent],[data-remove-parent],[data-copy-uid],[data-remove-link]');
+  if (!target) return;
+
+  if (target.dataset.toggleParent){
+    e.stopPropagation();
+    toggleParent(target.dataset.toggleParent);
+    return;
+  }
+  if (target.dataset.editParent){
+    e.stopPropagation();
+    editParent(target.dataset.editParent);
+    return;
+  }
+  if (target.dataset.removeParent){
+    e.stopPropagation();
+    const p = parentMap.get(target.dataset.removeParent);
+    removeParent(target.dataset.removeParent, p?.name || '');
+    return;
+  }
+  if (target.dataset.copyUid){
+    e.stopPropagation();
+    copyToClipboard(target.dataset.copyUid);
+    return;
+  }
+  if (target.dataset.removeLink){
+    removeLink(target.dataset.removeLink);
+    return;
+  }
+});
+
+document.addEventListener('dblclick', e => {
+  const row = e.target.closest('tr[data-id]');
+  if (row && canEdit){
+    editParent(row.dataset.id);
+  }
+});
+
+/* ===================== РОДИТЕЛЬ: модалка ===================== */
+function openParentModal(id = null){
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
+  $('parentId').value = '';
+  $('parentName').value = '';
+  $('parentEmail').value = '';
+  $('parentModalTitle').textContent = id ? 'Редактировать родителя' : 'Добавить родителя';
+  $('parentModalSubtitle').textContent = id
+    ? 'Измените данные и сохраните'
+    : 'Заполните данные родителя';
+  showFormError('parentFormError', '');
+  $('parentModal').classList.add('active');
+  setTimeout(() => $('parentName').focus(), 80);
+
+  if (id){
+    const p = parentMap.get(id);
+    if (p){
+      $('parentId').value = id;
+      $('parentName').value = p.name || '';
+      $('parentEmail').value = p.email || '';
+    }
+  }
+}
+
+function editParent(id){ openParentModal(id); }
+
+async function saveParent(e){
+  e.preventDefault();
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
+
+  const id = $('parentId').value;
+  const name = $('parentName').value.trim();
+  const email = $('parentEmail').value.trim().toLowerCase();
+
+  if (!name) return;
+  showFormError('parentFormError', '');
+
+  if (email){
+    const dupEmail = parents.find(p => p.id !== id && norm(p.email) === email);
+    if (dupEmail){
+      showFormError('parentFormError', `Родитель с email «${email}» уже существует: ${dupEmail.name}`);
+      return;
+    }
+  }
+  const dupName = parents.find(p =>
+    p.id !== id &&
+    norm(p.name) === norm(name) &&
+    (!email || !p.email || norm(p.email) === email)
+  );
+  if (dupName && !email){
+    showFormError('parentFormError', `Родитель с ФИО «${name}» уже существует. Добавьте email для различения.`);
+    return;
+  }
+
+  const btn = $('parentSaveBtn');
+  if (btn) btn.disabled = true;
+  showLoading(true);
+  try {
+    const db = firebase.firestore();
+    if (id){
+      await db.collection('users').doc(id).update({ name, email });
+      toast('Родитель обновлён', 'success');
+    } else {
+      await db.collection('users').add({
+        name,
+        email,
+        role: 'parent',
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      toast('Родитель добавлен', 'success');
+    }
+    closeModal('parentModal');
+    await loadAll();
+  } catch (err){
+    console.error(err);
+    showFormError('parentFormError', 'Ошибка: ' + (err.message || err));
+  } finally {
+    if (btn) btn.disabled = false;
+    showLoading(false);
+  }
+}
+
+async function removeParent(id, name){
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
+  const children = getChildrenOfParent(id);
+  const msg = children.length
+    ? `Удалить родителя «${name}»?\n\nУ него ${children.length} привязанных детей — связи тоже будут удалены.`
+    : `Удалить родителя «${name}»?`;
+  if (!confirm(msg)) return;
+
+  showLoading(true);
+  try {
+    const db = firebase.firestore();
+    const batch = db.batch();
+    links.filter(l => l.parentId === id).forEach(l => {
+      batch.delete(db.collection('links').doc(l.id));
+    });
+    batch.delete(db.collection('users').doc(id));
+    await batch.commit();
+    toast('Родитель удалён', 'success');
+    await loadAll();
+  } catch (err){
+    console.error(err);
+    toast('Ошибка удаления: ' + (err.message || err), 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+/* ===================== СВЯЗЬ: модалка ===================== */
+function openLinkModal(){
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
+  if (!parents.length){
+    toast('Сначала добавьте родителей', 'error');
+    return;
+  }
+  if (!students.length){
+    toast(isCurator ? 'У вас нет студентов в ваших группах' : 'Нет студентов', 'error');
+    return;
+  }
+
+  selectedParentId = null;
+  selectedStudentId = null;
+  $('linkParent').value = '';
+  $('linkStudent').value = '';
+  $('linkParentLabel').textContent = '— выберите родителя —';
+  $('linkParentLabel').classList.add('placeholder');
+  $('linkStudentLabel').textContent = '— выберите студента —';
+  $('linkStudentLabel').classList.add('placeholder');
+  $('linkParentSelect').classList.remove('selected');
+  $('linkStudentSelect').classList.remove('selected');
+
+  $('linkStudentHint').textContent = isCurator
+    ? `Доступны только студенты ваших групп: ${curatorGroupIds.map(id => groups[id]).join(', ') || '—'}`
+    : '';
+
+  showFormError('linkFormError', '');
+  $('linkModal').classList.add('active');
+
+  renderParentOptions('');
+  renderStudentOptions('');
+}
+
+function renderParentOptions(query){
+  const q = norm(query);
+  const filtered = sortedParents.filter(p => !q || norm(p.name).includes(q));
+
+  const container = $('linkParentOptions');
+  if (!container) return;
+  if (!filtered.length){
+    container.innerHTML = `<div class="search-dropdown-empty">Ничего не найдено</div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(p => `
+    <div class="search-dropdown-item ${selectedParentId === p.id ? 'highlight' : ''}"
+         data-select-parent="${p.id}">
+      <span>${highlight(p.name || p.id, query)}</span>
+    </div>
+  `).join('');
+}
+
+function selectParent(id){
+  const p = parentMap.get(id);
+  if (!p) return;
+  selectedParentId = id;
+  $('linkParent').value = id;
+  $('linkParentLabel').textContent = p.name || p.id;
+  $('linkParentLabel').classList.remove('placeholder');
+  $('linkParentSelect').classList.add('selected');
+  closeSelects();
+}
+
+function toggleParentSelect(){
+  const el = $('linkParentSelect');
+  const isOpen = el.classList.contains('open');
+  closeSelects();
+  if (!isOpen){
+    el.classList.add('open');
+    renderParentOptions('');
+    setTimeout(() => $('linkParentSearch')?.focus(), 50);
+  }
+}
+
+function filterParentOptions(){
+  renderParentOptions($('linkParentSearch').value);
+}
+
+function renderStudentOptions(query){
+  const q = norm(query);
+  const filtered = sortedStudents.filter(s => {
+    if (!q) return true;
+    const gr = groups[s.groupId] || '';
+    return norm(s.fullName).includes(q)
+        || norm(s.name).includes(q)
+        || norm(gr).includes(q);
+  });
+
+  const container = $('linkStudentOptions');
+  if (!container) return;
+  if (!filtered.length){
+    container.innerHTML = `<div class="search-dropdown-empty">Ничего не найдено</div>`;
+    return;
+  }
+
+  const byGroup = new Map();
+  filtered.forEach(s => {
+    const gid = s.groupId || '__no_group__';
+    if (!byGroup.has(gid)) byGroup.set(gid, []);
+    byGroup.get(gid).push(s);
+  });
+
+  const sortedGroups = [...byGroup.keys()].sort((a, b) => {
+    if (a === '__no_group__') return 1;
+    if (b === '__no_group__') return -1;
+    return String(groups[a] || a).localeCompare(String(groups[b] || b), 'ru', { numeric: true });
+  });
+
+  let html = '';
+  sortedGroups.forEach(gid => {
+    const groupName = gid === '__no_group__' ? 'Без группы' : (groups[gid] || gid);
+    const gStud = byGroup.get(gid);
+    html += `<div class="search-dropdown-group">${esc(groupName)} · ${gStud.length}</div>`;
+    html += gStud.map(s => `
+      <div class="search-dropdown-item ${selectedStudentId === s.id ? 'highlight' : ''}"
+           data-select-student="${s.id}">
+        <span>${highlight(s.fullName || s.name || s.id, query)}</span>
+      </div>
+    `).join('');
+  });
+
+  container.innerHTML = html;
+}
+
+function selectStudent(id){
+  const s = studentMap.get(id);
+  if (!s) return;
+  selectedStudentId = id;
+  $('linkStudent').value = id;
+  const gr = groups[s.groupId] || '';
+  $('linkStudentLabel').textContent = (s.fullName || s.name) + (gr ? ` · ${gr}` : '');
+  $('linkStudentLabel').classList.remove('placeholder');
+  $('linkStudentSelect').classList.add('selected');
+  closeSelects();
+}
+
+function toggleStudentSelect(){
+  const el = $('linkStudentSelect');
+  const isOpen = el.classList.contains('open');
+  closeSelects();
+  if (!isOpen){
+    el.classList.add('open');
+    renderStudentOptions('');
+    setTimeout(() => $('linkStudentSearch')?.focus(), 50);
+  }
+}
+
+function filterStudentOptions(){
+  renderStudentOptions($('linkStudentSearch').value);
+}
+
+function closeSelects(){
+  document.querySelectorAll('.search-select.open').forEach(el => el.classList.remove('open'));
+}
+
+document.addEventListener('click', e => {
+  const parentItem = e.target.closest('[data-select-parent]');
+  if (parentItem){ selectParent(parentItem.dataset.selectParent); return; }
+  const studentItem = e.target.closest('[data-select-student]');
+  if (studentItem){ selectStudent(studentItem.dataset.selectStudent); return; }
+});
+
+async function saveLink(e){
+  e.preventDefault();
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
+
+  const parentId = $('linkParent').value;
+  const studentId = $('linkStudent').value;
+  if (!parentId || !studentId){
+    showFormError('linkFormError', 'Выберите родителя и студента');
+    return;
+  }
+  showFormError('linkFormError', '');
+
+  if (isCurator && !students.find(s => s.id === studentId)){
+    showFormError('linkFormError', 'Вы можете привязывать только студентов своих групп');
+    return;
+  }
+  if (links.some(l => l.parentId === parentId && l.studentId === studentId)){
+    showFormError('linkFormError', 'Такая связь уже существует');
+    return;
+  }
+
+  const btn = $('linkSaveBtn');
+  if (btn) btn.disabled = true;
+  showLoading(true);
+  try {
+    const db = firebase.firestore();
+    const linkId = `${parentId}_${studentId}`;
+    await db.collection('links').doc(linkId).set({
+      parentId,
+      studentId,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: currentUser?.uid || null
+    });
+    toast('Студент привязан', 'success');
+    closeModal('linkModal');
+    await loadAll();
+  } catch (err){
+    console.error(err);
+    showFormError('linkFormError', 'Ошибка: ' + (err.message || err));
+  } finally {
+    if (btn) btn.disabled = false;
+    showLoading(false);
+  }
+}
+
+async function removeLink(id){
+  if (!canEdit){ toast('Недостаточно прав', 'error'); return; }
+  if (!confirm('Отвязать студента от родителя?')) return;
+  showLoading(true);
+  try {
+    await firebase.firestore().collection('links').doc(id).delete();
+    toast('Связь удалена', 'success');
+    await loadAll();
+  } catch (err){
+    console.error(err);
+    toast('Ошибка: ' + (err.message || err), 'error');
+  } finally {
+    showLoading(false);
+  }
+}
+
+/* ===================== CSV ===================== */
+function exportParentsCSV(){
+  if (!parents.length){
+    toast('Нет данных для экспорта', 'error');
+    return;
+  }
+  const rows = [['ФИО', 'Email', 'UID', 'Кол-во детей']];
+  sortedParents.forEach(p => {
+    rows.push([p.name || '', p.email || '', p.id, getChildrenOfParent(p.id).length]);
+  });
+  const csv = rows
+    .map(r => r.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `parents_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('Экспортировано: ' + sortedParents.length, 'success');
+}
+
+async function importParentsCSV(e){
+  if (!canEdit){ toast('Недостаточно прав', 'error'); e.target.value = ''; return; }
+  const file = e.target.files?.[0];
+  if (!file) return;
+  e.target.value = '';
+
+  const text = await file.text();
+  const lines = text.split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2){
+    toast('CSV пустой или без данных', 'error');
+    return;
+  }
+
+  function parseLine(line){
+    const out = [];
+    let cur = '', inQ = false;
+    for (let i = 0; i < line.length; i++){
+      const ch = line[i];
+      if (inQ){
+        if (ch === '"' && line[i + 1] === '"'){ cur += '"'; i++; }
+        else if (ch === '"') inQ = false;
+        else cur += ch;
+      } else {
+        if (ch === '"') inQ = true;
+        else if (ch === ','){ out.push(cur); cur = ''; }
+        else cur += ch;
+      }
+    }
+    out.push(cur);
+    return out.map(s => s.trim());
+  }
+
+  const header = parseLine(lines[0]).map(h => h.toLowerCase());
+  const nameIdx = header.findIndex(h => h.includes('фио') || h.includes('name') || h.includes('имя'));
+  const emailIdx = header.findIndex(h => h.includes('email') || h.includes('почт'));
+  if (nameIdx === -1){
+    toast('В CSV нет колонки «ФИО»/«Name»', 'error');
+    return;
+  }
+
+  const items = [];
+  for (let i = 1; i < lines.length; i++){
+    const cols = parseLine(lines[i]);
+    const name = cols[nameIdx]?.trim();
+    const email = emailIdx >= 0 ? (cols[emailIdx]?.trim().toLowerCase() || '') : '';
+    if (!name) continue;
+    items.push({ name, email });
+  }
+  if (!items.length){
+    toast('Нет валидных строк', 'error');
+    return;
+  }
+
+  if (!confirm(`Найдено ${items.length} записей для импорта.\n\nДубликаты будут пропущены.\n\nИмпортировать?`)) return;
+
+  showLoading(true);
+  let added = 0, skipped = 0, failed = 0;
+  try {
+    const db = firebase.firestore();
+    for (const item of items){
+      const dupEmail = item.email && parents.some(p => norm(p.email) === item.email);
+      const dupName = !item.email && parents.some(p => norm(p.name) === norm(item.name));
+      if (dupEmail || dupName){ skipped++; continue; }
+
+      try {
+        await db.collection('users').add({
+          name: item.name,
+          email: item.email,
+          role: 'parent',
+          createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+          importedAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+        added++;
+      } catch (err){
+        console.error(err);
+        failed++;
+      }
+    }
+    toast(`Добавлено: ${added}, пропущено: ${skipped}${failed ? `, ошибок: ${failed}` : ''}`, 'success');
+  } catch (err){
+    console.error(err);
+    toast('Ошибка импорта: ' + (err.message || err), 'error');
+  } finally {
+    await loadAll();
+    showLoading(false);
+  }
+}
+
+/* ===================== UI ===================== */
+function closeModal(id){
+  const el = $(id);
+  if (el) el.classList.remove('active');
+  if (id === 'linkModal') closeSelects();
+}
+
+function tryCloseModal(id){
+  const modal = $(id);
+  if (!modal) return;
+  if (id === 'parentModal'){
+    const p = parentMap.get($('parentId').value);
+    const changed =
+      $('parentName').value.trim() !== (p?.name || '') ||
+      $('parentEmail').value.trim() !== (p?.email || '');
+    if (changed && !confirm('Изменения не сохранены. Закрыть?')) return;
+  }
+  if (id === 'linkModal'){
+    const changed = !!($('linkParent').value || $('linkStudent').value);
+    if (changed && !confirm('Данные не сохранены. Закрыть?')) return;
+  }
+  closeModal(id);
+}
+
+document.querySelectorAll('.modal-overlay').forEach(ov => {
+  ov.addEventListener('click', e => {
+    if (e.target === ov) tryCloseModal(ov.id);
+  });
+});
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.search-select')) closeSelects();
+});
+
+document.querySelectorAll('nav.tabs button, .bottom-nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const tab = btn.dataset.tab;
+    document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.bottom-nav-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+    document.querySelectorAll('.tab-content').forEach(s => s.classList.toggle('active', s.id === 'tab-' + tab));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+});
+
+/* ===================== ТЕМА ===================== */
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (meta) meta.setAttribute('content', next === 'dark' ? '#0f172a' : '#1e293b');
+}
+
+(function initTheme(){
+  const saved = localStorage.getItem('theme');
+  if (saved === 'dark' || (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches)){
+    document.documentElement.setAttribute('data-theme', 'dark');
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', '#0f172a');
+  }
+})();
+
+/* ===================== ОФФЛАЙН ===================== */
+function updateOnlineStatus(){
+  const banner = $('offlineBanner');
+  if (!banner) return;
+  if (!navigator.onLine) banner.classList.add('show');
+  else banner.classList.remove('show');
+}
+window.addEventListener('online', updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
+window.addEventListener('load', updateOnlineStatus);
+
+/* ===================== ГОРЯЧИЕ КЛАВИШИ ===================== */
+document.addEventListener('keydown', e => {
+  const tag = document.activeElement?.tagName;
+  const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+  if (e.key === 'Escape'){
+    closeSelects();
+    document.querySelectorAll('.modal-overlay.active').forEach(m => tryCloseModal(m.id));
+    return;
+  }
+
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k'){
+    e.preventDefault();
+    const activeTab = document.querySelector('nav.tabs button.active')?.dataset.tab
+                   || document.querySelector('.bottom-nav-btn.active')?.dataset.tab
+                   || 'parents';
+    const searchInput = $({ parents: 'parentsSearch', links: 'linksSearch', students: 'studentsSearch' }[activeTab]);
+    if (searchInput){ searchInput.focus(); searchInput.select(); }
+    return;
+  }
+
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'n'){
+    e.preventDefault();
+    if (canEdit && !document.querySelector('.modal-overlay.active')) openParentModal();
+    return;
+  }
+
+  if (!isInput && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')){
+    const activeTab = document.querySelector('nav.tabs button.active')?.dataset.tab
+                   || document.querySelector('.bottom-nav-btn.active')?.dataset.tab
+                   || 'parents';
+    const current = pagination[activeTab];
+    if (e.key === 'ArrowLeft' && current > 1){
+      pagination[activeTab]--;
+      if (activeTab === 'parents') renderParents();
+      if (activeTab === 'links') renderLinks();
+      if (activeTab === 'students') renderStudents();
+    }
+    if (e.key === 'ArrowRight'){
+      pagination[activeTab]++;
+      if (activeTab === 'parents') renderParents();
+      if (activeTab === 'links') renderLinks();
+      if (activeTab === 'students') renderStudents();
+    }
+  }
+});
+
+/* ===================== АВТОРИЗАЦИЯ ===================== */
+firebase.auth().onAuthStateChanged(async function(user){
+  if (!user){
+    $('userName').textContent = 'Не авторизован';
+    $('userAvatar').textContent = '?';
+    $('roleBadge').textContent = '—';
+    $('topbarSubtitle').textContent = 'Требуется вход в систему';
+    const sp = $('splash');
+    if (sp) sp.classList.add('hide');
+    toast('Вы не авторизованы. Войдите в систему.', 'error');
+    setTimeout(() => { window.location.href = 'login.html'; }, 1200);
+    return;
+  }
+
+  try {
+    const db = firebase.firestore();
+    const doc = await db.collection('users').doc(user.uid).get();
+    if (doc.exists){
+      currentUser = { uid: user.uid, id: doc.id, ...doc.data() };
+    } else {
+      currentUser = { uid: user.uid, email: user.email, role: 'guest' };
+    }
+
+    isAdmin = currentUser.role === 'admin';
+    isCurator = currentUser.role === 'curator';
+    canEdit = isAdmin || isCurator;
+
+    const fio = currentUser.name || currentUser.email || user.uid;
+    $('userName').textContent = fio;
+    $('userAvatar').textContent = getInitials(fio);
+
+    const badge = $('roleBadge');
+    badge.textContent = isAdmin ? 'Админ' : isCurator ? 'Куратор' : (currentUser.role || 'Гость');
+    badge.className = 'role-badge ' + (isAdmin ? 'admin' : isCurator ? 'curator' : (currentUser.role === 'parent' ? 'parent' : 'guest'));
+
+    if (!canEdit){
+      $('accessBanner').classList.add('show');
+      $('accessBannerText').textContent = 'Только чтение — редактирование доступно администратору и куратору.';
+    }
+
+    await loadAll();
+  } catch (err){
+    console.error(err);
+    toast('Ошибка инициализации: ' + (err.message || err), 'error');
+    const sp = $('splash');
+    if (sp) sp.classList.add('hide');
+  }
+});
+
+/* ===================== ЭКСПОРТ В ГЛОБАЛ ===================== */
+Object.assign(window, {
+  openParentModal, editParent, removeParent, saveParent,
+  openLinkModal, saveLink, removeLink,
+  closeModal, tryCloseModal, toggleParent, toggleTheme,
+  closeSelects, reloadData,
+  onParentsSearch, onLinksSearch, onStudentsSearch,
+  clearSearch,
+  exportParentsCSV, importParentsCSV,
+  toggleParentSelect, toggleStudentSelect,
+  filterParentOptions, filterStudentOptions,
+  selectParent, selectStudent,
+  copyToClipboard,
+  goHome
+});
+</script>
+
+</body>
+</html>
